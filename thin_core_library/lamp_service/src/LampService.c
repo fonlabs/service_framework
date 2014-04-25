@@ -1,0 +1,785 @@
+/******************************************************************************
+ * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ *
+ *    Permission to use, copy, modify, and/or distribute this software for any
+ *    purpose with or without fee is hereby granted, provided that the above
+ *    copyright notice and this permission notice appear in all copies.
+ *
+ *    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ *    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ *    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ *    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ *    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ ******************************************************************************/
+
+#include <aj_target.h>
+#include <aj_link_timeout.h>
+#include <aj_debug.h>
+#include <alljoyn.h>
+#include <aj_guid.h>
+#include <aj_crypto.h>
+#include <aj_nvram.h>
+#include <aj_config.h>
+#include <aj_bus.h>
+#include <aj_msg.h>
+
+#include <aj_about.h>
+#include <alljoyn/config/ConfigService.h>
+#include <alljoyn/notification/NotificationProducer.h>
+
+#include <alljoyn/services_common/ServicesCommon.h>
+#include <alljoyn/services_common/PropertyStore.h>
+#include <alljoyn/services_common/ServicesHandlers.h>
+
+#include <LampService.h>
+#include <OEMCode.h>
+#include <LampState.h>
+#include <LampAboutData.h>
+#include <LampOnboarding.h>
+
+/**
+ * Per-module definition of the current module for debug logging.  Must be defined
+ * prior to first inclusion of aj_debug.h
+ */
+#define AJ_MODULE LAMP_SERVICE
+
+static const uint16_t LSF_ServicePort = 42;
+static const char* ROUTER_NAME = "org.allseen.LSF.RoutingNode";
+static uint32_t ControllerSessionID = 0;
+static uint8_t SendStateChanged = FALSE;
+
+static const char LSF_Interface_Name[] = "org.allseen.LSF.LampService";
+static const uint32_t LSF_Interface_Version = 1;
+static const char* const LSF_Interface[] = {
+    LSF_Interface_Name,
+    "@Version>u",
+    "@LSFVersion>u",
+    "?ClearLampFault LampFaultCode<u LampResponseCode>u",
+    "@LampFaults>au",
+    "@RemainingLife>u",
+    NULL
+};
+
+static const char LSF_Parameters_Interface_Name[] = "org.allseen.LSF.LampParameters";
+static const uint32_t LSF_Parameters_Interface_Version = 1;
+static const char* const LSF_Parameters_Interface[] = {
+    LSF_Parameters_Interface_Name,
+    "@Version>u",
+    "@power_draw_milliamps>u",
+    "@output>u",
+    NULL
+};
+
+static const char LSF_Details_Interface_Name[] = "org.allseen.LSF.LampDetails";
+static const uint32_t LSF_Details_Interface_Version = 1;
+static const char* const LSF_Details_Interface[] = {
+    LSF_Details_Interface_Name,
+    "@Version>u",
+    "@HardwareVersion>u",
+    "@FirmwareVersion>u",
+    "@Manufacture>s",
+    "@Make>s",
+    "@Model>s",
+    "@Type>s",
+    "@LampType>s",
+    "@LampBaseType>s",
+    "@LampBeamAngle>u",
+    "@Dimmable>b",
+    "@Color>s",
+    "@VariableColorTemperature>b",
+    "@HasEffects>b",
+    "@Voltage>u",
+    "@Wattage>u",
+    "@WattageEquivalent>u",
+    "@MaxOutput>u",
+    "@MinTemperature>u",
+    "@MaxTemperature>u",
+    "@ColorRenderingIndex>u",
+    "@Lifespan>u",
+    "@NodeID>s",
+    NULL
+};
+
+static const char LSF_State_Interface_Name[] = "org.allseen.LSF.LampState";
+static const uint32_t LSF_State_Interface_Version = 1;
+static const char* const LSF_State_Interface[] = {
+    LSF_State_Interface_Name,
+    "@Version>u",
+    "?SetLampState Timestamp<t NewState<a{sv} LampResponseCode>u",
+    "!LampStateChanged LampID>s",
+    "@OnOff>b",
+    "@hue>u",
+    "@saturation>u",
+    "@colorTemperature>u",
+    "@brightness>u",
+    NULL
+};
+
+static const AJ_InterfaceDescription LSF_Interfaces[] = {
+    AJ_PropertiesIface,
+    LSF_Interface,
+    LSF_Parameters_Interface,
+    LSF_Details_Interface,
+    LSF_State_Interface,
+    NULL
+};
+
+static AJ_Object LSF_AllJoynObjects[] = {
+    IOE_SERVICES_APPOBJECTS
+    { "/org/allseen/LSF/Lamp", LSF_Interfaces, AJ_OBJ_FLAG_ANNOUNCED },
+    { NULL }
+};
+
+
+uint32_t LAMP_GetServiceVersion(void)
+{
+    return (uint32_t) 1;
+}
+
+#define LSF_PROP_IFACE 0
+#define LSF_IFACE 1
+#define LSF_IFACE_PARAMS 2
+#define LSF_IFACE_DETAILS 3
+#define LSF_IFACE_STATE 4
+
+#define APP_GET_PROP        AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_GET)
+#define APP_GET_PROP_ALL    AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_GET_ALL)
+
+#define LSF_PROP_VERSION            AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 0)
+#define LSF_PROP_LSF_VERSION        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 1)
+#define LSF_METHOD_CLEARLAMPFAULTS  AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 2)
+#define LSF_PROP_FAULTS             AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 3)
+#define LSF_PROP_REMAINING_LIFE     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 4)
+
+
+// Run-time Parameters
+#define LSF_PROP_PARAMS_VERSION    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 0)
+#define LSF_PROP_PARAMS_POWER_DRAW AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 1)
+#define LSF_PROP_PARAMS_OUTPUT       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 2)
+
+
+// Compile-time Details
+#define LSF_PROP_DETAILS_VERSION        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 0)
+#define LSF_PROP_DETAILS_HWVERSION      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 1)
+#define LSF_PROP_DETAILS_FWVERSION      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 2)
+#define LSF_PROP_DETAILS_MANUFACTURER   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 3)
+#define LSF_PROP_DETAILS_MAKE           AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 4)
+#define LSF_PROP_DETAILS_MODEL          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 5)
+#define LSF_PROP_DETAILS_DEV_TYPE       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 6)
+#define LSF_PROP_DETAILS_LAMP_TYPE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 7)
+#define LSF_PROP_DETAILS_BASETYPE       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 8)
+#define LSF_PROP_DETAILS_BEAMANGLE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 9)
+#define LSF_PROP_DETAILS_DIMMABLE       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 10)
+#define LSF_PROP_DETAILS_COLOR          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 11)
+#define LSF_PROP_DETAILS_VARCOLORTEMP   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 12)
+#define LSF_PROP_DETAILS_HASEFFECTS     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 13)
+#define LSF_PROP_DETAILS_VOLTAGE        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 14)
+#define LSF_PROP_DETAILS_WATTAGE        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 15)
+#define LSF_PROP_DETAILS_WATTEQV        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 16)
+#define LSF_PROP_DETAILS_MAXOUTPUT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 17)
+#define LSF_PROP_DETAILS_MINTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 18)
+#define LSF_PROP_DETAILS_MAXTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 19)
+#define LSF_PROP_DETAILS_CRI            AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 20)
+#define LSF_PROP_DETAILS_LIFESPAN       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 21)
+#define LSF_PROP_DETAILS_NODEID         AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 22)
+
+// Run-time Lamp State
+#define LSF_PROP_STATE_VERSION          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 0)
+#define LSF_METHOD_STATE_SETSTATE       AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 1)
+#define LSF_SIGNAL_STATE_STATECHANGED   AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 2)
+#define LSF_PROP_STATE_ONOFF    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 3)
+#define LSF_PROP_STATE_HUE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 4)
+#define LSF_PROP_STATE_SAT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 5)
+#define LSF_PROP_STATE_TEMP     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 6)
+#define LSF_PROP_STATE_BRIGHT   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 7)
+
+
+
+static uint32_t MyBusAuthPwdCB(uint8_t* buf, uint32_t bufLen)
+{
+    const char* myPwd = "000000";
+    strncpy((char*) buf, myPwd, bufLen);
+    return (uint32_t) strlen(myPwd);
+}
+
+static AJ_BusAttachment Bus;
+
+static uint8_t PendingFaultNotification = FALSE;
+void LAMP_SetFaults()
+{
+    PendingFaultNotification = TRUE;
+}
+
+void LAMP_ClearFaults()
+{
+    PendingFaultNotification = FALSE;
+}
+
+/*
+ * We currently check for faults when one second has passed between messages.
+ * This is because we can only have two AJ_Message's at a time due to memory
+ * limitations.  Those two messages are already used in the message handlers
+ * for (1) the incoming message and (2) the reply.
+ */
+static void CheckForFaults(void)
+{
+    static uint32_t FaultNotificationSerialNumber = 0;
+    AJNS_NotificationContent NotificationContent;
+    // if new faults have occured, send a notification
+
+    NotificationContent.originalSenderName = AJ_GetUniqueName(&Bus);
+
+    if (FaultNotificationSerialNumber != 0 && !PendingFaultNotification) {
+        // turn OFF notification
+        AJNS_Producer_CancelNotification(&Bus, FaultNotificationSerialNumber);
+        FaultNotificationSerialNumber = 0;
+    } else if (FaultNotificationSerialNumber == 0 && PendingFaultNotification) {
+        // turn ON notification
+        uint16_t messageType = AJNS_NOTIFICATION_MESSAGE_TYPE_WARNING;
+        uint32_t ttl = AJNS_NOTIFICATION_TTL_MAX;
+
+        // if we clear this now, the Notification will be pulled on the next
+        // pass through the event loop
+        //PendingFaultNotification = FALSE;
+        AJNS_Producer_SendNotification(&Bus, &NotificationContent, messageType, ttl, &FaultNotificationSerialNumber);
+    }
+}
+
+/*
+ * We do this on the side, the same as checking for faults.
+ */
+static void CheckForStateChanged(void)
+{
+    if (ControllerSessionID != 0 && SendStateChanged == TRUE) {
+        printf("\n%s\n", __FUNCTION__);
+        AJ_Message sig_out;
+        AJ_MarshalSignal(&Bus, &sig_out, LSF_SIGNAL_STATE_STATECHANGED, NULL, ControllerSessionID, 0, 0);
+        AJ_MarshalArgs(&sig_out, "s", LAMP_GetID());
+        AJ_DeliverMsg(&sig_out);
+        AJ_CloseMsg(&sig_out);
+
+        // no need to send this again.
+        SendStateChanged = FALSE;
+    }
+
+    // what if SendStateChanged==TRUE and no session?
+    // cancel?  or wait until a session is accepted?
+}
+
+
+#define CONNECT_TIMEOUT    (1000 * 1000)
+#define UNMARSHAL_TIMEOUT  (1000 * 2)
+#define DEFAULT_TIMEOUT    (1000 * 5)
+
+
+void LAMP_RunService(void)
+{
+    LAMP_RunServiceWithCallback(DEFAULT_TIMEOUT, NULL);
+}
+
+
+static AJ_Status ConnectToRouter(void)
+{
+    AJ_Status status;
+    AJ_Time timer;
+
+    AJ_InfoPrintf(("%s: daemonName=\"%s\"\n", __FUNCTION__, ROUTER_NAME));
+
+    AJ_InitTimer(&timer);
+
+    do {
+        if (AJ_GetElapsedTime(&timer, TRUE) > CONNECT_TIMEOUT) {
+            return AJ_ERR_TIMEOUT;
+        }
+#ifdef ONBOARDING_SERVICE
+        if (AJOBS_ControllerAPI_IsWiFiClient()) {
+#endif
+        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __FUNCTION__));
+        status = AJ_FindBusAndConnect(&Bus, ROUTER_NAME, AJ_CONNECT_TIMEOUT);
+#ifdef ONBOARDING_SERVICE
+    } else if (AJOBS_ControllerAPI_IsWiFiSoftAP()) {
+        // we are in soft-AP mode so use the BusNode router
+        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __FUNCTION__));
+        status = AJ_FindBusAndConnect(&Bus, NULL, AJ_CONNECT_TIMEOUT);
+    }
+#endif
+
+        if (status != AJ_OK) {
+            AJ_WarnPrintf(("ConnectToRouter(): connect failed: sleeping for %d seconds\n", AJ_CONNECT_PAUSE / 1000));
+            AJ_Sleep(AJ_CONNECT_PAUSE);
+            continue;
+        }
+    } while (status != AJ_OK);
+
+    if (status == AJ_OK) {
+        AJ_InfoPrintf(("%s: Connected to Daemon:%s\n", __FUNCTION__, AJ_GetUniqueName(&Bus)));
+    }
+
+    return status;
+}
+
+static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status);
+
+void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
+{
+    AJ_Status status = AJ_OK;
+    uint8_t connected = FALSE;
+    AJ_Time timer;
+
+    /*
+     * One time initialization before calling any other AllJoyn APIs
+     */
+    AJ_Initialize();
+
+    AJ_PrintXML(LSF_AllJoynObjects);
+    AJ_RegisterObjects(LSF_AllJoynObjects, NULL);
+
+    SetBusAuthPwdCallback(MyBusAuthPwdCB);
+
+    LAMP_SetupAboutConfigData();
+
+    // announce all of our IOE objects;
+    // this call might not be necessary
+    AJ_AboutSetAnnounceObjects(LSF_AllJoynObjects);
+
+    OEM_Initialize();
+
+#ifdef ONBOARDING_SERVICE
+    // initialize onboarding!
+    LAMP_InitOnboarding();
+#endif
+
+    while (TRUE) {
+        AJ_Message msg;
+
+#ifdef ONBOARDING_SERVICE
+        // if not connected to wifi, attempt to connect or start
+        // a soft AP for onboarding
+        while (!AJOBS_IsWiFiConnected()) {
+            status = AJOBS_EstablishWiFi();
+        }
+#endif
+
+        if (!connected) {
+            status = ConnectToRouter();
+
+            if (status == AJ_OK) {
+                // inform all services we are connected to the bus
+                status = AJSVC_ConnectedHandler(&Bus);
+            }
+
+            if (status == AJ_OK) {
+                AJ_SessionOpts session_opts = { AJ_SESSION_TRAFFIC_MESSAGES, AJ_SESSION_PROXIMITY_ANY, AJ_TRANSPORT_ANY, TRUE };
+                // we need to bind the session port to run a service
+                AJ_InfoPrintf(("%s: AJ_BindSessionPort()\n", __FUNCTION__));
+                status = AJ_BusBindSessionPort(&Bus, LSF_ServicePort, &session_opts, 0);
+            }
+
+            connected = TRUE;
+
+            AJ_BusSetPasswordCallback(&Bus, LAMP_PasswordCallback);
+            /* Configure timeout for the link to the daemon bus */
+            AJ_SetBusLinkTimeout(&Bus, 60); // 60 seconds
+
+            // start a timer
+            AJ_InitTimer(&timer);
+        }
+
+        // use a minimum two-second timeout to ensure the callback is *eventually* reached
+        status = AJ_UnmarshalMsg(&Bus, &msg, min(timeout, UNMARSHAL_TIMEOUT));
+        if (AJ_ERR_TIMEOUT == status && AJ_ERR_LINK_TIMEOUT == AJ_BusLinkStateProc(&Bus)) {
+            status = AJ_ERR_READ;
+        }
+
+        if (status == AJ_OK) {
+            switch (msg.msgId) {
+
+            case AJ_REPLY_ID(AJ_METHOD_ADD_MATCH):
+                if (msg.hdr->msgType == AJ_MSG_ERROR) {
+                    AJ_InfoPrintf(("%s: Failed to add match\n", __FUNCTION__));
+                    status = AJ_ERR_FAILURE;
+                } else {
+                    status = AJ_OK;
+                }
+                break;
+
+            case AJ_REPLY_ID(AJ_METHOD_BIND_SESSION_PORT):
+                if (msg.hdr->msgType == AJ_MSG_ERROR) {
+                    AJ_ErrPrintf(("%s: AJ_METHOD_BIND_SESSION_PORT: AJ_ERR_FAILURE\n", __FUNCTION__));
+                    status = AJ_ERR_FAILURE;
+                } else {
+                    AJ_InfoPrintf(("%s: AJ_BusRequestName()\n", __FUNCTION__));
+                    // announce now
+                    AJ_InfoPrintf(("%s: Initializing About!\n", __FUNCTION__));
+                    status = AJ_AboutInit(&Bus, LSF_ServicePort);
+                }
+                break;
+
+            case AJ_METHOD_ACCEPT_SESSION:
+                {
+                    uint16_t port;
+                    char* joiner;
+                    AJ_UnmarshalArgs(&msg, "qus", &port, &ControllerSessionID, &joiner);
+                    if (port == LSF_ServicePort) {
+                        status = AJ_BusReplyAcceptSession(&msg, TRUE);
+                        AJ_InfoPrintf(("%s: Accepted session session_id=%u joiner=%s\n", __FUNCTION__, ControllerSessionID, joiner));
+                    } else {
+                        status = AJ_BusReplyAcceptSession(&msg, FALSE);
+                        AJ_InfoPrintf(("%s: Accepted rejected session_id=%u joiner=%s\n", __FUNCTION__, ControllerSessionID, joiner));
+                    }
+
+                    break;
+                }
+
+            case AJ_SIGNAL_SESSION_LOST_WITH_REASON:
+                {
+                    // this might not be an error.
+                    uint32_t id, reason;
+                    AJ_UnmarshalArgs(&msg, "uu", &id, &reason);
+                    // there is only ever one session
+                    assert(id == ControllerSessionID);
+                    ControllerSessionID = 0;
+                    // cancel signal
+                    SendStateChanged = FALSE;
+                    AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u", __FUNCTION__, id, reason));
+                    status = AJ_ERR_SESSION_LOST;
+                    break;
+                }
+
+            default:
+                {
+                    // try to process with Config
+                    AJSVC_ServiceStatus serv_status = AJCFG_MessageProcessor(&Bus, &msg, &status);
+
+#ifdef ONBOARDING_SERVICE
+                    if (serv_status == AJSVC_SERVICE_STATUS_NOT_HANDLED) {
+                        serv_status = AJOBS_MessageProcessor(&Bus, &msg, &status);
+                    }
+#endif
+                    if (serv_status == AJSVC_SERVICE_STATUS_NOT_HANDLED) {
+                        // let the notification produer object attempt to handle this message
+                        serv_status = AJNS_Producer_MessageProcessor(&Bus, &msg, &status);
+                    }
+
+                    if (serv_status == AJSVC_SERVICE_STATUS_NOT_HANDLED) {
+                        // let the LSF service attempt to handle this message
+                        serv_status = LAMP_HandleMessage(&msg, &status);
+                    }
+
+                    if (serv_status == AJSVC_SERVICE_STATUS_NOT_HANDLED) {
+                        /*
+                         * Pass to the built-in bus message handlers.
+                         * This will also handle messages for the About object
+                         */
+                        status = AJ_BusHandleBusMessage(&msg);
+                    }
+                    break;
+                }
+            } // end switch
+
+            // Any received packets indicates the link is active, so call to reinforce the bus link state
+            AJ_NotifyLinkActive();
+        }
+
+        /*
+         * Unarshaled messages must be closed to free resources
+         */
+        AJ_CloseMsg(&msg);
+
+        // check for anything that must go out now
+        CheckForFaults();
+        CheckForStateChanged();
+
+        // we might make a timer callback even if we just processed a message
+        if (callback != NULL && AJ_GetElapsedTime(&timer, TRUE) >= timeout) {
+            // restart the timer
+            AJ_InitTimer(&timer);
+            (*callback)();
+        }
+
+
+        if (status == AJ_ERR_READ || status == AJ_ERR_RESTART || status == AJ_ERR_RESTART_APP) {
+            AJ_InfoPrintf(("%s: AllJoyn disconnect\n", __FUNCTION__));
+            AJ_InfoPrintf(("%s: Disconnected from Daemon:%s\n", __FUNCTION__, AJ_GetUniqueName(&Bus)));
+            AJSVC_DisconnectHandler(&Bus);
+            AJ_Disconnect(&Bus);
+            connected = FALSE;
+
+#ifdef ONBOARDING_SERVICE
+            // disconnect from wifi and reconnect at the top of the loop
+            status = AJOBS_DisconnectWiFi();
+#endif
+
+            if (status == AJ_ERR_RESTART_APP) {
+                AJ_Reboot();
+            }
+            /*
+             * Sleep a little while before trying to reconnect
+             */
+            AJ_Sleep(10 * 1000);
+        }
+    }
+}
+
+void LAMP_SendStateChangedSignal(void)
+{
+    printf("\n%s\n", __FUNCTION__);
+    SendStateChanged = TRUE;
+}
+
+static AJ_Status ClearLampFault(AJ_Message* msg)
+{
+    LampResponseCode rc = LAMP_OK;
+    uint32_t faultCode;
+    AJ_Message reply;
+    AJ_MarshalReplyMsg(msg, &reply);
+    AJ_MarshalArgs(&reply, "s", LAMP_GetID());
+
+    AJ_UnmarshalArgs(msg, "u", &faultCode);
+    rc = OEM_ClearLampFault(faultCode);
+
+    AJ_MarshalArgs(&reply, "uu", (uint32_t) faultCode, (uint32_t) rc);
+    AJ_DeliverMsg(&reply);
+    AJ_CloseMsg(&reply);
+
+    return AJ_OK;
+}
+
+// Timestamp<t NewState<a{sv} LampResponseCode>u
+static AJ_Status SetLampState(AJ_Message* msg)
+{
+    LampResponseCode rc = LAMP_OK;
+    LampState new_state;
+    uint32_t timestamp;
+
+    AJ_Message reply;
+    AJ_MarshalReplyMsg(msg, &reply);
+
+    AJ_UnmarshalArgs(msg, "u", &timestamp);
+    LAMP_UnmarshalState(&new_state, msg);
+
+    // apply the new state
+    rc = OEM_TransitionLampState(&new_state, timestamp);
+
+    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
+    AJ_DeliverMsg(&reply);
+    AJ_CloseMsg(&reply);
+    return AJ_OK;
+}
+
+
+static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
+{
+    LampState state;
+    LAMP_GetState(&state);
+
+    switch (propId) {
+    case LSF_PROP_STATE_ONOFF:
+        return AJ_MarshalArgs(replyMsg, "b", state.onOff);
+
+    case LSF_PROP_STATE_HUE:
+        return AJ_MarshalArgs(replyMsg, "u", state.hue);
+
+    case LSF_PROP_STATE_SAT:
+        return AJ_MarshalArgs(replyMsg, "u", state.saturation);
+
+    case LSF_PROP_STATE_TEMP:
+        return AJ_MarshalArgs(replyMsg, "u", state.colorTemp);
+
+    case LSF_PROP_STATE_BRIGHT:
+        return AJ_MarshalArgs(replyMsg, "u", state.brightness);
+
+    default:
+        return AJ_ERR_UNEXPECTED;
+    }
+}
+
+
+static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* context)
+{
+    switch (propId) {
+    // org.allseen.LSF.LampService
+    case LSF_PROP_VERSION:
+        return AJ_MarshalArgs(replyMsg, "u", LSF_Interface_Version);
+
+    case LSF_PROP_LSF_VERSION:
+        return AJ_MarshalArgs(replyMsg, "u", LAMP_GetServiceVersion());
+
+    case LSF_PROP_FAULTS:
+        {
+            AJ_Arg array1;
+            AJ_MarshalContainer(replyMsg, &array1, AJ_ARG_ARRAY);
+            OEM_GetLampFaults(replyMsg);
+            AJ_MarshalCloseContainer(replyMsg, &array1);
+            return AJ_OK;
+        }
+
+    case LSF_PROP_REMAINING_LIFE:
+        return AJ_MarshalArgs(replyMsg, "u", OEM_GetRemainingLife());
+
+
+    // run-time parameters
+    case LSF_PROP_PARAMS_VERSION:
+        return AJ_MarshalArgs(replyMsg, "u", LSF_Parameters_Interface_Version);
+
+    case LSF_PROP_PARAMS_POWER_DRAW:
+        return AJ_MarshalArgs(replyMsg, "u", OEM_GetPowerDraw());
+
+    case LSF_PROP_PARAMS_OUTPUT:
+        return AJ_MarshalArgs(replyMsg, "u", OEM_GetOutput());
+
+
+    // Compile-time Details
+    case LSF_PROP_DETAILS_VERSION:
+        return AJ_MarshalArgs(replyMsg, "u", LSF_Details_Interface_Version);
+
+    case LSF_PROP_DETAILS_HWVERSION:
+        return AJ_MarshalArgs(replyMsg, "u", OEM_GetHardwareVersion());
+
+    case LSF_PROP_DETAILS_FWVERSION:
+        return AJ_MarshalArgs(replyMsg, "u", OEM_GetFirmwareVersion());
+
+    case LSF_PROP_DETAILS_MANUFACTURER:
+        return AJ_MarshalArgs(replyMsg, "s", deviceManufactureName);
+
+    case LSF_PROP_DETAILS_MAKE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampMake);
+
+    case LSF_PROP_DETAILS_MODEL:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampModel);
+
+    case LSF_PROP_DETAILS_DEV_TYPE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceType);
+
+    case LSF_PROP_DETAILS_LAMP_TYPE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampType);
+
+    case LSF_PROP_DETAILS_BASETYPE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.baseType);
+
+    case LSF_PROP_DETAILS_BEAMANGLE:
+        return AJ_MarshalArgs(replyMsg, "s", LampDetails.deviceLampBeamAngle);
+
+    case LSF_PROP_DETAILS_DIMMABLE:
+        return AJ_MarshalArgs(replyMsg, "b", LampDetails.deviceDimmable);
+
+    case LSF_PROP_DETAILS_COLOR:
+        return AJ_MarshalArgs(replyMsg, "b", LampDetails.deviceColor);
+
+    case LSF_PROP_DETAILS_VARCOLORTEMP:
+        return AJ_MarshalArgs(replyMsg, "b", LampDetails.variableColorTemperature);
+
+    case LSF_PROP_DETAILS_HASEFFECTS:
+        return AJ_MarshalArgs(replyMsg, "b", LampDetails.deviceHasEffects);
+
+    case LSF_PROP_DETAILS_VOLTAGE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceVoltage);
+
+    case LSF_PROP_DETAILS_WATTAGE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceWattage);
+
+    case LSF_PROP_DETAILS_WATTEQV:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceWattageEquivalent);
+
+    case LSF_PROP_DETAILS_MAXOUTPUT:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxOutput);
+
+    case LSF_PROP_DETAILS_MINTEMP:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMinTemperature);
+
+    case LSF_PROP_DETAILS_MAXTEMP:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxTemperature);
+
+    case LSF_PROP_DETAILS_CRI:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceColorRenderingIndex);
+
+    case LSF_PROP_DETAILS_LIFESPAN:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceLifespan);
+
+    case LSF_PROP_DETAILS_NODEID:
+        return AJ_MarshalArgs(replyMsg, "s", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID));
+
+
+    // LampState properties
+    case LSF_PROP_STATE_VERSION:
+        return AJ_MarshalArgs(replyMsg, "u", LSF_State_Interface_Version);
+
+    case LSF_PROP_STATE_ONOFF:
+    case LSF_PROP_STATE_HUE:
+    case LSF_PROP_STATE_SAT:
+    case LSF_PROP_STATE_TEMP:
+    case LSF_PROP_STATE_BRIGHT:
+        return MarshalStateField(replyMsg, propId);
+
+    default:
+        return AJ_ERR_UNEXPECTED;
+    }
+}
+
+
+static AJ_Status GetAllProps(AJ_Message* msg)
+{
+    const char* iface;
+    AJ_Message reply;
+    AJ_Arg array1;
+
+    AJ_MarshalReplyMsg(msg, &reply);
+    AJ_MarshalContainer(&reply, &array1, AJ_ARG_ARRAY);
+
+    AJ_UnmarshalArgs(msg, "s", &iface);
+    if (0 == strcmp(iface, LSF_Interface_Name)) {
+        AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Interface_Version);
+        AJ_MarshalArgs(&reply, "{sv}", "LSFVersion", "u", LAMP_GetServiceVersion());
+        AJ_MarshalArgs(&reply, "{sv}", "RemainingLife", "u", OEM_GetRemainingLife());
+    } else if (0 == strcmp(iface, LSF_Parameters_Interface_Name)) {
+        AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Parameters_Interface_Version);
+        OEM_GetLampParameters(&reply);
+    } else if (0 == strcmp(iface, LSF_Details_Interface_Name)) {
+        AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Details_Interface_Version);
+        LAMP_MarshalDetails(&reply);
+    } else if (0 == strcmp(iface, LSF_State_Interface_Name)) {
+        AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_State_Interface_Version);
+        LampState state;
+        LAMP_GetState(&state);
+        LAMP_MarshalState(&state, &reply);
+    }
+
+    AJ_MarshalCloseContainer(&reply, &array1);
+    AJ_DeliverMsg(&reply);
+    AJ_CloseMsg(&reply);
+    return AJ_OK;
+}
+
+
+static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status)
+{
+    printf("\n%s\n", __FUNCTION__);
+    AJSVC_ServiceStatus serv_status = AJSVC_SERVICE_STATUS_HANDLED;
+
+    switch (msg->msgId) {
+
+    case APP_GET_PROP:
+        *status = AJ_BusPropGet(msg, PropGetHandler, NULL);
+        break;
+
+    case APP_GET_PROP_ALL:
+        *status = GetAllProps(msg);
+        break;
+
+    case LSF_METHOD_CLEARLAMPFAULTS:
+        *status = ClearLampFault(msg);
+        break;
+
+    case LSF_METHOD_STATE_SETSTATE:
+        *status = SetLampState(msg);
+        break;
+
+    default:
+        serv_status = AJSVC_SERVICE_STATUS_NOT_HANDLED;
+        break;
+    }
+
+    return serv_status;
+}
