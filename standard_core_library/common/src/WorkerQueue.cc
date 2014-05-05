@@ -14,33 +14,4 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
-
-#include <LampService.h>
-
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
-
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
-}
-
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
-#endif
+#include <WorkerQueue.h>

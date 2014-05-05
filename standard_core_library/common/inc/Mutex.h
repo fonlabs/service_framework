@@ -1,3 +1,5 @@
+#ifndef _MUTEX_H_
+#define _MUTEX_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,33 +16,30 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <pthread.h>
+#include <errno.h>
+#include <alljoyn/Status.h>
 
-#include <LampService.h>
+namespace lsf {
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+class Mutex {
+  public:
+    Mutex();
 
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    ~Mutex();
+
+    QStatus Lock();
+
+    QStatus Unlock();
+
+    pthread_mutex_t* GetMutex() { return &mutex; }
+
+  private:
+
+    pthread_mutex_t mutex;
+
+};
+
 }
 
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
 #endif

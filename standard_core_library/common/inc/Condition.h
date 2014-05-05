@@ -1,3 +1,5 @@
+#ifndef _CONDITION_H_
+#define _CONDITION_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,33 +16,31 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <pthread.h>
+#include <stdint.h>
+#include <Mutex.h>
 
-#include <LampService.h>
+namespace lsf {
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+class Condition {
+  public:
 
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    Condition();
+
+    ~Condition();
+
+    int Wait(Mutex& mutex, uint32_t timeout);
+
+    int Signal();
+
+    int Broadcast();
+
+  private:
+
+    pthread_cond_t condition;
+};
+
+
 }
 
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
 #endif

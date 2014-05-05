@@ -39,10 +39,10 @@ uint32_t OEM_GetHardwareVersion(void)
     return 1;
 }
 
-LampResponseCode OEM_TransitionLampState(LampState* newState, uint32_t timestamp)
+LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transition_period)
 {
-    printf("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u)\n", __FUNCTION__,
-           newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff);
+    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u)\n", __FUNCTION__,
+                   newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff));
 
     LAMP_SetState(newState);
     return LAMP_OK;
@@ -68,13 +68,13 @@ void OEM_FactoryReset(void)
 }
 
 
-uint32_t OEM_GetPowerDraw()
+uint32_t OEM_GetEnergyUsageMilliwatts()
 {
     return 15;
 }
 
 
-uint32_t OEM_GetOutput()
+uint32_t OEM_GetBrightnessLumens()
 {
     return 100;
 }
@@ -87,7 +87,7 @@ uint32_t OEM_GetRemainingLife()
 
 LampResponseCode OEM_GetLampFaults(AJ_Message* msg)
 {
-    printf("\n%s\n", __FUNCTION__);
+    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     // this is an example of what this function might look like!
     LampFaultCode faults[2] = { 1, 4 };
     size_t i = 0;
@@ -101,7 +101,7 @@ LampResponseCode OEM_GetLampFaults(AJ_Message* msg)
 
 LampResponseCode OEM_ClearLampFault(LampFaultCode fault)
 {
-    printf("\n%s: code=%d\n", __FUNCTION__, fault);
+    AJ_InfoPrintf(("\n%s: code=%d\n", __FUNCTION__, fault));
     // TOOD: clear the fault code
     return LAMP_OK;
 }
@@ -109,8 +109,8 @@ LampResponseCode OEM_ClearLampFault(LampFaultCode fault)
 
 AJ_Status OEM_GetLampParameters(AJ_Message* msg)
 {
-    AJ_MarshalArgs(msg, "{sv}", "power_draw", "u", OEM_GetPowerDraw());
-    AJ_MarshalArgs(msg, "{sv}", "output", "u", OEM_GetOutput());
+    AJ_MarshalArgs(msg, "{sv}", "Energy_Usage_Milliwatts", "u", OEM_GetEnergyUsageMilliwatts());
+    AJ_MarshalArgs(msg, "{sv}", "Brightness_Lumens", "u", OEM_GetBrightnessLumens());
     return AJ_OK;
 }
 
@@ -132,7 +132,7 @@ LampDetails_t LampDetails = {
     .deviceLampBeamAngle = 100,
     .deviceDimmable = TRUE,
     .deviceColor = TRUE,
-    .variableColorTemperature = TRUE,
+    .variableColorTemp = TRUE,
     .deviceHasEffects = TRUE,
     .deviceVoltage = 120,
     .deviceWattage = 9,
@@ -165,10 +165,10 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
 
     AJ_MarshalArgs(msg, "{sv}", "LampBeamAngle", "u", LampDetails.deviceLampBeamAngle);
 
-    AJ_MarshalArgs(msg, "{sv}", "Dimmable", "b", LampDetails.deviceDimmable);
-    AJ_MarshalArgs(msg, "{sv}", "Color", "b", LampDetails.deviceColor);
-    AJ_MarshalArgs(msg, "{sv}", "VariableColorTemperature", "b", LampDetails.variableColorTemperature);
-    AJ_MarshalArgs(msg, "{sv}", "HasEffects", "b", LampDetails.deviceHasEffects);
+    AJ_MarshalArgs(msg, "{sv}", "Dimmable", "b", (LampDetails.deviceDimmable ? TRUE : FALSE));
+    AJ_MarshalArgs(msg, "{sv}", "Color", "b", (LampDetails.deviceColor ? TRUE : FALSE));
+    AJ_MarshalArgs(msg, "{sv}", "VariableColorTemp", "b", (LampDetails.variableColorTemp ? TRUE : FALSE));
+    AJ_MarshalArgs(msg, "{sv}", "HasEffects", "b", (LampDetails.deviceHasEffects ? TRUE : FALSE));
 
     AJ_MarshalArgs(msg, "{sv}", "Voltage", "u", LampDetails.deviceVoltage);
     AJ_MarshalArgs(msg, "{sv}", "Wattage", "u", LampDetails.deviceWattage);
@@ -180,6 +180,6 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
     AJ_MarshalArgs(msg, "{sv}", "ColorRenderingIndex", "u", LampDetails.deviceColorRenderingIndex);
     AJ_MarshalArgs(msg, "{sv}", "Lifespan", "u", LampDetails.deviceLifespan);
 
-    AJ_MarshalArgs(msg, "{sv}", "NodeID", "s", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID));
+    AJ_MarshalArgs(msg, "{sv}", "LampID", "s", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID));
     return LAMP_OK;
 }

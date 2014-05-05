@@ -14,33 +14,39 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <Thread.h>
 
-#include <LampService.h>
+using namespace lsf;
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+#define QCC_MODULE "THREAD"
 
-int AJ_Main(void)
+void* Thread::RunThread(void* data)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    Thread* thread = static_cast<Thread*>(data);
+    thread->Run();
+    return NULL;
 }
 
-
-#ifdef AJ_MAIN
-int main()
+Thread::Thread()
 {
-    return AJ_Main();
+
 }
-#endif
+
+Thread::~Thread()
+{
+
+}
+
+QStatus Thread::Start()
+{
+    int rc = pthread_create(&thread, NULL, &Thread::RunThread, this);
+    return rc == 0 ? ER_OK : ER_FAIL;
+}
+
+QStatus Thread::Join()
+{
+    Stop();
+    pthread_join(thread, NULL);
+    return ER_OK;
+}
+

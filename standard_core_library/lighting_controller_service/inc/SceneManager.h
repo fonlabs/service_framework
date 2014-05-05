@@ -1,3 +1,5 @@
+#ifndef _SCENE_MANAGER_H_
+#define _SCENE_MANAGER_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,33 +16,41 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <Manager.h>
+#include <LampGroupManager.h>
 
-#include <LampService.h>
+#include <Mutex.h>
+#include <LSFTypes.h>
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+#include <string>
+#include <map>
 
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+namespace lsf {
+
+class SceneManager : public Manager {
+
+  public:
+    SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName);
+
+    void GetAllSceneIDs(ajn::Message& msg);
+    void GetSceneName(ajn::Message& msg);
+    void SetSceneName(ajn::Message& msg);
+    void DeleteScene(ajn::Message& msg);
+    void CreateScene(ajn::Message& msg);
+    void UpdateScene(ajn::Message& msg);
+    void GetScene(ajn::Message& msg);
+    void ApplyScene(ajn::Message& msg);
+
+  private:
+
+    typedef std::map<LSF_ID, std::pair<LSF_Name, Scene> > SceneMap;
+
+    SceneMap scenes;
+    Mutex scenesLock;
+    LampGroupManager& lampGroupManager;
+    const char* interfaceName;
+};
+
 }
 
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
 #endif

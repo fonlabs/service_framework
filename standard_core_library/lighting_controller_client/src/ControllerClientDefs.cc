@@ -14,33 +14,22 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <ControllerClientDefs.h>
+#include <LSFTypes.h>
 
-#include <LampService.h>
+namespace lsf {
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
-
-int AJ_Main(void)
+const char* ControllerClientErrorText(ErrorCode errorCode)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    switch (errorCode) {
+        LSF_CASE(ERROR_NONE);
+        LSF_CASE(ERROR_REGISTERING_SIGNAL_HANDLERS);
+        LSF_CASE(ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND);
+        LSF_CASE(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+
+    default:
+        return "<unknown>";
+    }
 }
 
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
 }
-#endif

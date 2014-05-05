@@ -1,3 +1,5 @@
+#ifndef _THREAD_H_
+#define _THREAD_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,33 +16,34 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <pthread.h>
 
-#include <LampService.h>
+#include <alljoyn/Status.h>
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+namespace lsf {
 
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+class Thread {
+  public:
+
+    Thread();
+
+    virtual ~Thread();
+
+    virtual void Run() = 0;
+    virtual void Stop() = 0;
+
+    QStatus Start();
+
+    QStatus Join();
+
+  private:
+
+    static void* RunThread(void* data);
+
+    pthread_t thread;
+};
+
 }
 
 
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
 #endif

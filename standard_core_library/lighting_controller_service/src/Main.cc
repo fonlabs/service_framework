@@ -14,33 +14,39 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <ControllerService.h>
 
-#include <LampService.h>
+#include <climits>
+#include <signal.h>
+#include <unistd.h>
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+#define QCC_MODULE "MAIN"
 
-int AJ_Main(void)
+static volatile sig_atomic_t g_interrupt = false;
+
+static void SigIntHandler(int sig)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    g_interrupt = true;
 }
 
 
-#ifdef AJ_MAIN
-int main()
+void lsf_Sleep(uint32_t msec)
 {
-    return AJ_Main();
+    usleep(1000 * msec);
 }
-#endif
+
+
+int main(int argc, char** argv)
+{
+    signal(SIGINT, SigIntHandler);
+
+    lsf::ControllerService controllerSvc;
+
+    controllerSvc.Start();
+
+    while (g_interrupt == false) {
+        lsf_Sleep(1000);
+    }
+
+    controllerSvc.Stop();
+}

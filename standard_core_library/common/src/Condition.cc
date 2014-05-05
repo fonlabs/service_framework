@@ -14,33 +14,46 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <Condition.h>
 
-#include <LampService.h>
+#include <time.h>
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+using namespace lsf;
 
-int AJ_Main(void)
+#define QCC_MODULE "CONDITION"
+
+Condition::Condition()
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    pthread_cond_init(&condition, NULL);
 }
 
 
-#ifdef AJ_MAIN
-int main()
+Condition::~Condition()
 {
-    return AJ_Main();
+    pthread_cond_destroy(&condition);
 }
-#endif
+
+int Condition::Wait(Mutex& mutex, uint32_t timeout)
+{
+    pthread_mutex_t* thelock = mutex.GetMutex();
+
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+
+    // now add the offset
+    ts.tv_sec += timeout / 1000;
+    ts.tv_nsec += (timeout % 1000) * 1000;
+
+    // WHY is ts an ABSTIME?
+    return pthread_cond_timedwait(&condition, thelock, &ts);
+}
+
+int Condition::Signal()
+{
+    return pthread_cond_signal(&condition);
+}
+
+int Condition::Broadcast()
+{
+    return pthread_cond_broadcast(&condition);
+}

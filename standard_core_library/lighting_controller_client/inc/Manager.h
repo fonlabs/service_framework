@@ -1,3 +1,5 @@
+#ifndef _MANAGER_H_
+#define _MANAGER_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,33 +16,28 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <alljoyn/InterfaceDescription.h>
+#include <alljoyn/MessageReceiver.h>
 
-#include <LampService.h>
+namespace lsf {
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+class ControllerClient;
 
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+class Manager : public ajn::MessageReceiver {
+
+  protected:
+
+    Manager(ControllerClient& controllerClient);
+
+    ControllerClient& controllerClient;
+
+  private:
+
+    Manager();
+    Manager(const Manager& other);
+    Manager& operator=(const Manager& other);
+};
+
 }
 
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
 #endif

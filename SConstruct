@@ -1,5 +1,5 @@
 import os
 
-env = SConscript('../ajtcl/SConscript')
+env = SConscript('../alljoyn/build_core/SConscript')
 
 env.SConscript('SConscript')

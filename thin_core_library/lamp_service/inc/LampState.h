@@ -1,5 +1,10 @@
 #ifndef _LAMP_STATE_H_
 #define _LAMP_STATE_H_
+/**
+ * @file LampState.h
+ * @defgroup lamp_state The Lamp State
+ * @{
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -24,11 +29,11 @@
  * Struct _LampState.  This is used to store the various state fields.
  */
 typedef struct _LampState {
-    uint32_t hue;
-    uint32_t saturation;
-    uint32_t colorTemp;
-    uint32_t brightness;
-    uint8_t onOff;
+    uint32_t hue;           /**< The lamp hue */
+    uint32_t saturation;    /**< The lamp color saturation */
+    uint32_t colorTemp;     /**< The lamp color temperature */
+    uint32_t brightness;    /**< The lamp brightness */
+    uint8_t onOff;          /**< Is the lamp on or off */
 } LampState;
 
 /**
@@ -40,7 +45,6 @@ typedef struct _LampState {
  */
 LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg);
 
-
 /**
  * Serialize the Lamp's current state
  *
@@ -50,6 +54,10 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg);
  */
 LampResponseCode LAMP_MarshalState(LampState* state, AJ_Message* msg);
 
+/**
+ * Initialize the LampState.  Read it from NVRAM
+ */
+void LAMP_InitializeState();
 
 /**
  * Get the current LampState
@@ -61,7 +69,7 @@ void LAMP_GetState(LampState* state);
 /**
  * Set the new lamp state and save it in NVRAM.
  *
- * @param state The new state
+ * @param[in] state The new state
  */
 void LAMP_SetState(const LampState* state);
 
@@ -70,5 +78,7 @@ void LAMP_SetState(const LampState* state);
  */
 void LAMP_ClearState(void);
 
-
+/**
+ * @}
+ */
 #endif

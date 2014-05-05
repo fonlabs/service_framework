@@ -1,5 +1,10 @@
 #ifndef _LAMP_ONBOARDING_H_
 #define _LAMP_ONBOARDING_H_
+/**
+ * @file LampOnboarding.h
+ * @defgroup lamp_onb Code used by Onboarding service
+ * @{
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -21,7 +26,19 @@
 #include <alljoyn/onboarding/OnboardingManager.h>
 
 // these are not explicitly declared in the onboarding manager header
+
+/**
+ * Are we currently connected to a WIFI network?
+ *
+ * @return TRUE if connected to wifi
+ */
 int8_t AJOBS_ControllerAPI_IsWiFiClient();
+
+/**
+ * Are we acting as a Soft AP?
+ *
+ * @return TRUE if a soft AP
+ */
 int8_t AJOBS_ControllerAPI_IsWiFiSoftAP();
 
 /**
@@ -33,4 +50,7 @@ AJ_Status LAMP_InitOnboarding(void);
 
 #endif
 
+/**
+ * @}
+ */
 #endif

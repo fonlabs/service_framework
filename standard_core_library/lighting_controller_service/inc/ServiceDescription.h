@@ -1,3 +1,5 @@
+#ifndef _SERVICE_DESCRIPTION_H_
+#define _SERVICE_DESCRIPTION_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,33 +16,17 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <string>
 
-#include <LampService.h>
+namespace lsf {
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+extern const std::string ControllerServiceDescription;
+extern const std::string ControllerServiceLampDescription;
+extern const std::string ControllerServiceLampGroupDescription;
+extern const std::string ControllerServiceSavedStateDescription;
+extern const std::string ControllerServiceSceneDescription;
+extern const std::string ControllerServiceSceneGroupDescription;
 
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
 }
 
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
 #endif

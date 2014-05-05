@@ -1,5 +1,10 @@
 #ifndef _LAMP_ABOUT_DATA_H_
 #define _LAMP_ABOUT_DATA_H_
+/**
+ * @file LampAboutData.h
+ * @defgroup lamp_about Implementation of About/Config PropertyStore
+ * @{
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -63,4 +68,7 @@ const char* LAMP_GetName(void);
  */
 void LAMP_SetName(const char* name);
 
+/**
+ * @}
+ */
 #endif

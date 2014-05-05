@@ -29,10 +29,17 @@
 
 #include <alljoyn/onboarding/OnboardingService.h>
 #include <alljoyn/onboarding/OnboardingManager.h>
-#include <PropertyStoreOEMProvisioning.h>
 #include <alljoyn/services_common/PropertyStore.h>
 #include <alljoyn/services_common/ServicesCommon.h>
 #include <alljoyn/services_common/ServicesHandlers.h>
+
+/**
+ * Turn on per-module debug printing by setting this variable to non-zero value
+ * (usually in debugger).
+ */
+#ifndef NDEBUG
+uint8_t dbgLAMP_ONBOARDING = 1;
+#endif
 
 static const char* GenerateSoftAPSSID(char* obSoftAPssid)
 {

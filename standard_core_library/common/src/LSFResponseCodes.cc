@@ -14,33 +14,31 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <LSFResponseCodes.h>
+#include <LSFTypes.h>
 
-#include <LampService.h>
+namespace lsf {
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
-
-int AJ_Main(void)
+const char* LSFResponseCodeText(LSFResponseCode responseCode)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    switch (responseCode) {
+        LSF_CASE(LSF_OK);
+        LSF_CASE(LSF_ERR_NULL);
+        LSF_CASE(LSF_ERR_UNEXPECTED);
+        LSF_CASE(LSF_ERR_INVALID);
+        LSF_CASE(LSF_ERR_UNKNOWN);
+        LSF_CASE(LSF_ERR_FAILURE);
+        LSF_CASE(LSF_ERR_BUSY);
+        LSF_CASE(LSF_ERR_REJECTED);
+        LSF_CASE(LSF_ERR_RANGE);
+        LSF_CASE(LSF_ERR_INVALID_FIELD);
+        LSF_CASE(LSF_ERR_PARTIAL);
+        LSF_CASE(LSF_ERR_NOT_FOUND);
+        LSF_CASE(LSF_RESPONSE_CODE_LAST);
+
+    default:
+        return "<unknown>";
+    }
 }
 
-
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
 }
-#endif

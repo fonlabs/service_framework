@@ -45,6 +45,14 @@
  */
 #define AJ_MODULE LAMP_SERVICE
 
+/**
+ * Turn on per-module debug printing by setting this variable to non-zero value
+ * (usually in debugger).
+ */
+#ifndef NDEBUG
+uint8_t dbgLAMP_SERVICE = 1;
+#endif
+
 static const uint16_t LSF_ServicePort = 42;
 static const char* ROUTER_NAME = "org.allseen.LSF.RoutingNode";
 static uint32_t ControllerSessionID = 0;
@@ -56,7 +64,7 @@ static const char* const LSF_Interface[] = {
     LSF_Interface_Name,
     "@Version>u",
     "@LSFVersion>u",
-    "?ClearLampFault LampFaultCode<u LampResponseCode>u",
+    "?ClearLampFault LampFaultCode<u LampResponseCode>u LampFaultCode>u",
     "@LampFaults>au",
     "@RemainingLife>u",
     NULL
@@ -67,8 +75,8 @@ static const uint32_t LSF_Parameters_Interface_Version = 1;
 static const char* const LSF_Parameters_Interface[] = {
     LSF_Parameters_Interface_Name,
     "@Version>u",
-    "@power_draw_milliamps>u",
-    "@output>u",
+    "@Energy_Usage_Milliwatts>u",
+    "@Brightness_Lumens>u",
     NULL
 };
 
@@ -79,16 +87,16 @@ static const char* const LSF_Details_Interface[] = {
     "@Version>u",
     "@HardwareVersion>u",
     "@FirmwareVersion>u",
-    "@Manufacture>s",
-    "@Make>s",
-    "@Model>s",
-    "@Type>s",
-    "@LampType>s",
-    "@LampBaseType>s",
+    "@Manufacturer>s",
+    "@Make>u",
+    "@Model>u",
+    "@Type>u",
+    "@LampType>u",
+    "@LampBaseType>u",
     "@LampBeamAngle>u",
     "@Dimmable>b",
-    "@Color>s",
-    "@VariableColorTemperature>b",
+    "@Color>b",
+    "@VariableColorTemp>b",
     "@HasEffects>b",
     "@Voltage>u",
     "@Wattage>u",
@@ -98,7 +106,7 @@ static const char* const LSF_Details_Interface[] = {
     "@MaxTemperature>u",
     "@ColorRenderingIndex>u",
     "@Lifespan>u",
-    "@NodeID>s",
+    "@LampID>s",
     NULL
 };
 
@@ -107,13 +115,13 @@ static const uint32_t LSF_State_Interface_Version = 1;
 static const char* const LSF_State_Interface[] = {
     LSF_State_Interface_Name,
     "@Version>u",
-    "?SetLampState Timestamp<t NewState<a{sv} LampResponseCode>u",
+    "?TransitionLampState Timestamp<t NewState<a{sv} TransitionPeriod<u LampResponseCode>u",
     "!LampStateChanged LampID>s",
     "@OnOff>b",
-    "@hue>u",
-    "@saturation>u",
-    "@colorTemperature>u",
-    "@brightness>u",
+    "@Hue>u",
+    "@Saturation>u",
+    "@ColorTemp>u",
+    "@Brightness>u",
     NULL
 };
 
@@ -253,7 +261,7 @@ static void CheckForFaults(void)
 static void CheckForStateChanged(void)
 {
     if (ControllerSessionID != 0 && SendStateChanged == TRUE) {
-        printf("\n%s\n", __FUNCTION__);
+        AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
         AJ_Message sig_out;
         AJ_MarshalSignal(&Bus, &sig_out, LSF_SIGNAL_STATE_STATECHANGED, NULL, ControllerSessionID, 0, 0);
         AJ_MarshalArgs(&sig_out, "s", LAMP_GetID());
@@ -339,6 +347,8 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
     SetBusAuthPwdCallback(MyBusAuthPwdCB);
 
     LAMP_SetupAboutConfigData();
+
+    LAMP_InitializeState();
 
     // announce all of our IOE objects;
     // this call might not be necessary
@@ -525,7 +535,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
 void LAMP_SendStateChangedSignal(void)
 {
-    printf("\n%s\n", __FUNCTION__);
+    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     SendStateChanged = TRUE;
 }
 
@@ -535,33 +545,33 @@ static AJ_Status ClearLampFault(AJ_Message* msg)
     uint32_t faultCode;
     AJ_Message reply;
     AJ_MarshalReplyMsg(msg, &reply);
-    AJ_MarshalArgs(&reply, "s", LAMP_GetID());
 
     AJ_UnmarshalArgs(msg, "u", &faultCode);
     rc = OEM_ClearLampFault(faultCode);
 
-    AJ_MarshalArgs(&reply, "uu", (uint32_t) faultCode, (uint32_t) rc);
+    AJ_MarshalArgs(&reply, "uu", (uint32_t) rc, (uint32_t) faultCode);
     AJ_DeliverMsg(&reply);
     AJ_CloseMsg(&reply);
 
     return AJ_OK;
 }
 
-// Timestamp<t NewState<a{sv} LampResponseCode>u
-static AJ_Status SetLampState(AJ_Message* msg)
+static AJ_Status TransitionLampState(AJ_Message* msg)
 {
     LampResponseCode rc = LAMP_OK;
     LampState new_state;
-    uint32_t timestamp;
+    uint64_t timestamp;
+    uint32_t TransitionPeriod;
 
     AJ_Message reply;
     AJ_MarshalReplyMsg(msg, &reply);
 
-    AJ_UnmarshalArgs(msg, "u", &timestamp);
+    AJ_UnmarshalArgs(msg, "t", &timestamp);
     LAMP_UnmarshalState(&new_state, msg);
+    AJ_UnmarshalArgs(msg, "u", &TransitionPeriod);
 
     // apply the new state
-    rc = OEM_TransitionLampState(&new_state, timestamp);
+    rc = OEM_TransitionLampState(&new_state, timestamp, TransitionPeriod);
 
     AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
     AJ_DeliverMsg(&reply);
@@ -577,7 +587,7 @@ static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
 
     switch (propId) {
     case LSF_PROP_STATE_ONOFF:
-        return AJ_MarshalArgs(replyMsg, "b", state.onOff);
+        return AJ_MarshalArgs(replyMsg, "b", (state.onOff ? TRUE : FALSE));
 
     case LSF_PROP_STATE_HUE:
         return AJ_MarshalArgs(replyMsg, "u", state.hue);
@@ -625,10 +635,10 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
         return AJ_MarshalArgs(replyMsg, "u", LSF_Parameters_Interface_Version);
 
     case LSF_PROP_PARAMS_POWER_DRAW:
-        return AJ_MarshalArgs(replyMsg, "u", OEM_GetPowerDraw());
+        return AJ_MarshalArgs(replyMsg, "u", OEM_GetEnergyUsageMilliwatts());
 
     case LSF_PROP_PARAMS_OUTPUT:
-        return AJ_MarshalArgs(replyMsg, "u", OEM_GetOutput());
+        return AJ_MarshalArgs(replyMsg, "u", OEM_GetBrightnessLumens());
 
 
     // Compile-time Details
@@ -660,19 +670,19 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.baseType);
 
     case LSF_PROP_DETAILS_BEAMANGLE:
-        return AJ_MarshalArgs(replyMsg, "s", LampDetails.deviceLampBeamAngle);
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceLampBeamAngle);
 
     case LSF_PROP_DETAILS_DIMMABLE:
-        return AJ_MarshalArgs(replyMsg, "b", LampDetails.deviceDimmable);
+        return AJ_MarshalArgs(replyMsg, "b", (LampDetails.deviceDimmable ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_COLOR:
-        return AJ_MarshalArgs(replyMsg, "b", LampDetails.deviceColor);
+        return AJ_MarshalArgs(replyMsg, "b", (LampDetails.deviceColor ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_VARCOLORTEMP:
-        return AJ_MarshalArgs(replyMsg, "b", LampDetails.variableColorTemperature);
+        return AJ_MarshalArgs(replyMsg, "b", (LampDetails.variableColorTemp ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_HASEFFECTS:
-        return AJ_MarshalArgs(replyMsg, "b", LampDetails.deviceHasEffects);
+        return AJ_MarshalArgs(replyMsg, "b", (LampDetails.deviceHasEffects ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_VOLTAGE:
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceVoltage);
@@ -755,7 +765,7 @@ static AJ_Status GetAllProps(AJ_Message* msg)
 
 static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status)
 {
-    printf("\n%s\n", __FUNCTION__);
+    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     AJSVC_ServiceStatus serv_status = AJSVC_SERVICE_STATUS_HANDLED;
 
     switch (msg->msgId) {
@@ -773,7 +783,7 @@ static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status
         break;
 
     case LSF_METHOD_STATE_SETSTATE:
-        *status = SetLampState(msg);
+        *status = TransitionLampState(msg);
         break;
 
     default:

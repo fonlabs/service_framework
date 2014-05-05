@@ -24,6 +24,14 @@
  */
 #define AJ_MODULE LAMP_STATE
 
+/**
+ * Turn on per-module debug printing by setting this variable to non-zero value
+ * (usually in debugger).
+ */
+#ifndef NDEBUG
+uint8_t dbgLAMP_STATE = 1;
+#endif
+
 /*
  * The state object that represents the current lamp state.
  * This is mirrored in NVRAM and preserved across power cycles.
@@ -34,27 +42,27 @@ static LampState TheLampState;
 LampResponseCode LAMP_MarshalState(LampState* state, AJ_Message* msg)
 {
     AJ_InfoPrintf(("%s\n", __FUNCTION__));
-    AJ_Status status = AJ_MarshalArgs(msg, "{sv}", "hue", "u", state->hue);
+    AJ_Status status = AJ_MarshalArgs(msg, "{sv}", "Hue", "u", state->hue);
     if (status != AJ_OK) {
         return LAMP_ERR_MESSAGE;
     }
 
-    status = AJ_MarshalArgs(msg, "{sv}", "saturation", "u", state->saturation);
+    status = AJ_MarshalArgs(msg, "{sv}", "Saturation", "u", state->saturation);
     if (status != AJ_OK) {
         return LAMP_ERR_MESSAGE;
     }
 
-    status = AJ_MarshalArgs(msg, "{sv}", "colorTemperature", "u", state->colorTemp);
+    status = AJ_MarshalArgs(msg, "{sv}", "ColorTemp", "u", state->colorTemp);
     if (status != AJ_OK) {
         return LAMP_ERR_MESSAGE;
     }
 
-    status = AJ_MarshalArgs(msg, "{sv}", "brightness", "u", state->brightness);
+    status = AJ_MarshalArgs(msg, "{sv}", "Brightness", "u", state->brightness);
     if (status != AJ_OK) {
         return LAMP_ERR_MESSAGE;
     }
 
-    status = AJ_MarshalArgs(msg, "{sv}", "OnOff", "b", state->onOff);
+    status = AJ_MarshalArgs(msg, "{sv}", "OnOff", "b", (state->onOff ? TRUE : FALSE));
     if (status != AJ_OK) {
         return LAMP_ERR_MESSAGE;
     }
@@ -92,15 +100,17 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
         }
 
         if (0 == strcmp(field, "OnOff")) {
-            status = AJ_UnmarshalArgs(msg, sig, &state->onOff);
-        } else if (0 == strcmp(field, "hue")) {
-            status = AJ_UnmarshalArgs(msg, sig, &state->hue);
-        } else if (0 == strcmp(field, "saturation")) {
-            status = AJ_UnmarshalArgs(msg, sig, &state->saturation);
-        } else if (0 == strcmp(field, "colorTemperature")) {
-            status = AJ_UnmarshalArgs(msg, sig, &state->colorTemp);
-        } else if (0 == strcmp(field, "brightness")) {
-            status = AJ_UnmarshalArgs(msg, sig, &state->brightness);
+            uint32_t onoff;
+            status = AJ_UnmarshalArgs(msg, sig, "b", &onoff);
+            state->onOff = onoff ? TRUE : FALSE;
+        } else if (0 == strcmp(field, "Hue")) {
+            status = AJ_UnmarshalArgs(msg, sig, "u", &state->hue);
+        } else if (0 == strcmp(field, "Saturation")) {
+            status = AJ_UnmarshalArgs(msg, sig, "u", &state->saturation);
+        } else if (0 == strcmp(field, "ColorTemp")) {
+            status = AJ_UnmarshalArgs(msg, sig, "u", &state->colorTemp);
+        } else if (0 == strcmp(field, "Brightness")) {
+            status = AJ_UnmarshalArgs(msg, sig, "u", &state->brightness);
         }
 
         status = AJ_UnmarshalCloseContainer(msg, &struct1);
@@ -116,29 +126,36 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
 #define LAMP_STATE_FD AJ_NVRAM_ID_FOR_APPS + 1
 
 
-void LAMP_GetState(LampState* state)
+void LAMP_InitializeState()
 {
-    static uint8_t INIT = FALSE;
-    if (INIT == FALSE) {
-        AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "r", 0);
+    AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "r", 0);
+    if (id != NULL) {
+        AJ_NVRAM_Read(&TheLampState, sizeof(LampState), id);
+        AJ_NVRAM_Close(id);
+    } else {
+        AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(LampState));
+        memset(&TheLampState, 0, sizeof(LampState));
+
         if (id != NULL) {
-            AJ_NVRAM_Read(&TheLampState, sizeof(LampState), id);
+            AJ_NVRAM_Write(&TheLampState, sizeof(LampState), id);
             AJ_NVRAM_Close(id);
         }
-        // else no LampState has been written yet
-        INIT = TRUE;
     }
+}
 
+
+void LAMP_GetState(LampState* state)
+{
     memcpy(state, &TheLampState, sizeof(LampState));
 }
 
 void LAMP_SetState(const LampState* state)
 {
-    printf("\n%s\n", __FUNCTION__);
+    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     int32_t diff = memcmp(state, &TheLampState, sizeof(LampState));
 
     if (diff) {
-        printf("\n%s: Calling into NVRAM\n", __FUNCTION__);
+        AJ_InfoPrintf(("\n%s: Calling into NVRAM\n", __FUNCTION__));
         AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(LampState));
         memcpy(&TheLampState, state, sizeof(LampState));
 
@@ -146,11 +163,11 @@ void LAMP_SetState(const LampState* state)
             AJ_NVRAM_Write(&TheLampState, sizeof(LampState), id);
             AJ_NVRAM_Close(id);
         }
-
-        // this will cause the signal org.allseen.LSF.LampService.LampStateChanged
-        // to be sent if there is a current session.
-        LAMP_SendStateChangedSignal();
     }
+
+    // this will cause the signal org.allseen.LSF.LampService.LampStateChanged
+    // to be sent if there is a current session.
+    LAMP_SendStateChangedSignal();
 }
 
 void LAMP_ClearState(void)

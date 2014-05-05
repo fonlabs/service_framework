@@ -1,5 +1,10 @@
 #ifndef _OEM_CODE_H_
 #define _OEM_CODE_H_
+/**
+ * @file OEMCode.h
+ * @defgroup oem_code OEM-specific code
+ * @{
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -74,14 +79,14 @@ AJ_Status OEM_GetLampParameters(AJ_Message* msg);
  *
  * @return  The power draw
  */
-uint32_t OEM_GetPowerDraw();
+uint32_t OEM_GetEnergyUsageMilliwatts();
 
 /**
  * Get the current light output
  *
  * @return the current light output
  */
-uint32_t OEM_GetOutput();
+uint32_t OEM_GetBrightnessLumens();
 
 /**
  * Get the remaining life
@@ -90,15 +95,15 @@ uint32_t OEM_GetOutput();
  */
 uint32_t OEM_GetRemainingLife();
 
-
 /**
  * Change the lamp state
  *
  * @param newState  New state of the Lamp
  * @param timestamp Timestamp of when to transition.
+ * @param transition_period The time to transition over
  * @return          LAMP_OK if no errors occured
  */
-LampResponseCode OEM_TransitionLampState(LampState* newState, uint32_t timestamp);
+LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transition_period);
 
 /**
  * Serialize all active fault codes into a message.
@@ -124,26 +129,33 @@ LampResponseCode OEM_ClearLampFault(LampFaultCode fault);
  */
 LampResponseCode LAMP_MarshalDetails(AJ_Message* msg);
 
+/**
+ * The product name
+ */
 extern const char* deviceProductName;
+
+/**
+ * The manufacturer name
+ */
 extern const char* deviceManufactureName;
 
 /**
  * This struct holds all fields of the Lamp's Details.
  */
 typedef struct {
-    const LampMake lampMake;
-    const LampModel lampModel;
+    const LampMake lampMake;        /**< The make of the lamp */
+    const LampModel lampModel;      /**< The model of the lamp */
 
-    const DeviceType deviceType;
-    const LampType lampType;
-    const BaseType baseType;
+    const DeviceType deviceType;    /**< The type of device */
+    const LampType lampType;        /**< The type of lamp */
+    const BaseType baseType;        /**< The make of the lamp base */
 
 
     const uint32_t deviceLampBeamAngle; /**< The beam angle */
-    const uint8_t deviceDimmable;         /**< Dimmable? */
-    const uint8_t deviceColor;            /**< color */
-    const uint8_t variableColorTemperature; /**< variable color temperature? */
-    const uint8_t deviceHasEffects;       /**< Are effects available? */
+    const uint8_t deviceDimmable;       /**< Dimmable? */
+    const uint8_t deviceColor;          /**< color? */
+    const uint8_t variableColorTemp;    /**< variable color temperature? */
+    const uint8_t deviceHasEffects;     /**< Are effects available? */
 
     const uint32_t deviceVoltage;       /**< voltage */
     const uint32_t deviceWattage;       /**< wattage */
@@ -157,6 +169,12 @@ typedef struct {
 } LampDetails_t;
 
 
+/**
+ * A global struct to hold this Lamp's details.
+ */
 extern LampDetails_t LampDetails;
 
+/**
+ * @}
+ */
 #endif

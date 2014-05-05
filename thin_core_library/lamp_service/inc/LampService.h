@@ -1,5 +1,10 @@
 #ifndef _LAMP_SERVICE_H_
 #define _LAMP_SERVICE_H_
+/**
+ * @file LampService.h
+ * @defgroup lamp_service The Lamp AllJoyn service
+ * @{
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -18,9 +23,12 @@
 
 #include <alljoyn.h>
 
-/*
+/**
  * Run the lamp service with no callback.
  * This is useful if you want to run the lamp service from its own thread
+ *
+ * @param None
+ * @return None
  */
 void LAMP_RunService(void);
 
@@ -35,6 +43,7 @@ typedef void (*LampServiceCallback)();
 /**
  * Get the LSF version
  *
+ * @param None
  * @return  The version
  */
 uint32_t LAMP_GetServiceVersion(void);
@@ -46,6 +55,7 @@ uint32_t LAMP_GetServiceVersion(void);
  *
  * @param timeout   The timeout
  * @param callback  The callback function
+ * @return          None
  */
 void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback);
 
@@ -57,13 +67,22 @@ void LAMP_SendStateChangedSignal(void);
 
 /**
  * Call this method to indicate that some fault has occured
+ *
+ * @param None
+ * @return None
  */
 void LAMP_SetFaults(void);
 
 /**
  * This function must be called when all faults are cleared
  * in order to clear the Faults notification.
+ *
+ * @param None
+ * @return None
  */
 void LAMP_ClearFaults(void);
 
+/**
+ * @}
+ */
 #endif

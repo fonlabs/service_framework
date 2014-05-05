@@ -14,33 +14,37 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <Manager.h>
 
-#include <LampService.h>
+#include <qcc/StringUtil.h>
+#include <qcc/Debug.h>
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+#include <ControllerService.h>
 
-int AJ_Main(void)
+using namespace lsf;
+
+#define QCC_MODULE "MANAGER"
+
+Manager::Manager(ControllerService& controllerSvc) : controllerService(controllerSvc)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+
 }
 
-
-#ifdef AJ_MAIN
-int main()
+void Manager::MethodReplyPassthrough(ajn::Message& msg, void* context)
 {
-    return AJ_Main();
+    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
+    size_t numArgs;
+    const ajn::MsgArg* args;
+    msg->GetArgs(numArgs, args);
+
+    ajn::Message* origMessage = static_cast<ajn::Message*>(context);
+    controllerService.SendMethodReply(*origMessage, args, numArgs);
+    delete origMessage;
 }
-#endif
+
+LSF_ID Manager::GenerateUniqueID(const LSF_Name& prefix) const
+{
+    // generate a GUID string with a given prefix
+    qcc::String str = qcc::RandHexString(ID_STR_LEN);
+    return prefix + str.c_str();
+}

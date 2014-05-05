@@ -1,3 +1,5 @@
+#ifndef _MANAGER_H_
+#define _MANAGER_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,33 +16,39 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <alljoyn/Message.h>
+#include <alljoyn/InterfaceDescription.h>
+#include <alljoyn/MessageReceiver.h>
 
-#include <LampService.h>
+#include <LSFResponseCodes.h>
+#include <LSFTypes.h>
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+#include <string>
+#include <vector>
 
-int AJ_Main(void)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+namespace lsf {
+
+class ControllerService;
+
+class Manager : public ajn::MessageReceiver {
+
+    static const size_t ID_STR_LEN = 8;
+
+  public:
+
+    Manager(ControllerService& controllerSvc);
+
+
+    //protected:
+
+    LSF_ID GenerateUniqueID(const LSF_Name& prefix) const;
+
+    ControllerService& controllerService;
+
+    void MethodReplyPassthrough(ajn::Message& msg, void* context);
+};
+
 }
 
 
-#ifdef AJ_MAIN
-int main()
-{
-    return AJ_Main();
-}
 #endif

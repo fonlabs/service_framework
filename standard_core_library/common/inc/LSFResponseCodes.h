@@ -1,0 +1,44 @@
+#ifndef _LSF_RESPONSE_CODES_H_
+#define _LSF_RESPONSE_CODES_H_
+/******************************************************************************
+ * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ *
+ *    Permission to use, copy, modify, and/or distribute this software for any
+ *    purpose with or without fee is hereby granted, provided that the above
+ *    copyright notice and this permission notice appear in all copies.
+ *
+ *    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ *    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ *    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ *    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ *    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ ******************************************************************************/
+#include <LampResponseCodes.h>
+
+namespace lsf {
+
+typedef enum {
+    LSF_OK                  = LAMP_OK,                        /**< Success status */
+    LSF_ERR_NULL            = LAMP_ERR_NULL,                  /**< Unexpected NULL pointer */
+    LSF_ERR_UNEXPECTED      = LAMP_ERR_UNEXPECTED,            /**< An operation was unexpected at this time */
+    LSF_ERR_INVALID         = LAMP_ERR_INVALID,               /**< A value was invalid */
+    LSF_ERR_UNKNOWN         = LAMP_ERR_UNKNOWN,               /**< A unknown value */
+    LSF_ERR_FAILURE         = LAMP_ERR_FAILURE,               /**< A failure has occurred */
+    LSF_ERR_BUSY            = LAMP_ERR_BUSY,                  /**< An operation failed and should be retried later */
+    LSF_ERR_REJECTED        = LAMP_ERR_REJECTED,              /**< The connection was rejected */
+    LSF_ERR_RANGE           = LAMP_ERR_RANGE,                 /**< Value provided was out of range */
+    LSF_ERR_INVALID_FIELD   = LAMP_ERR_INVALID_FIELD,         /**< Invalid param/state field */
+    LSF_ERR_INVALID_ARGS    = LAMP_ERR_INVALID_ARGS,          /**< The arguments were invalid */
+    LSF_ERR_PARTIAL         = LAMP_RESPONSE_CODE_LAST,        /**< The requested operation was only partially successful */
+    LSF_ERR_NOT_FOUND       = LAMP_RESPONSE_CODE_LAST + 1,    /**< The entity of interest was not found */
+    LSF_RESPONSE_CODE_LAST  = LAMP_RESPONSE_CODE_LAST + 2     /**< The last LSF response code */
+} LSFResponseCode;
+
+const char* LSFResponseCodeText(LSFResponseCode responseCode);
+
+}
+
+
+#endif

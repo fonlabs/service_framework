@@ -14,33 +14,46 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Per-module definition of the current module for debug logging.  Must be defined
- * prior to first inclusion of aj_debug.h
- */
-#define AJ_MODULE LAMP_MAIN
+#include <Mutex.h>
 
-#include <LampService.h>
+using namespace lsf;
 
-/**
- * Turn on per-module debug printing by setting this variable to non-zero value
- * (usually in debugger).
- */
-#ifndef NDEBUG
-uint8_t dbgLAMP_MAIN = 1;
-#endif
+#define QCC_MODULE "MUTEX"
 
-int AJ_Main(void)
+Mutex::Mutex()
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    LAMP_RunService();
-    return 0;
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&mutex, NULL);
+    pthread_mutexattr_destroy(&attr);
 }
 
-
-#ifdef AJ_MAIN
-int main()
+Mutex::~Mutex()
 {
-    return AJ_Main();
+    pthread_mutex_destroy(&mutex);
 }
-#endif
+
+QStatus Mutex::Lock()
+{
+    int ret = pthread_mutex_trylock(&mutex);
+
+    if (ret == 0) {
+        return ER_OK;
+    } else if ((ret == EBUSY) || (ret == EAGAIN)) {
+        return ER_WOULDBLOCK;
+    } else {
+        return ER_FAIL;
+    }
+}
+
+QStatus Mutex::Unlock()
+{
+    int ret = pthread_mutex_unlock(&mutex);
+
+    if (ret == 0) {
+        return ER_OK;
+    } else {
+        return ER_FAIL;
+    }
+}
