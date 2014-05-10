@@ -30,6 +30,9 @@ static const char* const LampInterface = "org.allseen.LSF.LampService";
 static const char* CONFIG_OBJECT_PATH = "/Config";
 static const char* CONFIG_INTERFACE_NAME = "org.alljoyn.Config";
 
+static const char* ABOUT_OBJECT_PATH = "/About";
+static const char* ABOUT_INTERFACE_NAME = "org.alljoyn.About";
+
 class LampClients::QueueHandler : public WorkerQueue<QueuedMethodCall>::Handler {
   public:
 
@@ -213,6 +216,7 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
 
 
     connection->configObject = ProxyBusObject(controllerService.GetBusAttachment(), connection->wkn.c_str(), CONFIG_OBJECT_PATH, sessionId);
+    connection->aboutObject = ProxyBusObject(controllerService.GetBusAttachment(), connection->wkn.c_str(), ABOUT_OBJECT_PATH, sessionId);
     lampLock.Unlock();
 
     QStatus status2 = connection->object.IntrospectRemoteObject();
@@ -223,6 +227,8 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
     const InterfaceDescription* intf = controllerService.GetBusAttachment().GetInterface(CONFIG_INTERFACE_NAME);
     connection->configObject.AddInterface(*intf);
 
+    intf = controllerService.GetBusAttachment().GetInterface(ABOUT_INTERFACE_NAME);
+    connection->aboutObject.AddInterface(*intf);
 
     const InterfaceDescription* id = controllerService.GetBusAttachment().GetInterface("org.allseen.LSF.LampState");
 
@@ -268,6 +274,7 @@ LSFResponseCode LampClients::QueueLampMethod(const LSFString& lampId, QueuedMeth
         LampConnection* conn = lit->second;
         queuedCall->objects.push_back(conn->object);
         queuedCall->configObjects.push_back(conn->configObject);
+        queuedCall->aboutObjects.push_back(conn->aboutObject);
     } else {
         response = LSF_ERR_NOT_FOUND;
         lampLock.Unlock();
@@ -721,6 +728,71 @@ void LampClients::LampStateChangedSignalHandler(const InterfaceDescription::Memb
 
     controllerService.SendSignal("org.allseen.LSF.ControllerService.Lamp", "LampsStateChanged", ids);
 }
+
+LSFResponseCode LampClients::GetLampSupportedLanguages(const LSFString& lampID, ajn::Message& inMsg)
+{
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, &LampClients::DoGetLampAbout);
+    queuedCall->errorOutput.Set("s", "<ERROR>");
+    queuedCall->property = "SupportedLanguages";
+    return QueueLampMethod(lampID, queuedCall);
+}
+
+void LampClients::DoGetLampAbout(QueuedMethodCall* call)
+{
+    ProxyBusObject pobj = *(call->aboutObjects.begin());
+
+    if (pobj.IsValid()) {
+        size_t numArgs;
+        const MsgArg* args;
+        call->inMsg->GetArgs(numArgs, args);
+
+        MsgArg arg("s", "en");
+        QStatus status = pobj.MethodCallAsync(
+            ABOUT_INTERFACE_NAME,
+            "GetAboutData",
+            this,
+            static_cast<MessageReceiver::ReplyHandler>(&LampClients::GetAboutReply),
+            &arg,
+            1,
+            call);
+
+        if (status != ER_OK) {
+            MsgArg arg("as", 0, NULL);
+            callback.GetLampSupportedLanguagesReplyCB(call->inMsg, arg, LSF_ERR_FAILURE);
+            delete call;
+        }
+    }
+}
+
+
+void LampClients::GetAboutReply(Message& message, void* context)
+{
+    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
+    QueuedMethodCall* call = static_cast<QueuedMethodCall*>(context);
+
+    const MsgArg* args;
+    size_t numArgs;
+    message->GetArgs(numArgs, args);
+
+    size_t numEntries;
+    MsgArg* entries;
+
+    args[0].Get("a{sv}", &numEntries, &entries);
+    for (size_t i = 0; i < numEntries; ++i) {
+        char* key;
+        MsgArg* value;
+        entries[i].Get("{sv}", &key, &value);
+
+        if (call->property == key) {
+            if (call->property == "SupportedLanguages") {
+                callback.GetLampSupportedLanguagesReplyCB(call->inMsg, *value, LSF_OK);
+            }
+        }
+    }
+
+    delete call;
+}
+
 
 LSFResponseCode LampClients::GetLampName(const LSFString& lampID, Message& inMsg)
 {

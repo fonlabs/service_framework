@@ -209,6 +209,144 @@ ControllerClientStatus LampManager::TransitionLampState(
                3);
 }
 
+ControllerClientStatus LampManager::PulseLampWithState(
+    const LSFString& lampID,
+    const LampState& lampState,
+    const uint32_t& period,
+    const uint32_t& ratio,
+    const uint32_t& numPulses)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    MsgArg args[5];
+    args[0].Set("s", lampID.c_str());
+    lampState.Get(&args[1]);
+    args[2].Set("u", period);
+    args[3].Set("u", ratio);
+    args[4].Set("u", numPulses);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "PulseLampWithState",
+               args,
+               5);
+}
+
+ControllerClientStatus LampManager::StrobeLampWithState(
+    const LSFString& lampID,
+    const LampState& lampState,
+    const uint32_t& period,
+    const uint32_t& numStrobes)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    MsgArg args[4];
+    args[0].Set("s", lampID.c_str());
+    lampState.Get(&args[1]);
+    args[2].Set("u", period);
+    args[3].Set("u", numStrobes);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "StrobeLampWithState",
+               args,
+               4);
+}
+
+ControllerClientStatus LampManager::CycleLampWithState(
+    const LSFString& lampID,
+    const LampState& lampStateA,
+    const LampState& lampStateB,
+    const uint32_t& period,
+    const uint32_t& duration,
+    const uint32_t& numCycles)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    MsgArg args[6];
+    args[0].Set("s", lampID.c_str());
+    lampStateA.Get(&args[1]);
+    lampStateB.Get(&args[2]);
+    args[3].Set("u", period);
+    args[4].Set("u", duration);
+    args[5].Set("u", numCycles);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "CycleLampWithState",
+               args,
+               6);
+}
+
+ControllerClientStatus LampManager::PulseLampWithPreset(
+    const LSFString& lampID,
+    const LSFString& presetID,
+    const uint32_t& period,
+    const uint32_t& ratio,
+    const uint32_t& numPulses)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    MsgArg args[5];
+    args[0].Set("s", lampID.c_str());
+    args[1].Set("s", presetID.c_str());
+    args[2].Set("u", period);
+    args[3].Set("u", ratio);
+    args[4].Set("u", numPulses);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "PulseLampWithPreset",
+               args,
+               5);
+}
+
+ControllerClientStatus LampManager::StrobeLampWithPreset(
+    const LSFString& lampID,
+    const LSFString& presetID,
+    const uint32_t& period,
+    const uint32_t& numStrobes)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    MsgArg args[4];
+    args[0].Set("s", lampID.c_str());
+    args[1].Set("s", presetID.c_str());
+    args[2].Set("u", period);
+    args[3].Set("u", numStrobes);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "StrobeLampWithPreset",
+               args,
+               4);
+}
+
+ControllerClientStatus LampManager::CycleLampWithPreset(
+    const LSFString& lampID,
+    const LSFString& presetIdA,
+    const LSFString& presetIdB,
+    const uint32_t& period,
+    const uint32_t& duration,
+    const uint32_t& numCycles)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    MsgArg args[6];
+    args[0].Set("s", lampID.c_str());
+    args[1].Set("s", presetIdA.c_str());
+    args[2].Set("s", presetIdB.c_str());
+    args[3].Set("u", period);
+    args[4].Set("u", duration);
+    args[5].Set("u", numCycles);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "CycleLampWithPreset",
+               args,
+               6);
+}
+
 ControllerClientStatus LampManager::TransitionLampStateToPreset(const LSFString& lampID, const LSFString& presetID, const uint32_t& transitionPeriod)
 {
     QCC_DbgPrintf(("\n%s: %s %s\n", __FUNCTION__, lampID.c_str(), presetID.c_str()));
@@ -510,13 +648,15 @@ void LampManager::GetLampSupportedLanguagesReply(Message& message)
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
 
     LSFStringList languages;
-    const char** languageList;
+    MsgArg* languageList;
     size_t numLanguages;
     args[2].Get("as", &numLanguages, &languageList);
 
     for (size_t i = 0; i < numLanguages; i++) {
-        languages.push_back(languageList[i]);
-        QCC_DbgPrintf(("%s: language=%d", __FUNCTION__, languageList[i]));
+        char* lang;
+        languageList[i].Get("s", &lang);
+        languages.push_back(lang);
+        QCC_DbgPrintf(("%s: language=%d", __FUNCTION__, lang));
     }
 
     callback.GetLampSupportedLanguagesReplyCB(responseCode, lampID, languages);

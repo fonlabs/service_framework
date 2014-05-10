@@ -141,6 +141,48 @@ class LampManager : public Manager, public LampClientsCallback {
     void TransitionLampState(ajn::Message& message);
 
     /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampState
+     *
+     * @param message   The params
+     */
+    void PulseLampWithState(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampState
+     *
+     * @param message   The params
+     */
+    void StrobeLampWithState(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampState
+     *
+     * @param message   The params
+     */
+    void CycleLampWithState(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampPreset
+     *
+     * @param message   The params
+     */
+    void PulseLampWithPreset(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampPreset
+     *
+     * @param message   The params
+     */
+    void StrobeLampWithPreset(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampPreset
+     *
+     * @param message   The params
+     */
+    void CycleLampWithPreset(ajn::Message& message);
+
+    /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampStateToPreset
      *
      * @param message   The params
@@ -183,7 +225,7 @@ class LampManager : public Manager, public LampClientsCallback {
     virtual void GetLampNameReplyCB(ajn::Message& origMsg, const char* name, LSFResponseCode rc);
     virtual void GetLampManufacturerReplyCB(ajn::Message& origMsg, const char* manufacturer, LSFResponseCode rc);
     virtual void SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode rc);
-
+    virtual void GetLampSupportedLanguagesReplyCB(ajn::Message& origMsg, const ajn::MsgArg& arg, LSFResponseCode rc);
     virtual void GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc);
     virtual void ClearLampFaultReplyCB(ajn::Message& origMsg, LSFResponseCode rc, LampFaultCode code);
 

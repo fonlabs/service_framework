@@ -35,6 +35,7 @@ class PresetManager : public Manager {
     PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr);
 
     LSFResponseCode Reset(void);
+    LSFResponseCode ResetDefaultState(void);
 
     void GetAllPresetIDs(ajn::Message& msg);
     void GetPresetName(ajn::Message& msg);

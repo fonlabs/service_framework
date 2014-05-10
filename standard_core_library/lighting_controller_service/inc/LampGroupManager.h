@@ -38,6 +38,47 @@ class LampGroupManager : public Manager {
 
     void ResetLampGroupState(ajn::Message& msg);
     void TransitionLampGroupState(ajn::Message& msg);
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampGroupState
+     *
+     * @param message   The params
+     */
+    void PulseLampGroupWithState(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampGroupState
+     *
+     * @param message   The params
+     */
+    void StrobeLampGroupWithState(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampGroupState
+     *
+     * @param message   The params
+     */
+    void CycleLampGroupWithState(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampGroupPreset
+     *
+     * @param message   The params
+     */
+    void PulseLampGroupWithPreset(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampGroupPreset
+     *
+     * @param message   The params
+     */
+    void StrobeLampGroupWithPreset(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampGroupPreset
+     *
+     * @param message   The params
+     */
+    void CycleLampGroupWithPreset(ajn::Message& message);
     void TransitionLampGroupStateToPreset(ajn::Message& msg);
     void TransitionLampGroupStateField(ajn::Message& msg);
     void ResetLampGroupFieldState(ajn::Message& msg);

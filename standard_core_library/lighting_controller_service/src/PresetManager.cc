@@ -33,7 +33,7 @@ PresetManager::PresetManager(ControllerService& controllerSvc, const char* iface
 LSFResponseCode PresetManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    bool success = true;
+    LSFResponseCode responseCode = LSF_OK;
     QStatus tempStatus = presetsLock.Lock();
     if (ER_OK == tempStatus) {
         /*
@@ -63,23 +63,17 @@ LSFResponseCode PresetManager::Reset(void)
             }
         }
     } else {
-        success = false;
+        responseCode = LSF_ERR_BUSY;
         QCC_LogError(tempStatus, ("%s: presetsLock.Lock() failed", __FUNCTION__));
     }
 
-    /*
-     * TODO: Change this later
-     */
-    LampState state = { false, 0x100, 0x100, 0x100, 0x100 };
-    if (LSF_OK != SetDefaultLampStateInternal(state)) {
-        success = false;
-    }
+    return responseCode;
+}
 
-    if (success) {
-        return LSF_OK;
-    } else {
-        return LSF_ERR_FAILURE;
-    }
+LSFResponseCode PresetManager::ResetDefaultState(void)
+{
+    LampState state = { false, 0x100, 0x100, 0x100, 0x100 };
+    return SetDefaultLampStateInternal(state);
 }
 
 LSFResponseCode PresetManager::GetPresetInternal(const LSFString& presetID, LampState& preset)

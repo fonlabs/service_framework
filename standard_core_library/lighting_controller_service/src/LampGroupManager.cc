@@ -436,6 +436,136 @@ void LampGroupManager::TransitionLampGroupState(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, id);
 }
 
+void LampGroupManager::PulseLampGroupWithState(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
+    LampState lampGroupState(args[1]);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t ratio = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t numPulses = static_cast<uint32_t>(args[4].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, lampGroupState=%s, period=%d, ratio=%d, numPulses=%d",
+                   __FUNCTION__, lampGroupID.c_str(), lampGroupState.c_str(), period, ratio, numPulses));
+
+    //TODO: Add LampGroup Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    }
+}
+
+void LampGroupManager::StrobeLampGroupWithState(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
+    LampState lampGroupState(args[1]);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t numStrobes = static_cast<uint32_t>(args[3].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, lampGroupState=%s, period=%d, numStrobes=%d",
+                   __FUNCTION__, lampGroupID.c_str(), lampGroupState.c_str(), period, numStrobes));
+
+    //TODO: Add LampGroup Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    }
+}
+
+void LampGroupManager::CycleLampGroupWithState(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
+    LampState lampGroupStateA(args[1]);
+    LampState lampGroupStateB(args[2]);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
+    uint32_t numCycles = static_cast<uint32_t>(args[5].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, lampGroupStateA=%s, period=%d, duration=%d, numCycles=%d",
+                   __FUNCTION__, lampGroupID.c_str(), lampGroupStateA.c_str(), period, duration, numCycles));
+
+    QCC_DbgPrintf(("%s: lampGroupStateB=%s", __FUNCTION__, lampGroupStateB.c_str()));
+
+    //TODO: Add LampGroup Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    }
+}
+
+void LampGroupManager::PulseLampGroupWithPreset(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
+    LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t ratio = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t numPulses = static_cast<uint32_t>(args[4].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, presetID=%s, period=%d, ratio=%d, numPulses=%d",
+                   __FUNCTION__, lampGroupID.c_str(), presetID.c_str(), period, ratio, numPulses));
+
+    //TODO: Add LampGroup Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    }
+}
+
+void LampGroupManager::StrobeLampGroupWithPreset(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
+    LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t numStrobes = static_cast<uint32_t>(args[3].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, presetID=%s, period=%d, numStrobes=%d",
+                   __FUNCTION__, lampGroupID.c_str(), presetID.c_str(), period, numStrobes));
+
+    //TODO: Add LampGroup Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    }
+}
+
+void LampGroupManager::CycleLampGroupWithPreset(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
+    LSFString presetIdA = static_cast<LSFString>(args[1].v_string.str);
+    LSFString presetIdB = static_cast<LSFString>(args[2].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
+    uint32_t numCycles = static_cast<uint32_t>(args[5].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, presetIdA=%s, period=%d, duration=%d, numCycles=%d",
+                   __FUNCTION__, lampGroupID.c_str(), presetIdA.c_str(), period, duration, numCycles));
+
+    QCC_DbgPrintf(("%s: presetIdB=%s", __FUNCTION__, presetIdB.c_str()));
+
+    //TODO: Add LampGroup Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    }
+}
+
 void LampGroupManager::TransitionLampGroupStateToPreset(Message& msg)
 {
 #if 0

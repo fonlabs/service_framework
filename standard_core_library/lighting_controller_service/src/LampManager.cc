@@ -170,8 +170,7 @@ void LampManager::GetLampSupportedLanguages(Message& message)
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
-    //TODO: Call in to LampClients and get reply
-    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    LSFResponseCode responseCode = lampClients.GetLampSupportedLanguages(lampID, message);
     if (responseCode != LSF_OK) {
         MsgArg outArgs[3];
         outArgs[0].Set("u", responseCode);
@@ -179,6 +178,19 @@ void LampManager::GetLampSupportedLanguages(Message& message)
         outArgs[2].Set("as", 0, NULL);
         controllerService.SendMethodReply(message, outArgs, 3);
     }
+}
+
+void LampManager::GetLampSupportedLanguagesReplyCB(ajn::Message& origMsg, const MsgArg& arg, LSFResponseCode rc)
+{
+    size_t numArgs;
+    const MsgArg* args;
+    origMsg->GetArgs(numArgs, args);
+
+    MsgArg outArgs[3];
+    outArgs[0].Set("u", rc);
+    outArgs[1] = args[0]; // lamp id
+    outArgs[2] = arg;
+    controllerService.SendMethodReply(origMsg, outArgs, 3);
 }
 
 void LampManager::GetLampManufacturer(Message& message)
@@ -224,8 +236,9 @@ void LampManager::GetLampName(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
+    LSFString language = static_cast<LSFString>(args[1].v_string.str);
 
-    QCC_DbgPrintf(("lampID=%s language=%s", lampID.c_str()));
+    QCC_DbgPrintf(("lampID=%s language=%s", lampID.c_str(), language.c_str()));
 
     LSFResponseCode responseCode = lampClients.GetLampName(lampID, message);
     if (responseCode != LSF_OK) {
@@ -657,10 +670,137 @@ void LampManager::TransitionLampState(ajn::Message& message)
     lampList.push_back(lampID);
     LSFResponseCode responseCode = lampClients.TransitionLampState(message, lampList, 0UL, args[1], transitionPeriod);
     if (responseCode != LSF_OK) {
-        MsgArg replyArgs[2];
-        replyArgs[0].Set("u", responseCode);
-        replyArgs[1] = args[0];
-        controllerService.SendMethodReply(message, replyArgs, 2);
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    }
+}
+
+void LampManager::PulseLampWithState(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
+    LampState lampState(args[1]);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t ratio = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t numPulses = static_cast<uint32_t>(args[4].v_uint32);
+    QCC_DbgPrintf(("%s: lampID=%s, lampState=%s, period=%d, ratio=%d, numPulses=%d",
+                   __FUNCTION__, lampID.c_str(), lampState.c_str(), period, ratio, numPulses));
+
+    //TODO: Add Lamp Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    }
+}
+
+void LampManager::StrobeLampWithState(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
+    LampState lampState(args[1]);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t numStrobes = static_cast<uint32_t>(args[3].v_uint32);
+    QCC_DbgPrintf(("%s: lampID=%s, lampState=%s, period=%d, numStrobes=%d",
+                   __FUNCTION__, lampID.c_str(), lampState.c_str(), period, numStrobes));
+
+    //TODO: Add Lamp Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    }
+}
+
+void LampManager::CycleLampWithState(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
+    LampState lampStateA(args[1]);
+    LampState lampStateB(args[2]);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
+    uint32_t numCycles = static_cast<uint32_t>(args[5].v_uint32);
+    QCC_DbgPrintf(("%s: lampID=%s, lampStateA=%s, period=%d, duration=%d, numCycles=%d",
+                   __FUNCTION__, lampID.c_str(), lampStateA.c_str(), period, duration, numCycles));
+
+    QCC_DbgPrintf(("%s: lampStateB=%s", __FUNCTION__, lampStateB.c_str()));
+
+    //TODO: Add Lamp Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    }
+}
+
+void LampManager::PulseLampWithPreset(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
+    LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t ratio = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t numPulses = static_cast<uint32_t>(args[4].v_uint32);
+    QCC_DbgPrintf(("%s: lampID=%s, presetID=%s, period=%d, ratio=%d, numPulses=%d",
+                   __FUNCTION__, lampID.c_str(), presetID.c_str(), period, ratio, numPulses));
+
+    //TODO: Add Lamp Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    }
+}
+
+void LampManager::StrobeLampWithPreset(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
+    LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
+    uint32_t numStrobes = static_cast<uint32_t>(args[3].v_uint32);
+    QCC_DbgPrintf(("%s: lampID=%s, presetID=%s, period=%d, numStrobes=%d",
+                   __FUNCTION__, lampID.c_str(), presetID.c_str(), period, numStrobes));
+
+    //TODO: Add Lamp Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    }
+}
+
+void LampManager::CycleLampWithPreset(ajn::Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
+    LSFString presetIdA = static_cast<LSFString>(args[1].v_string.str);
+    LSFString presetIdB = static_cast<LSFString>(args[2].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
+    uint32_t numCycles = static_cast<uint32_t>(args[5].v_uint32);
+    QCC_DbgPrintf(("%s: lampID=%s, presetIdA=%s, period=%d, duration=%d, numCycles=%d",
+                   __FUNCTION__, lampID.c_str(), presetIdA.c_str(), period, duration, numCycles));
+
+    QCC_DbgPrintf(("%s: presetIdB=%s", __FUNCTION__, presetIdB.c_str()));
+
+    //TODO: Add Lamp Clients Plumbing
+    LSFResponseCode responseCode = LSF_ERR_FAILURE;
+    if (responseCode != LSF_OK) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
     }
 }
 

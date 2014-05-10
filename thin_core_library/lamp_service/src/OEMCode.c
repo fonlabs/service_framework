@@ -58,6 +58,13 @@ void OEM_Initialize(void)
     // TODO: vendor-specific initialization goes here
 }
 
+#ifdef ONBOARDING_SERVICE
+void OEM_InitializeOnboarding(AJOBS_Settings* ob_settings)
+{
+    // TODO: initialize the AJOBS_Settings before onboarding is run
+}
+#endif
+
 void OEM_Restart(void)
 {
     AJ_InfoPrintf(("%s\n", __FUNCTION__));

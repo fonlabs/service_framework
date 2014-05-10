@@ -26,6 +26,10 @@
 #include <LampResponseCodes.h>
 #include <LampValues.h>
 
+#ifdef ONBOARDING_SERVICE
+#include <alljoyn/onboarding/OnboardingManager.h>
+#endif
+
 /**
  * Get the Firmware version
  *
@@ -94,6 +98,16 @@ uint32_t OEM_GetBrightnessLumens();
  * @return  The remaining life span
  */
 uint32_t OEM_GetRemainingLife();
+
+#ifdef ONBOARDING_SERVICE
+/**
+ * Initialize the onboarding service data
+ *
+ * @param ob_settings   The OBS settings struct
+ * The field AJOBS_SoftAPSSID must not be changed!
+ */
+void OEM_InitializeOnboarding(AJOBS_Settings* ob_settings);
+#endif
 
 /**
  * Change the lamp state

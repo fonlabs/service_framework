@@ -48,6 +48,7 @@ class LampClientsCallback {
 
     virtual void GetLampNameReplyCB(ajn::Message& origMsg, const char* name, LSFResponseCode rc) = 0;
     virtual void GetLampManufacturerReplyCB(ajn::Message& origMsg, const char* manufacturer, LSFResponseCode rc) = 0;
+    virtual void GetLampSupportedLanguagesReplyCB(ajn::Message& origMsg, const ajn::MsgArg& arg, LSFResponseCode rc) = 0;
     virtual void SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode rc) = 0;
 
     virtual void GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc) = 0;
@@ -122,6 +123,14 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param msg   The original message
      */
     LSFResponseCode GetLampManufacturer(const LSFString& lampID, ajn::Message& msg);
+
+    /**
+     * Get the Lamp manufacturer
+     *
+     * @param lampID    The lamp id
+     * @param msg   The original message
+     */
+    LSFResponseCode GetLampSupportedLanguages(const LSFString& lampID, ajn::Message& msg);
 
     /**
      * Get the Lamp's entire state
@@ -269,6 +278,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         ObjectMap objects;
 
         ObjectMap configObjects;
+        ObjectMap aboutObjects;
 
         std::string interface;
         std::string property;
@@ -300,6 +310,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     void DoSetLampName(QueuedMethodCall* call);
     void UpdateConfigurationsReply(ajn::Message& msg, void* context);
 
+    void DoGetLampAbout(QueuedMethodCall* call);
+    void GetAboutReply(ajn::Message& msg, void* context);
+
     struct ResponseCounter {
         ResponseCounter() {
             numWaiting = 0;
@@ -327,6 +340,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         LSFString id;
         ajn::ProxyBusObject object;
         ajn::ProxyBusObject configObject;
+        ajn::ProxyBusObject aboutObject;
         LSFString wkn;
         LSFString name;
     };

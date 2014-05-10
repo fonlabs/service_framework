@@ -206,6 +206,54 @@ class LampManagerCallback {
     virtual void TransitionLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
+     * Indicates that a reply has been received for the TransitionLampState method call
+     *
+     * @param responseCode    The response code
+     * @param lampID          The Lamp ID
+     */
+    virtual void PulseLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    /**
+     * Indicates that a reply has been received for the TransitionLampState method call
+     *
+     * @param responseCode    The response code
+     * @param lampID          The Lamp ID
+     */
+    virtual void StrobeLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    /**
+     * Indicates that a reply has been received for the TransitionLampState method call
+     *
+     * @param responseCode    The response code
+     * @param lampID          The Lamp ID
+     */
+    virtual void CycleLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    /**
+     * Indicates that a reply has been received for the TransitionLampPreset method call
+     *
+     * @param responseCode    The response code
+     * @param lampID          The Lamp ID
+     */
+    virtual void PulseLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    /**
+     * Indicates that a reply has been received for the TransitionLampPreset method call
+     *
+     * @param responseCode    The response code
+     * @param lampID          The Lamp ID
+     */
+    virtual void StrobeLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    /**
+     * Indicates that a reply has been received for the TransitionLampPreset method call
+     *
+     * @param responseCode    The response code
+     * @param lampID          The Lamp ID
+     */
+    virtual void CycleLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    /**
      * Indicates that a reply has been received for the TransitionLampStateField method call
      *
      * @param responseCode    The response code
@@ -534,6 +582,60 @@ class LampManager : public Manager {
     ControllerClientStatus TransitionLampState(const LSFString& lampID, const LampState& lampState, const uint32_t& transitionPeriod = 0);
 
     /**
+     * Transition the Lamp to a given state
+     * Response in LampManagerCallback::TransitionLampStateReplyCB
+     *
+     * @param lampID    The Lamp id
+     * @param lampState The new Lamp state
+     */
+    ControllerClientStatus PulseLampWithState(const LSFString& lampID, const LampState& lampState, const uint32_t& period, const uint32_t& ratio, const uint32_t& numPulses);
+
+    /**
+     * Transition the Lamp to a given state
+     * Response in LampManagerCallback::TransitionLampStateReplyCB
+     *
+     * @param lampID    The Lamp id
+     * @param lampState The new Lamp state
+     */
+    ControllerClientStatus StrobeLampWithState(const LSFString& lampID, const LampState& lampState, const uint32_t& period, const uint32_t& numStrobes);
+
+    /**
+     * Transition the Lamp to a given state
+     * Response in LampManagerCallback::TransitionLampStateReplyCB
+     *
+     * @param lampID    The Lamp id
+     * @param lampState The new Lamp state
+     */
+    ControllerClientStatus CycleLampWithState(const LSFString& lampID, const LampState& lampStateA, const LampState& lampStateB, const uint32_t& period, const uint32_t& duration, const uint32_t& numCycles);
+
+    /**
+     * Transition the Lamp to a given state
+     * Response in LampManagerCallback::TransitionLSFStringReplyCB
+     *
+     * @param lampID    The Lamp id
+     * @param lampPreset The new Lamp state
+     */
+    ControllerClientStatus PulseLampWithPreset(const LSFString& lampID, const LSFString& presetID, const uint32_t& period, const uint32_t& ratio, const uint32_t& numPulses);
+
+    /**
+     * Transition the Lamp to a given state
+     * Response in LampManagerCallback::TransitionLSFStringReplyCB
+     *
+     * @param lampID    The Lamp id
+     * @param presetID The new Lamp state
+     */
+    ControllerClientStatus StrobeLampWithPreset(const LSFString& lampID, const LSFString& presetID, const uint32_t& period, const uint32_t& numStrobes);
+
+    /**
+     * Transition the Lamp to a given state
+     * Response in LampManagerCallback::TransitionLSFStringReplyCB
+     *
+     * @param lampID    The Lamp id
+     * @param presetID The new Lamp state
+     */
+    ControllerClientStatus CycleLampWithPreset(const LSFString& lampID, const LSFString& presetIdA, const LSFString& presetIdB, const uint32_t& period, const uint32_t& duration, const uint32_t& numCycles);
+
+    /**
      * Set the Lamp's state param
      * Response in LampManagerCallback::TransitionLampStateFieldReplyCB
      *
@@ -664,6 +766,30 @@ class LampManager : public Manager {
 
     void TransitionLampStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.TransitionLampStateReplyCB(responseCode, lsfId);
+    }
+
+    void PulseLampWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.PulseLampWithStateReplyCB(responseCode, lsfId);
+    }
+
+    void StrobeLampWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.StrobeLampWithStateReplyCB(responseCode, lsfId);
+    }
+
+    void CycleLampWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.CycleLampWithStateReplyCB(responseCode, lsfId);
+    }
+
+    void PulseLampWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.PulseLampWithPresetReplyCB(responseCode, lsfId);
+    }
+
+    void StrobeLampWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.StrobeLampWithPresetReplyCB(responseCode, lsfId);
+    }
+
+    void CycleLampWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.CycleLampWithPresetReplyCB(responseCode, lsfId);
     }
 
     void TransitionLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);

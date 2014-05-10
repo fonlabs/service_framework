@@ -26,6 +26,7 @@
 #include <aj_nvram.h>
 #include <LampOnboarding.h>
 #include <LampAboutData.h>
+#include <OEMCode.h>
 
 #include <alljoyn/onboarding/OnboardingService.h>
 #include <alljoyn/onboarding/OnboardingManager.h>
@@ -48,17 +49,36 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
     size_t deviceIdLen;
     char serialId[AJOBS_DEVICE_SERIAL_ID_LEN + 1] = { 0 };
     size_t serialIdLen;
+    char product[AJOBS_DEVICE_PRODUCT_NAME_LEN + 1] = { 0 };
+    size_t productLen;
+
+    const char* deviceProductName = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME);
 
     if (obSoftAPssid[0] == '\0') {
         deviceId = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
         deviceIdLen = strlen(deviceId);
+        productLen = min(strlen(deviceProductName), AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN);
+
         serialIdLen = min(deviceIdLen, AJOBS_DEVICE_SERIAL_ID_LEN);
+        memcpy(product, deviceProductName, productLen);
+        product[productLen] = '\0';
+
+        // can't have spaces in SSID
+        {
+            size_t i = 0;
+            for (; i < serialIdLen; ++i) {
+                if (product[i] == ' ') {
+                    product[i] = '_';
+                }
+            }
+        }
+
         memcpy(serialId, deviceId + (deviceIdLen - serialIdLen), serialIdLen);
         serialId[serialIdLen] = '\0';
-        snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_IOT_%s", serialId);
+        snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_%s_%s", product, serialId);
     }
 
-    AJ_InfoPrintf(("%s: SoftAP: %s\n", __FUNCTION__, obSoftAPssid));
+    AJ_AlwaysPrintf(("%s: SoftAP: %s\n", __FUNCTION__, obSoftAPssid));
     return obSoftAPssid;
 }
 
@@ -125,6 +145,8 @@ AJ_Status LAMP_InitOnboarding(void)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     AJ_Status status = AJ_OK;
+
+    OEM_InitializeOnboarding(&obSettings);
     GenerateSoftAPSSID(obSettings.AJOBS_SoftAPSSID);
     status = AJOBS_Start(&obSettings, &OnboardingReadInfo, &OnboardingWriteInfo);
     return status;
