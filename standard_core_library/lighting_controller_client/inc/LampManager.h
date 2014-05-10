@@ -50,7 +50,7 @@ class LampManagerCallback {
      * @param responseCode  The response code
      * @param lampIDs       The Lamp IDs
      */
-    virtual void GetAllLampIDsReplyCB(const LSFResponseCode& responseCode, const LSF_ID_List& lampIDs) { }
+    virtual void GetAllLampIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& lampIDs) { }
 
     /**
      * Indicates that a reply has been received for the GetLampName method call
@@ -59,7 +59,16 @@ class LampManagerCallback {
      * @param lampID       The Lamp ID
      * @param lampName     The Lamp Name
      */
-    virtual void GetLampNameReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const LSF_Name& lampName) { }
+    virtual void GetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language, const LSFString& lampName) { }
+
+    /**
+     * Indicates that a reply has been received for the GetLampName method call
+     *
+     * @param responseCode The response code
+     * @param lampID       The Lamp ID
+     * @param lampName     The Lamp Name
+     */
+    virtual void GetLampManufacturerReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language, const LSFString& manufacturer) { }
 
     /**
      * Indicates that a reply has been received for the SetLampName method call
@@ -67,14 +76,14 @@ class LampManagerCallback {
      * @param responseCode The response code
      * @param lampID       The Lamp ID
      */
-    virtual void SetLampNameReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void SetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language) { }
 
     /**
      *  Indicates that the signal LampsNameChanged has been received
      *
      *  @param lampIDs   The Lamp IDs
      */
-    virtual void LampsNameChangedCB(const LSF_ID_List& lampIDs) { }
+    virtual void LampsNameChangedCB(const LSFStringList& lampIDs) { }
 
     /**
      * Indicates that a reply has been received for the GetLampDetails method call
@@ -83,7 +92,7 @@ class LampManagerCallback {
      * @param lampID       The Lamp ID
      * @param lampDetails  The Lamp Details
      */
-    virtual void GetLampDetailsReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const LampDetails& lampDetails) { }
+    virtual void GetLampDetailsReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampDetails& lampDetails) { }
 
     /**
      * Indicates that a reply has been received for the GetLampParameters method call
@@ -92,7 +101,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param lampParameters  The Lamp Parameters
      */
-    virtual void GetLampParametersReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const LampParameters& lampParameters) { }
+    virtual void GetLampParametersReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampParameters& lampParameters) { }
 
     /**
      * Indicates that a reply has been received for the GetLampParametersField method call
@@ -102,7 +111,7 @@ class LampManagerCallback {
      * @param parameterFieldName  Name of the Lamp Parameter field
      * @param value               Value of the Lamp Parameter field
      */
-    virtual void GetLampParametersEnergyUsageMilliwattsFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const uint32_t& energyUsageMilliwatts) { }
+    virtual void GetLampParametersEnergyUsageMilliwattsFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& energyUsageMilliwatts) { }
 
     /**
      * Indicates that a reply has been received for the GetLampParametersField method call
@@ -112,7 +121,7 @@ class LampManagerCallback {
      * @param parameterFieldName  Name of the Lamp Parameter field
      * @param value               Value of the Lamp Parameter field
      */
-    virtual void GetLampParametersBrightnessLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const uint32_t& brightnessLumens) { }
+    virtual void GetLampParametersBrightnessLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& brightnessLumens) { }
 
     /**
      * Indicates that a reply has been received for the GetLampState method call
@@ -121,7 +130,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param lampState       Lamp State
      */
-    virtual void GetLampStateReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const LampState& lampState) { }
+    virtual void GetLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampState& lampState) { }
 
     /**
      * Indicates that a reply has been received for the GetLampStateField method call
@@ -131,7 +140,7 @@ class LampManagerCallback {
      * @param stateFieldName  Name of the Lamp State field
      * @param value           Value of the Lamp State field
      */
-    virtual void GetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const bool& onOff) { }
+    virtual void GetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const bool& onOff) { }
 
     /**
      * Indicates that a reply has been received for the GetLampStateField method call
@@ -141,7 +150,7 @@ class LampManagerCallback {
      * @param stateFieldName  Name of the Lamp State field
      * @param value           Value of the Lamp State field
      */
-    virtual void GetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const uint32_t& hue) { }
+    virtual void GetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& hue) { }
 
     /**
      * Indicates that a reply has been received for the GetLampStateField method call
@@ -151,7 +160,7 @@ class LampManagerCallback {
      * @param stateFieldName  Name of the Lamp State field
      * @param value           Value of the Lamp State field
      */
-    virtual void GetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const uint32_t& saturation) { }
+    virtual void GetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& saturation) { }
 
     /**
      * Indicates that a reply has been received for the GetLampStateField method call
@@ -161,7 +170,7 @@ class LampManagerCallback {
      * @param stateFieldName  Name of the Lamp State field
      * @param value           Value of the Lamp State field
      */
-    virtual void GetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const uint32_t& brightness) { }
+    virtual void GetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& brightness) { }
 
     /**
      * Indicates that a reply has been received for the GetLampStateField method call
@@ -171,7 +180,7 @@ class LampManagerCallback {
      * @param stateFieldName  Name of the Lamp State field
      * @param value           Value of the Lamp State field
      */
-    virtual void GetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const uint32_t& colorTemp) { }
+    virtual void GetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& colorTemp) { }
 
     /**
      * Indicates that a reply has been received for the ResetLampState method call
@@ -179,14 +188,14 @@ class LampManagerCallback {
      * @param responseCode    The response code
      * @param lampID          The Lamp ID
      */
-    virtual void ResetLampStateReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void ResetLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      *  Indicates that the signal LampsStateChanged has been received
      *
      *  @param lampIDs   The Lamp IDs
      */
-    virtual void LampsStateChangedCB(const LSF_ID_List& lampIDs) { }
+    virtual void LampsStateChangedCB(const LSFStringList& lampIDs) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampState method call
@@ -194,7 +203,7 @@ class LampManagerCallback {
      * @param responseCode    The response code
      * @param lampID          The Lamp ID
      */
-    virtual void TransitionLampStateReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void TransitionLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampStateField method call
@@ -203,7 +212,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void TransitionLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void TransitionLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampStateField method call
@@ -212,7 +221,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void TransitionLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void TransitionLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampStateField method call
@@ -221,7 +230,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void TransitionLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void TransitionLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampStateField method call
@@ -230,7 +239,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void TransitionLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void TransitionLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampStateField method call
@@ -239,7 +248,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void TransitionLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void TransitionLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the GetLampFaults method call
@@ -248,7 +257,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param faultCodes      List of Lamp Fault Codes
      */
-    virtual void GetLampFaultsReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const LampFaultCodeList& faultCodes) { }
+    virtual void GetLampFaultsReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCodeList& faultCodes) { }
 
     /**
      * Indicates that a reply has been received for the ClearLampFault method call
@@ -257,7 +266,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param faultCode
      */
-    virtual void ClearLampFaultReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID, const LampFaultCode& faultCode) { }
+    virtual void ClearLampFaultReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCode& faultCode) { }
 
     /**
      * Indicates that a reply has been received for the ResetLampStateField method call
@@ -266,7 +275,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void ResetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void ResetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the ResetLampStateField method call
@@ -275,7 +284,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void ResetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void ResetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the ResetLampStateField method call
@@ -284,7 +293,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void ResetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void ResetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the ResetLampStateField method call
@@ -293,7 +302,7 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void ResetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void ResetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the ResetLampStateField method call
@@ -302,15 +311,17 @@ class LampManagerCallback {
      * @param lampID          The Lamp ID
      * @param stateFieldName  The Lamp State Field
      */
-    virtual void ResetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void ResetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampStateToSavedState method call
+     * Indicates that a reply has been received for the TransitionLampStateToPreset method call
      *
      * @param responseCode    The response code
      * @param lampID          The Lamp ID
      */
-    virtual void TransitionLampStateToSavedStateReplyCB(const LSFResponseCode& responseCode, const LSF_ID& lampID) { }
+    virtual void TransitionLampStateToPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    virtual void GetLampSupportedLanguagesReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFStringList& supportedLanguages) { };
 };
 
 /**
@@ -329,13 +340,15 @@ class LampManager : public Manager {
      */
     ControllerClientStatus GetAllLampIDs(void);
 
+    ControllerClientStatus GetLampManufacturer(const LSFString& lampID, const LSFString& language = LSFString("en"));
+
     /**
      * Get the name of the specified Lamp
      * Response in LampManagerCallback::GetLampNameReplyCB
      *
      * @param lampID    The Lamp id
      */
-    ControllerClientStatus GetLampName(const LSF_ID& lampID);
+    ControllerClientStatus GetLampName(const LSFString& lampID, const LSFString& language = LSFString("en"));
 
     /**
      * Set an Lamp's Name
@@ -344,7 +357,7 @@ class LampManager : public Manager {
      * @param lampID    The Lamp ID
      * @param lampName  The Lamp Name
      */
-    ControllerClientStatus SetLampName(const LSF_ID& lampID, const LSF_Name& lampName);
+    ControllerClientStatus SetLampName(const LSFString& lampID, const LSFString& lampName, const LSFString& language = LSFString("en"));
 
     /**
      * Get the details of a Lamp
@@ -352,7 +365,7 @@ class LampManager : public Manager {
      *
      * @param lampID    The Lamp id
      */
-    ControllerClientStatus GetLampDetails(const LSF_ID& lampID);
+    ControllerClientStatus GetLampDetails(const LSFString& lampID);
 
     /**
      * Get the parameters of a given Lamp
@@ -360,7 +373,7 @@ class LampManager : public Manager {
      *
      * @param lampID    The Lamp id
      */
-    ControllerClientStatus GetLampParameters(const LSF_ID& lampID);
+    ControllerClientStatus GetLampParameters(const LSFString& lampID);
 
     /**
      * Get a given parameter field from the Lamp
@@ -369,8 +382,8 @@ class LampManager : public Manager {
      * @param lampID             The Lamp id
      * @param parameterFieldName The name of the Lamp Parameter Field
      */
-    ControllerClientStatus GetLampParametersEnergyUsageMilliwattsField(const LSF_ID& lampID) {
-        return GetLampParametersField(lampID, LSF_Name("Energy_Usage_Milliwatts"));
+    ControllerClientStatus GetLampParametersEnergyUsageMilliwattsField(const LSFString& lampID) {
+        return GetLampParametersField(lampID, LSFString("Energy_Usage_Milliwatts"));
     }
 
     /**
@@ -380,8 +393,8 @@ class LampManager : public Manager {
      * @param lampID             The Lamp id
      * @param parameterFieldName The name of the Lamp Parameter Field
      */
-    ControllerClientStatus GetLampParametersBrightnessLumensField(const LSF_ID& lampID) {
-        return GetLampParametersField(lampID, LSF_Name("Brightness_Lumens"));
+    ControllerClientStatus GetLampParametersBrightnessLumensField(const LSFString& lampID) {
+        return GetLampParametersField(lampID, LSFString("Brightness_Lumens"));
     }
 
 
@@ -391,7 +404,7 @@ class LampManager : public Manager {
      *
      * @param lampID    The Lamp id
      */
-    ControllerClientStatus GetLampState(const LSF_ID& lampID);
+    ControllerClientStatus GetLampState(const LSFString& lampID);
 
     /**
      * Get the Lamp's state param
@@ -400,8 +413,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus GetLampStateOnOffField(const LSF_ID& lampID) {
-        return GetLampStateField(lampID, LSF_Name("OnOff"));
+    ControllerClientStatus GetLampStateOnOffField(const LSFString& lampID) {
+        return GetLampStateField(lampID, LSFString("OnOff"));
     }
 
     /**
@@ -411,8 +424,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus GetLampStateHueField(const LSF_ID& lampID) {
-        return GetLampStateField(lampID, LSF_Name("Hue"));
+    ControllerClientStatus GetLampStateHueField(const LSFString& lampID) {
+        return GetLampStateField(lampID, LSFString("Hue"));
     }
 
     /**
@@ -422,8 +435,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus GetLampStateSaturationField(const LSF_ID& lampID) {
-        return GetLampStateField(lampID, LSF_Name("Saturation"));
+    ControllerClientStatus GetLampStateSaturationField(const LSFString& lampID) {
+        return GetLampStateField(lampID, LSFString("Saturation"));
     }
 
     /**
@@ -433,8 +446,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus GetLampStateBrightnessField(const LSF_ID& lampID) {
-        return GetLampStateField(lampID, LSF_Name("Brightness"));
+    ControllerClientStatus GetLampStateBrightnessField(const LSFString& lampID) {
+        return GetLampStateField(lampID, LSFString("Brightness"));
     }
 
     /**
@@ -444,8 +457,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus GetLampStateColorTempField(const LSF_ID& lampID) {
-        return GetLampStateField(lampID, LSF_Name("ColorTemp"));
+    ControllerClientStatus GetLampStateColorTempField(const LSFString& lampID) {
+        return GetLampStateField(lampID, LSFString("ColorTemp"));
     }
 
     /**
@@ -454,7 +467,7 @@ class LampManager : public Manager {
      *
      * @param lampID    The Lamp id
      */
-    ControllerClientStatus ResetLampState(const LSF_ID& lampID);
+    ControllerClientStatus ResetLampState(const LSFString& lampID);
 
     /**
      * Reset the Lamp's state param
@@ -463,8 +476,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus ResetLampStateOnOffField(const LSF_ID& lampID) {
-        return ResetLampStateField(lampID, LSF_Name("OnOff"));
+    ControllerClientStatus ResetLampStateOnOffField(const LSFString& lampID) {
+        return ResetLampStateField(lampID, LSFString("OnOff"));
     }
 
     /**
@@ -474,8 +487,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus ResetLampStateHueField(const LSF_ID& lampID) {
-        return ResetLampStateField(lampID, LSF_Name("Hue"));
+    ControllerClientStatus ResetLampStateHueField(const LSFString& lampID) {
+        return ResetLampStateField(lampID, LSFString("Hue"));
     }
 
     /**
@@ -485,8 +498,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus ResetLampStateSaturationField(const LSF_ID& lampID) {
-        return ResetLampStateField(lampID, LSF_Name("Saturation"));
+    ControllerClientStatus ResetLampStateSaturationField(const LSFString& lampID) {
+        return ResetLampStateField(lampID, LSFString("Saturation"));
     }
 
     /**
@@ -496,8 +509,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus ResetLampStateBrightnessField(const LSF_ID& lampID) {
-        return ResetLampStateField(lampID, LSF_Name("Brightness"));
+    ControllerClientStatus ResetLampStateBrightnessField(const LSFString& lampID) {
+        return ResetLampStateField(lampID, LSFString("Brightness"));
     }
 
     /**
@@ -507,8 +520,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus ResetLampStateColorTempField(const LSF_ID& lampID) {
-        return ResetLampStateField(lampID, LSF_Name("ColorTemp"));
+    ControllerClientStatus ResetLampStateColorTempField(const LSFString& lampID) {
+        return ResetLampStateField(lampID, LSFString("ColorTemp"));
     }
 
     /**
@@ -518,7 +531,7 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param lampState The new Lamp state
      */
-    ControllerClientStatus TransitionLampState(const LSF_ID& lampID, const LampState& lampState, const uint32_t& transitionPeriod = 0);
+    ControllerClientStatus TransitionLampState(const LSFString& lampID, const LampState& lampState, const uint32_t& transitionPeriod = 0);
 
     /**
      * Set the Lamp's state param
@@ -527,8 +540,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus TransitionLampStateOnOffField(const LSF_ID& lampID, const bool& onOff) {
-        LSF_Name name("OnOff");
+    ControllerClientStatus TransitionLampStateOnOffField(const LSFString& lampID, const bool& onOff) {
+        LSFString name("OnOff");
         return TransitionLampStateBooleanField(lampID, name, onOff);
     }
 
@@ -539,8 +552,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus TransitionLampStateHueField(const LSF_ID& lampID, const uint32_t& hue, const uint32_t& transitionPeriod = 0) {
-        LSF_Name name("Hue");
+    ControllerClientStatus TransitionLampStateHueField(const LSFString& lampID, const uint32_t& hue, const uint32_t& transitionPeriod = 0) {
+        LSFString name("Hue");
         return TransitionLampStateIntegerField(lampID, name, hue, transitionPeriod);
     }
 
@@ -551,8 +564,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus TransitionLampStateSaturationField(const LSF_ID& lampID, const uint32_t& saturation, const uint32_t& transitionPeriod = 0) {
-        LSF_Name name("Saturation");
+    ControllerClientStatus TransitionLampStateSaturationField(const LSFString& lampID, const uint32_t& saturation, const uint32_t& transitionPeriod = 0) {
+        LSFString name("Saturation");
         return TransitionLampStateIntegerField(lampID, name, saturation, transitionPeriod);
     }
 
@@ -563,8 +576,8 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus TransitionLampStateBrightnessField(const LSF_ID& lampID, const uint32_t& brightness, const uint32_t& transitionPeriod = 0) {
-        LSF_Name name("Brightness");
+    ControllerClientStatus TransitionLampStateBrightnessField(const LSFString& lampID, const uint32_t& brightness, const uint32_t& transitionPeriod = 0) {
+        LSFString name("Brightness");
         return TransitionLampStateIntegerField(lampID, name, brightness, transitionPeriod);
     }
 
@@ -575,19 +588,19 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param stateFieldName The Lamp state field to fetch
      */
-    ControllerClientStatus TransitionLampStateColorTempField(const LSF_ID& lampID, const uint32_t& colorTemp, const uint32_t& transitionPeriod = 0) {
-        LSF_Name name("ColorTemp");
+    ControllerClientStatus TransitionLampStateColorTempField(const LSFString& lampID, const uint32_t& colorTemp, const uint32_t& transitionPeriod = 0) {
+        LSFString name("ColorTemp");
         return TransitionLampStateIntegerField(lampID, name, colorTemp, transitionPeriod);
     }
 
     /**
-     * Transition the Lamp to a given saved state
-     * Response in LampManagerCallback::TransitionLampStateToSavedStateReplyCB
+     * Transition the Lamp to a given preset
+     * Response in LampManagerCallback::TransitionLampStateToPresetReplyCB
      *
      * @param lampID    The id of the Lamp
-     * @param savedStateID The id of the saved state
+     * @param presetID The id of the preset
      */
-    ControllerClientStatus TransitionLampStateToSavedState(const LSF_ID& lampID, const LSF_ID& savedStateID, const uint32_t& transitionPeriod = 0);
+    ControllerClientStatus TransitionLampStateToPreset(const LSFString& lampID, const LSFString& presetID, const uint32_t& transitionPeriod = 0);
 
     /**
      * Get a list of the Lamp's fault codes
@@ -595,7 +608,7 @@ class LampManager : public Manager {
      *
      * @param lampID    The id of the Lamp
      */
-    ControllerClientStatus GetLampFaults(const LSF_ID& lampID);
+    ControllerClientStatus GetLampFaults(const LSFString& lampID);
 
     /**
      * Reset the Lamp's faults
@@ -604,53 +617,59 @@ class LampManager : public Manager {
      * @param lampID    The id of the Lamp
      * @param faultCode Lamp fault code
      */
-    ControllerClientStatus ClearLampFault(const LSF_ID& lampID, const LampFaultCode faultCode);
+    ControllerClientStatus ClearLampFault(const LSFString& lampID, const LampFaultCode faultCode);
+
+    ControllerClientStatus GetLampSupportedLanguages(const LSFString& lampID);
 
   private:
 
-    ControllerClientStatus GetLampStateField(const LSF_ID& lampID, const LSF_Name& stateFieldName);
-    ControllerClientStatus ResetLampStateField(const LSF_ID& lampID, const LSF_Name& stateFieldName);
-    ControllerClientStatus TransitionLampStateIntegerField(const LSF_ID& lampID, const LSF_Name& stateFieldName, const uint32_t& value, const uint32_t& transitionPeriod = 0);
-    ControllerClientStatus TransitionLampStateBooleanField(const LSF_ID& lampID, const LSF_Name& stateFieldName, const bool& value);
-    ControllerClientStatus GetLampParametersField(const LSF_ID& lampID, const LSF_Name& stateFieldName);
+    ControllerClientStatus GetLampStateField(const LSFString& lampID, const LSFString& stateFieldName);
+    ControllerClientStatus ResetLampStateField(const LSFString& lampID, const LSFString& stateFieldName);
+    ControllerClientStatus TransitionLampStateIntegerField(const LSFString& lampID, const LSFString& stateFieldName, const uint32_t& value, const uint32_t& transitionPeriod = 0);
+    ControllerClientStatus TransitionLampStateBooleanField(const LSFString& lampID, const LSFString& stateFieldName, const bool& value);
+    ControllerClientStatus GetLampParametersField(const LSFString& lampID, const LSFString& stateFieldName);
 
-    void LampsNameChanged(LSF_ID_List& idList) {
+    void LampsNameChanged(LSFStringList& idList) {
         callback.LampsNameChangedCB(idList);
     }
-    void LampsStateChanged(LSF_ID_List& idList) {
+    void LampsStateChanged(LSFStringList& idList) {
         callback.LampsStateChangedCB(idList);
     }
 
     // method reply handlers
-    void GetAllLampIDsReply(LSFResponseCode& responseCode, LSF_ID_List& idList) {
+    void GetAllLampIDsReply(LSFResponseCode& responseCode, LSFStringList& idList) {
         callback.GetAllLampIDsReplyCB(responseCode, idList);
     }
 
-    void GetLampNameReply(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName) {
-        callback.GetLampNameReplyCB(responseCode, lsfId, lsfName);
+    void GetLampManufacturerReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& manufacturer) {
+        callback.GetLampManufacturerReplyCB(responseCode, lsfId, language, manufacturer);
     }
+    void GetLampNameReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name) {
+        callback.GetLampNameReplyCB(responseCode, lsfId, language, name);
+    }
+    void GetLampSupportedLanguagesReply(ajn::Message& message);
 
-    void SetLampNameReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
-        callback.SetLampNameReplyCB(responseCode, lsfId);
+    void SetLampNameReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language) {
+        callback.SetLampNameReplyCB(responseCode, lsfId, language);
     }
 
     void GetLampStateReply(ajn::Message& message);
     void GetLampStateFieldReply(ajn::Message& message);
 
-    void ResetLampStateReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
+    void ResetLampStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.ResetLampStateReplyCB(responseCode, lsfId);
     }
 
-    void ResetLampStateFieldReply(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName);
+    void ResetLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
 
-    void TransitionLampStateReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
+    void TransitionLampStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.TransitionLampStateReplyCB(responseCode, lsfId);
     }
 
-    void TransitionLampStateFieldReply(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName);
+    void TransitionLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
 
-    void TransitionLampStateToSavedStateReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
-        callback.TransitionLampStateToSavedStateReplyCB(responseCode, lsfId);
+    void TransitionLampStateToPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.TransitionLampStateToPresetReplyCB(responseCode, lsfId);
     }
 
     void GetLampFaultsReply(ajn::Message& message);

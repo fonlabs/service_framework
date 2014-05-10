@@ -41,33 +41,49 @@ ControllerClientStatus LampManager::GetAllLampIDs(void)
                "GetAllLampIDs");
 }
 
-ControllerClientStatus LampManager::GetLampName(const LSF_ID& lampID)
+ControllerClientStatus LampManager::GetLampManufacturer(const LSFString& lampID, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: lampID=%s", __FUNCTION__, lampID.c_str()));
-    MsgArg arg("s", lampID.c_str());
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
-               "GetLampName",
-               &arg,
-               1);
-}
-
-ControllerClientStatus LampManager::SetLampName(const LSF_ID& lampID, const LSF_Name& lampName)
-{
-    QCC_DbgPrintf(("%s: lampID=%s lampName=%s,", __FUNCTION__, lampID.c_str(), lampName.c_str()));
-
+    QCC_DbgPrintf(("%s: lampID=%s language=%s", __FUNCTION__, lampID.c_str(), language.c_str()));
     MsgArg args[2];
     args[0].Set("s", lampID.c_str());
-    args[1].Set("s", lampName.c_str());
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+    args[1].Set("s", language.c_str());
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
                ControllerClient::ControllerServiceLampInterfaceName.c_str(),
-               "SetLampName",
+               "GetLampManufacturer",
                args,
                2);
 }
 
-ControllerClientStatus LampManager::GetLampDetails(const LSF_ID& lampID)
+ControllerClientStatus LampManager::GetLampName(const LSFString& lampID, const LSFString& language)
+{
+    QCC_DbgPrintf(("%s: lampID=%s", __FUNCTION__, lampID.c_str()));
+    MsgArg args[2];
+    args[0].Set("s", lampID.c_str());
+    args[1].Set("s", language.c_str());
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "GetLampName",
+               args,
+               2);
+}
+
+ControllerClientStatus LampManager::SetLampName(const LSFString& lampID, const LSFString& lampName, const LSFString& language)
+{
+    QCC_DbgPrintf(("%s: lampID=%s lampName=%s language=%s", __FUNCTION__, lampID.c_str(), lampName.c_str(), language.c_str()));
+
+    MsgArg args[3];
+    args[0].Set("s", lampID.c_str());
+    args[1].Set("s", lampName.c_str());
+    args[2].Set("s", language.c_str());
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "SetLampName",
+               args,
+               3);
+}
+
+ControllerClientStatus LampManager::GetLampDetails(const LSFString& lampID)
 {
     QCC_DbgPrintf(("%s: lampID=%s", __FUNCTION__, lampID.c_str()));
 
@@ -92,13 +108,13 @@ void LampManager::GetLampDetailsReply(Message& message)
     message->GetArgs(numArgs, args);
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
-    LSF_ID lampID = static_cast<LSF_ID>(args[1].v_string.str);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LampDetails details(args[2]);
 
     callback.GetLampDetailsReplyCB(responseCode, lampID, details);
 }
 
-ControllerClientStatus LampManager::GetLampParameters(const LSF_ID& lampID)
+ControllerClientStatus LampManager::GetLampParameters(const LSFString& lampID)
 {
     QCC_DbgPrintf(("\n%s: lampID=%s\n", __FUNCTION__, lampID.c_str()));
 
@@ -123,13 +139,13 @@ void LampManager::GetLampParametersReply(Message& message)
     message->GetArgs(numArgs, args);
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
-    LSF_ID lampID = static_cast<LSF_ID>(args[1].v_string.str);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LampParameters parameters(args[2]);
 
     callback.GetLampParametersReplyCB(responseCode, lampID, parameters);
 }
 
-ControllerClientStatus LampManager::GetLampState(const LSF_ID& lampID)
+ControllerClientStatus LampManager::GetLampState(const LSFString& lampID)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
@@ -154,13 +170,13 @@ void LampManager::GetLampStateReply(Message& message)
     message->GetArgs(numArgs, args);
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
-    LSF_ID lampID = static_cast<LSF_ID>(args[1].v_string.str);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LampState state(args[2]);
 
     callback.GetLampStateReplyCB(responseCode, lampID, state);
 }
 
-ControllerClientStatus LampManager::ResetLampState(const LSF_ID& lampID)
+ControllerClientStatus LampManager::ResetLampState(const LSFString& lampID)
 {
     QCC_DbgPrintf(("\n%s: %s\n", __FUNCTION__, lampID.c_str()));
 
@@ -175,7 +191,7 @@ ControllerClientStatus LampManager::ResetLampState(const LSF_ID& lampID)
 }
 
 ControllerClientStatus LampManager::TransitionLampState(
-    const LSF_ID& lampID,
+    const LSFString& lampID,
     const LampState& state,
     const uint32_t& transitionPeriod)
 {
@@ -193,23 +209,23 @@ ControllerClientStatus LampManager::TransitionLampState(
                3);
 }
 
-ControllerClientStatus LampManager::TransitionLampStateToSavedState(const LSF_ID& lampID, const LSF_ID& savedStateID, const uint32_t& transitionPeriod)
+ControllerClientStatus LampManager::TransitionLampStateToPreset(const LSFString& lampID, const LSFString& presetID, const uint32_t& transitionPeriod)
 {
-    QCC_DbgPrintf(("\n%s: %s %s\n", __FUNCTION__, lampID.c_str(), savedStateID.c_str()));
+    QCC_DbgPrintf(("\n%s: %s %s\n", __FUNCTION__, lampID.c_str(), presetID.c_str()));
 
     MsgArg args[3];
     args[0].Set("s", lampID.c_str());
-    args[1].Set("s", savedStateID.c_str());
+    args[1].Set("s", presetID.c_str());
     args[2].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampInterfaceName.c_str(),
-               "TransitionLampStateToSavedState",
+               "TransitionLampStateToPreset",
                args,
                3);
 }
 
-ControllerClientStatus LampManager::GetLampFaults(const LSF_ID& lampID)
+ControllerClientStatus LampManager::GetLampFaults(const LSFString& lampID)
 {
     QCC_DbgPrintf(("\n%s: %s\n", __FUNCTION__, lampID.c_str()));
 
@@ -233,7 +249,7 @@ void LampManager::GetLampFaultsReply(Message& message)
     message->GetArgs(numArgs, args);
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
-    LSF_ID lampID = static_cast<LSF_ID>(args[1].v_string.str);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
 
     LampFaultCodeList codes;
     uint32_t* codeList;
@@ -248,7 +264,7 @@ void LampManager::GetLampFaultsReply(Message& message)
     callback.GetLampFaultsReplyCB(responseCode, lampID, codes);
 }
 
-ControllerClientStatus LampManager::ClearLampFault(const LSF_ID& lampID, LampFaultCode faultCode)
+ControllerClientStatus LampManager::ClearLampFault(const LSFString& lampID, LampFaultCode faultCode)
 {
     QCC_DbgPrintf(("\n%s: lampID=%s faultCode=%d\n", __FUNCTION__, lampID.c_str(), faultCode));
 
@@ -274,13 +290,13 @@ void LampManager::ClearLampFaultReply(Message& message)
     message->GetArgs(numArgs, args);
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
-    LSF_ID lampID = static_cast<LSF_ID>(args[1].v_string.str);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LampFaultCode code = static_cast<LampFaultCode>(args[2].v_uint32);
 
     callback.ClearLampFaultReplyCB(responseCode, lampID, code);
 }
 
-ControllerClientStatus LampManager::GetLampStateField(const LSF_ID& lampID, const LSF_Name& stateFieldName)
+ControllerClientStatus LampManager::GetLampStateField(const LSFString& lampID, const LSFString& stateFieldName)
 {
     QCC_DbgPrintf(("\n%s: lampID=%s stateFieldName=%s\n", __FUNCTION__, lampID.c_str(), stateFieldName.c_str()));
 
@@ -306,8 +322,8 @@ void LampManager::GetLampStateFieldReply(Message& message)
     message->GetArgs(numArgs, args);
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
-    LSF_ID lampID = static_cast<LSF_ID>(args[1].v_string.str);
-    LSF_Name fieldName = static_cast<LSF_Name>(args[2].v_string.str);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
+    LSFString fieldName = static_cast<LSFString>(args[2].v_string.str);
 
     MsgArg* varArg;
     args[3].Get("v", &varArg);
@@ -330,7 +346,7 @@ void LampManager::GetLampStateFieldReply(Message& message)
     }
 }
 
-ControllerClientStatus LampManager::ResetLampStateField(const LSF_ID& lampID, const LSF_Name& stateFieldName)
+ControllerClientStatus LampManager::ResetLampStateField(const LSFString& lampID, const LSFString& stateFieldName)
 {
     QCC_DbgPrintf(("\n%s: lampID=%s stateFieldName=%s\n", __FUNCTION__, lampID.c_str(), stateFieldName.c_str()));
 
@@ -345,7 +361,7 @@ ControllerClientStatus LampManager::ResetLampStateField(const LSF_ID& lampID, co
                2);
 }
 
-void LampManager::ResetLampStateFieldReply(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName)
+void LampManager::ResetLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
     QCC_DbgPrintf(("\n%s: %s %s %s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
 
@@ -365,8 +381,8 @@ void LampManager::ResetLampStateFieldReply(LSFResponseCode& responseCode, LSF_ID
 }
 
 ControllerClientStatus LampManager::TransitionLampStateIntegerField(
-    const LSF_ID& lampID,
-    const LSF_Name& stateFieldName,
+    const LSFString& lampID,
+    const LSFString& stateFieldName,
     const uint32_t& value,
     const uint32_t& transitionPeriod)
 {
@@ -388,8 +404,8 @@ ControllerClientStatus LampManager::TransitionLampStateIntegerField(
 }
 
 ControllerClientStatus LampManager::TransitionLampStateBooleanField(
-    const LSF_ID& lampID,
-    const LSF_Name& stateFieldName,
+    const LSFString& lampID,
+    const LSFString& stateFieldName,
     const bool& value)
 {
     QCC_DbgPrintf(("\n%s: lampID=%s stateFieldName=%s\n", __FUNCTION__, lampID.c_str(), stateFieldName.c_str()));
@@ -408,7 +424,7 @@ ControllerClientStatus LampManager::TransitionLampStateBooleanField(
                4);
 }
 
-void LampManager::TransitionLampStateFieldReply(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName)
+void LampManager::TransitionLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
     QCC_DbgPrintf(("\n%s: %s %s %s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
 
@@ -427,7 +443,7 @@ void LampManager::TransitionLampStateFieldReply(LSFResponseCode& responseCode, L
     }
 }
 
-ControllerClientStatus LampManager::GetLampParametersField(const LSF_ID& lampID, const LSF_Name& fieldName)
+ControllerClientStatus LampManager::GetLampParametersField(const LSFString& lampID, const LSFString& fieldName)
 {
     QCC_DbgPrintf(("\n%s\n", __FUNCTION__));
 
@@ -453,8 +469,8 @@ void LampManager::GetLampParametersFieldReply(Message& message)
     message->GetArgs(numArgs, args);
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
-    LSF_ID lampID = static_cast<LSF_ID>(args[1].v_string.str);
-    LSF_Name fieldName = static_cast<LSF_Name>(args[2].v_string.str);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
+    LSFString fieldName = static_cast<LSFString>(args[2].v_string.str);
 
     MsgArg* varArg;
     args[3].Get("v", &varArg);
@@ -465,4 +481,43 @@ void LampManager::GetLampParametersFieldReply(Message& message)
     } else if (0 == strcmp("Brightness_Lumens", fieldName.c_str())) {
         callback.GetLampParametersBrightnessLumensFieldReplyCB(responseCode, lampID, value);
     }
+}
+
+ControllerClientStatus LampManager::GetLampSupportedLanguages(const LSFString& lampID)
+{
+    QCC_DbgPrintf(("\n%s: lampID=%s\n", __FUNCTION__, lampID.c_str()));
+
+    MsgArg arg("s", lampID.c_str());
+
+    return controllerClient.MethodCallAsync(
+               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               "GetLampSupportedLanguages",
+               this,
+               &LampManager::GetLampSupportedLanguagesReply,
+               &arg,
+               1);
+}
+
+void LampManager::GetLampSupportedLanguagesReply(Message& message)
+{
+    QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+
+    LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
+    LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
+
+    LSFStringList languages;
+    const char** languageList;
+    size_t numLanguages;
+    args[2].Get("as", &numLanguages, &languageList);
+
+    for (size_t i = 0; i < numLanguages; i++) {
+        languages.push_back(languageList[i]);
+        QCC_DbgPrintf(("%s: language=%d", __FUNCTION__, languageList[i]));
+    }
+
+    callback.GetLampSupportedLanguagesReplyCB(responseCode, lampID, languages);
 }

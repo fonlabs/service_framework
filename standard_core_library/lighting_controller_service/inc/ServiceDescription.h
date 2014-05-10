@@ -23,9 +23,9 @@ namespace lsf {
 extern const std::string ControllerServiceDescription;
 extern const std::string ControllerServiceLampDescription;
 extern const std::string ControllerServiceLampGroupDescription;
-extern const std::string ControllerServiceSavedStateDescription;
+extern const std::string ControllerServicePresetDescription;
 extern const std::string ControllerServiceSceneDescription;
-extern const std::string ControllerServiceSceneGroupDescription;
+extern const std::string ControllerServiceMasterSceneDescription;
 
 }
 

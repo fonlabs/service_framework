@@ -26,14 +26,19 @@
 
 namespace lsf {
 
+class SceneManager;
+
 class LampGroupManager : public Manager {
 
   public:
-    LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName);
+    LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName, SceneManager* sceneMgrPtr);
+
+    LSFResponseCode Reset(void);
+    LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
 
     void ResetLampGroupState(ajn::Message& msg);
     void TransitionLampGroupState(ajn::Message& msg);
-    void TransitionLampGroupStateToSavedState(ajn::Message& msg);
+    void TransitionLampGroupStateToPreset(ajn::Message& msg);
     void TransitionLampGroupStateField(ajn::Message& msg);
     void ResetLampGroupFieldState(ajn::Message& msg);
     void GetAllLampGroupIDs(ajn::Message& msg);
@@ -44,21 +49,24 @@ class LampGroupManager : public Manager {
     void DeleteLampGroup(ajn::Message& msg);
     void GetLampGroup(ajn::Message& msg);
 
+    void AddLampGroup(const LSFString& id, const std::string& name, const LampGroup& group);
+
   protected:
 
 
-    void GetAllGroupLamps(const LampGroup& group, LSF_ID_List& Lamps) const;
+    void GetAllGroupLamps(const LampGroup& group, LSFStringList& Lamps) const;
 
-    typedef std::map<LSF_ID, bool> VisitedMap;
+    typedef std::map<LSFString, bool> VisitedMap;
     bool IsGroupValid(const LampGroup& group) const;
-    bool IsGroupValidHelper(const LSF_ID& id, VisitedMap& visited, VisitedMap& callStack) const;
+    bool IsGroupValidHelper(const LSFString& id, VisitedMap& visited, VisitedMap& callStack) const;
 
-    typedef std::map<LSF_ID, std::pair<LSF_Name, LampGroup> > LampGroupMap;
+    typedef std::map<LSFString, std::pair<LSFString, LampGroup> > LampGroupMap;
 
     LampGroupMap lampGroups;
     Mutex lampGroupsLock;
     LampManager& lampManager;
     const char* interfaceName;
+    SceneManager* sceneManagerPtr;
 };
 
 }

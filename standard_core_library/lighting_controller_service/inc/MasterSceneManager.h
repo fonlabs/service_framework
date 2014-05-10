@@ -1,5 +1,5 @@
-#ifndef _SCENE_GROUP_MANAGER_H_
-#define _SCENE_GROUP_MANAGER_H_
+#ifndef _MASTER_SCENE_MANAGER_H_
+#define _MASTER_SCENE_MANAGER_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -27,26 +27,31 @@
 
 namespace lsf {
 
-class SceneGroupManager : public Manager {
+class MasterSceneManager : public Manager {
 
   public:
-    SceneGroupManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const char* ifaceName);
+    MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const char* ifaceName);
 
-    void GetAllSceneGroupIDs(ajn::Message& msg);
-    void GetSceneGroupName(ajn::Message& msg);
-    void SetSceneGroupName(ajn::Message& msg);
-    void DeleteSceneGroup(ajn::Message& msg);
-    void CreateSceneGroup(ajn::Message& msg);
-    void UpdateSceneGroup(ajn::Message& msg);
-    void GetSceneGroup(ajn::Message& msg);
-    void ApplySceneGroup(ajn::Message& msg);
+    LSFResponseCode Reset(void);
+    LSFResponseCode IsDependentOnScene(LSFString& sceneID);
+
+    void GetAllMasterSceneIDs(ajn::Message& msg);
+    void GetMasterSceneName(ajn::Message& msg);
+    void SetMasterSceneName(ajn::Message& msg);
+    void DeleteMasterScene(ajn::Message& msg);
+    void CreateMasterScene(ajn::Message& msg);
+    void UpdateMasterScene(ajn::Message& msg);
+    void GetMasterScene(ajn::Message& msg);
+    void ApplyMasterScene(ajn::Message& msg);
+
+    void AddMasterScene(const LSFString& id, const std::string& name, const MasterScene& group);
 
   private:
 
-    typedef std::map<LSF_ID, std::pair<LSF_Name, SceneGroup> > SceneGroupMap;
+    typedef std::map<LSFString, std::pair<LSFString, MasterScene> > MasterSceneMap;
 
-    SceneGroupMap sceneGroups;
-    Mutex sceneGroupsLock;
+    MasterSceneMap masterScenes;
+    Mutex masterScenesLock;
     SceneManager& sceneManager;
     const char* interfaceName;
 };

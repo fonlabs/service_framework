@@ -46,33 +46,23 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     const char* deviceId;
     size_t deviceIdLen;
-    char manufacture[AJOBS_DEVICE_MANUFACTURE_NAME_LEN + 1] = { 0 };
-    size_t manufacureLen;
-    char product[AJOBS_DEVICE_PRODUCT_NAME_LEN + 1] = { 0 };
-    size_t productLen;
     char serialId[AJOBS_DEVICE_SERIAL_ID_LEN + 1] = { 0 };
     size_t serialIdLen;
 
     if (obSoftAPssid[0] == '\0') {
         deviceId = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
         deviceIdLen = strlen(deviceId);
-        manufacureLen = min(strlen(deviceManufactureName), AJOBS_DEVICE_MANUFACTURE_NAME_LEN);
-        productLen = min(strlen(deviceProductName), AJOBS_DEVICE_PRODUCT_NAME_LEN);
         serialIdLen = min(deviceIdLen, AJOBS_DEVICE_SERIAL_ID_LEN);
-        memcpy(manufacture, deviceManufactureName, manufacureLen);
-        manufacture[manufacureLen] = '\0';
-        memcpy(product, deviceProductName, productLen);
-        product[productLen] = '\0';
         memcpy(serialId, deviceId + (deviceIdLen - serialIdLen), serialIdLen);
         serialId[serialIdLen] = '\0';
-        snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_%s_%s_%s", manufacture, product, serialId);
+        snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_IOT_%s", serialId);
     }
 
     AJ_InfoPrintf(("%s: SoftAP: %s\n", __FUNCTION__, obSoftAPssid));
     return obSoftAPssid;
 }
 
-#define AJ_OBS_OBINFO_NV_ID (AJ_PROPERTIES_NV_ID_END + 1)
+#define AJ_OBS_OBINFO_NV_ID (AJ_NVRAM_ID_FOR_APPS - 2)
 
 AJ_Status OnboardingReadInfo(AJOBS_Info* info)
 {

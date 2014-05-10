@@ -36,7 +36,7 @@ class SceneManagerCallback {
      * @param responseCode    The response code
      * @param sceneIDs   The list of scene ID's
      */
-    virtual void GetAllSceneIDsReplyCB(const LSFResponseCode& responseCode, const LSF_ID_List& sceneIDs) { }
+    virtual void GetAllSceneIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& sceneIDs) { }
 
     /**
      * Response to SceneManager::GetSceneName
@@ -45,7 +45,7 @@ class SceneManagerCallback {
      * @param sceneID    The id of the scene
      * @param sceneName  The name of the scene
      */
-    virtual void GetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSF_ID& sceneID, const LSF_Name& sceneName) { }
+    virtual void GetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language, const LSFString& sceneName) { }
 
     /**
      * Response to SceneManager::SetSceneName
@@ -53,14 +53,14 @@ class SceneManagerCallback {
      * @param responseCode    The response code
      * @param sceneID    The id of the scene whose name was changed
      */
-    virtual void SetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSF_ID& sceneID) { }
+    virtual void SetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language) { }
 
     /**
      * This signal is fired any time a scene's name is changed
      *
      * @param sceneIDs    The id of the scene whose name changed
      */
-    virtual void ScenesNameChangedCB(const LSF_ID_List& sceneIDs) { }
+    virtual void ScenesNameChangedCB(const LSFStringList& sceneIDs) { }
 
     /**
      * Response to SceneManager::SetSceneName
@@ -68,14 +68,14 @@ class SceneManagerCallback {
      * @param responseCode    The response code
      * @param sceneID    The id of the new Scene
      */
-    virtual void CreateSceneReplyCB(const LSFResponseCode& responseCode, const LSF_ID& sceneID) { }
+    virtual void CreateSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) { }
 
     /**
      * A new scene has been created
      *
      * @param sceneIDs    The id of the new scene
      */
-    virtual void ScenesCreatedCB(const LSF_ID_List& sceneIDs) { }
+    virtual void ScenesCreatedCB(const LSFStringList& sceneIDs) { }
 
     /**
      * Response to SceneManager::UpdateScene
@@ -83,14 +83,14 @@ class SceneManagerCallback {
      * @param responseCode    The response code
      * @param sceneID    The id of the scene that was updated
      */
-    virtual void UpdateSceneReplyCB(const LSFResponseCode& responseCode, const LSF_ID& sceneID) { }
+    virtual void UpdateSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) { }
 
     /**
      * A scene has been updated
      *
      * @param sceneID    The id of the updated scene
      */
-    virtual void ScenesUpdatedCB(const LSF_ID_List& sceneIDs) { }
+    virtual void ScenesUpdatedCB(const LSFStringList& sceneIDs) { }
 
     /**
      * Response to SceneManager::DeleteScene
@@ -98,14 +98,14 @@ class SceneManagerCallback {
      * @param responseCode    The response code
      * @param sceneID    The id of the deleted scene
      */
-    virtual void DeleteSceneReplyCB(const LSFResponseCode& responseCode, const LSF_ID& sceneID) { }
+    virtual void DeleteSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) { }
 
     /**
      * A scene has been deleted
      *
      * @param sceneID    The id of the deleted scene
      */
-    virtual void ScenesDeletedCB(const LSF_ID_List& sceneIDs) { }
+    virtual void ScenesDeletedCB(const LSFStringList& sceneIDs) { }
 
     /**
      * Response to SceneManager::GetScene
@@ -114,7 +114,7 @@ class SceneManagerCallback {
      * @param sceneID    The id of the scene
      * @param data  The scene data
      */
-    virtual void GetSceneReplyCB(const LSFResponseCode& responseCode, const LSF_ID& sceneID, const Scene& data) { }
+    virtual void GetSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const Scene& data) { }
 
     /**
      * Response to SceneManager::ApplyScene
@@ -122,14 +122,14 @@ class SceneManagerCallback {
      * @param responseCode    The response code
      * @param sceneID    The id of the scene
      */
-    virtual void ApplySceneReplyCB(const LSFResponseCode& responseCode, const LSF_ID& sceneID) { }
+    virtual void ApplySceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) { }
 
     /**
      * A scene has been applied
      *
      * @param sceneIDs    The id of the scene
      */
-    virtual void ScenesAppliedCB(const LSF_ID_List& sceneIDs) { }
+    virtual void ScenesAppliedCB(const LSFStringList& sceneIDs) { }
 };
 
 
@@ -154,7 +154,7 @@ class SceneManager : public Manager {
      *
      * @param sceneID    The id of the scene
      */
-    ControllerClientStatus GetSceneName(const LSF_ID& sceneID);
+    ControllerClientStatus GetSceneName(const LSFString& sceneID, const LSFString& language = LSFString("en"));
 
     /**
      * Set the name of a Scene
@@ -163,7 +163,7 @@ class SceneManager : public Manager {
      * @param sceneID    The id of the scene to modify
      * @param sceneName  The new scene name
      */
-    ControllerClientStatus SetSceneName(const LSF_ID& sceneID, const LSF_Name& sceneName);
+    ControllerClientStatus SetSceneName(const LSFString& sceneID, const LSFString& sceneName, const LSFString& language = LSFString("en"));
 
     /**
      *  Create a new Scene.
@@ -180,7 +180,7 @@ class SceneManager : public Manager {
      * @param sceneID    The id of the scene to modify
      * @param scene The scene data
      */
-    ControllerClientStatus UpdateScene(const LSF_ID& sceneID, const Scene& scene);
+    ControllerClientStatus UpdateScene(const LSFString& sceneID, const Scene& scene);
 
     /**
      * Delete an existing scene
@@ -188,7 +188,7 @@ class SceneManager : public Manager {
      *
      * @param sceneID    The id of the scene to delete
      */
-    ControllerClientStatus DeleteScene(const LSF_ID& sceneID);
+    ControllerClientStatus DeleteScene(const LSFString& sceneID);
 
     /**
      * Get the information about the specified scene
@@ -196,7 +196,7 @@ class SceneManager : public Manager {
      *
      * @param sceneID    The id of the scene to find
      */
-    ControllerClientStatus GetScene(const LSF_ID& sceneID);
+    ControllerClientStatus GetScene(const LSFString& sceneID);
 
     /**
      * Apply a scene
@@ -204,59 +204,59 @@ class SceneManager : public Manager {
      *
      * @param sceneID    The ID of the scene to apply
      */
-    ControllerClientStatus ApplyScene(const LSF_ID& sceneID);
+    ControllerClientStatus ApplyScene(const LSFString& sceneID);
 
   private:
 
     // Signal handlers:
-    void ScenesNameChanged(LSF_ID_List& idList) {
+    void ScenesNameChanged(LSFStringList& idList) {
         callback.ScenesNameChangedCB(idList);
     }
 
-    void ScenesCreated(LSF_ID_List& idList) {
+    void ScenesCreated(LSFStringList& idList) {
         callback.ScenesCreatedCB(idList);
     }
 
-    void ScenesUpdated(LSF_ID_List& idList) {
+    void ScenesUpdated(LSFStringList& idList) {
         callback.ScenesUpdatedCB(idList);
     }
 
-    void ScenesDeleted(LSF_ID_List& idList) {
+    void ScenesDeleted(LSFStringList& idList) {
         callback.ScenesDeletedCB(idList);
     }
 
-    void ScenesApplied(LSF_ID_List& idList) {
+    void ScenesApplied(LSFStringList& idList) {
         callback.ScenesAppliedCB(idList);
     }
 
     // asynch method response handlers
-    void GetAllSceneIDsReply(LSFResponseCode& responseCode, LSF_ID_List& idList) {
+    void GetAllSceneIDsReply(LSFResponseCode& responseCode, LSFStringList& idList) {
         callback.GetAllSceneIDsReplyCB(responseCode, idList);
     }
 
     void GetSceneReply(ajn::Message& message);
 
-    void ApplySceneReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
+    void ApplySceneReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.ApplySceneReplyCB(responseCode, lsfId);
     }
 
-    void DeleteSceneReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
+    void DeleteSceneReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.DeleteSceneReplyCB(responseCode, lsfId);
     }
 
-    void SetSceneNameReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
-        callback.SetSceneNameReplyCB(responseCode, lsfId);
+    void SetSceneNameReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language) {
+        callback.SetSceneNameReplyCB(responseCode, lsfId, language);
     }
 
-    void GetSceneNameReply(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName) {
-        callback.GetSceneNameReplyCB(responseCode, lsfId, lsfName);
+    void GetSceneNameReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& lsfName) {
+        callback.GetSceneNameReplyCB(responseCode, lsfId, language, lsfName);
     }
 
-    void CreateSceneReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
+    void CreateSceneReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.CreateSceneReplyCB(responseCode, lsfId);
     }
 
-    void UpdateSceneReply(LSFResponseCode& responseCode, LSF_ID& lsfId) {
+    void UpdateSceneReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.UpdateSceneReplyCB(responseCode, lsfId);
     }
 

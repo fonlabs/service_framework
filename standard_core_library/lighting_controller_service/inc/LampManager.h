@@ -17,7 +17,7 @@
  ******************************************************************************/
 
 #include <Manager.h>
-#include <SavedStateManager.h>
+#include <PresetManager.h>
 #include <Mutex.h>
 #include <LampClients.h>
 
@@ -30,7 +30,7 @@ namespace lsf {
 class LampManager : public Manager, public LampClientsCallback {
   public:
 
-    LampManager(ControllerService& controllerSvc, SavedStateManager& savedStateMgr, const char* ifaceName);
+    LampManager(ControllerService& controllerSvc, PresetManager& presetMgr, const char* ifaceName);
 
     ~LampManager();
 
@@ -70,6 +70,20 @@ class LampManager : public Manager, public LampClientsCallback {
      * @param message   The params
      */
     void ClearLampFault(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampSupportedLanguages
+     *
+     * @param message   The params
+     */
+    void GetLampSupportedLanguages(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampName
+     *
+     * @param message   The params
+     */
+    void GetLampManufacturer(ajn::Message& message);
 
     /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampName
@@ -127,11 +141,11 @@ class LampManager : public Manager, public LampClientsCallback {
     void TransitionLampState(ajn::Message& message);
 
     /**
-     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampStateToSavedState
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampStateToPreset
      *
      * @param message   The params
      */
-    void TransitionLampStateToSavedState(ajn::Message& message);
+    void TransitionLampStateToPreset(ajn::Message& message);
 
     /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampStateField
@@ -167,52 +181,53 @@ class LampManager : public Manager, public LampClientsCallback {
     virtual void GetLampParametersReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc);
     virtual void GetLampParametersFieldReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc);
     virtual void GetLampNameReplyCB(ajn::Message& origMsg, const char* name, LSFResponseCode rc);
+    virtual void GetLampManufacturerReplyCB(ajn::Message& origMsg, const char* manufacturer, LSFResponseCode rc);
     virtual void SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode rc);
 
     virtual void GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc);
-    virtual void ClearLampFaultsReplyCB(ajn::Message& origMsg, LSFResponseCode rc, LampFaultCode code);
+    virtual void ClearLampFaultReplyCB(ajn::Message& origMsg, LSFResponseCode rc, LampFaultCode code);
 
   private:
 
     class LampsAndState {
       public:
-        LampsAndState(LSF_ID_List lampList, LampState lampState, uint32_t period) :
+        LampsAndState(LSFStringList lampList, LampState lampState, uint32_t period) :
             lamps(lampList), state(lampState), transitionPeriod(period) { }
 
-        LSF_ID_List lamps;
+        LSFStringList lamps;
         LampState state;
         uint32_t transitionPeriod;
     };
 
-    class LampsAndSavedState {
+    class LampsAndPreset {
       public:
-        LampsAndSavedState(LSF_ID_List lampList, LSF_ID stateID, uint32_t period) :
-            lamps(lampList), savedStateID(stateID), transitionPeriod(period) { }
+        LampsAndPreset(LSFStringList lampList, LSFString presetID, uint32_t period) :
+            lamps(lampList), presetID(presetID), transitionPeriod(period) { }
 
-        LSF_ID_List lamps;
-        LSF_ID savedStateID;
+        LSFStringList lamps;
+        LSFString presetID;
         uint32_t transitionPeriod;
     };
 
     class LampsAndStateField {
       public:
-        LampsAndStateField(LSF_ID_List lampList, LSF_Name fieldName, ajn::MsgArg arg, uint32_t period) :
+        LampsAndStateField(LSFStringList lampList, LSFString fieldName, ajn::MsgArg arg, uint32_t period) :
             lamps(lampList), stateFieldName(fieldName), stateFieldValue(arg), transitionPeriod(period) { }
 
-        LSF_ID_List lamps;
-        LSF_Name stateFieldName;
+        LSFStringList lamps;
+        LSFString stateFieldName;
         ajn::MsgArg stateFieldValue;
         uint32_t transitionPeriod;
     };
 
-    LSFResponseCode ResetLampStateInternal(ajn::Message& message, LSF_ID_List lamps);
+    LSFResponseCode ResetLampStateInternal(ajn::Message& message, LSFStringList lamps);
 
-    LSFResponseCode ResetLampStateFieldInternal(ajn::Message& message, LSF_ID_List lamps, LSF_Name stateFieldName);
+    LSFResponseCode ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName);
 
-    LSFResponseCode TransitionLampStateAndFieldInternal(ajn::Message& message, LampsAndState* stateComponent, LampsAndSavedState* savedStateComponent, LampsAndStateField* stateFieldComponent);
+    LSFResponseCode TransitionLampStateAndFieldInternal(ajn::Message& message, LampsAndState* stateComponent, LampsAndPreset* presetComponent, LampsAndStateField* stateFieldComponent);
 
     LampClients lampClients;
-    SavedStateManager& savedStateManager;
+    PresetManager& presetManager;
     const char* interfaceName;
 
 };

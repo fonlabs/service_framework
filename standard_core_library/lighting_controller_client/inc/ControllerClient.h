@@ -34,9 +34,9 @@
 #include <ControllerClientDefs.h>
 #include <LampManager.h>
 #include <LampGroupManager.h>
-#include <SavedStateManager.h>
+#include <PresetManager.h>
 #include <SceneManager.h>
-#include <SceneGroupManager.h>
+#include <MasterSceneManager.h>
 #include <ControllerServiceManager.h>
 
 namespace lsf {
@@ -59,18 +59,18 @@ class ControllerClientCallback {
      * Indicates that the Controller Client has successfully set up an AllJoyn session
      * with a Controller Service
      */
-    virtual void ConnectedToControllerServiceCB(const LSF_ID& controllerServiceDeviceID, const LSF_Name& controllerServiceName) { }
+    virtual void ConnectedToControllerServiceCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) { }
 
     /**
      * Indicates that the Controller Client was unsuccessful in setting up an AllJoyn session
      * with a Controller Service
      */
-    virtual void ConnectToControllerServiceFailedCB(const LSF_ID& controllerServiceDeviceID, const LSF_Name& controllerServiceName) { }
+    virtual void ConnectToControllerServiceFailedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) { }
 
     /**
      * Indicates that the Controller Client has disconnected from a Controller Service
      */
-    virtual void DisconnectedFromControllerServiceCB(const LSF_ID& controllerServiceDeviceID, const LSF_Name& controllerServiceName) { }
+    virtual void DisconnectedFromControllerServiceCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) { }
 
     /**
      *  Indicates that an internal error has occurred in the Controller Client
@@ -89,9 +89,9 @@ class ControllerClient : public ajn::MessageReceiver {
     friend class ControllerServiceManager;
     friend class LampManager;
     friend class LampGroupManager;
-    friend class SavedStateManager;
+    friend class PresetManager;
     friend class SceneManager;
-    friend class SceneGroupManager;
+    friend class MasterSceneManager;
 
     class ControllerClientBusHandler;
 
@@ -118,9 +118,9 @@ class ControllerClient : public ajn::MessageReceiver {
     static const std::string ControllerServiceLampGroupInterfaceName;
 
     /**
-     * Controller Service Saved State Interface Name
+     * Controller Service Preset Interface Name
      */
-    static const std::string ControllerServiceSavedStateInterfaceName;
+    static const std::string ControllerServicePresetInterfaceName;
 
     /**
      * Controller Service Scene Interface Name
@@ -128,9 +128,9 @@ class ControllerClient : public ajn::MessageReceiver {
     static const std::string ControllerServiceSceneInterfaceName;
 
     /**
-     * Controller Service Scene Group Interface Name
+     * Controller Service Master Scene Interface Name
      */
-    static const std::string ControllerServiceSceneGroupInterfaceName;
+    static const std::string ControllerServiceMasterSceneInterfaceName;
 
     /**
      * Constructor
@@ -189,6 +189,8 @@ class ControllerClient : public ajn::MessageReceiver {
 
     void HandlerForMethodReplyWithUint32Value(ajn::Message& message, void* context);
 
+    void HandlerForMethodReplyWithResponseCodeIDLanguageAndName(ajn::Message& message, void* context);
+
     /**
      * Internal callback invoked when a session is joined with a Controller
      * Service Leader
@@ -225,6 +227,12 @@ class ControllerClient : public ajn::MessageReceiver {
         size_t numArgs = 0);
 
     ControllerClientStatus MethodCallAsyncForReplyWithUint32Value(
+        const char* ifaceName,
+        const char* methodName,
+        const ajn::MsgArg* args = NULL,
+        size_t numArgs = 0);
+
+    ControllerClientStatus MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
         const char* ifaceName,
         const char* methodName,
         const ajn::MsgArg* args = NULL,
@@ -301,9 +309,9 @@ class ControllerClient : public ajn::MessageReceiver {
     LampGroupManager* lampGroupManagerPtr;
 
     /**
-     * Pointer to the Saved State Manager
+     * Pointer to the Preset Manager
      */
-    SavedStateManager* savedStateManagerPtr;
+    PresetManager* presetManagerPtr;
 
     /**
      * Pointer to the Scene Manager
@@ -313,7 +321,7 @@ class ControllerClient : public ajn::MessageReceiver {
     /**
      * Pointer to the Scene Manager
      */
-    SceneGroupManager* sceneGroupManagerPtr;
+    MasterSceneManager* masterSceneManagerPtr;
 
     /**
      * Constructor
@@ -385,7 +393,7 @@ class ControllerClient : public ajn::MessageReceiver {
     } SignalEntry;
 
     template <typename OBJ>
-    void AddSignalHandler(const std::string& signalName, OBJ* obj, void (OBJ::* signal)(LSF_ID_List &))
+    void AddSignalHandler(const std::string& signalName, OBJ* obj, void (OBJ::* signal)(LSFStringList &))
     {
         SignalHandlerBase* handler = new SignalHandler<OBJ>(obj, signal);
         std::pair<SignalDispatcherMap::iterator, bool> ins = signalHandlers.insert(std::make_pair(signalName, handler));
@@ -398,12 +406,12 @@ class ControllerClient : public ajn::MessageReceiver {
     class SignalHandlerBase {
       public:
         virtual ~SignalHandlerBase() { }
-        virtual void Handle(LSF_ID_List& msg) = 0;
+        virtual void Handle(LSFStringList& msg) = 0;
     };
 
     template <typename OBJ>
     class SignalHandler : public SignalHandlerBase {
-        typedef void (OBJ::* HandlerFunction)(LSF_ID_List&);
+        typedef void (OBJ::* HandlerFunction)(LSFStringList&);
 
       public:
         SignalHandler(OBJ* obj, HandlerFunction handleFunc) :
@@ -411,7 +419,7 @@ class ControllerClient : public ajn::MessageReceiver {
 
         virtual ~SignalHandler() { }
 
-        virtual void Handle(LSF_ID_List& list) {
+        virtual void Handle(LSFStringList& list) {
             (object->*(handler))(list);
         }
 
@@ -461,7 +469,7 @@ class ControllerClient : public ajn::MessageReceiver {
     NoArgSignalDispatcherMap noArgSignalHandlers;
 
     template <typename OBJ>
-    void AddMethodReplyWithResponseCodeAndListOfIDsHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSF_ID_List &))
+    void AddMethodReplyWithResponseCodeAndListOfIDsHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSFStringList &))
     {
         MethodReplyWithResponseCodeAndListOfIDsHandlerBase* handler = new MethodReplyWithResponseCodeAndListOfIDsHandler<OBJ>(obj, methodReply);
         std::pair<MethodReplyWithResponseCodeAndListOfIDsDispatcherMap::iterator, bool> ins = methodReplyWithResponseCodeAndListOfIDsHandlers.insert(std::make_pair(methodName, handler));
@@ -474,12 +482,12 @@ class ControllerClient : public ajn::MessageReceiver {
     class MethodReplyWithResponseCodeAndListOfIDsHandlerBase {
       public:
         virtual ~MethodReplyWithResponseCodeAndListOfIDsHandlerBase() { }
-        virtual void Handle(LSFResponseCode& responseCode, LSF_ID_List& idList) = 0;
+        virtual void Handle(LSFResponseCode& responseCode, LSFStringList& idList) = 0;
     };
 
     template <typename OBJ>
     class MethodReplyWithResponseCodeAndListOfIDsHandler : public MethodReplyWithResponseCodeAndListOfIDsHandlerBase {
-        typedef void (OBJ::* HandlerFunction)(LSFResponseCode&, LSF_ID_List&);
+        typedef void (OBJ::* HandlerFunction)(LSFResponseCode&, LSFStringList&);
 
       public:
         MethodReplyWithResponseCodeAndListOfIDsHandler(OBJ* obj, HandlerFunction handleFunc) :
@@ -487,7 +495,7 @@ class ControllerClient : public ajn::MessageReceiver {
 
         virtual ~MethodReplyWithResponseCodeAndListOfIDsHandler() { }
 
-        virtual void Handle(LSFResponseCode& responseCode, LSF_ID_List& idList) {
+        virtual void Handle(LSFResponseCode& responseCode, LSFStringList& idList) {
             (object->*(handler))(responseCode, idList);
         }
 
@@ -499,7 +507,7 @@ class ControllerClient : public ajn::MessageReceiver {
     MethodReplyWithResponseCodeAndListOfIDsDispatcherMap methodReplyWithResponseCodeAndListOfIDsHandlers;
 
     template <typename OBJ>
-    void AddMethodReplyWithResponseCodeIDAndNameHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSF_ID &, LSF_Name &))
+    void AddMethodReplyWithResponseCodeIDAndNameHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSFString &, LSFString &))
     {
         MethodReplyWithResponseCodeIDAndNameHandlerBase* handler = new MethodReplyWithResponseCodeIDAndNameHandler<OBJ>(obj, methodReply);
         std::pair<MethodReplyWithResponseCodeIDAndNameDispatcherMap::iterator, bool> ins = methodReplyWithResponseCodeIDAndNameHandlers.insert(std::make_pair(methodName, handler));
@@ -512,12 +520,12 @@ class ControllerClient : public ajn::MessageReceiver {
     class MethodReplyWithResponseCodeIDAndNameHandlerBase {
       public:
         virtual ~MethodReplyWithResponseCodeIDAndNameHandlerBase() { }
-        virtual void Handle(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName) = 0;
+        virtual void Handle(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName) = 0;
     };
 
     template <typename OBJ>
     class MethodReplyWithResponseCodeIDAndNameHandler : public MethodReplyWithResponseCodeIDAndNameHandlerBase {
-        typedef void (OBJ::* HandlerFunction)(LSFResponseCode&, LSF_ID&, LSF_Name&);
+        typedef void (OBJ::* HandlerFunction)(LSFResponseCode&, LSFString&, LSFString&);
 
       public:
         MethodReplyWithResponseCodeIDAndNameHandler(OBJ* obj, HandlerFunction handleFunc) :
@@ -525,7 +533,7 @@ class ControllerClient : public ajn::MessageReceiver {
 
         virtual ~MethodReplyWithResponseCodeIDAndNameHandler() { }
 
-        virtual void Handle(LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName) {
+        virtual void Handle(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName) {
             (object->*(handler))(responseCode, lsfId, lsfName);
         }
 
@@ -537,7 +545,7 @@ class ControllerClient : public ajn::MessageReceiver {
     MethodReplyWithResponseCodeIDAndNameDispatcherMap methodReplyWithResponseCodeIDAndNameHandlers;
 
     template <typename OBJ>
-    void AddMethodReplyWithResponseCodeAndIDHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSF_ID &))
+    void AddMethodReplyWithResponseCodeAndIDHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSFString &))
     {
         MethodReplyWithResponseCodeAndIDHandlerBase* handler = new MethodReplyWithResponseCodeAndIDHandler<OBJ>(obj, methodReply);
         std::pair<MethodReplyWithResponseCodeAndIDDispatcherMap::iterator, bool> ins = methodReplyWithResponseCodeAndIDHandlers.insert(std::make_pair(methodName, handler));
@@ -550,12 +558,12 @@ class ControllerClient : public ajn::MessageReceiver {
     class MethodReplyWithResponseCodeAndIDHandlerBase {
       public:
         virtual ~MethodReplyWithResponseCodeAndIDHandlerBase() { }
-        virtual void Handle(LSFResponseCode& responseCode, LSF_ID& lsfId) = 0;
+        virtual void Handle(LSFResponseCode& responseCode, LSFString& lsfId) = 0;
     };
 
     template <typename OBJ>
     class MethodReplyWithResponseCodeAndIDHandler : public MethodReplyWithResponseCodeAndIDHandlerBase {
-        typedef void (OBJ::* HandlerFunction)(LSFResponseCode&, LSF_ID&);
+        typedef void (OBJ::* HandlerFunction)(LSFResponseCode&, LSFString&);
 
       public:
         MethodReplyWithResponseCodeAndIDHandler(OBJ* obj, HandlerFunction handleFunc) :
@@ -563,7 +571,7 @@ class ControllerClient : public ajn::MessageReceiver {
 
         virtual ~MethodReplyWithResponseCodeAndIDHandler() { }
 
-        virtual void Handle(LSFResponseCode& responseCode, LSF_ID& lsfId) {
+        virtual void Handle(LSFResponseCode& responseCode, LSFString& lsfId) {
             (object->*(handler))(responseCode, lsfId);
         }
 
@@ -611,6 +619,44 @@ class ControllerClient : public ajn::MessageReceiver {
 
     typedef std::map<std::string, MethodReplyWithUint32ValueHandlerBase*> MethodReplyWithUint32ValueDispatcherMap;
     MethodReplyWithUint32ValueDispatcherMap methodReplyWithUint32ValueHandlers;
+
+    template <typename OBJ>
+    void AddMethodReplyWithResponseCodeIDLanguageAndNameHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSFString &, LSFString &, LSFString &))
+    {
+        MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase* handler = new MethodReplyWithResponseCodeIDLanguageAndNameHandler<OBJ>(obj, methodReply);
+        std::pair<MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap::iterator, bool> ins = methodReplyWithResponseCodeIDLanguageAndNameHandlers.insert(std::make_pair(methodName, handler));
+        if (ins.second == false) {
+            // if this was already there, overwrite and delete the old handler
+            delete ins.first->second;
+        }
+    }
+
+    class MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase {
+      public:
+        virtual ~MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase() { }
+        virtual void Handle(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name) = 0;
+    };
+
+    template <typename OBJ>
+    class MethodReplyWithResponseCodeIDLanguageAndNameHandler : public MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase {
+        typedef void (OBJ::* HandlerFunction)(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name);
+
+      public:
+        MethodReplyWithResponseCodeIDLanguageAndNameHandler(OBJ* obj, HandlerFunction handleFunc) :
+            object(obj), handler(handleFunc) { }
+
+        virtual ~MethodReplyWithResponseCodeIDLanguageAndNameHandler() { }
+
+        virtual void Handle(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name) {
+            (object->*(handler))(responseCode, lsfId, language, name);
+        }
+
+        OBJ* object;
+        HandlerFunction handler;
+    };
+
+    typedef std::map<std::string, MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase*> MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap;
+    MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap methodReplyWithResponseCodeIDLanguageAndNameHandlers;
 };
 
 template <typename OBJ>

@@ -38,9 +38,9 @@
 
 #include <LampManager.h>
 #include <LampGroupManager.h>
-#include <SavedStateManager.h>
+#include <PresetManager.h>
 #include <SceneManager.h>
-#include <SceneGroupManager.h>
+#include <MasterSceneManager.h>
 
 namespace lsf {
 
@@ -90,15 +90,17 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void SendMethodReply(const ajn::Message& msg, const ajn::MsgArg* args = NULL, size_t numArgs = 0);
 
-    void SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode& responseCode, LSF_ID_List& idList);
+    void SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode& responseCode, LSFStringList& idList);
 
-    void SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName);
+    void SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
 
-    void SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode& responseCode, LSF_ID& lsfId);
+    void SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId);
 
     void SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t& value);
 
-    QStatus SendSignal(const char* ifaceName, const char* methodName, LSF_ID_List& idList);
+    void SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name);
+
+    QStatus SendSignal(const char* ifaceName, const char* methodName, LSFStringList& idList);
 
     QStatus SendSignalWithoutArg(const char* ifaceName, const char* signalName);
 
@@ -123,9 +125,9 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     LampManager lampManager;
     LampGroupManager lampGroupManager;
-    SavedStateManager savedStateManager;
+    PresetManager presetManager;
     SceneManager sceneManager;
-    SceneGroupManager sceneGroupManager;
+    MasterSceneManager masterSceneManager;
 
     void SessionLost(ajn::SessionId sessionId);
     void LeaveSession(ajn::SessionId sessionId);

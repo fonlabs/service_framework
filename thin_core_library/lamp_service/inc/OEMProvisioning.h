@@ -1,3 +1,10 @@
+#ifndef _LAMP_OEM_PROPERTIES_H_
+#define _LAMP_OEM_PROPERTIES_H_
+/**
+ * @file OEMProvisioning.h
+ * @defgroup property_store The OEM-defined properties
+ * @{
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -14,34 +21,20 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFResponseCodes.h>
-#include <LSFTypes.h>
+/**
+ * Initialize the property store
+ *
+ * @return AJ_OK if initialized
+ */
+AJ_Status PropertyStore_Init();
 
-namespace lsf {
 
-const char* LSFResponseCodeText(LSFResponseCode responseCode)
-{
-    switch (responseCode) {
-        LSF_CASE(LSF_OK);
-        LSF_CASE(LSF_ERR_NULL);
-        LSF_CASE(LSF_ERR_UNEXPECTED);
-        LSF_CASE(LSF_ERR_INVALID);
-        LSF_CASE(LSF_ERR_UNKNOWN);
-        LSF_CASE(LSF_ERR_FAILURE);
-        LSF_CASE(LSF_ERR_BUSY);
-        LSF_CASE(LSF_ERR_REJECTED);
-        LSF_CASE(LSF_ERR_RANGE);
-        LSF_CASE(LSF_ERR_INVALID_FIELD);
-        LSF_CASE(LSF_ERR_INVALID_ARGS);
-        LSF_CASE(LSF_ERR_PARTIAL);
-        LSF_CASE(LSF_ERR_NOT_FOUND);
-        LSF_CASE(LSF_ERR_NO_SLOT);
-        LSF_CASE(LSF_ERR_DEPENDENCY);
-        LSF_CASE(LSF_RESPONSE_CODE_LAST);
+#define LANG_VALUE_LENGTH 7
+#define KEY_VALUE_LENGTH 10
+#define MACHINE_ID_LENGTH (UUID_LENGTH * 2)
 
-    default:
-        return "<unknown>";
-    }
-}
+#define DEVICE_NAME_VALUE_LENGTH LSF_MAX_NAME_LENGTH
 
-}
+#define PASSWORD_VALUE_LENGTH (AJ_ADHOC_LEN * 2)
+
+#endif

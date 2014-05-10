@@ -42,7 +42,7 @@ void Manager::MethodReplyPassthrough(ajn::Message& msg, void* context)
     delete origMessage;
 }
 
-LSF_ID Manager::GenerateUniqueID(const LSF_Name& prefix) const
+LSFString Manager::GenerateUniqueID(const LSFString& prefix) const
 {
     // generate a GUID string with a given prefix
     qcc::String str = qcc::RandHexString(ID_STR_LEN);

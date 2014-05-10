@@ -152,10 +152,10 @@ typedef struct {
 
 
     const uint32_t deviceLampBeamAngle; /**< The beam angle */
-    const uint8_t deviceDimmable;       /**< Dimmable? */
-    const uint8_t deviceColor;          /**< color? */
-    const uint8_t variableColorTemp;    /**< variable color temperature? */
-    const uint8_t deviceHasEffects;     /**< Are effects available? */
+    uint8_t deviceDimmable;       /**< Dimmable? */
+    uint8_t deviceColor;          /**< color? */
+    uint8_t variableColorTemp;    /**< variable color temperature? */
+    uint8_t deviceHasEffects;     /**< Are effects available? */
 
     const uint32_t deviceVoltage;       /**< voltage */
     const uint32_t deviceWattage;       /**< wattage */
@@ -163,9 +163,8 @@ typedef struct {
     const uint32_t deviceMaxOutput;     /**< maximum output */
     const uint32_t deviceMinTemperature;    /**< lowest possible color temperature */
     const uint32_t deviceMaxTemperature;    /**< highest possible color temperature */
-    const uint32_t deviceColorRenderingIndex; /**< rendering index */
+    uint32_t deviceColorRenderingIndex; /**< rendering index */
     const uint32_t deviceLifespan;      /**< estimated lifespan */
-
 } LampDetails_t;
 
 

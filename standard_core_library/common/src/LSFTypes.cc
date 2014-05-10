@@ -31,7 +31,7 @@ LampState::LampState() :
     colorTemp(0),
     brightness(0)
 {
-
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampState::LampState(bool onOff, uint32_t hue, uint32_t saturation, uint32_t colorTemp, uint32_t brightness) :
@@ -41,12 +41,13 @@ LampState::LampState(bool onOff, uint32_t hue, uint32_t saturation, uint32_t col
     colorTemp(colorTemp),
     brightness(brightness)
 {
-
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampState::LampState(const ajn::MsgArg& arg)
 {
     Set(arg);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampState::LampState(const LampState& other) :
@@ -56,7 +57,7 @@ LampState::LampState(const LampState& other) :
     colorTemp(other.colorTemp),
     brightness(other.brightness)
 {
-
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampState& LampState::operator=(const LampState& other)
@@ -66,12 +67,15 @@ LampState& LampState::operator=(const LampState& other)
     saturation = other.saturation;
     colorTemp = other.colorTemp;
     brightness = other.brightness;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
 const char* LampState::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
+    ret.clear();
     ret.append("\nonOff=");
     ret.append(qcc::U32ToString(onOff));
     ret.append("\nhue=");
@@ -108,30 +112,32 @@ void LampState::Set(const ajn::MsgArg& arg)
             value->Get("u", &colorTemp);
         }
     }
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 void LampState::Get(ajn::MsgArg* arg) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     const char* str[] = { "OnOff", "Hue", "Saturation", "Brightness", "ColorTemp" };
     MsgArg* dict = new MsgArg[5];
 
-    MsgArg* var = new MsgArg("v", new MsgArg("b", onOff));
+    MsgArg* var = new MsgArg("b", onOff);
     dict[0].Set("{sv}", str[0], var);
     dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", hue));
+    var = new MsgArg("u", hue);
     dict[1].Set("{sv}", str[1], var);
     dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", saturation));
+    var = new MsgArg("u", saturation);
     dict[2].Set("{sv}", str[2], var);
     dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", brightness));
+    var = new MsgArg("u", brightness);
     dict[3].Set("{sv}", str[3], var);
     dict[3].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", colorTemp));
+    var = new MsgArg("u", colorTemp);
     dict[4].Set("{sv}", str[4], var);
     dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
@@ -142,29 +148,35 @@ LampParameters::LampParameters() :
     energy_usage_milliwatts(0),
     brightness_lumens(0)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampParameters::LampParameters(const ajn::MsgArg& arg)
 {
     Set(arg);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampParameters::LampParameters(const LampParameters& other) :
     energy_usage_milliwatts(other.energy_usage_milliwatts),
     brightness_lumens(other.brightness_lumens)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampParameters& LampParameters::operator=(const LampParameters& other)
 {
     energy_usage_milliwatts = other.energy_usage_milliwatts;
     brightness_lumens = other.brightness_lumens;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
 const char* LampParameters::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
+    ret.clear();
     ret.append("\nenergy_usage_milliwatts=");
     ret.append(qcc::U32ToString(energy_usage_milliwatts));
     ret.append("\nbrightness_lumens=");
@@ -189,18 +201,20 @@ void LampParameters::Set(const ajn::MsgArg& arg)
             value->Get("u", &brightness_lumens);
         }
     }
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 void LampParameters::Get(ajn::MsgArg* arg) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     const char* str[] = { "Energy_Usage_Milliwatts", "Brightness_Lumens" };
     MsgArg* dict = new MsgArg[2];
 
-    MsgArg* var = new MsgArg("v", new MsgArg("u", energy_usage_milliwatts));
+    MsgArg* var = new MsgArg("u", energy_usage_milliwatts);
     dict[0].Set("{sv}", str[0], var);
     dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", brightness_lumens));
+    var = new MsgArg("u", brightness_lumens);
     dict[1].Set("{sv}", str[1], var);
     dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
@@ -209,17 +223,18 @@ void LampParameters::Get(ajn::MsgArg* arg) const
 
 LampDetails::LampDetails()
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampDetails::LampDetails(const ajn::MsgArg& arg)
 {
     Set(arg);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampDetails::LampDetails(const LampDetails& other) :
     hardwareVersion(other.hardwareVersion),
     firmwareVersion(other.firmwareVersion),
-    manufacturer(other.manufacturer),
     make(other.make),
     model(other.model),
     type(other.type),
@@ -240,14 +255,13 @@ LampDetails::LampDetails(const LampDetails& other) :
     lifespan(other.lifespan),
     lampID(other.lampID)
 {
-
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampDetails& LampDetails::operator=(const LampDetails& other)
 {
     hardwareVersion = other.hardwareVersion;
     firmwareVersion = other.firmwareVersion;
-    manufacturer = other.manufacturer;
     make = other.make;
     model = other.model;
     type = other.type;
@@ -267,18 +281,19 @@ LampDetails& LampDetails::operator=(const LampDetails& other)
     colorRenderingIndex = other.colorRenderingIndex;
     lifespan = other.lifespan;
     lampID = other.lampID;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
 const char* LampDetails::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
+    ret.clear();
     ret.append("\nhardwareVersion=");
     ret.append(qcc::U32ToString(hardwareVersion));
     ret.append("\nfirmwareVersion=");
     ret.append(qcc::U32ToString(firmwareVersion));
-    ret.append("\nmanufacturer=");
-    ret.append(manufacturer.c_str());
     ret.append("\nmake=");
     ret.append(qcc::U32ToString(make));
     ret.append("\nmodel=");
@@ -335,10 +350,6 @@ void LampDetails::Set(const ajn::MsgArg& arg)
             value->Get("u", &hardwareVersion);
         } else if (0 == strcmp(field, "FirmwareVersion")) {
             value->Get("u", &firmwareVersion);
-        } else if (0 == strcmp(field, "Manufacturer")) {
-            char* temp;
-            value->Get("s", &temp);
-            manufacturer = LSF_Name(temp);
         } else if (0 == strcmp(field, "Make")) {
             value->Get("u", &make);
         } else if (0 == strcmp(field, "Model")) {
@@ -378,17 +389,18 @@ void LampDetails::Set(const ajn::MsgArg& arg)
         } else if (0 == strcmp(field, "LampID")) {
             char* temp;
             value->Get("s", &temp);
-            lampID = LSF_ID(temp);
+            lampID = LSFString(temp);
         }
     }
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 void LampDetails::Get(ajn::MsgArg* arg) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     const char* str[] = {
         "HardwareVersion",
         "FirmwareVersion",
-        "Manufacturer",
         "Make",
         "Model",
         "Type",
@@ -412,111 +424,110 @@ void LampDetails::Get(ajn::MsgArg* arg) const
 
     MsgArg* dict = new MsgArg[22];
 
-    MsgArg* var = new MsgArg("v", new MsgArg("u", hardwareVersion));
+    MsgArg* var = new MsgArg("u", hardwareVersion);
     dict[0].Set("{sv}", str[0], var);
     dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", firmwareVersion));
+    var = new MsgArg("u", firmwareVersion);
     dict[1].Set("{sv}", str[1], var);
     dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("s", manufacturer.c_str()));
-    dict[2].Set("{sv}", str[2], var);
+    var = new MsgArg("u", make);
+    dict[2].Set("{sv}", str[3], var);
     dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", make));
-    dict[3].Set("{sv}", str[3], var);
+    var = new MsgArg("u", model);
+    dict[3].Set("{sv}", str[4], var);
     dict[3].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", model));
-    dict[4].Set("{sv}", str[4], var);
+    var = new MsgArg("u", type);
+    dict[4].Set("{sv}", str[5], var);
     dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", type));
-    dict[5].Set("{sv}", str[5], var);
+    var = new MsgArg("u", lampType);
+    dict[5].Set("{sv}", str[6], var);
     dict[5].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", lampType));
-    dict[6].Set("{sv}", str[6], var);
+    var = new MsgArg("u", lampBaseType);
+    dict[6].Set("{sv}", str[7], var);
     dict[6].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", lampBaseType));
-    dict[7].Set("{sv}", str[7], var);
+    var = new MsgArg("u", lampBeamAngle);
+    dict[7].Set("{sv}", str[8], var);
     dict[7].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", lampBeamAngle));
-    dict[8].Set("{sv}", str[8], var);
+    var = new MsgArg("b", dimmable);
+    dict[8].Set("{sv}", str[9], var);
     dict[8].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("b", dimmable));
-    dict[9].Set("{sv}", str[9], var);
+    var = new MsgArg("b", color);
+    dict[9].Set("{sv}", str[10], var);
     dict[9].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("b", color));
-    dict[10].Set("{sv}", str[10], var);
+    var = new MsgArg("b", variableColorTemp);
+    dict[10].Set("{sv}", str[11], var);
     dict[10].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("b", variableColorTemp));
-    dict[11].Set("{sv}", str[11], var);
+    var = new MsgArg("b", hasEffects);
+    dict[11].Set("{sv}", str[12], var);
     dict[11].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("b", hasEffects));
-    dict[12].Set("{sv}", str[12], var);
+    var = new MsgArg("u", voltage);
+    dict[12].Set("{sv}", str[13], var);
     dict[12].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", voltage));
-    dict[13].Set("{sv}", str[13], var);
+    var = new MsgArg("u", wattage);
+    dict[13].Set("{sv}", str[14], var);
     dict[13].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", wattage));
-    dict[14].Set("{sv}", str[14], var);
+    var = new MsgArg("u", wattageEquivalent);
+    dict[14].Set("{sv}", str[15], var);
     dict[14].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", wattageEquivalent));
-    dict[15].Set("{sv}", str[15], var);
+    var = new MsgArg("u", maxOutput);
+    dict[15].Set("{sv}", str[16], var);
     dict[15].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", maxOutput));
-    dict[16].Set("{sv}", str[16], var);
+    var = new MsgArg("u", minTemperature);
+    dict[16].Set("{sv}", str[17], var);
     dict[16].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", minTemperature));
-    dict[17].Set("{sv}", str[17], var);
+    var = new MsgArg("u", maxTemperature);
+    dict[17].Set("{sv}", str[18], var);
     dict[17].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", maxTemperature));
-    dict[18].Set("{sv}", str[18], var);
+    var = new MsgArg("u", colorRenderingIndex);
+    dict[18].Set("{sv}", str[19], var);
     dict[18].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", colorRenderingIndex));
-    dict[19].Set("{sv}", str[19], var);
+    var = new MsgArg("u", lifespan);
+    dict[19].Set("{sv}", str[20], var);
     dict[19].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("u", lifespan));
-    dict[20].Set("{sv}", str[20], var);
+    var = new MsgArg("s", lampID.c_str());
+    dict[20].Set("{sv}", str[21], var);
     dict[20].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("v", new MsgArg("s", lampID.c_str()));
-    dict[21].Set("{sv}", str[21], var);
-    dict[21].SetOwnershipFlags(MsgArg::OwnsArgs, true);
-
-    arg->Set("a{sv}", (size_t)22, dict);
+    arg->Set("a{sv}", (size_t)21, dict);
 }
 
 LampGroup::LampGroup()
 {
     lamps.clear();
     lampGroups.clear();
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampGroup::LampGroup(const ajn::MsgArg& lampList, const ajn::MsgArg& lampGroupList)
 {
     Set(lampList, lampGroupList);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampGroup::LampGroup(LSF_ID_List lampList, LSF_ID_List lampGroupList) :
+LampGroup::LampGroup(LSFStringList lampList, LSFStringList lampGroupList) :
     lamps(lampList), lampGroups(lampGroupList)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampGroup::LampGroup(const LampGroup& other)
@@ -525,22 +536,25 @@ LampGroup::LampGroup(const LampGroup& other)
     lampGroups.clear();
     lamps = other.lamps;
     lampGroups = other.lampGroups;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 const char* LampGroup::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
+    ret.clear();
 
     ret.append("Lamps: \n");
-    LSF_ID_List::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    LSFStringList::const_iterator it;
+    for (it = lamps.begin(); it != lamps.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
     }
     ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
     }
 
     return ret.c_str();
@@ -552,6 +566,7 @@ LampGroup& LampGroup::operator=(const LampGroup& other)
     lampGroups.clear();
     lamps = other.lamps;
     lampGroups = other.lampGroups;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
@@ -563,30 +578,32 @@ void LampGroup::Set(const ajn::MsgArg& lampList, const ajn::MsgArg& lampGroupLis
     MsgArg* idsArray;
     size_t idsSize;
     lampList.Get("as", &idsSize, &idsArray);
-    for (size_t i = 0; i < idsSize; ++i) {
+    for (size_t i = 0; i < idsSize; i++) {
         char* lampID;
         idsArray[i].Get("s", &lampID);
-        lamps.push_back(LSF_ID(lampID));
+        lamps.push_back(LSFString(lampID));
     }
 
     MsgArg* gidsArray;
     size_t gidsSize;
     lampGroupList.Get("as", &gidsSize, &gidsArray);
-    for (size_t i = 0; i < gidsSize; ++i) {
+    for (size_t i = 0; i < gidsSize; i++) {
         char* gid;
         gidsArray[i].Get("s", &gid);
-        lampGroups.push_back(LSF_ID(gid));
+        lampGroups.push_back(LSFString(gid));
     }
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 void LampGroup::Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t idsVecSize = lamps.size();
 
     if (idsVecSize) {
         const char** idsVec = new const char*[idsVecSize];
         size_t i = 0;
-        for (LSF_ID_List::const_iterator it = lamps.begin(); it != lamps.end(); ++it) {
+        for (LSFStringList::const_iterator it = lamps.begin(); it != lamps.end(); it++) {
             idsVec[i++] = it->c_str();
         }
         lampList->Set("as", idsVecSize, idsVec);
@@ -599,7 +616,7 @@ void LampGroup::Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const
     if (gidsVecSize) {
         const char** gidsVec = new const char*[gidsVecSize];
         size_t i = 0;
-        for (LSF_ID_List::const_iterator it = lampGroups.begin(); it != lampGroups.end(); ++it) {
+        for (LSFStringList::const_iterator it = lampGroups.begin(); it != lampGroups.end(); it++) {
             gidsVec[i++] = it->c_str();
         }
         lampGroupList->Set("as", gidsVecSize, gidsVec);
@@ -609,47 +626,51 @@ void LampGroup::Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const
     }
 }
 
-LampsLampGroupsAndState::LampsLampGroupsAndState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LampState& lampState, uint32_t& transPeriod) :
+LampsLampGroupsAndState::LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState, uint32_t& transPeriod) :
     lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(transPeriod)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndState::LampsLampGroupsAndState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LampState& lampState) :
+LampsLampGroupsAndState::LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState) :
     lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(0)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampsLampGroupsAndState::LampsLampGroupsAndState(const ajn::MsgArg& component)
 {
     Set(component);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 const char* LampsLampGroupsAndState::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
-    ret.append("----------\n");
+    ret.clear();
     ret.append("Lamps: \n");
-    LSF_ID_List::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    LSFStringList::const_iterator it;
+    for (it = lamps.begin(); it != lamps.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
     }
     ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
     }
-    ret.append("State: \n");
+    ret.append("State: ");
     ret.append(state.c_str());
-    ret.append("Transition Period: \n");
+    ret.append("\nTransition Period: \n");
     ret.append(qcc::U32ToString(transitionPeriod));
-    ret.append("----------\n");
     return ret.c_str();
 }
 
 LampsLampGroupsAndState::LampsLampGroupsAndState(const LampsLampGroupsAndState& other) :
     lamps(other.lamps), lampGroups(other.lampGroups), state(other.state), transitionPeriod(other.transitionPeriod)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 LampsLampGroupsAndState& LampsLampGroupsAndState::operator=(const LampsLampGroupsAndState& other)
@@ -658,6 +679,7 @@ LampsLampGroupsAndState& LampsLampGroupsAndState::operator=(const LampsLampGroup
     lampGroups = other.lampGroups;
     state = other.state;
     transitionPeriod = other.transitionPeriod;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
@@ -667,228 +689,265 @@ void LampsLampGroupsAndState::Set(const ajn::MsgArg& component)
     size_t numLamps;
     const char** lampGroupList;
     size_t numLampGroups;
-    const MsgArg* lampState;
+    MsgArg* stateArgs;
+    size_t stateArgsSize;
 
-    component.Get("asasa{sv}u", &numLamps, &lampList, &numLampGroups, &lampGroupList, &lampState, &transitionPeriod);
+    component.Get("(asasa{sv}u)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &stateArgsSize, &stateArgs, &transitionPeriod);
 
-    for (size_t j = 0; j < numLamps; ++j) {
-        LSF_ID id(lampList[j]);
+    for (size_t j = 0; j < numLamps; j++) {
+        LSFString id(lampList[j]);
         lamps.push_back(id);
     }
 
-    for (size_t k = 0; k < numLampGroups; ++k) {
-        LSF_ID id(lampGroupList[k]);
+    for (size_t k = 0; k < numLampGroups; k++) {
+        LSFString id(lampGroupList[k]);
         lampGroups.push_back(id);
     }
 
-    state.Set(*lampState);
+    MsgArg arg;
+    arg.Set("a{sv}", stateArgsSize, stateArgs);
+    state.Set(arg);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 void LampsLampGroupsAndState::Get(ajn::MsgArg* component) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t numLamps = lamps.size();
-    const char** lampList = new const char*[numLamps];
-    size_t j = 0;
-    for (LSF_ID_List::const_iterator nit = lamps.begin(); nit != lamps.end(); ++nit) {
-        lampList[j++] = nit->c_str();
+    const char** lampList = NULL;
+    if (numLamps) {
+        lampList = new const char*[numLamps];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
+            lampList[j++] = nit->c_str();
+        }
     }
 
     size_t numLampGroups = lampGroups.size();
-    const char** lampGroupList = new const char*[numLampGroups];
-    j = 0;
-    for (LSF_ID_List::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); ++nit) {
-        lampGroupList[j++] = nit->c_str();
+    const char** lampGroupList = NULL;
+    if (numLampGroups) {
+        lampGroupList = new const char*[numLampGroups];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
+            lampGroupList[j++] = nit->c_str();
+        }
     }
 
+    size_t stateArgsSize;
+    MsgArg* stateArgs;
     MsgArg stateArg;
-    state.Get(&stateArg);
 
-    component->Set("asasa{sv}u", numLamps, lampList, numLampGroups, lampGroupList, &stateArg, transitionPeriod);
+    state.Get(&stateArg);
+    stateArg.Get("a{sv}", &stateArgsSize, &stateArgs);
+
+    component->Set("(asasa{sv}u)", numLamps, lampList, numLampGroups, lampGroupList, stateArgsSize, stateArgs, transitionPeriod);
     component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
 }
 
-LampsLampGroupsAndSavedState::LampsLampGroupsAndSavedState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LSF_ID& stateID, uint32_t& transPeriod) :
-    lamps(lampList), lampGroups(lampGroupList), savedStateID(stateID), transitionPeriod(transPeriod)
+LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod) :
+    lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(transPeriod)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndSavedState::LampsLampGroupsAndSavedState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LSF_ID& stateID) :
-    lamps(lampList), lampGroups(lampGroupList), savedStateID(stateID), transitionPeriod(0)
+LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID) :
+    lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(0)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndSavedState::LampsLampGroupsAndSavedState(const ajn::MsgArg& component)
+LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(const ajn::MsgArg& component)
 {
     Set(component);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-const char* LampsLampGroupsAndSavedState::c_str(void) const
+const char* LampsLampGroupsAndPreset::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
-    ret.append("----------\n");
+    ret.clear();
     ret.append("Lamps: \n");
-    LSF_ID_List::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    LSFStringList::const_iterator it;
+    for (it = lamps.begin(); it != lamps.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
     }
     ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
     }
-    ret.append("Saved State ID: \n");
-    ret.append(savedStateID.c_str());
-    ret.append("Transition Period: \n");
+    ret.append("Preset ID: \n");
+    ret.append(presetID.c_str());
+    ret.append("\nTransition Period: \n");
     ret.append(qcc::U32ToString(transitionPeriod));
-    ret.append("----------\n");
     return ret.c_str();
 }
 
-LampsLampGroupsAndSavedState::LampsLampGroupsAndSavedState(const LampsLampGroupsAndSavedState& other) :
-    lamps(other.lamps), lampGroups(other.lampGroups), savedStateID(other.savedStateID), transitionPeriod(other.transitionPeriod)
+LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(const LampsLampGroupsAndPreset& other) :
+    lamps(other.lamps), lampGroups(other.lampGroups), presetID(other.presetID), transitionPeriod(other.transitionPeriod)
 {
-
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndSavedState& LampsLampGroupsAndSavedState::operator=(const LampsLampGroupsAndSavedState& other)
+LampsLampGroupsAndPreset& LampsLampGroupsAndPreset::operator=(const LampsLampGroupsAndPreset& other)
 {
     lamps = other.lamps;
     lampGroups = other.lampGroups;
-    savedStateID = other.savedStateID;
+    presetID = other.presetID;
     transitionPeriod = other.transitionPeriod;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
-void LampsLampGroupsAndSavedState::Set(const ajn::MsgArg& component)
+void LampsLampGroupsAndPreset::Set(const ajn::MsgArg& component)
 {
     const char** lampList;
     size_t numLamps;
     const char** lampGroupList;
     size_t numLampGroups;
-    const char* stateID;
+    const char* presetId;
 
-    component.Get("asassu", &numLamps, &lampList, &numLampGroups, &lampGroupList, &stateID, &transitionPeriod);
+    component.Get("(asassu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &presetId, &transitionPeriod);
 
-    for (size_t j = 0; j < numLamps; ++j) {
-        LSF_ID id(lampList[j]);
+    for (size_t j = 0; j < numLamps; j++) {
+        LSFString id(lampList[j]);
         lamps.push_back(id);
     }
 
-    for (size_t k = 0; k < numLampGroups; ++k) {
-        LSF_ID id(lampGroupList[k]);
+    for (size_t k = 0; k < numLampGroups; k++) {
+        LSFString id(lampGroupList[k]);
         lampGroups.push_back(id);
     }
 
-    savedStateID = LSF_ID(stateID);
+    presetID = LSFString(presetId);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-void LampsLampGroupsAndSavedState::Get(ajn::MsgArg* component) const
+void LampsLampGroupsAndPreset::Get(ajn::MsgArg* component) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t numLamps = lamps.size();
-    const char** lampList = new const char*[numLamps];
-    size_t j = 0;
-    for (LSF_ID_List::const_iterator nit = lamps.begin(); nit != lamps.end(); ++nit) {
-        lampList[j++] = nit->c_str();
+    const char** lampList = NULL;
+    if (numLamps) {
+        lampList = new const char*[numLamps];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
+            lampList[j++] = nit->c_str();
+        }
     }
 
     size_t numLampGroups = lampGroups.size();
-    const char** lampGroupList = new const char*[numLampGroups];
-    j = 0;
-    for (LSF_ID_List::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); ++nit) {
-        lampGroupList[j++] = nit->c_str();
+    const char** lampGroupList = NULL;
+    if (numLampGroups) {
+        lampGroupList = new const char*[numLampGroups];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
+            lampGroupList[j++] = nit->c_str();
+        }
     }
 
-    component->Set("asassu", numLamps, lampList, numLampGroups, lampGroupList, savedStateID.c_str(), transitionPeriod);
+    component->Set("(asassu)", numLamps, lampList, numLampGroups, lampGroupList, presetID.c_str(), transitionPeriod);
     component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
 }
 
 Scene::Scene()
 {
     stateComponent.clear();
-    savedStateComponent.clear();
+    presetComponent.clear();
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-Scene::Scene(const ajn::MsgArg& stateList, const ajn::MsgArg& savedStateList)
+Scene::Scene(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList)
 {
-    Set(stateList, savedStateList);
+    Set(stateList, presetList);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-Scene::Scene(LampsLampGroupsAndStateList& stateList, LampsLampGroupsAndSavedStateList& savedStateList)
+Scene::Scene(LampsLampGroupsAndStateList& stateList, LampsLampGroupsAndPresetList& presetList)
 {
     stateComponent.clear();
-    savedStateComponent.clear();
+    presetComponent.clear();
     stateComponent = stateList;
-    savedStateComponent = savedStateList;
+    presetComponent = presetList;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(const Scene& other)
 {
     stateComponent.clear();
-    savedStateComponent.clear();
+    presetComponent.clear();
     stateComponent = other.stateComponent;
-    savedStateComponent = other.savedStateComponent;
+    presetComponent = other.presetComponent;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene& Scene::operator=(const Scene& other)
 {
     stateComponent.clear();
-    savedStateComponent.clear();
+    presetComponent.clear();
     stateComponent = other.stateComponent;
-    savedStateComponent = other.savedStateComponent;
+    presetComponent = other.presetComponent;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
 const char* Scene::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
+    ret.clear();
 
     ret.append("State Components: \n");
     LampsLampGroupsAndStateList::const_iterator it;
-    for (it = stateComponent.begin(); it != stateComponent.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    for (it = stateComponent.begin(); it != stateComponent.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n***\n");
     }
-    ret.append("Saved State Components: \n");
-    LampsLampGroupsAndSavedStateList::const_iterator ite;
-    for (ite = savedStateComponent.begin(); ite != savedStateComponent.end(); ++ite) {
-        ret.append(qcc::String(ite->c_str()));
-        ret.append(qcc::String("\n"));
+    ret.append("\n------------------------------------------------------------\n");
+    ret.append("Preset Components: \n");
+    LampsLampGroupsAndPresetList::const_iterator ite;
+    for (ite = presetComponent.begin(); ite != presetComponent.end(); ite++) {
+        ret.append(ite->c_str());
+        ret.append("\n***\n");
     }
 
     return ret.c_str();
 }
 
-void Scene::Set(const ajn::MsgArg& stateList, const ajn::MsgArg& savedStateList)
+void Scene::Set(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList)
 {
     stateComponent.clear();
-    savedStateComponent.clear();
+    presetComponent.clear();
 
     MsgArg* stateComponentArray;
     size_t stateComponentSize;
     stateList.Get("a(asasa{sv}u)", &stateComponentSize, &stateComponentArray);
 
-    for (size_t i = 0; i < stateComponentSize; ++i) {
+    for (size_t i = 0; i < stateComponentSize; i++) {
         LampsLampGroupsAndState tempStateComponent(stateComponentArray[i]);
         stateComponent.push_back(tempStateComponent);
     }
 
-    MsgArg* savedStateComponentArray;
-    size_t savedStateComponentSize;
-    stateList.Get("a(asassu)", &savedStateComponentSize, &savedStateComponentArray);
-    for (size_t i = 0; i < savedStateComponentSize; ++i) {
-        LampsLampGroupsAndSavedState tempSavedStateComponent(savedStateComponentArray[i]);
-        savedStateComponent.push_back(tempSavedStateComponent);
+    MsgArg* presetComponentArray;
+    size_t presetComponentSize;
+    presetList.Get("a(asassu)", &presetComponentSize, &presetComponentArray);
+    for (size_t i = 0; i < presetComponentSize; i++) {
+        LampsLampGroupsAndPreset tempPresetComponent(presetComponentArray[i]);
+        presetComponent.push_back(tempPresetComponent);
     }
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-void Scene::Get(ajn::MsgArg* stateList, ajn::MsgArg* savedStateList) const
+void Scene::Get(ajn::MsgArg* stateList, ajn::MsgArg* presetList) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t stateComponentArraySize = stateComponent.size();
     if (stateComponentArraySize) {
         MsgArg* stateComponentArray = new MsgArg[stateComponentArraySize];
         size_t i = 0;
-        for (LampsLampGroupsAndStateList::const_iterator it = stateComponent.begin(); it != stateComponent.end(); ++it, ++i) {
+        for (LampsLampGroupsAndStateList::const_iterator it = stateComponent.begin(); it != stateComponent.end(); it++, i++) {
             it->Get(&stateComponentArray[i]);
         }
         stateList->Set("a(asasa{sv}u)", stateComponentArraySize, stateComponentArray);
@@ -897,83 +956,92 @@ void Scene::Get(ajn::MsgArg* stateList, ajn::MsgArg* savedStateList) const
         stateList->Set("a(asasa{sv}u)", 0, NULL);
     }
 
-    size_t savedStateComponentArraySize = savedStateComponent.size();
-    if (savedStateComponentArraySize) {
-        MsgArg* savedStateComponentArray = new MsgArg[savedStateComponentArraySize];
+    size_t presetComponentArraySize = presetComponent.size();
+    if (presetComponentArraySize) {
+        MsgArg* presetComponentArray = new MsgArg[presetComponentArraySize];
         size_t i = 0;
-        for (LampsLampGroupsAndSavedStateList::const_iterator it = savedStateComponent.begin(); it != savedStateComponent.end(); ++it, ++i) {
-            it->Get(&savedStateComponentArray[i]);
+        for (LampsLampGroupsAndPresetList::const_iterator it = presetComponent.begin(); it != presetComponent.end(); it++, i++) {
+            it->Get(&presetComponentArray[i]);
         }
-        savedStateList->Set("a(asassu)", savedStateComponentArraySize, savedStateComponentArray);
-        savedStateList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        presetList->Set("a(asassu)", presetComponentArraySize, presetComponentArray);
+        presetList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
     } else {
-        savedStateList->Set("a(asassu)", 0, NULL);
+        presetList->Set("a(asassu)", 0, NULL);
     }
 }
 
-SceneGroup::SceneGroup()
+MasterScene::MasterScene()
 {
     scenes.clear();
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-SceneGroup::SceneGroup(const ajn::MsgArg& sceneList)
+MasterScene::MasterScene(const ajn::MsgArg& sceneList)
 {
     Set(sceneList);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-SceneGroup::SceneGroup(LSF_ID_List sceneList) :
+MasterScene::MasterScene(LSFStringList sceneList) :
     scenes(sceneList)
 {
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-SceneGroup::SceneGroup(const SceneGroup& other)
+MasterScene::MasterScene(const MasterScene& other)
 {
     scenes.clear();
     scenes = other.scenes;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-const char* SceneGroup::c_str(void) const
+const char* MasterScene::c_str(void) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
+    ret.clear();
 
     ret.assign("Scenes: \n");
-    LSF_ID_List::const_iterator it;
-    for (it = scenes.begin(); it != scenes.end(); ++it) {
-        ret.append(qcc::String(it->c_str()));
-        ret.append(qcc::String("\n"));
+    LSFStringList::const_iterator it;
+    for (it = scenes.begin(); it != scenes.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
     }
 
     return ret.c_str();
 }
 
-SceneGroup& SceneGroup::operator=(const SceneGroup& other)
+MasterScene& MasterScene::operator=(const MasterScene& other)
 {
     scenes.clear();
     scenes = other.scenes;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
-void SceneGroup::Set(const ajn::MsgArg& sceneList)
+void MasterScene::Set(const ajn::MsgArg& sceneList)
 {
     scenes.clear();
 
     MsgArg* gidsArray;
     size_t gidsSize;
     sceneList.Get("as", &gidsSize, &gidsArray);
-    for (size_t i = 0; i < gidsSize; ++i) {
+    for (size_t i = 0; i < gidsSize; i++) {
         char* gid;
         gidsArray[i].Get("s", &gid);
-        scenes.push_back(LSF_ID(gid));
+        scenes.push_back(LSFString(gid));
     }
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-void SceneGroup::Get(ajn::MsgArg* sceneList) const
+void MasterScene::Get(ajn::MsgArg* sceneList) const
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t gidsVecSize = scenes.size();
     if (gidsVecSize) {
         const char** gidsVec = new const char*[gidsVecSize];
         size_t i = 0;
-        for (LSF_ID_List::const_iterator it = scenes.begin(); it != scenes.end(); ++it) {
+        for (LSFStringList::const_iterator it = scenes.begin(); it != scenes.end(); it++) {
             gidsVec[i++] = it->c_str();
         }
         sceneList->Set("as", gidsVecSize, gidsVec);

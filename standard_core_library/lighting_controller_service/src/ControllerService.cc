@@ -28,9 +28,9 @@ static const char* const ControllerServicePath = "/org/allseen/LSF/ControllerSer
 static const char* const ControllerInterface = "org.allseen.LSF.ControllerService";
 static const char* const ControllerLampInterface = "org.allseen.LSF.ControllerService.Lamp";
 static const char* const ControllerLampGroupInterface = "org.allseen.LSF.ControllerService.LampGroup";
-static const char* const ControllerSavedStateInterface = "org.allseen.LSF.ControllerService.SavedState";
+static const char* const ControllerPresetInterface = "org.allseen.LSF.ControllerService.Preset";
 static const char* const ControllerSceneInterface = "org.allseen.LSF.ControllerService.Scene";
-static const char* const ControllerSceneGroupInterface = "org.allseen.LSF.ControllerService.SceneGroup";
+static const char* const ControllerMasterSceneInterface = "org.allseen.LSF.ControllerService.MasterScene";
 static ajn::SessionPort ControllerServiceSessionPort = 43;
 
 using namespace lsf;
@@ -65,11 +65,11 @@ ControllerService::ControllerService() :
     bus("LightingServiceController", true),
     serviceSession(0),
     listener(new ControllerListener(*this)),
-    lampManager(*this, savedStateManager, ControllerLampInterface),
-    lampGroupManager(*this, lampManager, ControllerLampGroupInterface),
-    savedStateManager(*this, ControllerSavedStateInterface),
-    sceneManager(*this, lampGroupManager, ControllerSceneInterface),
-    sceneGroupManager(*this, sceneManager, ControllerSceneGroupInterface),
+    lampManager(*this, presetManager, ControllerLampInterface),
+    lampGroupManager(*this, lampManager, ControllerLampGroupInterface, &sceneManager),
+    presetManager(*this, ControllerPresetInterface, &sceneManager),
+    sceneManager(*this, lampGroupManager, ControllerSceneInterface, &masterSceneManager),
+    masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface),
     propertyStore(),
     aboutService(NULL),
     configService(bus, propertyStore, *this)
@@ -77,6 +77,8 @@ ControllerService::ControllerService() :
     AddMethodHandler("LightingResetControllerService", this, &ControllerService::LightingResetControllerService);
     AddMethodHandler("GetControllerServiceVersion", this, &ControllerService::GetControllerServiceVersion);
     AddMethodHandler("GetAllLampIDs", &lampManager, &LampManager::GetAllLampIDs);
+    AddMethodHandler("GetLampSupportedLanguages", &lampManager, &LampManager::GetLampSupportedLanguages);
+    AddMethodHandler("GetLampManufacturer", &lampManager, &LampManager::GetLampManufacturer);
     AddMethodHandler("GetLampName", &lampManager, &LampManager::GetLampName);
     AddMethodHandler("SetLampName", &lampManager, &LampManager::SetLampName);
     AddMethodHandler("GetLampDetails", &lampManager, &LampManager::GetLampDetails);
@@ -85,9 +87,9 @@ ControllerService::ControllerService() :
     AddMethodHandler("GetLampState", &lampManager, &LampManager::GetLampState);
     AddMethodHandler("GetLampStateField", &lampManager, &LampManager::GetLampStateField);
     AddMethodHandler("TransitionLampState", &lampManager, &LampManager::TransitionLampState);
-    AddMethodHandler("TransitionLampStateToSavedState", &lampManager, &LampManager::TransitionLampStateToSavedState);
+    AddMethodHandler("TransitionLampStateToPreset", &lampManager, &LampManager::TransitionLampStateToPreset);
     AddMethodHandler("TransitionLampGroupState", &lampGroupManager, &LampGroupManager::TransitionLampGroupState);
-    AddMethodHandler("TransitionLampGroupStateToSavedState", &lampGroupManager, &LampGroupManager::TransitionLampGroupStateToSavedState);
+    AddMethodHandler("TransitionLampGroupStateToPreset", &lampGroupManager, &LampGroupManager::TransitionLampGroupStateToPreset);
     AddMethodHandler("TransitionLampStateField", &lampManager, &LampManager::TransitionLampStateField);
     AddMethodHandler("TransitionLampGroupStateField", &lampGroupManager, &LampGroupManager::TransitionLampGroupStateField);
     AddMethodHandler("ResetLampState", &lampManager, &LampManager::ResetLampState);
@@ -103,15 +105,15 @@ ControllerService::ControllerService() :
     AddMethodHandler("UpdateLampGroup", &lampGroupManager, &LampGroupManager::UpdateLampGroup);
     AddMethodHandler("DeleteLampGroup", &lampGroupManager, &LampGroupManager::DeleteLampGroup);
     AddMethodHandler("GetLampGroup", &lampGroupManager, &LampGroupManager::GetLampGroup);
-    AddMethodHandler("GetDefaultLampState", &savedStateManager, &SavedStateManager::GetDefaultLampState);
-    AddMethodHandler("SetDefaultLampState", &savedStateManager, &SavedStateManager::SetDefaultLampState);
-    AddMethodHandler("GetAllSavedStateIDs", &savedStateManager, &SavedStateManager::GetAllSavedStateIDs);
-    AddMethodHandler("GetSavedStateName", &savedStateManager, &SavedStateManager::GetSavedStateName);
-    AddMethodHandler("SetSavedStateName", &savedStateManager, &SavedStateManager::SetSavedStateName);
-    AddMethodHandler("CreateSavedState", &savedStateManager, &SavedStateManager::CreateSavedState);
-    AddMethodHandler("UpdateSavedState", &savedStateManager, &SavedStateManager::UpdateSavedState);
-    AddMethodHandler("DeleteSavedState", &savedStateManager, &SavedStateManager::DeleteSavedState);
-    AddMethodHandler("GetSavedState", &savedStateManager, &SavedStateManager::GetSavedState);
+    AddMethodHandler("GetDefaultLampState", &presetManager, &PresetManager::GetDefaultLampState);
+    AddMethodHandler("SetDefaultLampState", &presetManager, &PresetManager::SetDefaultLampState);
+    AddMethodHandler("GetAllPresetIDs", &presetManager, &PresetManager::GetAllPresetIDs);
+    AddMethodHandler("GetPresetName", &presetManager, &PresetManager::GetPresetName);
+    AddMethodHandler("SetPresetName", &presetManager, &PresetManager::SetPresetName);
+    AddMethodHandler("CreatePreset", &presetManager, &PresetManager::CreatePreset);
+    AddMethodHandler("UpdatePreset", &presetManager, &PresetManager::UpdatePreset);
+    AddMethodHandler("DeletePreset", &presetManager, &PresetManager::DeletePreset);
+    AddMethodHandler("GetPreset", &presetManager, &PresetManager::GetPreset);
     AddMethodHandler("GetAllSceneIDs", &sceneManager, &SceneManager::GetAllSceneIDs);
     AddMethodHandler("GetSceneName", &sceneManager, &SceneManager::GetSceneName);
     AddMethodHandler("SetSceneName", &sceneManager, &SceneManager::SetSceneName);
@@ -120,14 +122,14 @@ ControllerService::ControllerService() :
     AddMethodHandler("DeleteScene", &sceneManager, &SceneManager::DeleteScene);
     AddMethodHandler("GetScene", &sceneManager, &SceneManager::GetScene);
     AddMethodHandler("ApplyScene", &sceneManager, &SceneManager::ApplyScene);
-    AddMethodHandler("GetAllSceneGroupIDs", &sceneGroupManager, &SceneGroupManager::GetAllSceneGroupIDs);
-    AddMethodHandler("GetSceneGroupName", &sceneGroupManager, &SceneGroupManager::GetSceneGroupName);
-    AddMethodHandler("SetSceneGroupName", &sceneGroupManager, &SceneGroupManager::SetSceneGroupName);
-    AddMethodHandler("CreateSceneGroup", &sceneGroupManager, &SceneGroupManager::CreateSceneGroup);
-    AddMethodHandler("UpdateSceneGroup", &sceneGroupManager, &SceneGroupManager::UpdateSceneGroup);
-    AddMethodHandler("DeleteSceneGroup", &sceneGroupManager, &SceneGroupManager::DeleteSceneGroup);
-    AddMethodHandler("GetSceneGroup", &sceneGroupManager, &SceneGroupManager::GetSceneGroup);
-    AddMethodHandler("ApplySceneGroup", &sceneGroupManager, &SceneGroupManager::ApplySceneGroup);
+    AddMethodHandler("GetAllMasterSceneIDs", &masterSceneManager, &MasterSceneManager::GetAllMasterSceneIDs);
+    AddMethodHandler("GetMasterSceneName", &masterSceneManager, &MasterSceneManager::GetMasterSceneName);
+    AddMethodHandler("SetMasterSceneName", &masterSceneManager, &MasterSceneManager::SetMasterSceneName);
+    AddMethodHandler("CreateMasterScene", &masterSceneManager, &MasterSceneManager::CreateMasterScene);
+    AddMethodHandler("UpdateMasterScene", &masterSceneManager, &MasterSceneManager::UpdateMasterScene);
+    AddMethodHandler("DeleteMasterScene", &masterSceneManager, &MasterSceneManager::DeleteMasterScene);
+    AddMethodHandler("GetMasterScene", &masterSceneManager, &MasterSceneManager::GetMasterScene);
+    AddMethodHandler("ApplyMasterScene", &masterSceneManager, &MasterSceneManager::ApplyMasterScene);
 
     // TODO: fill the property store!
     std::vector<qcc::String> languages(1);
@@ -215,9 +217,9 @@ QStatus ControllerService::Start(void)
         { ControllerServiceDescription, ControllerInterface },
         { ControllerServiceLampDescription, ControllerLampInterface },
         { ControllerServiceLampGroupDescription, ControllerLampGroupInterface },
-        { ControllerServiceSavedStateDescription, ControllerSavedStateInterface },
+        { ControllerServicePresetDescription, ControllerPresetInterface },
         { ControllerServiceSceneDescription, ControllerSceneInterface },
-        { ControllerServiceSceneGroupDescription, ControllerSceneGroupInterface }
+        { ControllerServiceMasterSceneDescription, ControllerMasterSceneInterface }
     };
 
     status = CreateAndAddInterfaces(interfaceEntries, sizeof(interfaceEntries) / sizeof(InterfaceEntry));
@@ -229,9 +231,9 @@ QStatus ControllerService::Start(void)
     const InterfaceDescription* controllerServiceInterface = bus.GetInterface(ControllerInterface);
     const InterfaceDescription* controllerServiceLampInterface = bus.GetInterface(ControllerLampInterface);
     const InterfaceDescription* controllerServiceLampGroupInterface = bus.GetInterface(ControllerLampGroupInterface);
-    const InterfaceDescription* controllerServiceSavedStateInterface = bus.GetInterface(ControllerSavedStateInterface);
+    const InterfaceDescription* controllerServicePresetInterface = bus.GetInterface(ControllerPresetInterface);
     const InterfaceDescription* controllerServiceSceneInterface = bus.GetInterface(ControllerSceneInterface);
-    const InterfaceDescription* controllerServiceSceneGroupInterface = bus.GetInterface(ControllerSceneGroupInterface);
+    const InterfaceDescription* controllerServiceMasterSceneInterface = bus.GetInterface(ControllerMasterSceneInterface);
 
     /*
      * Add method handlers for the various Controller Service interface methods
@@ -240,6 +242,8 @@ QStatus ControllerService::Start(void)
         { controllerServiceInterface->GetMember("LightingResetControllerService"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceInterface->GetMember("GetControllerServiceVersion"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetAllLampIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceLampInterface->GetMember("GetLampSupportedLanguages"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceLampInterface->GetMember("GetLampManufacturer"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("SetLampName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampDetails"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
@@ -248,7 +252,7 @@ QStatus ControllerService::Start(void)
         { controllerServiceLampInterface->GetMember("GetLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("TransitionLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampInterface->GetMember("TransitionLampStateToSavedState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceLampInterface->GetMember("TransitionLampStateToPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("TransitionLampStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("ResetLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("ResetLampStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
@@ -262,19 +266,19 @@ QStatus ControllerService::Start(void)
         { controllerServiceLampGroupInterface->GetMember("DeleteLampGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("GetLampGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupStateToSavedState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupStateToPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("ResetLampGroupState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("ResetLampGroupFieldState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("GetDefaultLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("SetDefaultLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("GetAllSavedStateIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("GetSavedStateName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("SetSavedStateName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("CreateSavedState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("UpdateSavedState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("DeleteSavedState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSavedStateInterface->GetMember("GetSavedState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("GetDefaultLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("SetDefaultLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("GetAllPresetIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("GetPresetName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("SetPresetName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("CreatePreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("UpdatePreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("DeletePreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServicePresetInterface->GetMember("GetPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceSceneInterface->GetMember("GetAllSceneIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceSceneInterface->GetMember("GetSceneName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceSceneInterface->GetMember("SetSceneName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
@@ -283,14 +287,14 @@ QStatus ControllerService::Start(void)
         { controllerServiceSceneInterface->GetMember("DeleteScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceSceneInterface->GetMember("GetScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceSceneInterface->GetMember("ApplyScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("GetAllSceneGroupIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("GetSceneGroupName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("SetSceneGroupName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("CreateSceneGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("UpdateSceneGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("DeleteSceneGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("GetSceneGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceSceneGroupInterface->GetMember("ApplySceneGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("GetAllMasterSceneIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("GetMasterSceneName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("SetMasterSceneName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("CreateMasterScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("UpdateMasterScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("DeleteMasterScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("GetMasterScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("ApplyMasterScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
     };
     status = AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(MethodEntry));
     if (status != ER_OK) {
@@ -308,9 +312,9 @@ QStatus ControllerService::Start(void)
         ifaces.push_back(qcc::String(ControllerInterface));
         ifaces.push_back(qcc::String(ControllerLampInterface));
         ifaces.push_back(qcc::String(ControllerLampGroupInterface));
-        ifaces.push_back(qcc::String(ControllerSavedStateInterface));
+        ifaces.push_back(qcc::String(ControllerPresetInterface));
         ifaces.push_back(qcc::String(ControllerSceneInterface));
-        ifaces.push_back(qcc::String(ControllerSceneGroupInterface));
+        ifaces.push_back(qcc::String(ControllerMasterSceneInterface));
         aboutService->AddObjectDescription(ControllerServicePath, ifaces);
 
         status = aboutService->Register(ControllerServiceSessionPort);
@@ -389,7 +393,7 @@ QStatus ControllerService::Stop(void)
     return ER_OK;
 }
 
-QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalName, LSF_ID_List& idList)
+QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalName, LSFStringList& idList)
 {
     QStatus status = ER_BUS_NO_SESSION;
 
@@ -398,7 +402,7 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
         if (arraySize) {
             const char** ids = new const char*[arraySize];
             size_t i = 0;
-            for (LSF_ID_List::const_iterator it = idList.begin(); it != idList.end(); ++it, ++i) {
+            for (LSFStringList::const_iterator it = idList.begin(); it != idList.end(); ++it, ++i) {
                 ids[i] = it->c_str();
             }
 
@@ -481,8 +485,27 @@ void ControllerService::LeaveSession(ajn::SessionId sessionId)
 void ControllerService::LightingResetControllerService(Message& msg)
 {
     QCC_DbgPrintf(("%s:%s", __FUNCTION__, msg->ToString().c_str()));
-    uint32_t version = CONTROLLER_SERVICE_VERSION;
-    SendMethodReplyWithUint32Value(msg, version);
+
+    LSFResponseCode responseCode = LSF_OK;
+
+    if (LSF_OK != presetManager.Reset()) {
+        responseCode = LSF_ERR_PARTIAL;
+    }
+
+    if (LSF_OK != lampGroupManager.Reset()) {
+        responseCode = LSF_ERR_PARTIAL;
+    }
+
+/*    if(LSF_OK != sceneManager.Reset()) {
+        responseCode = LSF_ERR_PARTIAL;
+    }*/
+
+    if (LSF_OK != masterSceneManager.Reset()) {
+        responseCode = LSF_ERR_PARTIAL;
+    }
+
+    SendMethodReplyWithUint32Value(msg, (uint32_t &)responseCode);
+
     SendSignalWithoutArg(ControllerInterface, "ControllerServiceLightingReset");
 }
 
@@ -519,7 +542,7 @@ void ControllerService::SendMethodReply(const ajn::Message& msg, const ajn::MsgA
     }
 }
 
-void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode& responseCode, LSF_ID_List& idList)
+void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode& responseCode, LSFStringList& idList)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
 
@@ -531,7 +554,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::M
     if (arraySize) {
         const char** ids = new const char*[arraySize];
         size_t i = 0;
-        for (LSF_ID_List::const_iterator it = idList.begin(); it != idList.end(); ++it, ++i) {
+        for (LSFStringList::const_iterator it = idList.begin(); it != idList.end(); ++it, ++i) {
             ids[i] = it->c_str();
         }
 
@@ -550,7 +573,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::M
     }
 }
 
-void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSF_ID& lsfId, LSF_Name& lsfName)
+void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
 
@@ -568,7 +591,7 @@ void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Mess
     }
 }
 
-void ControllerService::SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode& responseCode, LSF_ID& lsfId)
+void ControllerService::SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
 
@@ -593,6 +616,25 @@ void ControllerService::SendMethodReplyWithUint32Value(const ajn::Message& msg, 
     replyArg.Set("u", value);
 
     QStatus status = ajn::BusObject::MethodReply(msg, &replyArg, 1);
+    if (status == ER_OK) {
+        QCC_DbgPrintf(("Successfully sent the reply"));
+    } else {
+        QCC_LogError(status, ("Error sending reply"));
+    }
+}
+
+void ControllerService::SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name)
+{
+    QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
+
+    MsgArg replyArgs[4];
+
+    replyArgs[0].Set("u", responseCode);
+    replyArgs[1].Set("s", lsfId.c_str());
+    replyArgs[2].Set("s", language.c_str());
+    replyArgs[3].Set("s", name.c_str());
+
+    QStatus status = ajn::BusObject::MethodReply(msg, replyArgs, sizeof(replyArgs) / sizeof(MsgArg));
     if (status == ER_OK) {
         QCC_DbgPrintf(("Successfully sent the reply"));
     } else {

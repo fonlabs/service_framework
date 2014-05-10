@@ -16,12 +16,15 @@
 
 #include <SceneManager.h>
 #include <ControllerClient.h>
+
 #include <qcc/Debug.h>
+
+#include <utility>
+
+#define QCC_MODULE "LAMP_GROUP_MANAGER"
 
 using namespace lsf;
 using namespace ajn;
-
-#define QCC_MODULE "SCENE_MANAGER"
 
 SceneManager::SceneManager(ControllerClient& controllerClient, SceneManagerCallback& callback) :
     Manager(controllerClient),
@@ -38,32 +41,63 @@ ControllerClientStatus SceneManager::GetAllSceneIDs(void)
                "GetAllSceneIDs");
 }
 
-ControllerClientStatus SceneManager::GetSceneName(const LSF_ID& sceneID)
+ControllerClientStatus SceneManager::GetSceneName(const LSFString& sceneID, const LSFString& language)
 {
     QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
-    MsgArg arg("s", sceneID.c_str());
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
-               "GetSceneName",
-               &arg,
-               1);
-}
-
-ControllerClientStatus SceneManager::SetSceneName(const LSF_ID& sceneID, const LSF_Name& sceneName)
-{
-    QCC_DbgPrintf(("%s: sceneID=%s sceneName=%s", __FUNCTION__, sceneID.c_str(), sceneName.c_str()));
     MsgArg args[2];
     args[0].Set("s", sceneID.c_str());
-    args[1].Set("s", sceneName.c_str());
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+    args[1].Set("s", language.c_str());
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
                ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
-               "SetSceneName",
+               "GetSceneName",
                args,
                2);
 }
 
-ControllerClientStatus SceneManager::GetScene(const LSF_ID& sceneID)
+ControllerClientStatus SceneManager::SetSceneName(const LSFString& sceneID, const LSFString& sceneName, const LSFString& language)
+{
+    QCC_DbgPrintf(("%s: sceneID=%s sceneName=%s language=%s", __FUNCTION__, sceneID.c_str(), sceneName.c_str(), language.c_str()));
+
+    MsgArg args[3];
+    args[0].Set("s", sceneID.c_str());
+    args[1].Set("s", sceneName.c_str());
+    args[2].Set("s", language.c_str());
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
+               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               "SetSceneName",
+               args,
+               3);
+}
+
+ControllerClientStatus SceneManager::CreateScene(const Scene& scene)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    MsgArg args[2];
+    scene.Get(&args[0], &args[1]);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               "CreateScene",
+               args,
+               2);
+}
+
+ControllerClientStatus SceneManager::UpdateScene(const LSFString& sceneID, const Scene& scene)
+{
+    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
+    MsgArg args[3];
+    args[0].Set("s", sceneID.c_str());
+    scene.Get(&args[1], &args[2]);
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               "UpdateScene",
+               args,
+               3);
+}
+
+ControllerClientStatus SceneManager::GetScene(const LSFString& sceneID)
 {
     QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
     MsgArg arg;
@@ -80,44 +114,19 @@ ControllerClientStatus SceneManager::GetScene(const LSF_ID& sceneID)
 
 void SceneManager::GetSceneReply(Message& message)
 {
-    QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    LSFResponseCode rc = static_cast<LSFResponseCode>(args[5].v_uint32);
+    LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
+    LSFString sceneID = static_cast<LSFString>(args[1].v_string.str);
+    Scene scene(args[2], args[3]);
 
-    Scene scene;
-    callback.GetSceneReplyCB(rc, "", scene);
+    callback.GetSceneReplyCB(responseCode, sceneID, scene);
 }
 
-ControllerClientStatus SceneManager::CreateScene(const Scene& scene)
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    MsgArg args[3];
-    args[0].Set("s", "");
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
-               "CreateScene",
-               args,
-               6);
-}
-
-ControllerClientStatus SceneManager::UpdateScene(const LSF_ID& sceneID, const Scene& scene)
-{
-    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
-    MsgArg args[3];
-    args[0].Set("s", sceneID.c_str());
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
-               "UpdateScene",
-               args,
-               6);
-}
-
-ControllerClientStatus SceneManager::DeleteScene(const LSF_ID& sceneID)
+ControllerClientStatus SceneManager::DeleteScene(const LSFString& sceneID)
 {
     QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
     MsgArg arg;
@@ -126,19 +135,6 @@ ControllerClientStatus SceneManager::DeleteScene(const LSF_ID& sceneID)
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
                "DeleteScene",
-               &arg,
-               1);
-}
-
-ControllerClientStatus SceneManager::ApplyScene(const LSF_ID& sceneID)
-{
-    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
-    MsgArg arg;
-    arg.Set("s", sceneID.c_str());
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
-               "ApplyScene",
                &arg,
                1);
 }

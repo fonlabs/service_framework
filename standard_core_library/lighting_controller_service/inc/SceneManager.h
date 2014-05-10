@@ -27,10 +27,16 @@
 
 namespace lsf {
 
+class MasterSceneManager;
+
 class SceneManager : public Manager {
 
   public:
-    SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName);
+    SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName, MasterSceneManager* masterSceneMgr);
+
+    LSFResponseCode Reset(void);
+    LSFResponseCode IsDependentOnPreset(LSFString& presetID);
+    LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
 
     void GetAllSceneIDs(ajn::Message& msg);
     void GetSceneName(ajn::Message& msg);
@@ -41,14 +47,17 @@ class SceneManager : public Manager {
     void GetScene(ajn::Message& msg);
     void ApplyScene(ajn::Message& msg);
 
+    void AddScene(const LSFString& id, const std::string& name, const Scene& scene);
+
   private:
 
-    typedef std::map<LSF_ID, std::pair<LSF_Name, Scene> > SceneMap;
+    typedef std::map<LSFString, std::pair<LSFString, Scene> > SceneMap;
 
     SceneMap scenes;
     Mutex scenesLock;
     LampGroupManager& lampGroupManager;
     const char* interfaceName;
+    MasterSceneManager* masterSceneManager;
 };
 
 }

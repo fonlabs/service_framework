@@ -1,5 +1,5 @@
-#ifndef _SAVED_STATE_MANAGER_H_
-#define _SAVED_STATE_MANAGER_H_
+#ifndef _PRESET_MANAGER_H_
+#define _PRESET_MANAGER_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -26,39 +26,44 @@
 
 namespace lsf {
 
-class SavedStateManager : public Manager {
+class SceneManager;
+
+class PresetManager : public Manager {
     friend class LampManager;
   public:
 
-    SavedStateManager(ControllerService& controllerSvc, const char* ifaceName);
+    PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr);
 
-    QStatus Reset(void);
+    LSFResponseCode Reset(void);
 
-    void GetAllSavedStateIDs(ajn::Message& msg);
-    void GetSavedStateName(ajn::Message& msg);
-    void SetSavedStateName(ajn::Message& msg);
-    void CreateSavedState(ajn::Message& msg);
-    void UpdateSavedState(ajn::Message& msg);
-    void DeleteSavedState(ajn::Message& msg);
-    void GetSavedState(ajn::Message& msg);
+    void GetAllPresetIDs(ajn::Message& msg);
+    void GetPresetName(ajn::Message& msg);
+    void SetPresetName(ajn::Message& msg);
+    void CreatePreset(ajn::Message& msg);
+    void UpdatePreset(ajn::Message& msg);
+    void DeletePreset(ajn::Message& msg);
+    void GetPreset(ajn::Message& msg);
 
-    LSFResponseCode GetSavedStateInternal(const LSF_ID& stateid, LampState& state);
+    LSFResponseCode GetPresetInternal(const LSFString& presetID, LampState& state);
 
     void GetDefaultLampState(ajn::Message& msg);
     void SetDefaultLampState(ajn::Message& msg);
 
+    void AddPreset(const LSFString& presetId, const std::string& presetName, const LampState& state);
+
   private:
 
     LSFResponseCode GetDefaultLampStateInternal(LampState& state);
-    QStatus SetDefaultLampStateInternal(LampState& state);
+    LSFResponseCode SetDefaultLampStateInternal(LampState& state);
 
-    typedef std::map<LSF_ID, std::pair<LSF_Name, LampState> > SavedStateMap;
+    typedef std::map<LSFString, std::pair<LSFString, LampState> > PresetMap;
 
-    SavedStateMap savedStates;
-    Mutex savedStatesLock;
+    PresetMap presets;
+    Mutex presetsLock;
     Mutex defaultLampStateLock;
     LampState defaultLampState;
     const char* interfaceName;
+    SceneManager* sceneManagerPtr;
 };
 
 }

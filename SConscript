@@ -36,6 +36,8 @@ if lsf_env['BR'] == 'on' :
     lsf_env.Prepend(LIBS = [File(bdFile), 'ajrouter'])
 if lsf_env['OS'] == 'openwrt':
     lsf_env.AppendUnique(LIBS = [ 'stdc++', 'pthread' ])
+
+lsf_env.Install('$DISTDIR/cpp/bin', 'thin_core_library/lamp_service/routerconfig.xml')
     
 # Build all the LSF Common objects   
 lsf_env.Append(CPPPATH = [ lsf_env.Dir('standard_core_library/common/inc') ])
@@ -91,7 +93,6 @@ lamp_service_env.Append(CPPPATH = [ lamp_service_env.Dir('thin_core_library/lamp
                                     ])
 
 lamp_service_env['LSF_LAMP_DISTDIR'] = 'build/linux/thin_core_library/lamp_service'
-lamp_service_env['ROUTER_CONFIG_DISTDIR'] = 'build/linux/x86/debug/dist/cpp'
 lamp_service_env.Install('$LSF_LAMP_DISTDIR/inc', lamp_service_env.Glob('thin_core_library/lamp_service/inc/*.h'))
 
 #lamp_service_env.Append(CPPDEFINES = ['CONFIG_SERVICE', 'NOTIFICATION_SERVICE_PRODUCER'])
@@ -113,7 +114,6 @@ lamp_service_env['lamp_objs'] = objs;
 lamp_service = lamp_service_env.Program('$LSF_LAMP_DISTDIR/bin/lamp_service', ['thin_core_library/lamp_service/src/LampMain.c'] + lamp_service_env['lamp_objs'])
 lamp_service_env.Install('$LSF_LAMP_DISTDIR/bin', lamp_service_env['lamp_objs'])
 lamp_service_env.Install('$LSF_LAMP_DISTDIR/bin', 'thin_core_library/lamp_service/test/LaunchLampServices.sh')
-lamp_service_env.Install('$ROUTER_CONFIG_DISTDIR/bin', 'thin_core_library/lamp_service/routerconfig.xml')
 
 
 

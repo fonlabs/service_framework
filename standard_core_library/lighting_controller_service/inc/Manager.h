@@ -41,7 +41,7 @@ class Manager : public ajn::MessageReceiver {
 
     //protected:
 
-    LSF_ID GenerateUniqueID(const LSF_Name& prefix) const;
+    LSFString GenerateUniqueID(const LSFString& prefix) const;
 
     ControllerService& controllerService;
 

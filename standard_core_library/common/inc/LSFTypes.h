@@ -33,11 +33,12 @@ using namespace qcc;
 
 #define LSF_CASE(_case) case _case: return # _case
 
+#define MAX_SUPPORTED_NUM_LSF_ENTITY 100
+
 namespace lsf {
 
-typedef std::string LSF_ID;
-typedef std::string LSF_Name;
-typedef std::list<LSF_ID> LSF_ID_List;
+typedef std::string LSFString;
+typedef std::list<LSFString> LSFStringList;
 typedef std::list<LampFaultCode> LampFaultCodeList;
 
 class LampState {
@@ -54,6 +55,7 @@ class LampState {
 
     void Set(const ajn::MsgArg& arg);
     void Get(ajn::MsgArg* arg) const;
+    void Get(size_t& size, ajn::MsgArg* arg) const;
 
     bool onOff;
     uint32_t hue;
@@ -100,7 +102,6 @@ class LampDetails {
 
     uint32_t hardwareVersion;
     uint32_t firmwareVersion;
-    LSF_Name manufacturer;
     LampMake make;
     LampModel model;
     DeviceType type;
@@ -119,7 +120,7 @@ class LampDetails {
     uint32_t maxTemperature;
     uint32_t colorRenderingIndex;
     uint32_t lifespan;
-    LSF_ID lampID;
+    LSFString lampID;
 };
 
 class LampGroup {
@@ -127,7 +128,7 @@ class LampGroup {
 
     LampGroup();
     LampGroup(const ajn::MsgArg& lampList, const ajn::MsgArg& lampGroupList);
-    LampGroup(LSF_ID_List lampList, LSF_ID_List lampGroupList);
+    LampGroup(LSFStringList lampList, LSFStringList lampGroupList);
 
     ~LampGroup() {
         lamps.clear();
@@ -142,15 +143,15 @@ class LampGroup {
     void Set(const ajn::MsgArg& lampList, const ajn::MsgArg& lampGroupList);
     void Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const;
 
-    LSF_ID_List lamps;
-    LSF_ID_List lampGroups;
+    LSFStringList lamps;
+    LSFStringList lampGroups;
 };
 
 class LampsLampGroupsAndState {
   public:
-    LampsLampGroupsAndState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LampState& lampState, uint32_t& transPeriod);
+    LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState, uint32_t& transPeriod);
 
-    LampsLampGroupsAndState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LampState& lampState);
+    LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState);
 
     LampsLampGroupsAndState(const ajn::MsgArg& component);
 
@@ -162,72 +163,72 @@ class LampsLampGroupsAndState {
     void Set(const ajn::MsgArg& component);
     void Get(ajn::MsgArg* component) const;
 
-    LSF_ID_List lamps;
-    LSF_ID_List lampGroups;
+    LSFStringList lamps;
+    LSFStringList lampGroups;
     LampState state;
     uint32_t transitionPeriod;
 };
 
-class LampsLampGroupsAndSavedState {
+class LampsLampGroupsAndPreset {
   public:
-    LampsLampGroupsAndSavedState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LSF_ID& stateID, uint32_t& transPeriod);
+    LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod);
 
-    LampsLampGroupsAndSavedState(LSF_ID_List& lampList, LSF_ID_List& lampGroupList, LSF_ID& stateID);
+    LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID);
 
-    LampsLampGroupsAndSavedState(const ajn::MsgArg& component);
+    LampsLampGroupsAndPreset(const ajn::MsgArg& component);
 
     const char* c_str(void) const;
 
-    LampsLampGroupsAndSavedState(const LampsLampGroupsAndSavedState& other);
-    LampsLampGroupsAndSavedState& operator=(const LampsLampGroupsAndSavedState& other);
+    LampsLampGroupsAndPreset(const LampsLampGroupsAndPreset& other);
+    LampsLampGroupsAndPreset& operator=(const LampsLampGroupsAndPreset& other);
 
     void Set(const ajn::MsgArg& component);
     void Get(ajn::MsgArg* component) const;
 
-    LSF_ID_List lamps;
-    LSF_ID_List lampGroups;
-    LSF_ID savedStateID;
+    LSFStringList lamps;
+    LSFStringList lampGroups;
+    LSFString presetID;
     uint32_t transitionPeriod;
 };
 
 typedef std::list<LampsLampGroupsAndState> LampsLampGroupsAndStateList;
-typedef std::list<LampsLampGroupsAndSavedState> LampsLampGroupsAndSavedStateList;
+typedef std::list<LampsLampGroupsAndPreset> LampsLampGroupsAndPresetList;
 
 class Scene {
   public:
     Scene();
-    Scene(const ajn::MsgArg& stateList, const ajn::MsgArg& savedStateList);
-    Scene(LampsLampGroupsAndStateList& stateList, LampsLampGroupsAndSavedStateList& savedStateList);
+    Scene(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList);
+    Scene(LampsLampGroupsAndStateList& stateList, LampsLampGroupsAndPresetList& presetList);
 
     Scene(const Scene& other);
     Scene& operator=(const Scene& other);
 
     const char* c_str(void) const;
 
-    void Set(const ajn::MsgArg& stateList, const ajn::MsgArg& savedStateList);
-    void Get(ajn::MsgArg* stateList, ajn::MsgArg* savedStateList) const;
+    void Set(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList);
+    void Get(ajn::MsgArg* stateList, ajn::MsgArg* presetList) const;
 
     LampsLampGroupsAndStateList stateComponent;
-    LampsLampGroupsAndSavedStateList savedStateComponent;
+    LampsLampGroupsAndPresetList presetComponent;
 };
 
-class SceneGroup {
+class MasterScene {
   public:
-    SceneGroup();
-    SceneGroup(const ajn::MsgArg& sceneList);
-    SceneGroup(LSF_ID_List sceneList);
+    MasterScene();
+    MasterScene(const ajn::MsgArg& sceneList);
+    MasterScene(LSFStringList sceneList);
 
-    ~SceneGroup() { scenes.clear(); }
+    ~MasterScene() { scenes.clear(); }
 
     const char* c_str(void) const;
 
-    SceneGroup(const SceneGroup& other);
-    SceneGroup& operator=(const SceneGroup& other);
+    MasterScene(const MasterScene& other);
+    MasterScene& operator=(const MasterScene& other);
 
     void Set(const ajn::MsgArg& sceneList);
     void Get(ajn::MsgArg* sceneList) const;
 
-    LSF_ID_List scenes;
+    LSFStringList scenes;
 };
 
 }

@@ -17,6 +17,7 @@
 #include <LampState.h>
 #include <LampService.h>
 #include <aj_nvram.h>
+#include <aj_debug.h>
 
 /**
  * Per-module definition of the current module for debug logging.  Must be defined
@@ -77,6 +78,8 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
     AJ_Status status = AJ_UnmarshalContainer(msg, &array1, AJ_ARG_ARRAY);
     LampResponseCode rc = LAMP_OK;
 
+    AJ_DumpMsg("LAMP_UnmarshalState", msg, TRUE);
+
     do {
         char* field;
         char* sig;
@@ -101,23 +104,26 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
 
         if (0 == strcmp(field, "OnOff")) {
             uint32_t onoff;
-            status = AJ_UnmarshalArgs(msg, sig, "b", &onoff);
+            status = AJ_UnmarshalArgs(msg, "b", &onoff);
             state->onOff = onoff ? TRUE : FALSE;
         } else if (0 == strcmp(field, "Hue")) {
-            status = AJ_UnmarshalArgs(msg, sig, "u", &state->hue);
+            status = AJ_UnmarshalArgs(msg, "u", &state->hue);
         } else if (0 == strcmp(field, "Saturation")) {
-            status = AJ_UnmarshalArgs(msg, sig, "u", &state->saturation);
+            status = AJ_UnmarshalArgs(msg, "u", &state->saturation);
         } else if (0 == strcmp(field, "ColorTemp")) {
-            status = AJ_UnmarshalArgs(msg, sig, "u", &state->colorTemp);
+            status = AJ_UnmarshalArgs(msg, "u", &state->colorTemp);
         } else if (0 == strcmp(field, "Brightness")) {
-            status = AJ_UnmarshalArgs(msg, sig, "u", &state->brightness);
+            status = AJ_UnmarshalArgs(msg, "u", &state->brightness);
+        } else {
+            AJ_ErrPrintf(("Unknown field: %s\n", field));
+            rc = LAMP_ERR_MESSAGE;
+            AJ_SkipArg(msg);
         }
 
         status = AJ_UnmarshalCloseContainer(msg, &struct1);
         // if field invalid, throw the whole thing out and return the error
     } while (status == AJ_OK && rc == LAMP_OK);
     AJ_UnmarshalCloseContainer(msg, &array1);
-
 
     return rc;
 }

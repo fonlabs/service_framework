@@ -22,12 +22,15 @@
 #include <aj_nvram.h>
 #include <aj_crypto.h>
 
-
 /**
  * Per-module definition of the current module for debug logging.  Must be defined
  * prior to first inclusion of aj_debug.h
  */
 #define AJ_MODULE OEM_CODE
+
+#ifndef NDEBUG
+uint8_t dbgOEM_CODE = 1;
+#endif
 
 uint32_t OEM_GetFirmwareVersion(void)
 {
@@ -115,14 +118,6 @@ AJ_Status OEM_GetLampParameters(AJ_Message* msg)
 }
 
 
-// TODO: modify this file with information specific to the manufacturer
-
-// these first two must not be static as they are used by the Config object
-const char* deviceProductName = "deviceProductName";
-const char* deviceManufactureName = "deviceManufactureName";
-
-
-
 LampDetails_t LampDetails = {
     .lampMake = MAKE_LIFX,
     .lampModel = MODEL_LED,
@@ -152,9 +147,6 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
     AJ_MarshalArgs(msg, "{sv}", "LampVersion", "u", LAMP_GetServiceVersion());
     AJ_MarshalArgs(msg, "{sv}", "HardwareVersion", "u", OEM_GetHardwareVersion());
     AJ_MarshalArgs(msg, "{sv}", "FirmwareVersion", "u", OEM_GetFirmwareVersion());
-
-    AJ_MarshalArgs(msg, "{sv}", "Manufacturer", "s", deviceManufactureName);
-
 
     AJ_MarshalArgs(msg, "{sv}", "Make", "u", LampDetails.lampMake);
     AJ_MarshalArgs(msg, "{sv}", "Model", "u", LampDetails.lampModel);

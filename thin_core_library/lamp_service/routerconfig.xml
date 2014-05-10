@@ -28,6 +28,6 @@
     <property enable_ipv6='true'/>
   </ip_name_service>
   <tcp>
-    <property router_advertisement_prefix='org.allseen.LSF.RoutingNode.'/>
+    <property router_advertisement_prefix='org.alljoyn.BusNode.'/>
   </tcp>
 </busconfig>

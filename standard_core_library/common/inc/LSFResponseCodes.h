@@ -33,7 +33,9 @@ typedef enum {
     LSF_ERR_INVALID_ARGS    = LAMP_ERR_INVALID_ARGS,          /**< The arguments were invalid */
     LSF_ERR_PARTIAL         = LAMP_RESPONSE_CODE_LAST,        /**< The requested operation was only partially successful */
     LSF_ERR_NOT_FOUND       = LAMP_RESPONSE_CODE_LAST + 1,    /**< The entity of interest was not found */
-    LSF_RESPONSE_CODE_LAST  = LAMP_RESPONSE_CODE_LAST + 2     /**< The last LSF response code */
+    LSF_ERR_NO_SLOT         = LAMP_RESPONSE_CODE_LAST + 2,    /**< There is no slot for new entry */
+    LSF_ERR_DEPENDENCY      = LAMP_RESPONSE_CODE_LAST + 3,    /**< There is a dependency of the entity for which a delete request was received */
+    LSF_RESPONSE_CODE_LAST  = LAMP_RESPONSE_CODE_LAST + 4     /**< The last LSF response code */
 } LSFResponseCode;
 
 const char* LSFResponseCodeText(LSFResponseCode responseCode);
