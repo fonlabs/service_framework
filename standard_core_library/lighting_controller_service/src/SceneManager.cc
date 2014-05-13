@@ -72,12 +72,50 @@ LSFResponseCode SceneManager::Reset(void)
 
 LSFResponseCode SceneManager::IsDependentOnPreset(LSFString& presetID)
 {
-    return LSF_OK;
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = scenesLock.Lock();
+    if (ER_OK == status) {
+        for (SceneMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
+            responseCode = it->second.second.IsDependentOnPreset(presetID);
+            if (LSF_OK != responseCode) {
+                break;
+            }
+        }
+        status = scenesLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: scenesLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: scenesLock.Lock() failed", __FUNCTION__));
+    }
+
+    return responseCode;
 }
 
 LSFResponseCode SceneManager::IsDependentOnLampGroup(LSFString& lampGroupID)
 {
-    return LSF_OK;
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = scenesLock.Lock();
+    if (ER_OK == status) {
+        for (SceneMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
+            responseCode = it->second.second.IsDependentOnLampGroup(lampGroupID);
+            if (LSF_OK != responseCode) {
+                break;
+            }
+        }
+        status = scenesLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: scenesLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: scenesLock.Lock() failed", __FUNCTION__));
+    }
+
+    return responseCode;
 }
 
 void SceneManager::GetAllSceneIDs(Message& msg)
@@ -216,7 +254,7 @@ void SceneManager::CreateScene(Message& msg)
     if (ER_OK == status) {
         if (scenes.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
             sceneID = GenerateUniqueID("SCENE");
-            Scene scene(inputArgs[0], inputArgs[1]);
+            Scene scene(inputArgs[0], inputArgs[1], inputArgs[2], inputArgs[3], inputArgs[4], inputArgs[5], inputArgs[6], inputArgs[7]);
             scenes[sceneID].first = sceneID;
             scenes[sceneID].second = scene;
             created = true;
@@ -257,7 +295,7 @@ void SceneManager::UpdateScene(Message& msg)
     args[0].Get("s", &id);
 
     LSFString sceneID(id);
-    Scene scene(args[1], args[2]);
+    Scene scene(args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
@@ -338,7 +376,7 @@ void SceneManager::GetScene(Message& msg)
 
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
-    MsgArg outArgs[4];
+    MsgArg outArgs[10];
 
     size_t numArgs;
     const MsgArg* args;
@@ -351,11 +389,17 @@ void SceneManager::GetScene(Message& msg)
     if (ER_OK == status) {
         SceneMap::iterator it = scenes.find(id);
         if (it != scenes.end()) {
-            it->second.second.Get(&outArgs[2], &outArgs[3]);
+            it->second.second.Get(&outArgs[2], &outArgs[3], &outArgs[4], &outArgs[5], &outArgs[6], &outArgs[7], &outArgs[8], &outArgs[9]);
             responseCode = LSF_OK;
         } else {
             outArgs[2].Set("a(asasa{sv}u)", 0, NULL);
             outArgs[3].Set("a(asassu)", 0, NULL);
+            outArgs[4].Set("a(asasa{sv}a{sv}uuu)", 0, NULL);
+            outArgs[5].Set("a(asasssuuu)", 0, NULL);
+            outArgs[6].Set("a(asasa{sv}a{sv}uu)", 0, NULL);
+            outArgs[7].Set("a(asasssuu)", 0, NULL);
+            outArgs[8].Set("a(asasa{sv}a{sv}uuu)", 0, NULL);
+            outArgs[9].Set("a(asasssuuu)", 0, NULL);
         }
         status = scenesLock.Unlock();
         if (ER_OK != status) {
@@ -369,7 +413,7 @@ void SceneManager::GetScene(Message& msg)
     outArgs[0].Set("u", responseCode);
     outArgs[1].Set("s", id);
 
-    controllerService.SendMethodReply(msg, outArgs, 4);
+    controllerService.SendMethodReply(msg, outArgs, 10);
 }
 
 void SceneManager::ApplyScene(ajn::Message& msg)

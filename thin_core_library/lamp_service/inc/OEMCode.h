@@ -100,13 +100,12 @@ uint32_t OEM_GetBrightnessLumens();
 uint32_t OEM_GetRemainingLife();
 
 #ifdef ONBOARDING_SERVICE
+
 /**
- * Initialize the onboarding service data
- *
- * @param ob_settings   The OBS settings struct
- * The field AJOBS_SoftAPSSID must not be changed!
+ * The default settings for the onboarding service
  */
-void OEM_InitializeOnboarding(AJOBS_Settings* ob_settings);
+extern const AJOBS_Settings OEM_OnboardingSettings;
+
 #endif
 
 /**
@@ -118,6 +117,48 @@ void OEM_InitializeOnboarding(AJOBS_Settings* ob_settings);
  * @return          LAMP_OK if no errors occured
  */
 LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transition_period);
+
+/*
+ * This function needs to implemented by the OEM to support the Pulse Effect
+ * @param  lampState             Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of pulse effect
+ * @param  period                Period of the pulse (in ms)
+ * @param  duration              Ratio of the pulse (% of period during which the brightness should be increased from 0% to 100%)
+ * @param  numPulses             Number of pulses
+ * @param  startTimeStamp   Start time stamp of the pulse effect
+ *
+ * @return Status of the operation
+ */
+LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimeStamp);
+
+/*
+ * This function needs to implemented by the OEM to support the Strobe Effect
+ * @param  lampState               Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of strobe effect
+ * @param  period                      Period of the strobe (in ms). OEM decides the ratio of the strobe.
+ * @param  numStrobes           Number of strobes
+ * @param  startTimeStamp   Start time stamp of the strobe effect
+ *
+ * @return Status of the operation
+ */
+LampResponseCode OEM_ApplyStrobeEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t numStrobes, uint64_t startTimeStamp);
+
+/*
+ * This function needs to implemented by the OEM to support the Cycle Effect
+ * @param  lampStateA            Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
+ * @param  lampStateB            Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
+ * @param  period                      Period of the cycle (in ms)
+ * @param  duration                  Duration of the cycle (duration (in ms) during which the Lamp will be in LampStateA and thereafter will be in LampStateB for the rest of the period)
+ * @param  numCycles             Number of cycles
+ * @param  startTimeStamp   Start time stamp of the cycle effect
+ *
+ * @return Status of the operation
+ *
+ * NOTE: When the Cycle Effect applies to a group of Lamps, the entity that calls this API on the Lamp should specify the input parameters appropriately. For Eg: When this effect needs to be applied for a group of 3 Lamps,
+ * Parameters for Lamp 1 = (lampStateA, lampStateB, period=(3*(duration for which each Lamp needs to be in lampStateA)), duration =(duration for which each Lamp needs to be in lampStateA), numCycles, startTimeStamp=0)
+ * Parameters for Lamp 2 = (lampStateA, lampStateB, period=(3*(duration for which each Lamp needs to be in lampStateA)), duration =(duration for which each Lamp needs to be in lampStateA), numCycles, startTimeStamp=(duration for which each Lamp needs to be in lampStateA))
+ * Parameters for Lamp 3 = (lampStateA, lampStateB, period=(3*(duration for which each Lamp needs to be in lampStateA)), duration =(duration for which each Lamp needs to be in lampStateA), numCycles, startTimeStamp=(2*(duration for which each Lamp needs to be in lampStateA)))
+ */
+LampResponseCode OEM_ApplyCycleEffect(LampState* lampStateA, LampState* lampStateB, uint32_t period, uint32_t duration, uint32_t numCycles, uint64_t startTimeStamp);
+
 
 /**
  * Serialize all active fault codes into a message.
@@ -142,16 +183,6 @@ LampResponseCode OEM_ClearLampFault(LampFaultCode fault);
  * @return      LAMP_OK if no errors occured
  */
 LampResponseCode LAMP_MarshalDetails(AJ_Message* msg);
-
-/**
- * The product name
- */
-extern const char* deviceProductName;
-
-/**
- * The manufacturer name
- */
-extern const char* deviceManufactureName;
 
 /**
  * This struct holds all fields of the Lamp's Details.

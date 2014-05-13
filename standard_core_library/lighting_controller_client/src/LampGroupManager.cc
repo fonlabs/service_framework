@@ -181,46 +181,50 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupState(const LSFStrin
 
 ControllerClientStatus LampGroupManager::PulseLampGroupWithState(
     const LSFString& lampGroupID,
-    const LampState& lampGroupState,
+    const LampState& fromLampGroupState,
+    const LampState& toLampGroupState,
     const uint32_t& period,
-    const uint32_t& ratio,
+    const uint32_t& duration,
     const uint32_t& numPulses)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
-    MsgArg args[5];
+    MsgArg args[6];
     args[0].Set("s", lampGroupID.c_str());
-    lampGroupState.Get(&args[1]);
-    args[2].Set("u", period);
-    args[3].Set("u", ratio);
-    args[4].Set("u", numPulses);
+    fromLampGroupState.Get(&args[1]);
+    toLampGroupState.Get(&args[2]);
+    args[3].Set("u", period);
+    args[4].Set("u", duration);
+    args[5].Set("u", numPulses);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
                "PulseLampGroupWithState",
                args,
-               5);
+               6);
 }
 
 ControllerClientStatus LampGroupManager::StrobeLampGroupWithState(
     const LSFString& lampGroupID,
-    const LampState& lampGroupState,
+    const LampState& fromLampGroupState,
+    const LampState& toLampGroupState,
     const uint32_t& period,
     const uint32_t& numStrobes)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
-    MsgArg args[4];
+    MsgArg args[5];
     args[0].Set("s", lampGroupID.c_str());
-    lampGroupState.Get(&args[1]);
-    args[2].Set("u", period);
-    args[3].Set("u", numStrobes);
+    fromLampGroupState.Get(&args[1]);
+    toLampGroupState.Get(&args[2]);
+    args[3].Set("u", period);
+    args[4].Set("u", numStrobes);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
                "StrobeLampGroupWithState",
                args,
-               4);
+               5);
 }
 
 ControllerClientStatus LampGroupManager::CycleLampGroupWithState(
@@ -250,46 +254,50 @@ ControllerClientStatus LampGroupManager::CycleLampGroupWithState(
 
 ControllerClientStatus LampGroupManager::PulseLampGroupWithPreset(
     const LSFString& lampGroupID,
-    const LSFString& presetID,
+    const LSFString& fromPresetID,
+    const LSFString& toPresetID,
     const uint32_t& period,
-    const uint32_t& ratio,
+    const uint32_t& duration,
     const uint32_t& numPulses)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
-    MsgArg args[5];
+    MsgArg args[6];
     args[0].Set("s", lampGroupID.c_str());
-    args[1].Set("s", presetID.c_str());
-    args[2].Set("u", period);
-    args[3].Set("u", ratio);
-    args[4].Set("u", numPulses);
+    args[1].Set("s", fromPresetID.c_str());
+    args[2].Set("s", toPresetID.c_str());
+    args[3].Set("u", period);
+    args[4].Set("u", duration);
+    args[5].Set("u", numPulses);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
                "PulseLampGroupWithPreset",
                args,
-               5);
+               6);
 }
 
 ControllerClientStatus LampGroupManager::StrobeLampGroupWithPreset(
     const LSFString& lampGroupID,
-    const LSFString& presetID,
+    const LSFString& fromPresetID,
+    const LSFString& toPresetID,
     const uint32_t& period,
     const uint32_t& numStrobes)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
-    MsgArg args[4];
+    MsgArg args[5];
     args[0].Set("s", lampGroupID.c_str());
-    args[1].Set("s", presetID.c_str());
-    args[2].Set("u", period);
-    args[3].Set("u", numStrobes);
+    args[1].Set("s", fromPresetID.c_str());
+    args[2].Set("s", toPresetID.c_str());
+    args[3].Set("u", period);
+    args[4].Set("u", numStrobes);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
                "StrobeLampGroupWithPreset",
                args,
-               4);
+               5);
 }
 
 ControllerClientStatus LampGroupManager::CycleLampGroupWithPreset(

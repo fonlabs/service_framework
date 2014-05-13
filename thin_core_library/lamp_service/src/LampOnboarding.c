@@ -139,16 +139,13 @@ AJ_Status OnboardingWriteInfo(AJOBS_Info* info)
     return status;
 }
 
-static AJOBS_Settings obSettings = AJOBS_DEFAULT_SETTINGS;
-
 AJ_Status LAMP_InitOnboarding(void)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     AJ_Status status = AJ_OK;
 
-    OEM_InitializeOnboarding(&obSettings);
-    GenerateSoftAPSSID(obSettings.AJOBS_SoftAPSSID);
-    status = AJOBS_Start(&obSettings, &OnboardingReadInfo, &OnboardingWriteInfo);
+    GenerateSoftAPSSID(OEM_OnboardingSettings.AJOBS_SoftAPSSID);
+    status = AJOBS_Start(&OEM_OnboardingSettings, &OnboardingReadInfo, &OnboardingWriteInfo);
     return status;
 }
 

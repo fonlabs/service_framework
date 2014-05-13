@@ -37,7 +37,7 @@ class LampClientsCallback {
   public:
     virtual ~LampClientsCallback() { }
 
-    virtual void TransitionLampStateReplyCB(ajn::Message& origMsg, LSFResponseCode rc) = 0;
+    virtual void ChangeLampStateReplyCB(ajn::Message& origMsg, LSFResponseCode rc) = 0;
     virtual void TransitionLampStateFieldReplyCB(ajn::Message& origMsg, const char* field, LSFResponseCode rc) = 0;
 
     virtual void GetLampStateReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc) = 0;
@@ -53,6 +53,9 @@ class LampClientsCallback {
 
     virtual void GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc) = 0;
     virtual void ClearLampFaultReplyCB(ajn::Message& origMsg, LSFResponseCode rc, LampFaultCode code) = 0;
+
+    virtual void GetLampVersionReplyCB(ajn::Message& origMsg, LSFResponseCode rc, uint32_t version) = 0;
+    virtual void GetLampRemainingLifeReplyCB(ajn::Message& origMsg, LSFResponseCode rc, uint32_t life) = 0;
 };
 
 
@@ -214,6 +217,11 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     LSFResponseCode TransitionLampState(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t timestamp, const ajn::MsgArg& state, uint32_t period);
 
+
+    LSFResponseCode PulseLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& oldState, const ajn::MsgArg& newState, uint32_t period, uint32_t duration, uint32_t numPulses);
+    LSFResponseCode StrobeLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& oldState, const ajn::MsgArg& newState, uint32_t period, uint32_t numStrobes);
+    LSFResponseCode CycleLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& statea, const ajn::MsgArg& stateb, uint32_t period, uint32_t duration, uint32_t numCycles);
+
     /**
      * Apply a Lamp State Field to one or more lamps
      *
@@ -242,6 +250,11 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The callback will only happen if LSF_OK is returned
      */
     LSFResponseCode GetLampFaults(const LSFString& lampID, ajn::Message& inMsg);
+
+
+    LSFResponseCode GetLampRemainingLife(const LSFString& lampID, ajn::Message& inMsg);
+
+    LSFResponseCode GetLampVersion(const LSFString& lampID, ajn::Message& inMsg);
 
     /**
      * Clear the given lamp fault specified in inMsg
@@ -280,6 +293,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         ObjectMap configObjects;
         ObjectMap aboutObjects;
 
+        std::string method;
         std::string interface;
         std::string property;
         std::vector<ajn::MsgArg> args;
@@ -292,7 +306,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFResponseCode QueueLampMethod(const LSFString& lampId, QueuedMethodCall* queuedCall);
 
-    void DoTransitionLampState(QueuedMethodCall* call);
+    LSFResponseCode PopulateObjectList(const LSFStringList& lamps, ObjectMap& objects);
+
+    void DoChangeLampState(QueuedMethodCall* call);
     void DoSetLampMultipleReply(ajn::Message& msg, void* context);
 
     void DoGetProperties(QueuedMethodCall* call);
@@ -304,6 +320,12 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void DoGetLampFaults(QueuedMethodCall* call);
     void DoGetLampFaultsReply(ajn::Message& msg, void* context);
+
+    void DoGetLampVersion(QueuedMethodCall* call);
+    void DoGetLampVersionReply(ajn::Message& msg, void* context);
+
+    void DoGetLampRemainingLife(QueuedMethodCall* call);
+    void DoGetLampRemainingLifeReply(ajn::Message& msg, void* context);
 
     void DoGetLampConfigString(QueuedMethodCall* call);
     void GetConfigurationsReply(ajn::Message& msg, void* context);

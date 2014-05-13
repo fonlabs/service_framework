@@ -18,6 +18,7 @@
 #include <LSFTypes.h>
 #include <LampValues.h>
 #include <qcc/Debug.h>
+#include <algorithm>
 
 using namespace lsf;
 using namespace ajn;
@@ -626,25 +627,37 @@ void LampGroup::Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const
     }
 }
 
-LampsLampGroupsAndState::LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState, uint32_t& transPeriod) :
+LSFResponseCode LampGroup::IsDependentLampGroup(LSFString& lampGroupID)
+{
+    LSFResponseCode responseCode = LSF_OK;
+
+    LSFStringList::iterator findIt = std::find(lampGroups.begin(), lampGroups.end(), lampGroupID);
+    if (findIt != lampGroups.end()) {
+        responseCode = LSF_ERR_DEPENDENCY;
+    }
+
+    return responseCode;
+}
+
+TransitionLampsLampGroupsToState::TransitionLampsLampGroupsToState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState, uint32_t& transPeriod) :
     lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(transPeriod)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndState::LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState) :
+TransitionLampsLampGroupsToState::TransitionLampsLampGroupsToState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState) :
     lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(0)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndState::LampsLampGroupsAndState(const ajn::MsgArg& component)
+TransitionLampsLampGroupsToState::TransitionLampsLampGroupsToState(const ajn::MsgArg& component)
 {
     Set(component);
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-const char* LampsLampGroupsAndState::c_str(void) const
+const char* TransitionLampsLampGroupsToState::c_str(void) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
@@ -667,13 +680,13 @@ const char* LampsLampGroupsAndState::c_str(void) const
     return ret.c_str();
 }
 
-LampsLampGroupsAndState::LampsLampGroupsAndState(const LampsLampGroupsAndState& other) :
+TransitionLampsLampGroupsToState::TransitionLampsLampGroupsToState(const TransitionLampsLampGroupsToState& other) :
     lamps(other.lamps), lampGroups(other.lampGroups), state(other.state), transitionPeriod(other.transitionPeriod)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndState& LampsLampGroupsAndState::operator=(const LampsLampGroupsAndState& other)
+TransitionLampsLampGroupsToState& TransitionLampsLampGroupsToState::operator=(const TransitionLampsLampGroupsToState& other)
 {
     lamps = other.lamps;
     lampGroups = other.lampGroups;
@@ -683,7 +696,7 @@ LampsLampGroupsAndState& LampsLampGroupsAndState::operator=(const LampsLampGroup
     return *this;
 }
 
-void LampsLampGroupsAndState::Set(const ajn::MsgArg& component)
+void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
 {
     const char** lampList;
     size_t numLamps;
@@ -710,7 +723,7 @@ void LampsLampGroupsAndState::Set(const ajn::MsgArg& component)
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-void LampsLampGroupsAndState::Get(ajn::MsgArg* component) const
+void TransitionLampsLampGroupsToState::Get(ajn::MsgArg* component) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t numLamps = lamps.size();
@@ -744,25 +757,25 @@ void LampsLampGroupsAndState::Get(ajn::MsgArg* component) const
     component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
 }
 
-LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod) :
+TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod) :
     lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(transPeriod)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID) :
+TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID) :
     lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(0)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(const ajn::MsgArg& component)
+TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(const ajn::MsgArg& component)
 {
     Set(component);
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-const char* LampsLampGroupsAndPreset::c_str(void) const
+const char* TransitionLampsLampGroupsToPreset::c_str(void) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
@@ -785,13 +798,13 @@ const char* LampsLampGroupsAndPreset::c_str(void) const
     return ret.c_str();
 }
 
-LampsLampGroupsAndPreset::LampsLampGroupsAndPreset(const LampsLampGroupsAndPreset& other) :
+TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(const TransitionLampsLampGroupsToPreset& other) :
     lamps(other.lamps), lampGroups(other.lampGroups), presetID(other.presetID), transitionPeriod(other.transitionPeriod)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-LampsLampGroupsAndPreset& LampsLampGroupsAndPreset::operator=(const LampsLampGroupsAndPreset& other)
+TransitionLampsLampGroupsToPreset& TransitionLampsLampGroupsToPreset::operator=(const TransitionLampsLampGroupsToPreset& other)
 {
     lamps = other.lamps;
     lampGroups = other.lampGroups;
@@ -801,7 +814,7 @@ LampsLampGroupsAndPreset& LampsLampGroupsAndPreset::operator=(const LampsLampGro
     return *this;
 }
 
-void LampsLampGroupsAndPreset::Set(const ajn::MsgArg& component)
+void TransitionLampsLampGroupsToPreset::Set(const ajn::MsgArg& component)
 {
     const char** lampList;
     size_t numLamps;
@@ -825,7 +838,7 @@ void LampsLampGroupsAndPreset::Set(const ajn::MsgArg& component)
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-void LampsLampGroupsAndPreset::Get(ajn::MsgArg* component) const
+void TransitionLampsLampGroupsToPreset::Get(ajn::MsgArg* component) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t numLamps = lamps.size();
@@ -852,43 +865,584 @@ void LampsLampGroupsAndPreset::Get(ajn::MsgArg* component) const
     component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
 }
 
+PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& fromLampState, LampState& toLampState, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
+    lamps(lampList), lampGroups(lampGroupList), fromState(fromLampState), toState(toLampState), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(const ajn::MsgArg& component)
+{
+    Set(component);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+const char* PulseLampsLampGroupsWithState::c_str(void) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    qcc::String ret;
+    ret.clear();
+    ret.append("Lamps: \n");
+    LSFStringList::const_iterator it;
+    for (it = lamps.begin(); it != lamps.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("Lamp Groups: \n");
+    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("From State: ");
+    ret.append(fromState.c_str());
+    ret.append("To State: ");
+    ret.append(toState.c_str());
+    ret.append("\nPulse Period: \n");
+    ret.append(qcc::U32ToString(pulsePeriod));
+    ret.append("\nPulse Duration: \n");
+    ret.append(qcc::U32ToString(pulseDuration));
+    ret.append("\nNumber Of Pulses: \n");
+    ret.append(qcc::U32ToString(numPulses));
+    return ret.c_str();
+}
+
+PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(const PulseLampsLampGroupsWithState& other) :
+    lamps(other.lamps), lampGroups(other.lampGroups), fromState(other.fromState), toState(other.toState), pulsePeriod(other.pulsePeriod), pulseDuration(other.pulseDuration), numPulses(other.numPulses)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+PulseLampsLampGroupsWithState& PulseLampsLampGroupsWithState::operator=(const PulseLampsLampGroupsWithState& other)
+{
+    lamps = other.lamps;
+    lampGroups = other.lampGroups;
+    fromState = other.fromState;
+    toState = other.toState;
+    pulsePeriod = other.pulsePeriod;
+    pulseDuration = other.pulseDuration;
+    numPulses = other.numPulses;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    return *this;
+}
+
+void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
+{
+    const char** lampList;
+    size_t numLamps;
+    const char** lampGroupList;
+    size_t numLampGroups;
+    MsgArg* fromStateArgs;
+    size_t fromStateArgsSize;
+    MsgArg* toStateArgs;
+    size_t toStateArgsSize;
+
+    component.Get("(asasa{sv}a{sv}uuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromStateArgsSize, &fromStateArgs, &toStateArgsSize, &toStateArgs, &pulsePeriod, &pulseDuration, &numPulses);
+
+    for (size_t j = 0; j < numLamps; j++) {
+        LSFString id(lampList[j]);
+        lamps.push_back(id);
+    }
+
+    for (size_t k = 0; k < numLampGroups; k++) {
+        LSFString id(lampGroupList[k]);
+        lampGroups.push_back(id);
+    }
+
+    MsgArg fromArg;
+    fromArg.Set("a{sv}", fromStateArgsSize, fromStateArgs);
+    fromState.Set(fromArg);
+
+    MsgArg toArg;
+    toArg.Set("a{sv}", toStateArgsSize, toStateArgs);
+    toState.Set(toArg);
+
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+void PulseLampsLampGroupsWithState::Get(ajn::MsgArg* component) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    size_t numLamps = lamps.size();
+    const char** lampList = NULL;
+    if (numLamps) {
+        lampList = new const char*[numLamps];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
+            lampList[j++] = nit->c_str();
+        }
+    }
+
+    size_t numLampGroups = lampGroups.size();
+    const char** lampGroupList = NULL;
+    if (numLampGroups) {
+        lampGroupList = new const char*[numLampGroups];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
+            lampGroupList[j++] = nit->c_str();
+        }
+    }
+
+    size_t fromStateArgsSize;
+    MsgArg* fromStateArgs;
+    MsgArg fromStateArg;
+
+    fromState.Get(&fromStateArg);
+    fromStateArg.Get("a{sv}", &fromStateArgsSize, &fromStateArgs);
+
+    size_t toStateArgsSize;
+    MsgArg* toStateArgs;
+    MsgArg toStateArg;
+
+    toState.Get(&toStateArg);
+    toStateArg.Get("a{sv}", &toStateArgsSize, &toStateArgs);
+
+    component->Set("(asasa{sv}a{sv}uuu)", numLamps, lampList, numLampGroups, lampGroupList, fromStateArgsSize, fromStateArgs, toStateArgsSize, toStateArgs, pulsePeriod, pulseDuration, numPulses);
+    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+}
+
+PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList,  LSFString& fromPreset, LSFString& toPreset, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
+    lamps(lampList), lampGroups(lampGroupList), fromPreset(fromPreset), toPreset(toPreset), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(const ajn::MsgArg& component)
+{
+    Set(component);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+const char* PulseLampsLampGroupsWithPreset::c_str(void) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    qcc::String ret;
+    ret.clear();
+    ret.append("Lamps: \n");
+    LSFStringList::const_iterator it;
+    for (it = lamps.begin(); it != lamps.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("Lamp Groups: \n");
+    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("From Preset: ");
+    ret.append(fromPreset.c_str());
+    ret.append("To Preset: ");
+    ret.append(toPreset.c_str());
+    ret.append("\nPulse Period: \n");
+    ret.append(qcc::U32ToString(pulsePeriod));
+    ret.append("\nPulse Duration: \n");
+    ret.append(qcc::U32ToString(pulseDuration));
+    ret.append("\nNumber Of Pulses: \n");
+    ret.append(qcc::U32ToString(numPulses));
+    return ret.c_str();
+}
+
+PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(const PulseLampsLampGroupsWithPreset& other) :
+    lamps(other.lamps), lampGroups(other.lampGroups), fromPreset(other.fromPreset), toPreset(other.toPreset), pulsePeriod(other.pulsePeriod), pulseDuration(other.pulseDuration), numPulses(other.numPulses)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+PulseLampsLampGroupsWithPreset& PulseLampsLampGroupsWithPreset::operator=(const PulseLampsLampGroupsWithPreset& other)
+{
+    lamps = other.lamps;
+    lampGroups = other.lampGroups;
+    fromPreset = other.fromPreset;
+    toPreset = other.toPreset;
+    pulsePeriod = other.pulsePeriod;
+    pulseDuration = other.pulseDuration;
+    numPulses = other.numPulses;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    return *this;
+}
+
+void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
+{
+    const char** lampList;
+    size_t numLamps;
+    const char** lampGroupList;
+    size_t numLampGroups;
+    const char* fromPresetId;
+    const char* toPresetId;
+
+    component.Get("(asasssuuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromPresetId, &toPresetId, &pulsePeriod, &pulseDuration, &numPulses);
+
+    for (size_t j = 0; j < numLamps; j++) {
+        LSFString id(lampList[j]);
+        lamps.push_back(id);
+    }
+
+    for (size_t k = 0; k < numLampGroups; k++) {
+        LSFString id(lampGroupList[k]);
+        lampGroups.push_back(id);
+    }
+
+    fromPreset = LSFString(fromPresetId);
+    toPreset = LSFString(toPresetId);
+
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+void PulseLampsLampGroupsWithPreset::Get(ajn::MsgArg* component) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    size_t numLamps = lamps.size();
+    const char** lampList = NULL;
+    if (numLamps) {
+        lampList = new const char*[numLamps];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
+            lampList[j++] = nit->c_str();
+        }
+    }
+
+    size_t numLampGroups = lampGroups.size();
+    const char** lampGroupList = NULL;
+    if (numLampGroups) {
+        lampGroupList = new const char*[numLampGroups];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
+            lampGroupList[j++] = nit->c_str();
+        }
+    }
+
+    component->Set("(asasssuuu)", numLamps, lampList, numLampGroups, lampGroupList, fromPreset.c_str(), toPreset.c_str(), pulsePeriod, pulseDuration, numPulses);
+    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+}
+
+StrobeLampsLampGroupsWithState::StrobeLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& fromLampState, LampState& toLampState, uint32_t& period, uint32_t& numOfStrobes) :
+    lamps(lampList), lampGroups(lampGroupList), fromState(fromLampState), toState(toLampState), strobePeriod(period), numStrobes(numOfStrobes)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+StrobeLampsLampGroupsWithState::StrobeLampsLampGroupsWithState(const ajn::MsgArg& component)
+{
+    Set(component);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+const char* StrobeLampsLampGroupsWithState::c_str(void) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    qcc::String ret;
+    ret.clear();
+    ret.append("Lamps: \n");
+    LSFStringList::const_iterator it;
+    for (it = lamps.begin(); it != lamps.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("Lamp Groups: \n");
+    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("From State: ");
+    ret.append(fromState.c_str());
+    ret.append("To State: ");
+    ret.append(toState.c_str());
+    ret.append("\nStrobe Period: \n");
+    ret.append(qcc::U32ToString(strobePeriod));
+    ret.append("\nNumber Of Strobes: \n");
+    ret.append(qcc::U32ToString(numStrobes));
+    return ret.c_str();
+}
+
+StrobeLampsLampGroupsWithState::StrobeLampsLampGroupsWithState(const StrobeLampsLampGroupsWithState& other) :
+    lamps(other.lamps), lampGroups(other.lampGroups), fromState(other.fromState), toState(other.toState), strobePeriod(other.strobePeriod), numStrobes(other.numStrobes)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+StrobeLampsLampGroupsWithState& StrobeLampsLampGroupsWithState::operator=(const StrobeLampsLampGroupsWithState& other)
+{
+    lamps = other.lamps;
+    lampGroups = other.lampGroups;
+    fromState = other.fromState;
+    toState = other.toState;
+    strobePeriod = other.strobePeriod;
+    numStrobes = other.numStrobes;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    return *this;
+}
+
+void StrobeLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
+{
+    const char** lampList;
+    size_t numLamps;
+    const char** lampGroupList;
+    size_t numLampGroups;
+    MsgArg* fromStateArgs;
+    size_t fromStateArgsSize;
+    MsgArg* toStateArgs;
+    size_t toStateArgsSize;
+
+    component.Get("(asasa{sv}a{sv}uu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromStateArgsSize, &fromStateArgs, &toStateArgsSize, &toStateArgs, &strobePeriod, &numStrobes);
+
+    for (size_t j = 0; j < numLamps; j++) {
+        LSFString id(lampList[j]);
+        lamps.push_back(id);
+    }
+
+    for (size_t k = 0; k < numLampGroups; k++) {
+        LSFString id(lampGroupList[k]);
+        lampGroups.push_back(id);
+    }
+
+    MsgArg fromArg;
+    fromArg.Set("a{sv}", fromStateArgsSize, fromStateArgs);
+    fromState.Set(fromArg);
+
+    MsgArg toArg;
+    toArg.Set("a{sv}", toStateArgsSize, toStateArgs);
+    toState.Set(toArg);
+
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+void StrobeLampsLampGroupsWithState::Get(ajn::MsgArg* component) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    size_t numLamps = lamps.size();
+    const char** lampList = NULL;
+    if (numLamps) {
+        lampList = new const char*[numLamps];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
+            lampList[j++] = nit->c_str();
+        }
+    }
+
+    size_t numLampGroups = lampGroups.size();
+    const char** lampGroupList = NULL;
+    if (numLampGroups) {
+        lampGroupList = new const char*[numLampGroups];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
+            lampGroupList[j++] = nit->c_str();
+        }
+    }
+
+    size_t fromStateArgsSize;
+    MsgArg* fromStateArgs;
+    MsgArg fromStateArg;
+
+    fromState.Get(&fromStateArg);
+    fromStateArg.Get("a{sv}", &fromStateArgsSize, &fromStateArgs);
+
+    size_t toStateArgsSize;
+    MsgArg* toStateArgs;
+    MsgArg toStateArg;
+
+    toState.Get(&toStateArg);
+    toStateArg.Get("a{sv}", &toStateArgsSize, &toStateArgs);
+
+    component->Set("(asasa{sv}a{sv}uu)", numLamps, lampList, numLampGroups, lampGroupList, fromStateArgsSize, fromStateArgs, toStateArgsSize, toStateArgs, strobePeriod, numStrobes);
+    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+}
+
+StrobeLampsLampGroupsWithPreset::StrobeLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList,  LSFString& fromPreset, LSFString& toPreset, uint32_t& period, uint32_t& numOfStrobes) :
+    lamps(lampList), lampGroups(lampGroupList), fromPreset(fromPreset), toPreset(toPreset), strobePeriod(period), numStrobes(numOfStrobes)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+StrobeLampsLampGroupsWithPreset::StrobeLampsLampGroupsWithPreset(const ajn::MsgArg& component)
+{
+    Set(component);
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+const char* StrobeLampsLampGroupsWithPreset::c_str(void) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    qcc::String ret;
+    ret.clear();
+    ret.append("Lamps: \n");
+    LSFStringList::const_iterator it;
+    for (it = lamps.begin(); it != lamps.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("Lamp Groups: \n");
+    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret.append(it->c_str());
+        ret.append("\n");
+    }
+    ret.append("From Preset: ");
+    ret.append(fromPreset.c_str());
+    ret.append("To Preset: ");
+    ret.append(toPreset.c_str());
+    ret.append("\nStrobe Period: \n");
+    ret.append(qcc::U32ToString(strobePeriod));
+    ret.append("\nNumber Of Strobes: \n");
+    ret.append(qcc::U32ToString(numStrobes));
+    return ret.c_str();
+}
+
+StrobeLampsLampGroupsWithPreset::StrobeLampsLampGroupsWithPreset(const StrobeLampsLampGroupsWithPreset& other) :
+    lamps(other.lamps), lampGroups(other.lampGroups), fromPreset(other.fromPreset), toPreset(other.toPreset), strobePeriod(other.strobePeriod), numStrobes(other.numStrobes)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+StrobeLampsLampGroupsWithPreset& StrobeLampsLampGroupsWithPreset::operator=(const StrobeLampsLampGroupsWithPreset& other)
+{
+    lamps = other.lamps;
+    lampGroups = other.lampGroups;
+    fromPreset = other.fromPreset;
+    toPreset = other.toPreset;
+    strobePeriod = other.strobePeriod;
+    numStrobes = other.numStrobes;
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    return *this;
+}
+
+void StrobeLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
+{
+    const char** lampList;
+    size_t numLamps;
+    const char** lampGroupList;
+    size_t numLampGroups;
+    const char* fromPresetId;
+    const char* toPresetId;
+
+    component.Get("(asasssuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromPresetId, &toPresetId, &strobePeriod, &numStrobes);
+
+    for (size_t j = 0; j < numLamps; j++) {
+        LSFString id(lampList[j]);
+        lamps.push_back(id);
+    }
+
+    for (size_t k = 0; k < numLampGroups; k++) {
+        LSFString id(lampGroupList[k]);
+        lampGroups.push_back(id);
+    }
+
+    fromPreset = LSFString(fromPresetId);
+    toPreset = LSFString(toPresetId);
+
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
+void StrobeLampsLampGroupsWithPreset::Get(ajn::MsgArg* component) const
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    size_t numLamps = lamps.size();
+    const char** lampList = NULL;
+    if (numLamps) {
+        lampList = new const char*[numLamps];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
+            lampList[j++] = nit->c_str();
+        }
+    }
+
+    size_t numLampGroups = lampGroups.size();
+    const char** lampGroupList = NULL;
+    if (numLampGroups) {
+        lampGroupList = new const char*[numLampGroups];
+        size_t j = 0;
+        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
+            lampGroupList[j++] = nit->c_str();
+        }
+    }
+
+    component->Set("(asasssuu)", numLamps, lampList, numLampGroups, lampGroupList, fromPreset.c_str(), toPreset.c_str(), strobePeriod, numStrobes);
+    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+}
+
 Scene::Scene()
 {
-    stateComponent.clear();
-    presetComponent.clear();
+    transitionToStateComponent.clear();
+    transitionToPresetComponent.clear();
+    pulseWithStateComponent.clear();
+    pulseWithPresetComponent.clear();
+    strobeWithStateComponent.clear();
+    strobeWithPresetComponent.clear();
+    cycleWithStateComponent.clear();
+    cycleWithPresetComponent.clear();
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-Scene::Scene(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList)
+Scene::Scene(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList,
+             const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList,
+             const ajn::MsgArg& strobeWithStateComponentList, const ajn::MsgArg& strobeWithPresetComponentList,
+             const ajn::MsgArg& cycleWithStateComponentList, const ajn::MsgArg& cycleWithPresetComponentList)
 {
-    Set(stateList, presetList);
+    Set(transitionToStateComponentList, transitionToPresetComponentList, pulseWithStateComponentList, pulseWithPresetComponentList,
+        strobeWithStateComponentList, strobeWithPresetComponentList, cycleWithStateComponentList, cycleWithPresetComponentList);
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-Scene::Scene(LampsLampGroupsAndStateList& stateList, LampsLampGroupsAndPresetList& presetList)
+Scene::Scene(TransitionLampsLampGroupsToStateList& transitionToStateComponentList, TransitionLampsLampGroupsToPresetList& transitionToPresetComponentList,
+             PulseLampsLampGroupsWithStateList& pulseWithStateComponentList, PulseLampsLampGroupsWithPresetList& pulseWithPresetComponentList,
+             StrobeLampsLampGroupsWithStateList& strobeWithStateComponentList, StrobeLampsLampGroupsWithPresetList& strobeWithPresetComponentList,
+             CycleLampsLampGroupsWithStateList& cycleWithStateComponentList, CycleLampsLampGroupsWithPresetList& cycleWithPresetComponentList)
 {
-    stateComponent.clear();
-    presetComponent.clear();
-    stateComponent = stateList;
-    presetComponent = presetList;
+    transitionToStateComponent.clear();
+    transitionToPresetComponent.clear();
+    pulseWithStateComponent.clear();
+    pulseWithPresetComponent.clear();
+    strobeWithStateComponent.clear();
+    strobeWithPresetComponent.clear();
+    cycleWithStateComponent.clear();
+    cycleWithPresetComponent.clear();
+    transitionToStateComponent = transitionToStateComponentList;
+    transitionToPresetComponent = transitionToPresetComponentList;
+    pulseWithStateComponent = pulseWithStateComponentList;
+    pulseWithPresetComponent = pulseWithPresetComponentList;
+    strobeWithStateComponent = strobeWithStateComponentList;
+    strobeWithPresetComponent = strobeWithPresetComponentList;
+    cycleWithStateComponent = cycleWithStateComponentList;
+    cycleWithPresetComponent = cycleWithPresetComponentList;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(const Scene& other)
 {
-    stateComponent.clear();
-    presetComponent.clear();
-    stateComponent = other.stateComponent;
-    presetComponent = other.presetComponent;
+    transitionToStateComponent.clear();
+    transitionToPresetComponent.clear();
+    pulseWithStateComponent.clear();
+    pulseWithPresetComponent.clear();
+    strobeWithStateComponent.clear();
+    strobeWithPresetComponent.clear();
+    cycleWithStateComponent.clear();
+    cycleWithPresetComponent.clear();
+    transitionToStateComponent = other.transitionToStateComponent;
+    transitionToPresetComponent = other.transitionToPresetComponent;
+    pulseWithStateComponent = other.pulseWithStateComponent;
+    pulseWithPresetComponent = other.pulseWithPresetComponent;
+    strobeWithStateComponent = other.strobeWithStateComponent;
+    strobeWithPresetComponent = other.strobeWithPresetComponent;
+    cycleWithStateComponent = other.cycleWithStateComponent;
+    cycleWithPresetComponent = other.cycleWithPresetComponent;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene& Scene::operator=(const Scene& other)
 {
-    stateComponent.clear();
-    presetComponent.clear();
-    stateComponent = other.stateComponent;
-    presetComponent = other.presetComponent;
+    transitionToStateComponent.clear();
+    transitionToPresetComponent.clear();
+    pulseWithStateComponent.clear();
+    pulseWithPresetComponent.clear();
+    strobeWithStateComponent.clear();
+    strobeWithPresetComponent.clear();
+    cycleWithStateComponent.clear();
+    cycleWithPresetComponent.clear();
+    transitionToStateComponent = other.transitionToStateComponent;
+    transitionToPresetComponent = other.transitionToPresetComponent;
+    pulseWithStateComponent = other.pulseWithStateComponent;
+    pulseWithPresetComponent = other.pulseWithPresetComponent;
+    strobeWithStateComponent = other.strobeWithStateComponent;
+    strobeWithPresetComponent = other.strobeWithPresetComponent;
+    cycleWithStateComponent = other.cycleWithStateComponent;
+    cycleWithPresetComponent = other.cycleWithPresetComponent;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -899,75 +1453,376 @@ const char* Scene::c_str(void) const
     qcc::String ret;
     ret.clear();
 
-    ret.append("State Components: \n");
-    LampsLampGroupsAndStateList::const_iterator it;
-    for (it = stateComponent.begin(); it != stateComponent.end(); it++) {
+    ret.append("TransitionToState Components: \n");
+    TransitionLampsLampGroupsToStateList::const_iterator it;
+    for (it = transitionToStateComponent.begin(); it != transitionToStateComponent.end(); it++) {
         ret.append(it->c_str());
         ret.append("\n***\n");
     }
     ret.append("\n------------------------------------------------------------\n");
-    ret.append("Preset Components: \n");
-    LampsLampGroupsAndPresetList::const_iterator ite;
-    for (ite = presetComponent.begin(); ite != presetComponent.end(); ite++) {
+    ret.append("TransitionToPreset Components: \n");
+    TransitionLampsLampGroupsToPresetList::const_iterator ite;
+    for (ite = transitionToPresetComponent.begin(); ite != transitionToPresetComponent.end(); ite++) {
         ret.append(ite->c_str());
+        ret.append("\n***\n");
+    }
+    ret.append("\n------------------------------------------------------------\n");
+    ret.append("PulseWithState Components: \n");
+    PulseLampsLampGroupsWithStateList::const_iterator pte;
+    for (pte = pulseWithStateComponent.begin(); pte != pulseWithStateComponent.end(); pte++) {
+        ret.append(pte->c_str());
+        ret.append("\n***\n");
+    }
+    ret.append("\n------------------------------------------------------------\n");
+    ret.append("PulseWithPreset Components: \n");
+    PulseLampsLampGroupsWithPresetList::const_iterator prte;
+    for (prte = pulseWithPresetComponent.begin(); prte != pulseWithPresetComponent.end(); prte++) {
+        ret.append(prte->c_str());
+        ret.append("\n***\n");
+    }
+    ret.append("\n------------------------------------------------------------\n");
+    ret.append("StrobeWithState Components: \n");
+    StrobeLampsLampGroupsWithStateList::const_iterator ste;
+    for (ste = strobeWithStateComponent.begin(); ste != strobeWithStateComponent.end(); ste++) {
+        ret.append(ste->c_str());
+        ret.append("\n***\n");
+    }
+    ret.append("\n------------------------------------------------------------\n");
+    ret.append("StrobeWithPreset Components: \n");
+    StrobeLampsLampGroupsWithPresetList::const_iterator srte;
+    for (srte = strobeWithPresetComponent.begin(); srte != strobeWithPresetComponent.end(); srte++) {
+        ret.append(srte->c_str());
+        ret.append("\n***\n");
+    }
+    ret.append("\n------------------------------------------------------------\n");
+    ret.append("CycleWithState Components: \n");
+    CycleLampsLampGroupsWithStateList::const_iterator cte;
+    for (cte = cycleWithStateComponent.begin(); cte != cycleWithStateComponent.end(); cte++) {
+        ret.append(cte->c_str());
+        ret.append("\n***\n");
+    }
+    ret.append("\n------------------------------------------------------------\n");
+    ret.append("CycleWithPreset Components: \n");
+    CycleLampsLampGroupsWithPresetList::const_iterator crte;
+    for (crte = cycleWithPresetComponent.begin(); crte != cycleWithPresetComponent.end(); crte++) {
+        ret.append(crte->c_str());
         ret.append("\n***\n");
     }
 
     return ret.c_str();
 }
 
-void Scene::Set(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList)
+void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList, const ajn::MsgArg& pulseWithStateComponentList,
+                const ajn::MsgArg& pulseWithPresetComponentList, const ajn::MsgArg& strobeWithStateComponentList, const ajn::MsgArg& strobeWithPresetComponentList,
+                const ajn::MsgArg& cycleWithStateComponentList, const ajn::MsgArg& cycleWithPresetComponentList)
 {
-    stateComponent.clear();
-    presetComponent.clear();
+    transitionToStateComponent.clear();
+    transitionToPresetComponent.clear();
+    pulseWithStateComponent.clear();
+    pulseWithPresetComponent.clear();
+    strobeWithStateComponent.clear();
+    strobeWithPresetComponent.clear();
+    cycleWithStateComponent.clear();
+    cycleWithPresetComponent.clear();
 
-    MsgArg* stateComponentArray;
-    size_t stateComponentSize;
-    stateList.Get("a(asasa{sv}u)", &stateComponentSize, &stateComponentArray);
+    MsgArg* transitionToStateComponentArray;
+    size_t transitionToStateComponentSize;
+    transitionToStateComponentList.Get("a(asasa{sv}u)", &transitionToStateComponentSize, &transitionToStateComponentArray);
 
-    for (size_t i = 0; i < stateComponentSize; i++) {
-        LampsLampGroupsAndState tempStateComponent(stateComponentArray[i]);
-        stateComponent.push_back(tempStateComponent);
+    for (size_t i = 0; i < transitionToStateComponentSize; i++) {
+        TransitionLampsLampGroupsToState tempStateComponent(transitionToStateComponentArray[i]);
+        transitionToStateComponent.push_back(tempStateComponent);
     }
 
-    MsgArg* presetComponentArray;
-    size_t presetComponentSize;
-    presetList.Get("a(asassu)", &presetComponentSize, &presetComponentArray);
-    for (size_t i = 0; i < presetComponentSize; i++) {
-        LampsLampGroupsAndPreset tempPresetComponent(presetComponentArray[i]);
-        presetComponent.push_back(tempPresetComponent);
+    MsgArg* transitionToPresetComponentArray;
+    size_t transitionToPresetComponentSize;
+    transitionToPresetComponentList.Get("a(asassu)", &transitionToPresetComponentSize, &transitionToPresetComponentArray);
+    for (size_t i = 0; i < transitionToPresetComponentSize; i++) {
+        TransitionLampsLampGroupsToPreset tempPresetComponent(transitionToPresetComponentArray[i]);
+        transitionToPresetComponent.push_back(tempPresetComponent);
     }
+
+    MsgArg* pulseWithStateComponentArray;
+    size_t pulseWithStateComponentSize;
+    pulseWithStateComponentList.Get("a(asasa{sv}a{sv}uuu)", &pulseWithStateComponentSize, &pulseWithStateComponentArray);
+    for (size_t i = 0; i < pulseWithStateComponentSize; i++) {
+        PulseLampsLampGroupsWithState tempPulseComponent(pulseWithStateComponentArray[i]);
+        pulseWithStateComponent.push_back(tempPulseComponent);
+    }
+
+    MsgArg* pulseWithPresetComponentArray;
+    size_t pulseWithPresetComponentSize;
+    pulseWithPresetComponentList.Get("a(asasssuuu)", &pulseWithPresetComponentSize, &pulseWithPresetComponentArray);
+    for (size_t i = 0; i < pulseWithPresetComponentSize; i++) {
+        PulseLampsLampGroupsWithPreset tempPulseComponent(pulseWithPresetComponentArray[i]);
+        pulseWithPresetComponent.push_back(tempPulseComponent);
+    }
+
+    MsgArg* strobeWithStateComponentArray;
+    size_t strobeWithStateComponentSize;
+    strobeWithStateComponentList.Get("a(asasa{sv}a{sv}uu)", &strobeWithStateComponentSize, &strobeWithStateComponentArray);
+    for (size_t i = 0; i < strobeWithStateComponentSize; i++) {
+        StrobeLampsLampGroupsWithState tempStrobeComponent(strobeWithStateComponentArray[i]);
+        strobeWithStateComponent.push_back(tempStrobeComponent);
+    }
+
+    MsgArg* strobeWithPresetComponentArray;
+    size_t strobeWithPresetComponentSize;
+    strobeWithPresetComponentList.Get("a(asasssuu)", &strobeWithPresetComponentSize, &strobeWithPresetComponentArray);
+    for (size_t i = 0; i < strobeWithPresetComponentSize; i++) {
+        StrobeLampsLampGroupsWithPreset tempStrobeComponent(strobeWithPresetComponentArray[i]);
+        strobeWithPresetComponent.push_back(tempStrobeComponent);
+    }
+
+    MsgArg* cycleWithStateComponentArray;
+    size_t cycleWithStateComponentSize;
+    cycleWithStateComponentList.Get("a(asasa{sv}a{sv}uuu)", &cycleWithStateComponentSize, &cycleWithStateComponentArray);
+    for (size_t i = 0; i < cycleWithStateComponentSize; i++) {
+        CycleLampsLampGroupsWithState tempCycleComponent(cycleWithStateComponentArray[i]);
+        cycleWithStateComponent.push_back(tempCycleComponent);
+    }
+
+    MsgArg* cycleWithPresetComponentArray;
+    size_t cycleWithPresetComponentSize;
+    cycleWithPresetComponentList.Get("a(asasssuuu)", &cycleWithPresetComponentSize, &cycleWithPresetComponentArray);
+    for (size_t i = 0; i < cycleWithPresetComponentSize; i++) {
+        CycleLampsLampGroupsWithPreset tempCycleComponent(cycleWithPresetComponentArray[i]);
+        cycleWithPresetComponent.push_back(tempCycleComponent);
+    }
+
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
-void Scene::Get(ajn::MsgArg* stateList, ajn::MsgArg* presetList) const
+void Scene::Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transitionToPresetComponentList, ajn::MsgArg* pulseWithStateComponentList,
+                ajn::MsgArg* pulseWithPresetComponentList, ajn::MsgArg* strobeWithStateComponentList, ajn::MsgArg* strobeWithPresetComponentList,
+                ajn::MsgArg* cycleWithStateComponentList, ajn::MsgArg* cycleWithPresetComponentList) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    size_t stateComponentArraySize = stateComponent.size();
-    if (stateComponentArraySize) {
-        MsgArg* stateComponentArray = new MsgArg[stateComponentArraySize];
+    size_t transitionToStateComponentArraySize = transitionToStateComponent.size();
+    if (transitionToStateComponentArraySize) {
+        MsgArg* transitionToStateComponentArray = new MsgArg[transitionToStateComponentArraySize];
         size_t i = 0;
-        for (LampsLampGroupsAndStateList::const_iterator it = stateComponent.begin(); it != stateComponent.end(); it++, i++) {
-            it->Get(&stateComponentArray[i]);
+        for (TransitionLampsLampGroupsToStateList::const_iterator it = transitionToStateComponent.begin(); it != transitionToStateComponent.end(); it++, i++) {
+            it->Get(&transitionToStateComponentArray[i]);
         }
-        stateList->Set("a(asasa{sv}u)", stateComponentArraySize, stateComponentArray);
-        stateList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        transitionToStateComponentList->Set("a(asasa{sv}u)", transitionToStateComponentArraySize, transitionToStateComponentArray);
+        transitionToStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
     } else {
-        stateList->Set("a(asasa{sv}u)", 0, NULL);
+        transitionToStateComponentList->Set("a(asasa{sv}u)", 0, NULL);
     }
 
-    size_t presetComponentArraySize = presetComponent.size();
-    if (presetComponentArraySize) {
-        MsgArg* presetComponentArray = new MsgArg[presetComponentArraySize];
+    size_t transitionToPresetComponentArraySize = transitionToPresetComponent.size();
+    if (transitionToPresetComponentArraySize) {
+        MsgArg* transitionToPresetComponentArray = new MsgArg[transitionToPresetComponentArraySize];
         size_t i = 0;
-        for (LampsLampGroupsAndPresetList::const_iterator it = presetComponent.begin(); it != presetComponent.end(); it++, i++) {
-            it->Get(&presetComponentArray[i]);
+        for (TransitionLampsLampGroupsToPresetList::const_iterator it = transitionToPresetComponent.begin(); it != transitionToPresetComponent.end(); it++, i++) {
+            it->Get(&transitionToPresetComponentArray[i]);
         }
-        presetList->Set("a(asassu)", presetComponentArraySize, presetComponentArray);
-        presetList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        transitionToPresetComponentList->Set("a(asassu)", transitionToPresetComponentArraySize, transitionToPresetComponentArray);
+        transitionToPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
     } else {
-        presetList->Set("a(asassu)", 0, NULL);
+        transitionToPresetComponentList->Set("a(asassu)", 0, NULL);
     }
+
+    size_t pulseWithStateComponentArraySize = pulseWithStateComponent.size();
+    if (pulseWithStateComponentArraySize) {
+        MsgArg* pulseWithStateComponentArray = new MsgArg[pulseWithStateComponentArraySize];
+        size_t i = 0;
+        for (PulseLampsLampGroupsWithStateList::const_iterator it = pulseWithStateComponent.begin(); it != pulseWithStateComponent.end(); it++, i++) {
+            it->Get(&pulseWithStateComponentArray[i]);
+        }
+        pulseWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", pulseWithStateComponentArraySize, pulseWithStateComponentArray);
+        pulseWithStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    } else {
+        pulseWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", 0, NULL);
+    }
+
+    size_t pulseWithPresetComponentArraySize = pulseWithPresetComponent.size();
+    if (pulseWithPresetComponentArraySize) {
+        MsgArg* pulseWithPresetComponentArray = new MsgArg[pulseWithPresetComponentArraySize];
+        size_t i = 0;
+        for (PulseLampsLampGroupsWithPresetList::const_iterator it = pulseWithPresetComponent.begin(); it != pulseWithPresetComponent.end(); it++, i++) {
+            it->Get(&pulseWithPresetComponentArray[i]);
+        }
+        pulseWithPresetComponentList->Set("a(asasssuuu)", pulseWithPresetComponentArraySize, pulseWithPresetComponentArray);
+        pulseWithPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    } else {
+        pulseWithPresetComponentList->Set("a(asasssuuu)", 0, NULL);
+    }
+
+    size_t strobeWithStateComponentArraySize = strobeWithStateComponent.size();
+    if (strobeWithStateComponentArraySize) {
+        MsgArg* strobeWithStateComponentArray = new MsgArg[strobeWithStateComponentArraySize];
+        size_t i = 0;
+        for (StrobeLampsLampGroupsWithStateList::const_iterator it = strobeWithStateComponent.begin(); it != strobeWithStateComponent.end(); it++, i++) {
+            it->Get(&strobeWithStateComponentArray[i]);
+        }
+        strobeWithStateComponentList->Set("a(asasa{sv}a{sv}uu)", strobeWithStateComponentArraySize, strobeWithStateComponentArray);
+        strobeWithStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    } else {
+        strobeWithStateComponentList->Set("a(asasa{sv}a{sv}uu)", 0, NULL);
+    }
+
+    size_t strobeWithPresetComponentArraySize = strobeWithPresetComponent.size();
+    if (strobeWithPresetComponentArraySize) {
+        MsgArg* strobeWithPresetComponentArray = new MsgArg[strobeWithPresetComponentArraySize];
+        size_t i = 0;
+        for (StrobeLampsLampGroupsWithPresetList::const_iterator it = strobeWithPresetComponent.begin(); it != strobeWithPresetComponent.end(); it++, i++) {
+            it->Get(&strobeWithPresetComponentArray[i]);
+        }
+        strobeWithPresetComponentList->Set("a(asasssuu)", strobeWithPresetComponentArraySize, strobeWithPresetComponentArray);
+        strobeWithPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    } else {
+        strobeWithPresetComponentList->Set("a(asasssuu)", 0, NULL);
+    }
+
+    size_t cycleWithStateComponentArraySize = cycleWithStateComponent.size();
+    if (cycleWithStateComponentArraySize) {
+        MsgArg* cycleWithStateComponentArray = new MsgArg[cycleWithStateComponentArraySize];
+        size_t i = 0;
+        for (CycleLampsLampGroupsWithStateList::const_iterator it = cycleWithStateComponent.begin(); it != cycleWithStateComponent.end(); it++, i++) {
+            it->Get(&cycleWithStateComponentArray[i]);
+        }
+        cycleWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", cycleWithStateComponentArraySize, cycleWithStateComponentArray);
+        cycleWithStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    } else {
+        cycleWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", 0, NULL);
+    }
+
+    size_t cycleWithPresetComponentArraySize = cycleWithPresetComponent.size();
+    if (cycleWithPresetComponentArraySize) {
+        MsgArg* cycleWithPresetComponentArray = new MsgArg[cycleWithPresetComponentArraySize];
+        size_t i = 0;
+        for (CycleLampsLampGroupsWithPresetList::const_iterator it = cycleWithPresetComponent.begin(); it != cycleWithPresetComponent.end(); it++, i++) {
+            it->Get(&cycleWithPresetComponentArray[i]);
+        }
+        cycleWithPresetComponentList->Set("a(asasssuuu)", cycleWithPresetComponentArraySize, cycleWithPresetComponentArray);
+        cycleWithPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    } else {
+        cycleWithPresetComponentList->Set("a(asasssuuu)", 0, NULL);
+    }
+}
+
+LSFResponseCode Scene::IsDependentOnPreset(LSFString& presetID)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    LSFResponseCode responseCode = LSF_OK;
+
+    for (TransitionLampsLampGroupsToPresetList::iterator it = transitionToPresetComponent.begin(); it != transitionToPresetComponent.end(); it++) {
+        if (0 == strcmp(it->presetID.c_str(), presetID.c_str())) {
+            responseCode = LSF_ERR_DEPENDENCY;
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (PulseLampsLampGroupsWithPresetList::iterator it = pulseWithPresetComponent.begin(); it != pulseWithPresetComponent.end(); it++) {
+            if (0 == strcmp(it->fromPreset.c_str(), presetID.c_str())) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            } else if (0 == strcmp(it->toPreset.c_str(), presetID.c_str())) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (StrobeLampsLampGroupsWithPresetList::iterator it = strobeWithPresetComponent.begin(); it != strobeWithPresetComponent.end(); it++) {
+            if (0 == strcmp(it->fromPreset.c_str(), presetID.c_str())) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            } else if (0 == strcmp(it->toPreset.c_str(), presetID.c_str())) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (CycleLampsLampGroupsWithPresetList::iterator it = cycleWithPresetComponent.begin(); it != cycleWithPresetComponent.end(); it++) {
+            if (0 == strcmp(it->fromPreset.c_str(), presetID.c_str())) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            } else if (0 == strcmp(it->toPreset.c_str(), presetID.c_str())) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    return responseCode;
+}
+
+LSFResponseCode Scene::IsDependentOnLampGroup(LSFString& lampGroupID)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    LSFResponseCode responseCode = LSF_OK;
+
+    for (TransitionLampsLampGroupsToStateList::iterator it = transitionToStateComponent.begin(); it != transitionToStateComponent.end(); it++) {
+        LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+        if (findIt != it->lampGroups.end()) {
+            responseCode = LSF_ERR_DEPENDENCY;
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (PulseLampsLampGroupsWithStateList::iterator it = pulseWithStateComponent.begin(); it != pulseWithStateComponent.end(); it++) {
+            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+            if (findIt != it->lampGroups.end()) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (StrobeLampsLampGroupsWithStateList::iterator it = strobeWithStateComponent.begin(); it != strobeWithStateComponent.end(); it++) {
+            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+            if (findIt != it->lampGroups.end()) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (CycleLampsLampGroupsWithStateList::iterator it = cycleWithStateComponent.begin(); it != cycleWithStateComponent.end(); it++) {
+            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+            if (findIt != it->lampGroups.end()) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (TransitionLampsLampGroupsToPresetList::iterator it = transitionToPresetComponent.begin(); it != transitionToPresetComponent.end(); it++) {
+            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+            if (findIt != it->lampGroups.end()) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (PulseLampsLampGroupsWithPresetList::iterator it = pulseWithPresetComponent.begin(); it != pulseWithPresetComponent.end(); it++) {
+            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+            if (findIt != it->lampGroups.end()) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (StrobeLampsLampGroupsWithPresetList::iterator it = strobeWithPresetComponent.begin(); it != strobeWithPresetComponent.end(); it++) {
+            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+            if (findIt != it->lampGroups.end()) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    if (LSF_OK == responseCode) {
+        for (CycleLampsLampGroupsWithPresetList::iterator it = cycleWithPresetComponent.begin(); it != cycleWithPresetComponent.end(); it++) {
+            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
+            if (findIt != it->lampGroups.end()) {
+                responseCode = LSF_ERR_DEPENDENCY;
+            }
+        }
+    }
+
+    return responseCode;
 }
 
 MasterScene::MasterScene()
@@ -1049,4 +1904,17 @@ void MasterScene::Get(ajn::MsgArg* sceneList) const
     } else {
         sceneList->Set("as", 0, NULL);
     }
+}
+
+LSFResponseCode MasterScene::IsDependentOnScene(LSFString& sceneID)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    LSFResponseCode responseCode = LSF_OK;
+
+    LSFStringList::iterator findIt = std::find(scenes.begin(), scenes.end(), sceneID);
+    if (findIt != scenes.end()) {
+        responseCode = LSF_ERR_DEPENDENCY;
+    }
+
+    return responseCode;
 }

@@ -26,8 +26,8 @@
 #include <alljoyn/MsgArg.h>
 #include <qcc/StringUtil.h>
 
-
 #include <LampValues.h>
+#include <LSFResponseCodes.h>
 
 using namespace qcc;
 
@@ -55,7 +55,6 @@ class LampState {
 
     void Set(const ajn::MsgArg& arg);
     void Get(ajn::MsgArg* arg) const;
-    void Get(size_t& size, ajn::MsgArg* arg) const;
 
     bool onOff;
     uint32_t hue;
@@ -143,22 +142,24 @@ class LampGroup {
     void Set(const ajn::MsgArg& lampList, const ajn::MsgArg& lampGroupList);
     void Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const;
 
+    LSFResponseCode IsDependentLampGroup(LSFString& lampGroupID);
+
     LSFStringList lamps;
     LSFStringList lampGroups;
 };
 
-class LampsLampGroupsAndState {
+class TransitionLampsLampGroupsToState {
   public:
-    LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState, uint32_t& transPeriod);
+    TransitionLampsLampGroupsToState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState, uint32_t& transPeriod);
 
-    LampsLampGroupsAndState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState);
+    TransitionLampsLampGroupsToState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState);
 
-    LampsLampGroupsAndState(const ajn::MsgArg& component);
+    TransitionLampsLampGroupsToState(const ajn::MsgArg& component);
 
     const char* c_str(void) const;
 
-    LampsLampGroupsAndState(const LampsLampGroupsAndState& other);
-    LampsLampGroupsAndState& operator=(const LampsLampGroupsAndState& other);
+    TransitionLampsLampGroupsToState(const TransitionLampsLampGroupsToState& other);
+    TransitionLampsLampGroupsToState& operator=(const TransitionLampsLampGroupsToState& other);
 
     void Set(const ajn::MsgArg& component);
     void Get(ajn::MsgArg* component) const;
@@ -169,18 +170,18 @@ class LampsLampGroupsAndState {
     uint32_t transitionPeriod;
 };
 
-class LampsLampGroupsAndPreset {
+class TransitionLampsLampGroupsToPreset {
   public:
-    LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod);
+    TransitionLampsLampGroupsToPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod);
 
-    LampsLampGroupsAndPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID);
+    TransitionLampsLampGroupsToPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID);
 
-    LampsLampGroupsAndPreset(const ajn::MsgArg& component);
+    TransitionLampsLampGroupsToPreset(const ajn::MsgArg& component);
 
     const char* c_str(void) const;
 
-    LampsLampGroupsAndPreset(const LampsLampGroupsAndPreset& other);
-    LampsLampGroupsAndPreset& operator=(const LampsLampGroupsAndPreset& other);
+    TransitionLampsLampGroupsToPreset(const TransitionLampsLampGroupsToPreset& other);
+    TransitionLampsLampGroupsToPreset& operator=(const TransitionLampsLampGroupsToPreset& other);
 
     void Set(const ajn::MsgArg& component);
     void Get(ajn::MsgArg* component) const;
@@ -191,25 +192,145 @@ class LampsLampGroupsAndPreset {
     uint32_t transitionPeriod;
 };
 
-typedef std::list<LampsLampGroupsAndState> LampsLampGroupsAndStateList;
-typedef std::list<LampsLampGroupsAndPreset> LampsLampGroupsAndPresetList;
+class PulseLampsLampGroupsWithState {
+  public:
+    PulseLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& fromLampState, LampState& toLampState, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses);
+
+    PulseLampsLampGroupsWithState(const ajn::MsgArg& component);
+
+    const char* c_str(void) const;
+
+    PulseLampsLampGroupsWithState(const PulseLampsLampGroupsWithState& other);
+    PulseLampsLampGroupsWithState& operator=(const PulseLampsLampGroupsWithState& other);
+
+    void Set(const ajn::MsgArg& component);
+    void Get(ajn::MsgArg* component) const;
+
+    LSFStringList lamps;
+    LSFStringList lampGroups;
+    LampState fromState;
+    LampState toState;
+    uint32_t pulsePeriod;
+    uint32_t pulseDuration;
+    uint32_t numPulses;
+};
+
+class PulseLampsLampGroupsWithPreset {
+  public:
+    PulseLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& fromPreset, LSFString& toPreset, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses);
+
+    PulseLampsLampGroupsWithPreset(const ajn::MsgArg& component);
+
+    const char* c_str(void) const;
+
+    PulseLampsLampGroupsWithPreset(const PulseLampsLampGroupsWithPreset& other);
+    PulseLampsLampGroupsWithPreset& operator=(const PulseLampsLampGroupsWithPreset& other);
+
+    void Set(const ajn::MsgArg& component);
+    void Get(ajn::MsgArg* component) const;
+
+    LSFStringList lamps;
+    LSFStringList lampGroups;
+    LSFString fromPreset;
+    LSFString toPreset;
+    uint32_t pulsePeriod;
+    uint32_t pulseDuration;
+    uint32_t numPulses;
+};
+
+class StrobeLampsLampGroupsWithState {
+  public:
+    StrobeLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& fromLampState, LampState& toLampState, uint32_t& period, uint32_t& numOfStrobes);
+
+    StrobeLampsLampGroupsWithState(const ajn::MsgArg& component);
+
+    const char* c_str(void) const;
+
+    StrobeLampsLampGroupsWithState(const StrobeLampsLampGroupsWithState& other);
+    StrobeLampsLampGroupsWithState& operator=(const StrobeLampsLampGroupsWithState& other);
+
+    void Set(const ajn::MsgArg& component);
+    void Get(ajn::MsgArg* component) const;
+
+    LSFStringList lamps;
+    LSFStringList lampGroups;
+    LampState fromState;
+    LampState toState;
+    uint32_t strobePeriod;
+    uint32_t numStrobes;
+};
+
+class StrobeLampsLampGroupsWithPreset {
+  public:
+    StrobeLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& fromPreset, LSFString& toPreset, uint32_t& period, uint32_t& numOfStrobes);
+
+    StrobeLampsLampGroupsWithPreset(const ajn::MsgArg& component);
+
+    const char* c_str(void) const;
+
+    StrobeLampsLampGroupsWithPreset(const StrobeLampsLampGroupsWithPreset& other);
+    StrobeLampsLampGroupsWithPreset& operator=(const StrobeLampsLampGroupsWithPreset& other);
+
+    void Set(const ajn::MsgArg& component);
+    void Get(ajn::MsgArg* component) const;
+
+    LSFStringList lamps;
+    LSFStringList lampGroups;
+    LSFString fromPreset;
+    LSFString toPreset;
+    uint32_t strobePeriod;
+    uint32_t numStrobes;
+};
+
+typedef PulseLampsLampGroupsWithState CycleLampsLampGroupsWithState;
+typedef PulseLampsLampGroupsWithPreset CycleLampsLampGroupsWithPreset;
+
+typedef std::list<TransitionLampsLampGroupsToState> TransitionLampsLampGroupsToStateList;
+typedef std::list<TransitionLampsLampGroupsToPreset> TransitionLampsLampGroupsToPresetList;
+typedef std::list<PulseLampsLampGroupsWithState> PulseLampsLampGroupsWithStateList;
+typedef std::list<PulseLampsLampGroupsWithPreset> PulseLampsLampGroupsWithPresetList;
+typedef std::list<StrobeLampsLampGroupsWithState> StrobeLampsLampGroupsWithStateList;
+typedef std::list<StrobeLampsLampGroupsWithPreset> StrobeLampsLampGroupsWithPresetList;
+typedef std::list<CycleLampsLampGroupsWithState> CycleLampsLampGroupsWithStateList;
+typedef std::list<CycleLampsLampGroupsWithPreset> CycleLampsLampGroupsWithPresetList;
 
 class Scene {
   public:
     Scene();
-    Scene(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList);
-    Scene(LampsLampGroupsAndStateList& stateList, LampsLampGroupsAndPresetList& presetList);
+    Scene(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList,
+          const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList,
+          const ajn::MsgArg& strobeWithStateComponentList, const ajn::MsgArg& strobeWithPresetComponentList,
+          const ajn::MsgArg& cycleWithStateComponentList, const ajn::MsgArg& cycleWithPresetComponentList);
+    Scene(TransitionLampsLampGroupsToStateList& transitionToStateComponentList, TransitionLampsLampGroupsToPresetList& transitionToPresetComponentList,
+          PulseLampsLampGroupsWithStateList& pulseWithStateComponentList, PulseLampsLampGroupsWithPresetList& pulseWithPresetComponentList,
+          StrobeLampsLampGroupsWithStateList& strobeWithStateComponentList, StrobeLampsLampGroupsWithPresetList& strobeWithPresetComponentList,
+          CycleLampsLampGroupsWithStateList& cycleWithStateComponentList, CycleLampsLampGroupsWithPresetList& cycleWithPresetComponentList);
 
     Scene(const Scene& other);
     Scene& operator=(const Scene& other);
 
     const char* c_str(void) const;
 
-    void Set(const ajn::MsgArg& stateList, const ajn::MsgArg& presetList);
-    void Get(ajn::MsgArg* stateList, ajn::MsgArg* presetList) const;
+    void Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList,
+             const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList,
+             const ajn::MsgArg& strobeWithStateComponentList, const ajn::MsgArg& strobeWithPresetComponentList,
+             const ajn::MsgArg& cycleWithStateComponentList, const ajn::MsgArg& cycleWithPresetComponentList);
+    void Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transitionToPresetComponentList,
+             ajn::MsgArg* pulseWithStateComponentList, ajn::MsgArg* pulseWithPresetComponentList,
+             ajn::MsgArg* strobeWithStateComponentList, ajn::MsgArg* strobeWithPresetComponentList,
+             ajn::MsgArg* cycleWithStateComponentList, ajn::MsgArg* cycleWithPresetComponentList) const;
 
-    LampsLampGroupsAndStateList stateComponent;
-    LampsLampGroupsAndPresetList presetComponent;
+    LSFResponseCode IsDependentOnPreset(LSFString& presetID);
+    LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
+
+    TransitionLampsLampGroupsToStateList transitionToStateComponent;
+    TransitionLampsLampGroupsToPresetList transitionToPresetComponent;
+    PulseLampsLampGroupsWithStateList pulseWithStateComponent;
+    PulseLampsLampGroupsWithPresetList pulseWithPresetComponent;
+    StrobeLampsLampGroupsWithStateList strobeWithStateComponent;
+    StrobeLampsLampGroupsWithPresetList strobeWithPresetComponent;
+    CycleLampsLampGroupsWithStateList cycleWithStateComponent;
+    CycleLampsLampGroupsWithPresetList cycleWithPresetComponent;
 };
 
 class MasterScene {
@@ -227,6 +348,8 @@ class MasterScene {
 
     void Set(const ajn::MsgArg& sceneList);
     void Get(ajn::MsgArg* sceneList) const;
+
+    LSFResponseCode IsDependentOnScene(LSFString& sceneID);
 
     LSFStringList scenes;
 };

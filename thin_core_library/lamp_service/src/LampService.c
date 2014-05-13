@@ -62,7 +62,7 @@ static const uint32_t LSF_Interface_Version = 1;
 static const char* const LSF_Interface[] = {
     LSF_Interface_Name,
     "@Version>u",
-    "@LSFVersion>u",
+    "@LampServiceVersion>u",
     "?ClearLampFault LampFaultCode<u LampResponseCode>u LampFaultCode>u",
     "@LampFaults>au",
     "@RemainingLife>u",
@@ -114,6 +114,9 @@ static const char* const LSF_State_Interface[] = {
     LSF_State_Interface_Name,
     "@Version>u",
     "?TransitionLampState Timestamp<t NewState<a{sv} TransitionPeriod<u LampResponseCode>u",
+    "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u duration<u numPulses<u startTimeStamp<t LampResponseCode>u",
+    "?ApplyStrobeEffect FromState<a{sv} ToState<a{sv} period<u numStrobes<u startTimeStamp<t LampResponseCode>u",
+    "?ApplyCycleEffect LampStateA<a{sv} LampStateB<a{sv} period<u duration<u numCycles<u startTimeStamp<t LampResponseCode>u",
     "!LampStateChanged LampID>s",
     "@OnOff>b",
     "@Hue>u",
@@ -193,14 +196,16 @@ uint32_t LAMP_GetServiceVersion(void)
 // Run-time Lamp State
 #define LSF_PROP_STATE_VERSION          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 0)
 #define LSF_METHOD_STATE_SETSTATE       AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 1)
-#define LSF_SIGNAL_STATE_STATECHANGED   AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 2)
-#define LSF_PROP_STATE_ONOFF    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 3)
-#define LSF_PROP_STATE_HUE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 4)
-#define LSF_PROP_STATE_SAT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 5)
-#define LSF_PROP_STATE_TEMP     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 6)
-#define LSF_PROP_STATE_BRIGHT   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 7)
+#define LSF_METHOD_APPLY_PULSE          AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 2)
+#define LSF_METHOD_APPLY_STROBE         AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 3)
+#define LSF_METHOD_APPLY_CYCLE          AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 4)
 
-
+#define LSF_SIGNAL_STATE_STATECHANGED   AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 5)
+#define LSF_PROP_STATE_ONOFF    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 6)
+#define LSF_PROP_STATE_HUE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 7)
+#define LSF_PROP_STATE_SAT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 8)
+#define LSF_PROP_STATE_TEMP     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 9)
+#define LSF_PROP_STATE_BRIGHT   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 10)
 
 static uint32_t MyBusAuthPwdCB(uint8_t* buf, uint32_t bufLen)
 {
@@ -574,6 +579,79 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
     return AJ_OK;
 }
 
+// "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u ratio<y numPulses<u startTimeStamp<t LampResponseCode>u"
+static AJ_Status ApplyPulseEffect(AJ_Message* msg)
+{
+    LampResponseCode rc = LAMP_OK;
+    LampState FromState, ToState;
+    uint32_t period;
+    uint32_t duration;
+    uint32_t numPulses;
+    uint64_t startTimeStamp;
+
+    AJ_Message reply;
+    AJ_MarshalReplyMsg(msg, &reply);
+
+    LAMP_UnmarshalState(&FromState, msg);
+    LAMP_UnmarshalState(&ToState, msg);
+    AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numPulses, &startTimeStamp);
+
+    // apply the new state
+    rc = OEM_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, startTimeStamp);
+
+    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
+    AJ_DeliverMsg(&reply);
+    AJ_CloseMsg(&reply);
+    return AJ_OK;
+}
+
+//"?ApplyStrobeEffect LFromState<a{sv} ToState<a{sv} period<u numStrobes<u startTimeStamp<t LampResponseCode>u",
+static AJ_Status ApplyStrobeEffect(AJ_Message* msg)
+{
+    LampResponseCode rc = LAMP_OK;
+    LampState FromState, ToState;
+    uint32_t period, numStrobes;
+    uint64_t startTimeStamp;
+
+    AJ_Message reply;
+    AJ_MarshalReplyMsg(msg, &reply);
+
+    LAMP_UnmarshalState(&FromState, msg);
+    LAMP_UnmarshalState(&ToState, msg);
+    AJ_UnmarshalArgs(msg, "uut", &period, &numStrobes, &startTimeStamp);
+
+    rc = OEM_ApplyStrobeEffect(&FromState, &ToState, period, numStrobes, startTimeStamp);
+
+    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
+    AJ_DeliverMsg(&reply);
+    AJ_CloseMsg(&reply);
+    return AJ_OK;
+}
+
+// OEM_ApplyCycleEffect(LampState* lampStateA, LampState* lampStateB, uint32_t period, uint32_t duration, uint32_t numCycles, uint64_t startTimeStamp);
+//"?ApplyCycleEffect LampStateA<a{sv} LampStateB<a{sv} period<u duration<u numCycles<u startTimeStamp<t LampResponseCode>u"
+static AJ_Status ApplyCycleEffect(AJ_Message* msg)
+{
+    LampResponseCode rc = LAMP_OK;
+    LampState LampStateA, LampStateB;
+    uint32_t period, duration, numCycles;
+    uint64_t startTimeStamp;
+
+    AJ_Message reply;
+    AJ_MarshalReplyMsg(msg, &reply);
+
+    LAMP_UnmarshalState(&LampStateA, msg);
+    LAMP_UnmarshalState(&LampStateB, msg);
+    AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numCycles, &startTimeStamp);
+
+    rc = OEM_ApplyCycleEffect(&LampStateA, &LampStateB, period, duration, numCycles, startTimeStamp);
+
+    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
+    AJ_DeliverMsg(&reply);
+    AJ_CloseMsg(&reply);
+    return AJ_OK;
+}
+
 
 static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
 {
@@ -733,7 +811,7 @@ static AJ_Status GetAllProps(AJ_Message* msg)
     AJ_UnmarshalArgs(msg, "s", &iface);
     if (0 == strcmp(iface, LSF_Interface_Name)) {
         AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Interface_Version);
-        AJ_MarshalArgs(&reply, "{sv}", "LSFVersion", "u", LAMP_GetServiceVersion());
+        AJ_MarshalArgs(&reply, "{sv}", "LampServiceVersion", "u", LAMP_GetServiceVersion());
         AJ_MarshalArgs(&reply, "{sv}", "RemainingLife", "u", OEM_GetRemainingLife());
 
 
@@ -769,7 +847,6 @@ static AJ_Status GetAllProps(AJ_Message* msg)
     return AJ_OK;
 }
 
-
 static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
@@ -791,6 +868,18 @@ static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status
 
     case LSF_METHOD_STATE_SETSTATE:
         *status = TransitionLampState(msg);
+        break;
+
+    case LSF_METHOD_APPLY_CYCLE:
+        *status = ApplyCycleEffect(msg);
+        break;
+
+    case LSF_METHOD_APPLY_PULSE:
+        *status = ApplyPulseEffect(msg);
+        break;
+
+    case LSF_METHOD_APPLY_STROBE:
+        *status = ApplyStrobeEffect(msg);
         break;
 
     default:

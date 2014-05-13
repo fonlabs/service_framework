@@ -415,7 +415,7 @@ class LampGroupManager : public Manager {
      * @param lampGroupID    The LampGroup id
      * @param lampGroupState The new LampGroup state
      */
-    ControllerClientStatus PulseLampGroupWithState(const LSFString& lampGroupID, const LampState& lampGroupState, const uint32_t& period, const uint32_t& ratio, const uint32_t& numPulses);
+    ControllerClientStatus PulseLampGroupWithState(const LSFString& lampGroupID, const LampState& fromLampGroupState, const LampState& toLampGroupState, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses);
 
     /**
      * Transition the LampGroup to a given state
@@ -424,7 +424,7 @@ class LampGroupManager : public Manager {
      * @param lampGroupID    The LampGroup id
      * @param lampGroupState The new LampGroup state
      */
-    ControllerClientStatus StrobeLampGroupWithState(const LSFString& lampGroupID, const LampState& lampGroupState, const uint32_t& period, const uint32_t& numStrobes);
+    ControllerClientStatus StrobeLampGroupWithState(const LSFString& lampGroupID, const LampState& fromLampGroupState, const LampState& toLampGroupState, const uint32_t& period, const uint32_t& numStrobes);
 
     /**
      * Transition the LampGroup to a given state
@@ -442,7 +442,7 @@ class LampGroupManager : public Manager {
      * @param lampGroupID    The LampGroup id
      * @param lampGroupPreset The new LampGroup state
      */
-    ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& presetID, const uint32_t& period, const uint32_t& ratio, const uint32_t& numPulses);
+    ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& fromPresetID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses);
 
     /**
      * Transition the LampGroup to a given state
@@ -451,7 +451,7 @@ class LampGroupManager : public Manager {
      * @param lampGroupID    The LampGroup id
      * @param presetID The new LampGroup state
      */
-    ControllerClientStatus StrobeLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& presetID, const uint32_t& period, const uint32_t& numStrobes);
+    ControllerClientStatus StrobeLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& fromPresetID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& numStrobes);
 
     /**
      * Transition the LampGroup to a given state

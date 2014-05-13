@@ -20,6 +20,8 @@
 #include <qcc/Debug.h>
 #include <SceneManager.h>
 
+#include <algorithm>
+
 using namespace lsf;
 using namespace ajn;
 
@@ -73,7 +75,28 @@ LSFResponseCode LampGroupManager::Reset(void)
 LSFResponseCode LampGroupManager::IsDependentOnLampGroup(LSFString& lampGroupID)
 {
     LSFResponseCode responseCode = LSF_OK;
-    responseCode = sceneManagerPtr->IsDependentOnLampGroup(lampGroupID);
+
+    QStatus status = lampGroupsLock.Lock();
+    if (ER_OK == status) {
+        for (LampGroupMap::iterator it = lampGroups.begin(); it != lampGroups.end(); ++it) {
+            responseCode = it->second.second.IsDependentLampGroup(lampGroupID);
+            if (LSF_OK != responseCode) {
+                break;
+            }
+        }
+        status = lampGroupsLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: lampGroupsLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __FUNCTION__));
+    }
+
+    if (LSF_OK == responseCode) {
+        responseCode = sceneManagerPtr->IsDependentOnLampGroup(lampGroupID);
+    }
+
     return responseCode;
 }
 
@@ -443,12 +466,14 @@ void LampGroupManager::PulseLampGroupWithState(ajn::Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
     LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
-    LampState lampGroupState(args[1]);
-    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
-    uint32_t ratio = static_cast<uint32_t>(args[3].v_uint32);
-    uint32_t numPulses = static_cast<uint32_t>(args[4].v_uint32);
-    QCC_DbgPrintf(("%s: lampGroupID=%s, lampGroupState=%s, period=%d, ratio=%d, numPulses=%d",
-                   __FUNCTION__, lampGroupID.c_str(), lampGroupState.c_str(), period, ratio, numPulses));
+    LampState fromLampGroupState(args[1]);
+    LampState toLampGroupState(args[2]);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
+    uint32_t numPulses = static_cast<uint32_t>(args[5].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, fromLampGroupState=%s, period=%d, duration=%d, numPulses=%d",
+                   __FUNCTION__, lampGroupID.c_str(), fromLampGroupState.c_str(), period, duration, numPulses));
+    QCC_DbgPrintf(("%s: toLampGroupState=%s", __FUNCTION__, toLampGroupState.c_str()));
 
     //TODO: Add LampGroup Clients Plumbing
     LSFResponseCode responseCode = LSF_ERR_FAILURE;
@@ -464,11 +489,13 @@ void LampGroupManager::StrobeLampGroupWithState(ajn::Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
     LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
-    LampState lampGroupState(args[1]);
-    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
-    uint32_t numStrobes = static_cast<uint32_t>(args[3].v_uint32);
-    QCC_DbgPrintf(("%s: lampGroupID=%s, lampGroupState=%s, period=%d, numStrobes=%d",
-                   __FUNCTION__, lampGroupID.c_str(), lampGroupState.c_str(), period, numStrobes));
+    LampState fromLampGroupState(args[1]);
+    LampState toLampGroupState(args[2]);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t numStrobes = static_cast<uint32_t>(args[4].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, fromLampGroupState=%s, period=%d, numStrobes=%d",
+                   __FUNCTION__, lampGroupID.c_str(), fromLampGroupState.c_str(), period, numStrobes));
+    QCC_DbgPrintf(("%s: toLampGroupState=%s", __FUNCTION__, toLampGroupState.c_str()));
 
     //TODO: Add LampGroup Clients Plumbing
     LSFResponseCode responseCode = LSF_ERR_FAILURE;
@@ -508,12 +535,13 @@ void LampGroupManager::PulseLampGroupWithPreset(ajn::Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
     LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
-    LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
-    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
-    uint32_t ratio = static_cast<uint32_t>(args[3].v_uint32);
-    uint32_t numPulses = static_cast<uint32_t>(args[4].v_uint32);
-    QCC_DbgPrintf(("%s: lampGroupID=%s, presetID=%s, period=%d, ratio=%d, numPulses=%d",
-                   __FUNCTION__, lampGroupID.c_str(), presetID.c_str(), period, ratio, numPulses));
+    LSFString fromPresetID = static_cast<LSFString>(args[1].v_string.str);
+    LSFString toPresetID = static_cast<LSFString>(args[2].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
+    uint32_t numPulses = static_cast<uint32_t>(args[5].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, fromPresetID=%s, toPresetID=%s, period=%d, duration=%d, numPulses=%d",
+                   __FUNCTION__, lampGroupID.c_str(), fromPresetID.c_str(), toPresetID.c_str(), period, duration, numPulses));
 
     //TODO: Add LampGroup Clients Plumbing
     LSFResponseCode responseCode = LSF_ERR_FAILURE;
@@ -529,11 +557,12 @@ void LampGroupManager::StrobeLampGroupWithPreset(ajn::Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
     LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
-    LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
-    uint32_t period = static_cast<uint32_t>(args[2].v_uint32);
-    uint32_t numStrobes = static_cast<uint32_t>(args[3].v_uint32);
-    QCC_DbgPrintf(("%s: lampGroupID=%s, presetID=%s, period=%d, numStrobes=%d",
-                   __FUNCTION__, lampGroupID.c_str(), presetID.c_str(), period, numStrobes));
+    LSFString fromPresetID = static_cast<LSFString>(args[1].v_string.str);
+    LSFString toPresetID = static_cast<LSFString>(args[2].v_string.str);
+    uint32_t period = static_cast<uint32_t>(args[3].v_uint32);
+    uint32_t numStrobes = static_cast<uint32_t>(args[4].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupID=%s, fromPresetID=%s, toPresetID=%s, period=%d, numStrobes=%d",
+                   __FUNCTION__, lampGroupID.c_str(), fromPresetID.c_str(), toPresetID.c_str(), period, numStrobes));
 
     //TODO: Add LampGroup Clients Plumbing
     LSFResponseCode responseCode = LSF_ERR_FAILURE;

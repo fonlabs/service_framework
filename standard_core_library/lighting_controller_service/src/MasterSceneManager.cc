@@ -71,7 +71,26 @@ LSFResponseCode MasterSceneManager::Reset(void)
 
 LSFResponseCode MasterSceneManager::IsDependentOnScene(LSFString& sceneID)
 {
-    return LSF_OK;
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = masterScenesLock.Lock();
+    if (ER_OK == status) {
+        for (MasterSceneMap::iterator it = masterScenes.begin(); it != masterScenes.end(); ++it) {
+            responseCode = it->second.second.IsDependentOnScene(sceneID);
+            if (LSF_OK != responseCode) {
+                break;
+            }
+        }
+        status = masterScenesLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+    }
+
+    return responseCode;
 }
 
 void MasterSceneManager::GetAllMasterSceneIDs(Message& msg)

@@ -42,6 +42,33 @@ uint32_t OEM_GetHardwareVersion(void)
     return 1;
 }
 
+LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimeStamp)
+{
+    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), period=%u, ratio=%u, numPulses=%u, start=%lu\n", __FUNCTION__,
+                   toState->hue, toState->saturation, toState->colorTemp, toState->brightness, toState->onOff,
+                   period, duration, numPulses, startTimeStamp));
+    return LAMP_OK;
+}
+
+LampResponseCode OEM_ApplyStrobeEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t numStrobes, uint64_t startTimeStamp)
+{
+    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), period=%u, numStrobes=%u, start=%lu\n", __FUNCTION__,
+                   toState->hue, toState->saturation, toState->colorTemp, toState->brightness, toState->onOff,
+                   period, numStrobes, startTimeStamp));
+    return LAMP_OK;
+}
+
+LampResponseCode OEM_ApplyCycleEffect(LampState* lampStateA, LampState* lampStateB, uint32_t period, uint32_t duration, uint32_t numCycles, uint64_t startTimeStamp)
+{
+    AJ_InfoPrintf(("%s: StateA=(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), "
+                   " StateB=(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), "
+                   "period=%u, duration=%u, numCycles=%u, start=%lu\n", __FUNCTION__,
+                   lampStateA->hue, lampStateA->saturation, lampStateA->colorTemp, lampStateA->brightness, lampStateA->onOff,
+                   lampStateB->hue, lampStateB->saturation, lampStateB->colorTemp, lampStateB->brightness, lampStateB->onOff,
+                   period, duration, numCycles, startTimeStamp));
+    return LAMP_OK;
+}
+
 LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transition_period)
 {
     AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u)\n", __FUNCTION__,
@@ -59,10 +86,18 @@ void OEM_Initialize(void)
 }
 
 #ifdef ONBOARDING_SERVICE
-void OEM_InitializeOnboarding(AJOBS_Settings* ob_settings)
-{
-    // TODO: initialize the AJOBS_Settings before onboarding is run
-}
+
+const AJOBS_Settings OEM_OnboardingSettings = {
+    .AJOBS_WAIT_FOR_SOFTAP_CONNECTION = 600000,
+    .AJOBS_MAX_RETRIES = 2,
+    .AJOBS_WAIT_BETWEEN_RETRIES = 180000,
+    // do not mess with AJOBS_SoftAPSSID; it will be overwritten.
+    // changing the format of the SSID will break compatibility with AJ-On
+    .AJOBS_SoftAPSSID = { 0 },
+    .AJOBS_SoftAPIsHidden = FALSE,
+    .AJOBS_SoftAPPassphrase = NULL
+};
+
 #endif
 
 void OEM_Restart(void)

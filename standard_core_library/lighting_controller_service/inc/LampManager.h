@@ -65,6 +65,21 @@ class LampManager : public Manager, public LampClientsCallback {
     void GetLampFaults(ajn::Message& message);
 
     /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampFaults
+     *
+     * @param message   The params
+     */
+    void GetLampRemainingLife(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampFaults
+     *
+     * @param message   The params
+     */
+    void GetLampServiceVersion(ajn::Message& message);
+
+
+    /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.ClearLampFault
      *
      * @param message   The params
@@ -214,7 +229,7 @@ class LampManager : public Manager, public LampClientsCallback {
 
 
 
-    virtual void TransitionLampStateReplyCB(ajn::Message& origMsg, LSFResponseCode rc);
+    virtual void ChangeLampStateReplyCB(ajn::Message& origMsg, LSFResponseCode rc);
     virtual void TransitionLampStateFieldReplyCB(ajn::Message& origMsg, const char* field, LSFResponseCode rc);
 
     virtual void GetLampStateReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc);
@@ -227,6 +242,10 @@ class LampManager : public Manager, public LampClientsCallback {
     virtual void SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode rc);
     virtual void GetLampSupportedLanguagesReplyCB(ajn::Message& origMsg, const ajn::MsgArg& arg, LSFResponseCode rc);
     virtual void GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode rc);
+
+    virtual void GetLampVersionReplyCB(ajn::Message& origMsg, LSFResponseCode rc, uint32_t version);
+    virtual void GetLampRemainingLifeReplyCB(ajn::Message& origMsg, LSFResponseCode rc, uint32_t life);
+
     virtual void ClearLampFaultReplyCB(ajn::Message& origMsg, LSFResponseCode rc, LampFaultCode code);
 
   private:
@@ -266,7 +285,7 @@ class LampManager : public Manager, public LampClientsCallback {
 
     LSFResponseCode ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName);
 
-    LSFResponseCode TransitionLampStateAndFieldInternal(ajn::Message& message, LampsAndState* stateComponent, LampsAndPreset* presetComponent, LampsAndStateField* stateFieldComponent);
+    LSFResponseCode TransitionLampStateAndFieldInternal(ajn::Message& message, LampsAndState* transitionToStateComponent, LampsAndPreset* transitionToPresetComponent, LampsAndStateField* stateFieldComponent);
 
     LampClients lampClients;
     PresetManager& presetManager;
