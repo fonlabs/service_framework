@@ -30,13 +30,14 @@
 #include <alljoyn/onboarding/OnboardingManager.h>
 #endif
 
+
 /**
  * Get the Firmware version
  *
  * @param  None
  * @return  The firmware version
  */
-uint32_t OEM_GetFirmwareVersion(void);
+const char* OEM_GetFirmwareVersion(void);
 
 /**
  * Get the hardware version
@@ -44,7 +45,7 @@ uint32_t OEM_GetFirmwareVersion(void);
  * @param  None
  * @return  The hardware version
  */
-uint32_t OEM_GetHardwareVersion(void);
+const char* OEM_GetHardwareVersion(void);
 
 /**
  * OEM-specific initialization
@@ -53,6 +54,17 @@ uint32_t OEM_GetHardwareVersion(void);
  * @return None
  */
 void OEM_Initialize(void);
+
+
+/**
+ * OEM-defined default state
+ * This function is called when the lamp boots from the factory state.
+ * It will set the initial LampState values
+ *
+ * @param state The state to set
+ * @return None
+ */
+void OEM_InitialState(LampState* state);
 
 /**
  * Restart the Lamp
@@ -120,10 +132,11 @@ LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp
 
 /*
  * This function needs to implemented by the OEM to support the Pulse Effect
- * @param  lampState             Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of pulse effect
- * @param  period                Period of the pulse (in ms)
- * @param  duration              Ratio of the pulse (% of period during which the brightness should be increased from 0% to 100%)
- * @param  numPulses             Number of pulses
+ * @param  fromState        Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of pulse effect
+ * @param  toState          End state when all pulses are finished
+ * @param  period           Period of the pulse (in ms)
+ * @param  duration         Ratio of the pulse (% of period during which the brightness should be increased from 0% to 100%)
+ * @param  numPulses        Number of pulses
  * @param  startTimeStamp   Start time stamp of the pulse effect
  *
  * @return Status of the operation
@@ -132,9 +145,10 @@ LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, 
 
 /*
  * This function needs to implemented by the OEM to support the Strobe Effect
- * @param  lampState               Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of strobe effect
- * @param  period                      Period of the strobe (in ms). OEM decides the ratio of the strobe.
- * @param  numStrobes           Number of strobes
+ * @param  lampState        Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of strobe effect
+ * @param  toState          End state when all pulses are finished
+ * @param  period           Period of the strobe (in ms). OEM decides the ratio of the strobe.
+ * @param  numStrobes       Number of strobes
  * @param  startTimeStamp   Start time stamp of the strobe effect
  *
  * @return Status of the operation
@@ -143,11 +157,11 @@ LampResponseCode OEM_ApplyStrobeEffect(LampState* fromState, LampState* toState,
 
 /*
  * This function needs to implemented by the OEM to support the Cycle Effect
- * @param  lampStateA            Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
- * @param  lampStateB            Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
- * @param  period                      Period of the cycle (in ms)
- * @param  duration                  Duration of the cycle (duration (in ms) during which the Lamp will be in LampStateA and thereafter will be in LampStateB for the rest of the period)
- * @param  numCycles             Number of cycles
+ * @param  lampStateA       Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
+ * @param  lampStateB       Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
+ * @param  period           Period of the cycle (in ms)
+ * @param  duration         Duration of the cycle (duration (in ms) during which the Lamp will be in LampStateA and thereafter will be in LampStateB for the rest of the period)
+ * @param  numCycles        Number of cycles
  * @param  startTimeStamp   Start time stamp of the cycle effect
  *
  * @return Status of the operation

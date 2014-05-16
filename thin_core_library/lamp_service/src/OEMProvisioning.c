@@ -22,6 +22,7 @@
 
 #include <LampValues.h>
 #include <OEMProvisioning.h>
+#include <OEMCode.h>
 
 #ifdef ONBOARDING_SERVICE
     #include <alljoyn/onboarding/OnboardingManager.h>
@@ -98,8 +99,14 @@ static const char* DEFAULT_MANUFACTURERS[] = { DEFAULT_MANUFACTURER_LANG1, DEFAU
 
 static const char* DEFAULT_DEVICE_MODELS[] = { "0.0.1" };
 static const char* DEFAULT_DATE_OF_MANUFACTURES[] = { "2014-02-01" };
-static const char* DEFAULT_SOFTWARE_VERSIONS[] = { "0.0.1" };
-static const char* DEFAULT_HARDWARE_VERSIONS[] = { "0.0.1" };
+
+
+extern const char HardwareVersion[];
+extern const char FirmwareVersion[];
+
+static const char* DEFAULT_SOFTWARE_VERSIONS[] = { FirmwareVersion };
+static const char* DEFAULT_HARDWARE_VERSIONS[] = { HardwareVersion };
+
 static const char DEFAULT_SUPPORT_URL_LANG1[] = "www.company_a.com";
 static const char DEFAULT_SUPPORT_URL_LANG2[] = "www.company_a.com/de-AT";
 static const char* DEFAULT_SUPPORT_URLS[] = { DEFAULT_SUPPORT_URL_LANG1, DEFAULT_SUPPORT_URL_LANG2 };
@@ -363,22 +370,21 @@ static void InitMandatoryPropertiesInRAM()
     char* machineIdValue = propertyStoreRuntimeValues[AJSVC_PROPERTY_STORE_APP_ID].value[AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX];
     const char* currentAppIdValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_APP_ID);
     const char* currentDeviceIdValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
-    //const char* currentDeviceNameValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME);
-    //size_t serialIdLen = 0;
-    //size_t machineIdLen = 0;
-    AJ_GUID theAJ_GUID;
-    AJ_Status status;
-//    char deviceName[DEVICE_NAME_VALUE_LENGTH + 1] = { 0 };
+
     if (currentAppIdValue == NULL || currentAppIdValue[0] == '\0') {
-        status = AJ_GetLocalGUID(&theAJ_GUID);
+        AJ_GUID theAJ_GUID;
+        AJ_Status status = AJ_GetLocalGUID(&theAJ_GUID);
         if (status == AJ_OK) {
             AJ_GUID_ToString(&theAJ_GUID, machineIdValue, propertyStoreRuntimeValues[AJSVC_PROPERTY_STORE_APP_ID].size);
         }
     }
+
     if (currentDeviceIdValue == NULL || currentDeviceIdValue[0] == '\0') {
         AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_ID, machineIdValue);
     }
 }
+
+
 
 /*
  * This function is registered with About and handles property store read requests

@@ -363,7 +363,7 @@ void LampManager::SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode resp
     outArgs[1] = args[0]; // lamp id
     outArgs[2] = args[2];
 
-    printf("Reply with %s\n", MsgArg::ToString(outArgs, 3).c_str());
+    QCC_DbgPrintf(("Reply with %s\n", MsgArg::ToString(outArgs, 3).c_str()));
 
     controllerService.SendMethodReply(origMsg, outArgs, 3);
 }

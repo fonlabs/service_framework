@@ -189,7 +189,9 @@ class LampManagerCallbackHandler : public LampManagerCallback {
         LSFString id = lampID;
         printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
         gotReply = true;
-        gotSignal = true;
+        if (responseCode != ER_OK) {
+            gotSignal = true;
+        }
     }
 
     void LampsNameChangedCB(const LSFStringList& lampIDs) {

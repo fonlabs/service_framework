@@ -24,6 +24,7 @@
 #include <aj_config.h>
 #include <aj_bus.h>
 #include <aj_msg.h>
+#include <aj_version.h>
 
 #include <aj_about.h>
 #include <alljoyn/config/ConfigService.h>
@@ -141,10 +142,14 @@ static AJ_Object LSF_AllJoynObjects[] = {
     { NULL }
 };
 
+#define LSF_MAJOR_VERSION   0    /**< major version */
+#define LSF_MINOR_VERSION   0    /**< minor version */
+#define LSF_RELEASE_VERSION 1    /**< release version */
+#define LSF_VERSION ((LSF_MAJOR_VERSION) << 24) | ((LSF_MINOR_VERSION) << 16) | (LSF_RELEASE_VERSION)
 
 uint32_t LAMP_GetServiceVersion(void)
 {
-    return (uint32_t) 1;
+    return (uint32_t) LSF_VERSION;
 }
 
 #define LSF_PROP_IFACE 0
@@ -502,6 +507,11 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
         CheckForFaults();
         CheckForStateChanged();
 
+        // this will be called by AJ_BusHandleBusMessage, but on LSF method calls AJ_BusHandleBusMessage isn't called
+        if (status == AJ_OK) {
+            AJ_AboutAnnounce(&Bus);
+        }
+
         // we might make a timer callback even if we just processed a message
         if (callback != NULL && AJ_GetElapsedTime(&timer, TRUE) >= timeout) {
             // restart the timer
@@ -528,7 +538,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
             /*
              * Sleep a little while before trying to reconnect
              */
-            AJ_Sleep(10 * 1000);
+            AJ_Sleep(3 * 1000);
         }
     }
 }
@@ -719,10 +729,10 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
         return AJ_MarshalArgs(replyMsg, "u", LSF_Details_Interface_Version);
 
     case LSF_PROP_DETAILS_HWVERSION:
-        return AJ_MarshalArgs(replyMsg, "u", OEM_GetHardwareVersion());
+        return AJ_MarshalArgs(replyMsg, "s", OEM_GetHardwareVersion());
 
     case LSF_PROP_DETAILS_FWVERSION:
-        return AJ_MarshalArgs(replyMsg, "u", OEM_GetFirmwareVersion());
+        return AJ_MarshalArgs(replyMsg, "s", OEM_GetFirmwareVersion());
 
     case LSF_PROP_DETAILS_MAKE:
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampMake);

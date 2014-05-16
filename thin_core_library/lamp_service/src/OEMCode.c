@@ -17,8 +17,11 @@
 #include <OEMCode.h>
 #include <LampState.h>
 #include <LampAboutData.h>
+#include <OEMProvisioning.h>
 #include <alljoyn/services_common/PropertyStore.h>
+#include <alljoyn/services_common/ServicesCommon.h>
 
+#include <aj_creds.h>
 #include <aj_nvram.h>
 #include <aj_crypto.h>
 
@@ -32,14 +35,16 @@
 uint8_t dbgOEM_CODE = 1;
 #endif
 
-uint32_t OEM_GetFirmwareVersion(void)
+const char FirmwareVersion[] = "1.0";
+const char* OEM_GetFirmwareVersion(void)
 {
-    return 1;
+    return FirmwareVersion;
 }
 
-uint32_t OEM_GetHardwareVersion(void)
+const char HardwareVersion[] = "1.0";
+const char* OEM_GetHardwareVersion(void)
 {
-    return 1;
+    return HardwareVersion;
 }
 
 LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimeStamp)
@@ -83,6 +88,15 @@ LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp
 void OEM_Initialize(void)
 {
     // TODO: vendor-specific initialization goes here
+}
+
+void OEM_InitialState(LampState* state)
+{
+    state->onOff = TRUE;
+    state->colorTemp = 0;
+    state->brightness = 0;
+    state->hue = 0;
+    state->saturation = 0;
 }
 
 #ifdef ONBOARDING_SERVICE
@@ -187,8 +201,8 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
     AJ_InfoPrintf(("%s", __FUNCTION__));
 
     AJ_MarshalArgs(msg, "{sv}", "LampVersion", "u", LAMP_GetServiceVersion());
-    AJ_MarshalArgs(msg, "{sv}", "HardwareVersion", "u", OEM_GetHardwareVersion());
-    AJ_MarshalArgs(msg, "{sv}", "FirmwareVersion", "u", OEM_GetFirmwareVersion());
+    AJ_MarshalArgs(msg, "{sv}", "HardwareVersion", "s", OEM_GetHardwareVersion());
+    AJ_MarshalArgs(msg, "{sv}", "FirmwareVersion", "s", OEM_GetFirmwareVersion());
 
     AJ_MarshalArgs(msg, "{sv}", "Make", "u", LampDetails.lampMake);
     AJ_MarshalArgs(msg, "{sv}", "Model", "u", LampDetails.lampModel);

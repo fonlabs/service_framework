@@ -168,12 +168,9 @@ void LampClients::HandleAboutAnnounce(const LSFString lampID, const LSFString& l
         // this is not a new lamp!
         const LampConnection* conn = lit->second;
         if (conn->name != lampName) {
-            //TODO: Fix this code to send LampsNameChanged
-/*            const char* lamp_id;
-            args[0].Get("s", &lamp_id);
             LSFStringList idList;
-            idList.push_back(lamp_id);
-            controllerService.SendSignal(interfaceName, "LampsNameChanged", idList);*/
+            idList.push_back(lampID);
+            controllerService.SendSignal("org.allseen.LSF.ControllerService.Lamp", "LampsNameChanged", idList);
         }
     } else {
         LampConnection* connection = new LampConnection();
@@ -1135,7 +1132,7 @@ void LampClients::DoSetLampName(QueuedMethodCall* call)
         MsgArg arg("{sv}", "DeviceName", &name_arg);
         outArgs[1].Set("a{sv}", 1, &arg);
 
-        printf("Calling SetLampName(%s, %s)\n", outArgs[0].v_string.str, call->property.c_str());
+        QCC_DbgPrintf(("Calling SetLampName(%s, %s)\n", outArgs[0].v_string.str, call->property.c_str()));
 
         QStatus status = pobj.MethodCallAsync(
             CONFIG_INTERFACE_NAME,
@@ -1155,7 +1152,7 @@ void LampClients::DoSetLampName(QueuedMethodCall* call)
 
 void LampClients::UpdateConfigurationsReply(Message& message, void* context)
 {
-    printf("UpdateConfigurationsReply: %s\n", message->ToString().c_str());
+    QCC_DbgPrintf(("UpdateConfigurationsReply: %s\n", message->ToString().c_str()));
     QueuedMethodCall* call = static_cast<QueuedMethodCall*>(context);
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
     callback.SetLampNameReplyCB(call->inMsg, LSF_OK);
