@@ -99,8 +99,6 @@ class LampDetails {
     void Set(const ajn::MsgArg& arg);
     void Get(ajn::MsgArg* arg) const;
 
-    uint32_t hardwareVersion;
-    uint32_t firmwareVersion;
     LampMake make;
     LampModel model;
     DeviceType type;

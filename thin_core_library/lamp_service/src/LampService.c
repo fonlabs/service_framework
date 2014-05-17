@@ -85,8 +85,6 @@ static const uint32_t LSF_Details_Interface_Version = 1;
 static const char* const LSF_Details_Interface[] = {
     LSF_Details_Interface_Name,
     "@Version>u",
-    "@HardwareVersion>u",
-    "@FirmwareVersion>u",
     "@Make>u",
     "@Model>u",
     "@Type>u",
@@ -238,6 +236,9 @@ void LAMP_ClearFaults()
  * limitations.  Those two messages are already used in the message handlers
  * for (1) the incoming message and (2) the reply.
  */
+
+static AJNS_DictionaryEntry NotificationTexts = { "LSF_FAULTS", "A fault has occured" };
+
 static void CheckForFaults(void)
 {
     static uint32_t FaultNotificationSerialNumber = 0;
@@ -245,6 +246,9 @@ static void CheckForFaults(void)
     // if new faults have occured, send a notification
 
     NotificationContent.originalSenderName = AJ_GetUniqueName(&Bus);
+
+    NotificationContent.numTexts = 1;
+    NotificationContent.texts = &NotificationTexts;
 
     if (FaultNotificationSerialNumber != 0 && !PendingFaultNotification) {
         // turn OFF notification
@@ -529,7 +533,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
 #ifdef ONBOARDING_SERVICE
             // disconnect from wifi and reconnect at the top of the loop
-            status = AJOBS_DisconnectWiFi();
+            AJOBS_DisconnectWiFi();
 #endif
 
             if (status == AJ_ERR_RESTART_APP) {
@@ -727,12 +731,6 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
     // Compile-time Details
     case LSF_PROP_DETAILS_VERSION:
         return AJ_MarshalArgs(replyMsg, "u", LSF_Details_Interface_Version);
-
-    case LSF_PROP_DETAILS_HWVERSION:
-        return AJ_MarshalArgs(replyMsg, "s", OEM_GetHardwareVersion());
-
-    case LSF_PROP_DETAILS_FWVERSION:
-        return AJ_MarshalArgs(replyMsg, "s", OEM_GetFirmwareVersion());
 
     case LSF_PROP_DETAILS_MAKE:
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampMake);

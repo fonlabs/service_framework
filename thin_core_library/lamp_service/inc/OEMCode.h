@@ -30,23 +30,6 @@
 #include <alljoyn/onboarding/OnboardingManager.h>
 #endif
 
-
-/**
- * Get the Firmware version
- *
- * @param  None
- * @return  The firmware version
- */
-const char* OEM_GetFirmwareVersion(void);
-
-/**
- * Get the hardware version
- *
- * @param  None
- * @return  The hardware version
- */
-const char* OEM_GetHardwareVersion(void);
-
 /**
  * OEM-specific initialization
  *
@@ -116,7 +99,7 @@ uint32_t OEM_GetRemainingLife();
 /**
  * The default settings for the onboarding service
  */
-extern const AJOBS_Settings OEM_OnboardingSettings;
+extern AJOBS_Settings OEM_OnboardingSettings;
 
 #endif
 
@@ -202,28 +185,28 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg);
  * This struct holds all fields of the Lamp's Details.
  */
 typedef struct {
-    const LampMake lampMake;        /**< The make of the lamp */
-    const LampModel lampModel;      /**< The model of the lamp */
+    LampMake lampMake;        /**< The make of the lamp */
+    LampModel lampModel;      /**< The model of the lamp */
 
-    const DeviceType deviceType;    /**< The type of device */
-    const LampType lampType;        /**< The type of lamp */
-    const BaseType baseType;        /**< The make of the lamp base */
+    DeviceType deviceType;    /**< The type of device */
+    LampType lampType;        /**< The type of lamp */
+    BaseType baseType;        /**< The make of the lamp base */
 
 
-    const uint32_t deviceLampBeamAngle; /**< The beam angle */
+    uint32_t deviceLampBeamAngle; /**< The beam angle */
     uint8_t deviceDimmable;       /**< Dimmable? */
     uint8_t deviceColor;          /**< color? */
     uint8_t variableColorTemp;    /**< variable color temperature? */
     uint8_t deviceHasEffects;     /**< Are effects available? */
 
-    const uint32_t deviceVoltage;       /**< voltage */
-    const uint32_t deviceWattage;       /**< wattage */
-    const uint32_t deviceWattageEquivalent; /**< Incandescent wattage equivalent */
-    const uint32_t deviceMaxOutput;     /**< maximum output */
-    const uint32_t deviceMinTemperature;    /**< lowest possible color temperature */
-    const uint32_t deviceMaxTemperature;    /**< highest possible color temperature */
+    uint32_t deviceVoltage;       /**< voltage */
+    uint32_t deviceWattage;       /**< wattage */
+    uint32_t deviceWattageEquivalent; /**< Incandescent wattage equivalent */
+    uint32_t deviceMaxOutput;     /**< maximum output */
+    uint32_t deviceMinTemperature;    /**< lowest possible color temperature */
+    uint32_t deviceMaxTemperature;    /**< highest possible color temperature */
     uint32_t deviceColorRenderingIndex; /**< rendering index */
-    const uint32_t deviceLifespan;      /**< estimated lifespan */
+    uint32_t deviceLifespan;      /**< estimated lifespan */
 } LampDetails_t;
 
 

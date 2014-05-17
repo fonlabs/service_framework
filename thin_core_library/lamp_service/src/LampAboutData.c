@@ -70,12 +70,10 @@ void LAMP_SetName(const char* name)
     AJSVC_PropertyStore_SaveAll();
 }
 
+void SavePersistentDeviceId();
+
 static AJ_Status FactoryReset(void)
 {
-    // we can't allow this to change!
-    const char* device_id = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
-    const char* app_id = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_APP_ID);
-
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     AJSVC_PropertyStore_ResetAll();
     OEM_FactoryReset();
@@ -83,14 +81,11 @@ static AJ_Status FactoryReset(void)
     // this will clear onboarding data, state, and credentials
     AJ_NVRAM_Clear();
 
+    // we must persist the device id!
+    SavePersistentDeviceId();
 
     // reinitialize!
     PropertyStore_Init();
-
-    // the device id must be persisted *forever*
-    AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_ID, device_id);
-    AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_APP_ID, app_id);
-    AJSVC_PropertyStore_SaveAll();
 
     // Force disconnect of AJ and services and reconnection of WiFi on restart of app
     return AJ_ERR_RESTART_APP;

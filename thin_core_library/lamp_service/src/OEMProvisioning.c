@@ -365,18 +365,48 @@ static void ClearPropertiesInRAM()
     }
 }
 
+#define LAMP_STATE_FD AJ_NVRAM_ID_FOR_APPS + 2
+
+static char DeviceId[65];
+
+static const char* GetPersistentDeviceId()
+{
+    if (DeviceId[0] == '\0') {
+        if (AJ_NVRAM_Exist(LAMP_STATE_FD)) {
+            AJ_NV_DATASET* file = AJ_NVRAM_Open(LAMP_STATE_FD, "r", 0);
+            AJ_NVRAM_Read(DeviceId, sizeof(DeviceId), file);
+            AJ_NVRAM_Close(file);
+        } else {
+            AJ_GUID theAJ_GUID;
+            AJ_Status status = AJ_GetLocalGUID(&theAJ_GUID);
+            if (status == AJ_OK) {
+                AJ_GUID_ToString(&theAJ_GUID, DeviceId, sizeof(DeviceId));
+                AJ_NV_DATASET* file = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(DeviceId));
+                AJ_NVRAM_Write(DeviceId, sizeof(DeviceId), file);
+                AJ_NVRAM_Close(file);
+            }
+        }
+    }
+
+    return DeviceId;
+}
+
+void SavePersistentDeviceId()
+{
+    AJ_NV_DATASET* file = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(DeviceId));
+    AJ_NVRAM_Write(DeviceId, sizeof(DeviceId), file);
+    AJ_NVRAM_Close(file);
+}
+
 static void InitMandatoryPropertiesInRAM()
 {
     char* machineIdValue = propertyStoreRuntimeValues[AJSVC_PROPERTY_STORE_APP_ID].value[AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX];
     const char* currentAppIdValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_APP_ID);
     const char* currentDeviceIdValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
+    const char* real_id = GetPersistentDeviceId();
 
     if (currentAppIdValue == NULL || currentAppIdValue[0] == '\0') {
-        AJ_GUID theAJ_GUID;
-        AJ_Status status = AJ_GetLocalGUID(&theAJ_GUID);
-        if (status == AJ_OK) {
-            AJ_GUID_ToString(&theAJ_GUID, machineIdValue, propertyStoreRuntimeValues[AJSVC_PROPERTY_STORE_APP_ID].size);
-        }
+        strcpy(machineIdValue, real_id);
     }
 
     if (currentDeviceIdValue == NULL || currentDeviceIdValue[0] == '\0') {

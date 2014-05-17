@@ -36,16 +36,7 @@ uint8_t dbgOEM_CODE = 1;
 #endif
 
 const char FirmwareVersion[] = "1.0";
-const char* OEM_GetFirmwareVersion(void)
-{
-    return FirmwareVersion;
-}
-
 const char HardwareVersion[] = "1.0";
-const char* OEM_GetHardwareVersion(void)
-{
-    return HardwareVersion;
-}
 
 LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimeStamp)
 {
@@ -101,7 +92,7 @@ void OEM_InitialState(LampState* state)
 
 #ifdef ONBOARDING_SERVICE
 
-const AJOBS_Settings OEM_OnboardingSettings = {
+AJOBS_Settings OEM_OnboardingSettings = {
     .AJOBS_WAIT_FOR_SOFTAP_CONNECTION = 600000,
     .AJOBS_MAX_RETRIES = 2,
     .AJOBS_WAIT_BETWEEN_RETRIES = 180000,
@@ -201,8 +192,6 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
     AJ_InfoPrintf(("%s", __FUNCTION__));
 
     AJ_MarshalArgs(msg, "{sv}", "LampVersion", "u", LAMP_GetServiceVersion());
-    AJ_MarshalArgs(msg, "{sv}", "HardwareVersion", "s", OEM_GetHardwareVersion());
-    AJ_MarshalArgs(msg, "{sv}", "FirmwareVersion", "s", OEM_GetFirmwareVersion());
 
     AJ_MarshalArgs(msg, "{sv}", "Make", "u", LampDetails.lampMake);
     AJ_MarshalArgs(msg, "{sv}", "Model", "u", LampDetails.lampModel);

@@ -234,8 +234,6 @@ LampDetails::LampDetails(const ajn::MsgArg& arg)
 }
 
 LampDetails::LampDetails(const LampDetails& other) :
-    hardwareVersion(other.hardwareVersion),
-    firmwareVersion(other.firmwareVersion),
     make(other.make),
     model(other.model),
     type(other.type),
@@ -261,8 +259,6 @@ LampDetails::LampDetails(const LampDetails& other) :
 
 LampDetails& LampDetails::operator=(const LampDetails& other)
 {
-    hardwareVersion = other.hardwareVersion;
-    firmwareVersion = other.firmwareVersion;
     make = other.make;
     model = other.model;
     type = other.type;
@@ -291,10 +287,6 @@ const char* LampDetails::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("\nhardwareVersion=");
-    ret.append(qcc::U32ToString(hardwareVersion));
-    ret.append("\nfirmwareVersion=");
-    ret.append(qcc::U32ToString(firmwareVersion));
     ret.append("\nmake=");
     ret.append(qcc::U32ToString(make));
     ret.append("\nmodel=");
@@ -347,11 +339,7 @@ void LampDetails::Set(const ajn::MsgArg& arg)
         MsgArg* value;
         args[i].Get("{sv}", &field, &value);
 
-        if (0 == strcmp(field, "HardwareVersion")) {
-            value->Get("u", &hardwareVersion);
-        } else if (0 == strcmp(field, "FirmwareVersion")) {
-            value->Get("u", &firmwareVersion);
-        } else if (0 == strcmp(field, "Make")) {
+        if (0 == strcmp(field, "Make")) {
             value->Get("u", &make);
         } else if (0 == strcmp(field, "Model")) {
             value->Get("u", &model);
@@ -400,8 +388,6 @@ void LampDetails::Get(ajn::MsgArg* arg) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     const char* str[] = {
-        "HardwareVersion",
-        "FirmwareVersion",
         "Make",
         "Model",
         "Type",
@@ -425,15 +411,7 @@ void LampDetails::Get(ajn::MsgArg* arg) const
 
     MsgArg* dict = new MsgArg[22];
 
-    MsgArg* var = new MsgArg("u", hardwareVersion);
-    dict[0].Set("{sv}", str[0], var);
-    dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
-
-    var = new MsgArg("u", firmwareVersion);
-    dict[1].Set("{sv}", str[1], var);
-    dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
-
-    var = new MsgArg("u", make);
+    MsgArg* var = new MsgArg("u", make);
     dict[2].Set("{sv}", str[3], var);
     dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
