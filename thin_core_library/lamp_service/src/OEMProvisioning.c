@@ -46,8 +46,7 @@ static const char* DEFAULT_LANGUAGES[] = { DEFAULT_LANGUAGE };
 static const char SUPPORTED_LANG2[] = "de-AT";
 static const char* SUPPORTED_LANGUAGES[] = { DEFAULT_LANGUAGE, SUPPORTED_LANG2 };
 const char** propertyStoreDefaultLanguages = SUPPORTED_LANGUAGES;
-const uint8_t AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES = sizeof(SUPPORTED_LANGUAGES) / sizeof(char*);
-
+#define AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES sizeof(SUPPORTED_LANGUAGES) / sizeof(char*)
 
 /**
  * property structure
@@ -144,11 +143,14 @@ const char** propertyStoreDefaultValues[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS] =
  */
 static char machineIdVar[MACHINE_ID_LENGTH + 1] = { 0 };
 static char* machineIdVars[] = { machineIdVar };
-static char deviceNameVar[DEVICE_NAME_VALUE_LENGTH + 1] = { 0 };
-static char* deviceNameVars[] = { deviceNameVar };
+
+
+static char deviceNameVar[DEVICE_NAME_VALUE_LENGTH + 1][AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES];
+static char* deviceNameVars[] = { deviceNameVar[0], deviceNameVar[1] };
 
 static char defaultLanguageVar[LANG_VALUE_LENGTH + 1] = { 0 };
 static char* defaultLanguageVars[] = { defaultLanguageVar };
+
 static char passcodeVar[PASSWORD_VALUE_LENGTH + 1] = { 0 };
 static char* passcodeVars[] = { passcodeVar };
 static char realmNameVar[KEY_VALUE_LENGTH + 1] = { 0 };
