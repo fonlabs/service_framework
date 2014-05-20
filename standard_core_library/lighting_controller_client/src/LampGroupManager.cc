@@ -181,11 +181,11 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupState(const LSFStrin
 
 ControllerClientStatus LampGroupManager::PulseLampGroupWithState(
     const LSFString& lampGroupID,
-    const LampState& fromLampGroupState,
     const LampState& toLampGroupState,
     const uint32_t& period,
     const uint32_t& duration,
-    const uint32_t& numPulses)
+    const uint32_t& numPulses,
+    const LampState& fromLampGroupState)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
@@ -204,61 +204,13 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithState(
                6);
 }
 
-ControllerClientStatus LampGroupManager::StrobeLampGroupWithState(
-    const LSFString& lampGroupID,
-    const LampState& fromLampGroupState,
-    const LampState& toLampGroupState,
-    const uint32_t& period,
-    const uint32_t& numStrobes)
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-
-    MsgArg args[5];
-    args[0].Set("s", lampGroupID.c_str());
-    fromLampGroupState.Get(&args[1]);
-    toLampGroupState.Get(&args[2]);
-    args[3].Set("u", period);
-    args[4].Set("u", numStrobes);
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
-               "StrobeLampGroupWithState",
-               args,
-               5);
-}
-
-ControllerClientStatus LampGroupManager::CycleLampGroupWithState(
-    const LSFString& lampGroupID,
-    const LampState& lampGroupStateA,
-    const LampState& lampGroupStateB,
-    const uint32_t& period,
-    const uint32_t& duration,
-    const uint32_t& numCycles)
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-
-    MsgArg args[6];
-    args[0].Set("s", lampGroupID.c_str());
-    lampGroupStateA.Get(&args[1]);
-    lampGroupStateB.Get(&args[2]);
-    args[3].Set("u", period);
-    args[4].Set("u", duration);
-    args[5].Set("u", numCycles);
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
-               "CycleLampGroupWithState",
-               args,
-               6);
-}
-
 ControllerClientStatus LampGroupManager::PulseLampGroupWithPreset(
     const LSFString& lampGroupID,
-    const LSFString& fromPresetID,
     const LSFString& toPresetID,
     const uint32_t& period,
     const uint32_t& duration,
-    const uint32_t& numPulses)
+    const uint32_t& numPulses,
+    const LSFString& fromPresetID)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
@@ -273,54 +225,6 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithPreset(
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
                "PulseLampGroupWithPreset",
-               args,
-               6);
-}
-
-ControllerClientStatus LampGroupManager::StrobeLampGroupWithPreset(
-    const LSFString& lampGroupID,
-    const LSFString& fromPresetID,
-    const LSFString& toPresetID,
-    const uint32_t& period,
-    const uint32_t& numStrobes)
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-
-    MsgArg args[5];
-    args[0].Set("s", lampGroupID.c_str());
-    args[1].Set("s", fromPresetID.c_str());
-    args[2].Set("s", toPresetID.c_str());
-    args[3].Set("u", period);
-    args[4].Set("u", numStrobes);
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
-               "StrobeLampGroupWithPreset",
-               args,
-               5);
-}
-
-ControllerClientStatus LampGroupManager::CycleLampGroupWithPreset(
-    const LSFString& lampGroupID,
-    const LSFString& presetIdA,
-    const LSFString& presetIdB,
-    const uint32_t& period,
-    const uint32_t& duration,
-    const uint32_t& numCycles)
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-
-    MsgArg args[6];
-    args[0].Set("s", lampGroupID.c_str());
-    args[1].Set("s", presetIdA.c_str());
-    args[2].Set("s", presetIdB.c_str());
-    args[3].Set("u", period);
-    args[4].Set("u", duration);
-    args[5].Set("u", numCycles);
-
-    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
-               "CycleLampGroupWithPreset",
                args,
                6);
 }

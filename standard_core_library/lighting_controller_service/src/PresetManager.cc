@@ -80,21 +80,30 @@ LSFResponseCode PresetManager::GetPresetInternal(const LSFString& presetID, Lamp
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
-    QStatus status = presetsLock.Lock();
-    if (ER_OK == status) {
-        PresetMap::iterator it = presets.find(presetID);
-        if (it != presets.end()) {
-            preset = it->second.second;
-            responseCode = LSF_OK;
-        }
-        status = presetsLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: presetsLock.Unlock() failed", __FUNCTION__));
-        }
+
+    //TODO: Change this later if required
+    if (0 == strcmp(presetID.c_str(), "CURRENT_STATE")) {
+        QCC_DbgPrintf(("%s: NULL STATE", __FUNCTION__));
+        preset = LampState();
+        responseCode = LSF_OK;
     } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: presetsLock.Lock() failed", __FUNCTION__));
+        QStatus status = presetsLock.Lock();
+        if (ER_OK == status) {
+            PresetMap::iterator it = presets.find(presetID);
+            if (it != presets.end()) {
+                preset = it->second.second;
+                responseCode = LSF_OK;
+            }
+            status = presetsLock.Unlock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: presetsLock.Unlock() failed", __FUNCTION__));
+            }
+        } else {
+            responseCode = LSF_ERR_BUSY;
+            QCC_LogError(status, ("%s: presetsLock.Lock() failed", __FUNCTION__));
+        }
     }
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, LSFResponseCodeText(responseCode)));
     return responseCode;
 }
 

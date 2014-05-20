@@ -88,19 +88,11 @@ ControllerService::ControllerService() :
     AddMethodHandler("GetLampStateField", &lampManager, &LampManager::GetLampStateField);
     AddMethodHandler("TransitionLampState", &lampManager, &LampManager::TransitionLampState);
     AddMethodHandler("PulseLampWithState", &lampManager, &LampManager::PulseLampWithState);
-    AddMethodHandler("StrobeLampWithState", &lampManager, &LampManager::StrobeLampWithState);
-    AddMethodHandler("CycleLampWithState", &lampManager, &LampManager::CycleLampWithState);
     AddMethodHandler("PulseLampWithPreset", &lampManager, &LampManager::PulseLampWithPreset);
-    AddMethodHandler("StrobeLampWithPreset", &lampManager, &LampManager::StrobeLampWithPreset);
-    AddMethodHandler("CycleLampWithPreset", &lampManager, &LampManager::CycleLampWithPreset);
     AddMethodHandler("TransitionLampStateToPreset", &lampManager, &LampManager::TransitionLampStateToPreset);
     AddMethodHandler("TransitionLampGroupState", &lampGroupManager, &LampGroupManager::TransitionLampGroupState);
     AddMethodHandler("PulseLampGroupWithState", &lampGroupManager, &LampGroupManager::PulseLampGroupWithState);
-    AddMethodHandler("StrobeLampGroupWithState", &lampGroupManager, &LampGroupManager::StrobeLampGroupWithState);
-    AddMethodHandler("CycleLampGroupWithState", &lampGroupManager, &LampGroupManager::CycleLampGroupWithState);
     AddMethodHandler("PulseLampGroupWithPreset", &lampGroupManager, &LampGroupManager::PulseLampGroupWithPreset);
-    AddMethodHandler("StrobeLampGroupWithPreset", &lampGroupManager, &LampGroupManager::StrobeLampGroupWithPreset);
-    AddMethodHandler("CycleLampGroupWithPreset", &lampGroupManager, &LampGroupManager::CycleLampGroupWithPreset);
     AddMethodHandler("TransitionLampGroupStateToPreset", &lampGroupManager, &LampGroupManager::TransitionLampGroupStateToPreset);
     AddMethodHandler("TransitionLampStateField", &lampManager, &LampManager::TransitionLampStateField);
     AddMethodHandler("TransitionLampGroupStateField", &lampGroupManager, &LampGroupManager::TransitionLampGroupStateField);
@@ -110,7 +102,6 @@ ControllerService::ControllerService() :
     AddMethodHandler("ResetLampGroupFieldState", &lampGroupManager, &LampGroupManager::ResetLampGroupFieldState);
     AddMethodHandler("GetLampFaults", &lampManager, &LampManager::GetLampFaults);
     AddMethodHandler("ClearLampFault", &lampManager, &LampManager::ClearLampFault);
-    AddMethodHandler("GetLampRemainingLife", &lampManager, &LampManager::GetLampRemainingLife);
     AddMethodHandler("GetLampServiceVersion", &lampManager, &LampManager::GetLampServiceVersion);
     AddMethodHandler("GetAllLampGroupIDs", &lampGroupManager, &LampGroupManager::GetAllLampGroupIDs);
     AddMethodHandler("GetLampGroupName", &lampGroupManager, &LampGroupManager::GetLampGroupName);
@@ -267,18 +258,13 @@ QStatus ControllerService::Start(void)
         { controllerServiceLampInterface->GetMember("GetLampStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("TransitionLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("PulseLampWithState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampInterface->GetMember("StrobeLampWithState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampInterface->GetMember("CycleLampWithState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("PulseLampWithPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampInterface->GetMember("StrobeLampWithPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampInterface->GetMember("CycleLampWithPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("TransitionLampStateToPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("TransitionLampStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("ResetLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("ResetLampStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampFaults"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("ClearLampFault"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampInterface->GetMember("GetLampRemainingLife"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampServiceVersion"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("GetAllLampGroupIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("GetLampGroupName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
@@ -289,11 +275,7 @@ QStatus ControllerService::Start(void)
         { controllerServiceLampGroupInterface->GetMember("GetLampGroup"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("PulseLampGroupWithState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("StrobeLampGroupWithState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("CycleLampGroupWithState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("PulseLampGroupWithPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("StrobeLampGroupWithPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("CycleLampGroupWithPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupStateToPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("ResetLampGroupState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },

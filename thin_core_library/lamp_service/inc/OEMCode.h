@@ -38,6 +38,12 @@
  */
 void OEM_Initialize(void);
 
+/**
+ * Return a string that describes the current fault state
+ * ASSUME: return non-null IFF LAMP_SetFaults has been called recently
+ *
+ */
+const char* OEM_GetFaultsText();
 
 /**
  * OEM-defined default state
@@ -87,13 +93,6 @@ uint32_t OEM_GetEnergyUsageMilliwatts();
  */
 uint32_t OEM_GetBrightnessLumens();
 
-/**
- * Get the remaining life
- *
- * @return  The remaining life span
- */
-uint32_t OEM_GetRemainingLife();
-
 #ifdef ONBOARDING_SERVICE
 
 /**
@@ -125,36 +124,6 @@ LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp
  * @return Status of the operation
  */
 LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimeStamp);
-
-/*
- * This function needs to implemented by the OEM to support the Strobe Effect
- * @param  lampState        Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of strobe effect
- * @param  toState          End state when all pulses are finished
- * @param  period           Period of the strobe (in ms). OEM decides the ratio of the strobe.
- * @param  numStrobes       Number of strobes
- * @param  startTimeStamp   Start time stamp of the strobe effect
- *
- * @return Status of the operation
- */
-LampResponseCode OEM_ApplyStrobeEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t numStrobes, uint64_t startTimeStamp);
-
-/*
- * This function needs to implemented by the OEM to support the Cycle Effect
- * @param  lampStateA       Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
- * @param  lampStateB       Specifies the LampState(onOff, hue, saturation, brightness, colorTemp)
- * @param  period           Period of the cycle (in ms)
- * @param  duration         Duration of the cycle (duration (in ms) during which the Lamp will be in LampStateA and thereafter will be in LampStateB for the rest of the period)
- * @param  numCycles        Number of cycles
- * @param  startTimeStamp   Start time stamp of the cycle effect
- *
- * @return Status of the operation
- *
- * NOTE: When the Cycle Effect applies to a group of Lamps, the entity that calls this API on the Lamp should specify the input parameters appropriately. For Eg: When this effect needs to be applied for a group of 3 Lamps,
- * Parameters for Lamp 1 = (lampStateA, lampStateB, period=(3*(duration for which each Lamp needs to be in lampStateA)), duration =(duration for which each Lamp needs to be in lampStateA), numCycles, startTimeStamp=0)
- * Parameters for Lamp 2 = (lampStateA, lampStateB, period=(3*(duration for which each Lamp needs to be in lampStateA)), duration =(duration for which each Lamp needs to be in lampStateA), numCycles, startTimeStamp=(duration for which each Lamp needs to be in lampStateA))
- * Parameters for Lamp 3 = (lampStateA, lampStateB, period=(3*(duration for which each Lamp needs to be in lampStateA)), duration =(duration for which each Lamp needs to be in lampStateA), numCycles, startTimeStamp=(2*(duration for which each Lamp needs to be in lampStateA)))
- */
-LampResponseCode OEM_ApplyCycleEffect(LampState* lampStateA, LampState* lampStateB, uint32_t period, uint32_t duration, uint32_t numCycles, uint64_t startTimeStamp);
 
 
 /**
@@ -199,14 +168,14 @@ typedef struct {
     uint8_t variableColorTemp;    /**< variable color temperature? */
     uint8_t deviceHasEffects;     /**< Are effects available? */
 
-    uint32_t deviceVoltage;       /**< voltage */
+    uint32_t deviceMinVoltage;    /**< Min voltage */
+    uint32_t deviceMaxVoltage;    /**< Max voltage */
     uint32_t deviceWattage;       /**< wattage */
-    uint32_t deviceWattageEquivalent; /**< Incandescent wattage equivalent */
-    uint32_t deviceMaxOutput;     /**< maximum output */
+    uint32_t deviceIncandescentEquivalent; /**< Incandescent equivalent */
+    uint32_t deviceMaxLumens;     /**< maximum output */
     uint32_t deviceMinTemperature;    /**< lowest possible color temperature */
     uint32_t deviceMaxTemperature;    /**< highest possible color temperature */
     uint32_t deviceColorRenderingIndex; /**< rendering index */
-    uint32_t deviceLifespan;      /**< estimated lifespan */
 } LampDetails_t;
 
 

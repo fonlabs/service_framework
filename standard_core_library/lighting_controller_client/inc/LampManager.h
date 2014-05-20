@@ -121,7 +121,7 @@ class LampManagerCallback {
      * @param parameterFieldName  Name of the Lamp Parameter field
      * @param value               Value of the Lamp Parameter field
      */
-    virtual void GetLampParametersBrightnessLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& brightnessLumens) { }
+    virtual void GetLampParametersLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& brightnessLumens) { }
 
     /**
      * Indicates that a reply has been received for the GetLampState method call
@@ -214,44 +214,12 @@ class LampManagerCallback {
     virtual void PulseLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampState method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The Lamp ID
-     */
-    virtual void StrobeLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
-     * Indicates that a reply has been received for the TransitionLampState method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The Lamp ID
-     */
-    virtual void CycleLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
      * Indicates that a reply has been received for the TransitionLampPreset method call
      *
      * @param responseCode    The response code
      * @param lampID          The Lamp ID
      */
     virtual void PulseLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
-     * Indicates that a reply has been received for the TransitionLampPreset method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The Lamp ID
-     */
-    virtual void StrobeLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
-     * Indicates that a reply has been received for the TransitionLampPreset method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The Lamp ID
-     */
-    virtual void CycleLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampStateField method call
@@ -306,15 +274,6 @@ class LampManagerCallback {
      * @param faultCodes      List of Lamp Fault Codes
      */
     virtual void GetLampFaultsReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCodeList& faultCodes) { }
-
-    /**
-     * Indicates that a reply has been received for the GetLampFaults method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The Lamp ID
-     * @param faultCodes      List of Lamp Fault Codes
-     */
-    virtual void GetLampRemainingLifeReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& remainingLife) { }
 
     /**
      * Indicates that a reply has been received for the GetLampFaults method call
@@ -459,7 +418,7 @@ class LampManager : public Manager {
      * @param lampID             The Lamp id
      * @param parameterFieldName The name of the Lamp Parameter Field
      */
-    ControllerClientStatus GetLampParametersBrightnessLumensField(const LSFString& lampID) {
+    ControllerClientStatus GetLampParametersLumensField(const LSFString& lampID) {
         return GetLampParametersField(lampID, LSFString("Brightness_Lumens"));
     }
 
@@ -606,25 +565,7 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param lampState The new Lamp state
      */
-    ControllerClientStatus PulseLampWithState(const LSFString& lampID, const LampState& fromLampState, const LampState& toLampState, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses);
-
-    /**
-     * Transition the Lamp to a given state
-     * Response in LampManagerCallback::TransitionLampStateReplyCB
-     *
-     * @param lampID    The Lamp id
-     * @param lampState The new Lamp state
-     */
-    ControllerClientStatus StrobeLampWithState(const LSFString& lampID, const LampState& fromLampState, const LampState& toLampState, const uint32_t& period, const uint32_t& numStrobes);
-
-    /**
-     * Transition the Lamp to a given state
-     * Response in LampManagerCallback::TransitionLampStateReplyCB
-     *
-     * @param lampID    The Lamp id
-     * @param lampState The new Lamp state
-     */
-    ControllerClientStatus CycleLampWithState(const LSFString& lampID, const LampState& lampStateA, const LampState& lampStateB, const uint32_t& period, const uint32_t& duration, const uint32_t& numCycles);
+    ControllerClientStatus PulseLampWithState(const LSFString& lampID, const LampState& toLampState, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LampState& fromLampState = LampState());
 
     /**
      * Transition the Lamp to a given state
@@ -633,25 +574,7 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param lampPreset The new Lamp state
      */
-    ControllerClientStatus PulseLampWithPreset(const LSFString& lampID, const LSFString& fromPresetID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses);
-
-    /**
-     * Transition the Lamp to a given state
-     * Response in LampManagerCallback::TransitionLSFStringReplyCB
-     *
-     * @param lampID    The Lamp id
-     * @param presetID The new Lamp state
-     */
-    ControllerClientStatus StrobeLampWithPreset(const LSFString& lampID, const LSFString& fromPresetID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& numStrobes);
-
-    /**
-     * Transition the Lamp to a given state
-     * Response in LampManagerCallback::TransitionLSFStringReplyCB
-     *
-     * @param lampID    The Lamp id
-     * @param presetID The new Lamp state
-     */
-    ControllerClientStatus CycleLampWithPreset(const LSFString& lampID, const LSFString& presetIdA, const LSFString& presetIdB, const uint32_t& period, const uint32_t& duration, const uint32_t& numCycles);
+    ControllerClientStatus PulseLampWithPreset(const LSFString& lampID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = LSFString("CURRENT_STATE"));
 
     /**
      * Set the Lamp's state param
@@ -736,14 +659,6 @@ class LampManager : public Manager {
      *
      * @param lampID    The id of the Lamp
      */
-    ControllerClientStatus GetLampRemainingLife(const LSFString& lampID);
-
-    /**
-     * Get a list of the Lamp's fault codes
-     * Response in LampManagerCallback::GetLampFaultReplyCB
-     *
-     * @param lampID    The id of the Lamp
-     */
     ControllerClientStatus GetLampServiceVersion(const LSFString& lampID);
 
     /**
@@ -806,24 +721,8 @@ class LampManager : public Manager {
         callback.PulseLampWithStateReplyCB(responseCode, lsfId);
     }
 
-    void StrobeLampWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.StrobeLampWithStateReplyCB(responseCode, lsfId);
-    }
-
-    void CycleLampWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.CycleLampWithStateReplyCB(responseCode, lsfId);
-    }
-
     void PulseLampWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.PulseLampWithPresetReplyCB(responseCode, lsfId);
-    }
-
-    void StrobeLampWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.StrobeLampWithPresetReplyCB(responseCode, lsfId);
-    }
-
-    void CycleLampWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.CycleLampWithPresetReplyCB(responseCode, lsfId);
     }
 
     void TransitionLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
@@ -833,7 +732,6 @@ class LampManager : public Manager {
     }
 
     void GetLampFaultsReply(ajn::Message& message);
-    void GetLampRemainingLifeReply(ajn::Message& message);
     void GetLampServiceVersionReply(ajn::Message& message);
     void ClearLampFaultReply(ajn::Message& message);
     void GetLampDetailsReply(ajn::Message& message);

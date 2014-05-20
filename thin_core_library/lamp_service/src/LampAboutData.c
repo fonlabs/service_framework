@@ -100,16 +100,16 @@ static AJ_Status Restart(void)
 
 static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode, uint8_t newPasscodeLen)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    AJ_Status status = AJ_OK;
-
     char newStringPasscode[PASSWORD_VALUE_LENGTH + 1];
+    AJ_Status status;
+
+    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+
     status = AJ_RawToHex(newPasscode, newPasscodeLen, newStringPasscode, sizeof(newStringPasscode), FALSE);
     if (status != AJ_OK) {
         return status;
     }
 
-    // TODO: where does this get used?
     if (AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_REALM_NAME, routerRealm) &&
         AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_PASSCODE, newStringPasscode)) {
 
@@ -141,9 +141,25 @@ static uint8_t IsValueValid(const char* key, const char* value)
 
 uint32_t LAMP_PasswordCallback(uint8_t* buffer, uint32_t bufLen)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    strcpy((char*) buffer, INITIAL_PASSCODE);
-    return (uint32_t) strlen((char*) INITIAL_PASSCODE);
+    AJ_Status status = AJ_OK;
+    const char* hexPassword = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_PASSCODE);
+    size_t hexPasswordLen;
+    uint32_t len = 0;
+
+    if (hexPassword == NULL) {
+        AJ_ErrPrintf(("Password is NULL!\n"));
+        return len;
+    }
+
+    AJ_InfoPrintf(("Configured password=%s\n", hexPassword));
+    hexPasswordLen = strlen(hexPassword);
+    len = hexPasswordLen / 2;
+    status = AJ_HexToRaw(hexPassword, hexPasswordLen, buffer, bufLen);
+    if (status == AJ_ERR_RESOURCES) {
+        len = 0;
+    }
+
+    return len;
 }
 
 static const char* aboutIconMimetype = { "image/png" };

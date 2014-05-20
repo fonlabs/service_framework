@@ -135,44 +135,12 @@ class LampGroupManagerCallback {
     virtual void PulseLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupState method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The LampGroup ID
-     */
-    virtual void StrobeLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
-     * Indicates that a reply has been received for the TransitionLampGroupState method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The LampGroup ID
-     */
-    virtual void CycleLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
      * Indicates that a reply has been received for the TransitionLampGroupPreset method call
      *
      * @param responseCode    The response code
      * @param lampID          The LampGroup ID
      */
     virtual void PulseLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
-     * Indicates that a reply has been received for the TransitionLampGroupPreset method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The LampGroup ID
-     */
-    virtual void StrobeLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
-
-    /**
-     * Indicates that a reply has been received for the TransitionLampGroupPreset method call
-     *
-     * @param responseCode    The response code
-     * @param lampID          The LampGroup ID
-     */
-    virtual void CycleLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampGroupStateField method call
@@ -415,25 +383,7 @@ class LampGroupManager : public Manager {
      * @param lampGroupID    The LampGroup id
      * @param lampGroupState The new LampGroup state
      */
-    ControllerClientStatus PulseLampGroupWithState(const LSFString& lampGroupID, const LampState& fromLampGroupState, const LampState& toLampGroupState, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses);
-
-    /**
-     * Transition the LampGroup to a given state
-     * Response in LampGroupManagerCallback::TransitionLampGroupStateReplyCB
-     *
-     * @param lampGroupID    The LampGroup id
-     * @param lampGroupState The new LampGroup state
-     */
-    ControllerClientStatus StrobeLampGroupWithState(const LSFString& lampGroupID, const LampState& fromLampGroupState, const LampState& toLampGroupState, const uint32_t& period, const uint32_t& numStrobes);
-
-    /**
-     * Transition the LampGroup to a given state
-     * Response in LampGroupManagerCallback::TransitionLampGroupStateReplyCB
-     *
-     * @param lampGroupID    The LampGroup id
-     * @param lampGroupState The new LampGroup state
-     */
-    ControllerClientStatus CycleLampGroupWithState(const LSFString& lampGroupID, const LampState& lampGroupStateA, const LampState& lampGroupStateB, const uint32_t& period, const uint32_t& duration, const uint32_t& numCycles);
+    ControllerClientStatus PulseLampGroupWithState(const LSFString& lampGroupID, const LampState& toLampGroupState, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LampState& fromLampGroupState = LampState());
 
     /**
      * Transition the LampGroup to a given state
@@ -442,25 +392,7 @@ class LampGroupManager : public Manager {
      * @param lampGroupID    The LampGroup id
      * @param lampGroupPreset The new LampGroup state
      */
-    ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& fromPresetID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses);
-
-    /**
-     * Transition the LampGroup to a given state
-     * Response in LampGroupManagerCallback::TransitionLSFStringReplyCB
-     *
-     * @param lampGroupID    The LampGroup id
-     * @param presetID The new LampGroup state
-     */
-    ControllerClientStatus StrobeLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& fromPresetID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& numStrobes);
-
-    /**
-     * Transition the LampGroup to a given state
-     * Response in LampGroupManagerCallback::TransitionLSFStringReplyCB
-     *
-     * @param lampGroupID    The LampGroup id
-     * @param presetID The new LampGroup state
-     */
-    ControllerClientStatus CycleLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& presetIdA, const LSFString& presetIdB, const uint32_t& period, const uint32_t& duration, const uint32_t& numCycles);
+    ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = LSFString("CURRENT_STATE"));
 
     /**
      * Transition a Lamp Group's field to a given value
@@ -760,24 +692,8 @@ class LampGroupManager : public Manager {
         callback.PulseLampGroupWithStateReplyCB(responseCode, lsfId);
     }
 
-    void StrobeLampGroupWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.StrobeLampGroupWithStateReplyCB(responseCode, lsfId);
-    }
-
-    void CycleLampGroupWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.CycleLampGroupWithStateReplyCB(responseCode, lsfId);
-    }
-
     void PulseLampGroupWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.PulseLampGroupWithPresetReplyCB(responseCode, lsfId);
-    }
-
-    void StrobeLampGroupWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.StrobeLampGroupWithPresetReplyCB(responseCode, lsfId);
-    }
-
-    void CycleLampGroupWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.CycleLampGroupWithPresetReplyCB(responseCode, lsfId);
     }
 
     /**

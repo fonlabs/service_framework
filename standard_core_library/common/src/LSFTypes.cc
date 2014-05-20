@@ -30,7 +30,8 @@ LampState::LampState() :
     hue(0),
     saturation(0),
     colorTemp(0),
-    brightness(0)
+    brightness(0),
+    nullState(true)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -40,7 +41,8 @@ LampState::LampState(bool onOff, uint32_t hue, uint32_t saturation, uint32_t col
     hue(hue),
     saturation(saturation),
     colorTemp(colorTemp),
-    brightness(brightness)
+    brightness(brightness),
+    nullState(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -56,7 +58,8 @@ LampState::LampState(const LampState& other) :
     hue(other.hue),
     saturation(other.saturation),
     colorTemp(other.colorTemp),
-    brightness(other.brightness)
+    brightness(other.brightness),
+    nullState(other.nullState)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -68,6 +71,7 @@ LampState& LampState::operator=(const LampState& other)
     saturation = other.saturation;
     colorTemp = other.colorTemp;
     brightness = other.brightness;
+    nullState = other.nullState;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -77,16 +81,20 @@ const char* LampState::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("\nonOff=");
-    ret.append(qcc::U32ToString(onOff));
-    ret.append("\nhue=");
-    ret.append(qcc::U32ToString(hue));
-    ret.append("\nsaturation=");
-    ret.append(qcc::U32ToString(saturation));
-    ret.append("\nbrightness=");
-    ret.append(qcc::U32ToString(brightness));
-    ret.append("\ncolorTemp=");
-    ret.append(qcc::U32ToString(colorTemp));
+    if (nullState) {
+        ret.append("\nNULL STATE");
+    } else {
+        ret.append("\nonOff=");
+        ret.append(qcc::U32ToString(onOff));
+        ret.append("\nhue=");
+        ret.append(qcc::U32ToString(hue));
+        ret.append("\nsaturation=");
+        ret.append(qcc::U32ToString(saturation));
+        ret.append("\nbrightness=");
+        ret.append(qcc::U32ToString(brightness));
+        ret.append("\ncolorTemp=");
+        ret.append(qcc::U32ToString(colorTemp));
+    }
     return ret.c_str();
 }
 
@@ -113,41 +121,46 @@ void LampState::Set(const ajn::MsgArg& arg)
             value->Get("u", &colorTemp);
         }
     }
+    nullState = false;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 void LampState::Get(ajn::MsgArg* arg) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    const char* str[] = { "OnOff", "Hue", "Saturation", "Brightness", "ColorTemp" };
-    MsgArg* dict = new MsgArg[5];
+    if (nullState) {
+        arg->Set("a{sv}", (size_t)0, NULL);
+    } else {
+        const char* str[] = { "OnOff", "Hue", "Saturation", "Brightness", "ColorTemp" };
+        MsgArg* dict = new MsgArg[5];
 
-    MsgArg* var = new MsgArg("b", onOff);
-    dict[0].Set("{sv}", str[0], var);
-    dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        MsgArg* var = new MsgArg("b", onOff);
+        dict[0].Set("{sv}", str[0], var);
+        dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", hue);
-    dict[1].Set("{sv}", str[1], var);
-    dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        var = new MsgArg("u", hue);
+        dict[1].Set("{sv}", str[1], var);
+        dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", saturation);
-    dict[2].Set("{sv}", str[2], var);
-    dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        var = new MsgArg("u", saturation);
+        dict[2].Set("{sv}", str[2], var);
+        dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", brightness);
-    dict[3].Set("{sv}", str[3], var);
-    dict[3].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        var = new MsgArg("u", brightness);
+        dict[3].Set("{sv}", str[3], var);
+        dict[3].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", colorTemp);
-    dict[4].Set("{sv}", str[4], var);
-    dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        var = new MsgArg("u", colorTemp);
+        dict[4].Set("{sv}", str[4], var);
+        dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    arg->Set("a{sv}", (size_t)5, dict);
+        arg->Set("a{sv}", (size_t)5, dict);
+    }
 }
 
 LampParameters::LampParameters() :
     energy_usage_milliwatts(0),
-    brightness_lumens(0)
+    lumens(0)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -160,7 +173,7 @@ LampParameters::LampParameters(const ajn::MsgArg& arg)
 
 LampParameters::LampParameters(const LampParameters& other) :
     energy_usage_milliwatts(other.energy_usage_milliwatts),
-    brightness_lumens(other.brightness_lumens)
+    lumens(other.lumens)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -168,7 +181,7 @@ LampParameters::LampParameters(const LampParameters& other) :
 LampParameters& LampParameters::operator=(const LampParameters& other)
 {
     energy_usage_milliwatts = other.energy_usage_milliwatts;
-    brightness_lumens = other.brightness_lumens;
+    lumens = other.lumens;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -180,8 +193,8 @@ const char* LampParameters::c_str(void) const
     ret.clear();
     ret.append("\nenergy_usage_milliwatts=");
     ret.append(qcc::U32ToString(energy_usage_milliwatts));
-    ret.append("\nbrightness_lumens=");
-    ret.append(qcc::U32ToString(brightness_lumens));
+    ret.append("\nlumens=");
+    ret.append(qcc::U32ToString(lumens));
     return ret.c_str();
 }
 
@@ -199,7 +212,7 @@ void LampParameters::Set(const ajn::MsgArg& arg)
         if (0 == strcmp(field, "Energy_Usage_Milliwatts")) {
             value->Get("u", &energy_usage_milliwatts);
         } else if (0 == strcmp(field, "Brightness_Lumens")) {
-            value->Get("u", &brightness_lumens);
+            value->Get("u", &lumens);
         }
     }
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
@@ -215,7 +228,7 @@ void LampParameters::Get(ajn::MsgArg* arg) const
     dict[0].Set("{sv}", str[0], var);
     dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", brightness_lumens);
+    var = new MsgArg("u", lumens);
     dict[1].Set("{sv}", str[1], var);
     dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
@@ -244,14 +257,14 @@ LampDetails::LampDetails(const LampDetails& other) :
     color(other.color),
     variableColorTemp(other.variableColorTemp),
     hasEffects(other.hasEffects),
-    voltage(other.voltage),
+    maxVoltage(other.maxVoltage),
+    minVoltage(other.minVoltage),
     wattage(other.wattage),
-    wattageEquivalent(other.wattageEquivalent),
-    maxOutput(other.maxOutput),
+    incandescentEquivalent(other.incandescentEquivalent),
+    maxLumens(other.maxLumens),
     minTemperature(other.minTemperature),
     maxTemperature(other.maxTemperature),
     colorRenderingIndex(other.colorRenderingIndex),
-    lifespan(other.lifespan),
     lampID(other.lampID)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
@@ -269,14 +282,14 @@ LampDetails& LampDetails::operator=(const LampDetails& other)
     color = other.color;
     variableColorTemp = other.variableColorTemp;
     hasEffects = other.hasEffects;
-    voltage = other.voltage;
+    maxVoltage = other.maxVoltage;
+    minVoltage = other.minVoltage;
     wattage = other.wattage;
-    wattageEquivalent = other.wattageEquivalent;
-    maxOutput = other.maxOutput;
+    incandescentEquivalent = other.incandescentEquivalent;
+    maxLumens = other.maxLumens;
     minTemperature = other.minTemperature;
     maxTemperature = other.maxTemperature;
     colorRenderingIndex = other.colorRenderingIndex;
-    lifespan = other.lifespan;
     lampID = other.lampID;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
@@ -307,22 +320,22 @@ const char* LampDetails::c_str(void) const
     ret.append(qcc::U32ToString(variableColorTemp));
     ret.append("\nhasEffects=");
     ret.append(qcc::U32ToString(hasEffects));
-    ret.append("\nvoltage=");
-    ret.append(qcc::U32ToString(voltage));
+    ret.append("\nmaxVoltage=");
+    ret.append(qcc::U32ToString(maxVoltage));
+    ret.append("\nminVoltage=");
+    ret.append(qcc::U32ToString(minVoltage));
     ret.append("\nwattage=");
     ret.append(qcc::U32ToString(wattage));
-    ret.append("\nwattageEquivalent=");
-    ret.append(qcc::U32ToString(wattageEquivalent));
-    ret.append("\nmaxOutput=");
-    ret.append(qcc::U32ToString(maxOutput));
+    ret.append("\nincandescentEquivalent=");
+    ret.append(qcc::U32ToString(incandescentEquivalent));
+    ret.append("\nmaxLumens=");
+    ret.append(qcc::U32ToString(maxLumens));
     ret.append("\nminTemperature=");
     ret.append(qcc::U32ToString(minTemperature));
     ret.append("\nmaxTemperature=");
     ret.append(qcc::U32ToString(maxTemperature));
     ret.append("\ncolorRenderingIndex=");
     ret.append(qcc::U32ToString(colorRenderingIndex));
-    ret.append("\nlifespan=");
-    ret.append(qcc::U32ToString(lifespan));
     ret.append("\nlampID=");
     ret.append(lampID.c_str());
     return ret.c_str();
@@ -359,22 +372,22 @@ void LampDetails::Set(const ajn::MsgArg& arg)
             value->Get("b", &variableColorTemp);
         } else if (0 == strcmp(field, "HasEffects")) {
             value->Get("b", &hasEffects);
-        } else if (0 == strcmp(field, "Voltage")) {
-            value->Get("u", &voltage);
+        } else if (0 == strcmp(field, "MaxVoltage")) {
+            value->Get("u", &maxVoltage);
+        } else if (0 == strcmp(field, "MinVoltage")) {
+            value->Get("u", &minVoltage);
         } else if (0 == strcmp(field, "Wattage")) {
             value->Get("u", &wattage);
-        } else if (0 == strcmp(field, "WattageEquivalent")) {
-            value->Get("u", &wattageEquivalent);
-        } else if (0 == strcmp(field, "MaxOutput")) {
-            value->Get("u", &maxOutput);
+        } else if (0 == strcmp(field, "IncandescentEquivalent")) {
+            value->Get("u", &incandescentEquivalent);
+        } else if (0 == strcmp(field, "MaxLumens")) {
+            value->Get("u", &maxLumens);
         } else if (0 == strcmp(field, "MinTemperature")) {
             value->Get("u", &minTemperature);
         } else if (0 == strcmp(field, "MaxTemperature")) {
             value->Get("u", &maxTemperature);
         } else if (0 == strcmp(field, "ColorRenderingIndex")) {
             value->Get("u", &colorRenderingIndex);
-        } else if (0 == strcmp(field, "Lifespan")) {
-            value->Get("u", &lifespan);
         } else if (0 == strcmp(field, "LampID")) {
             char* temp;
             value->Get("s", &temp);
@@ -398,96 +411,96 @@ void LampDetails::Get(ajn::MsgArg* arg) const
         "Color",
         "VariableColorTemp",
         "HasEffects",
-        "Voltage",
+        "MaxVoltage",
+        "MinVoltage",
         "Wattage",
-        "WattageEquivalent",
+        "IncandescentEquivalent",
         "MaxOutput",
         "MinTemperature",
         "MaxTemperature",
         "ColorRenderingIndex",
-        "Lifespan",
         "LampID"
     };
 
-    MsgArg* dict = new MsgArg[22];
+    MsgArg* dict = new MsgArg[19];
 
     MsgArg* var = new MsgArg("u", make);
-    dict[2].Set("{sv}", str[3], var);
+    dict[2].Set("{sv}", str[0], var);
     dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", model);
-    dict[3].Set("{sv}", str[4], var);
+    dict[3].Set("{sv}", str[1], var);
     dict[3].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", type);
-    dict[4].Set("{sv}", str[5], var);
+    dict[4].Set("{sv}", str[2], var);
     dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", lampType);
-    dict[5].Set("{sv}", str[6], var);
+    dict[5].Set("{sv}", str[3], var);
     dict[5].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", lampBaseType);
-    dict[6].Set("{sv}", str[7], var);
+    dict[6].Set("{sv}", str[4], var);
     dict[6].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", lampBeamAngle);
-    dict[7].Set("{sv}", str[8], var);
+    dict[7].Set("{sv}", str[5], var);
     dict[7].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", dimmable);
-    dict[8].Set("{sv}", str[9], var);
+    dict[8].Set("{sv}", str[6], var);
     dict[8].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", color);
-    dict[9].Set("{sv}", str[10], var);
+    dict[9].Set("{sv}", str[7], var);
     dict[9].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", variableColorTemp);
-    dict[10].Set("{sv}", str[11], var);
+    dict[10].Set("{sv}", str[8], var);
     dict[10].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", hasEffects);
-    dict[11].Set("{sv}", str[12], var);
+    dict[11].Set("{sv}", str[9], var);
     dict[11].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", voltage);
-    dict[12].Set("{sv}", str[13], var);
+    var = new MsgArg("u", maxVoltage);
+    dict[12].Set("{sv}", str[10], var);
+    dict[12].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+
+    var = new MsgArg("u", minVoltage);
+    dict[12].Set("{sv}", str[11], var);
     dict[12].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", wattage);
-    dict[13].Set("{sv}", str[14], var);
+    dict[13].Set("{sv}", str[12], var);
     dict[13].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", wattageEquivalent);
-    dict[14].Set("{sv}", str[15], var);
+    var = new MsgArg("u", incandescentEquivalent);
+    dict[14].Set("{sv}", str[13], var);
     dict[14].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", maxOutput);
-    dict[15].Set("{sv}", str[16], var);
+    var = new MsgArg("u", maxLumens);
+    dict[15].Set("{sv}", str[14], var);
     dict[15].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", minTemperature);
-    dict[16].Set("{sv}", str[17], var);
+    dict[16].Set("{sv}", str[15], var);
     dict[16].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", maxTemperature);
-    dict[17].Set("{sv}", str[18], var);
+    dict[17].Set("{sv}", str[16], var);
     dict[17].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", colorRenderingIndex);
-    dict[18].Set("{sv}", str[19], var);
+    dict[18].Set("{sv}", str[17], var);
     dict[18].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    var = new MsgArg("u", lifespan);
-    dict[19].Set("{sv}", str[20], var);
-    dict[19].SetOwnershipFlags(MsgArg::OwnsArgs, true);
-
     var = new MsgArg("s", lampID.c_str());
-    dict[20].Set("{sv}", str[21], var);
+    dict[20].Set("{sv}", str[18], var);
     dict[20].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
-    arg->Set("a{sv}", (size_t)21, dict);
+    arg->Set("a{sv}", (size_t)19, dict);
 }
 
 LampGroup::LampGroup()
@@ -849,6 +862,12 @@ PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(LSFStringList& lamp
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
+PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& toLampState, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
+    lamps(lampList), lampGroups(lampGroupList), fromState(LampState()), toState(toLampState), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
 PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(const ajn::MsgArg& component)
 {
     Set(component);
@@ -984,6 +1003,12 @@ PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(LSFStringList& la
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
+PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& toPreset, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
+    lamps(lampList), lampGroups(lampGroupList), fromPreset(LSFString("CURRENT_STATE")), toPreset(toPreset), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+}
+
 PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(const ajn::MsgArg& component)
 {
     Set(component);
@@ -1092,293 +1117,33 @@ void PulseLampsLampGroupsWithPreset::Get(ajn::MsgArg* component) const
     component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
 }
 
-StrobeLampsLampGroupsWithState::StrobeLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& fromLampState, LampState& toLampState, uint32_t& period, uint32_t& numOfStrobes) :
-    lamps(lampList), lampGroups(lampGroupList), fromState(fromLampState), toState(toLampState), strobePeriod(period), numStrobes(numOfStrobes)
-{
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-StrobeLampsLampGroupsWithState::StrobeLampsLampGroupsWithState(const ajn::MsgArg& component)
-{
-    Set(component);
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-const char* StrobeLampsLampGroupsWithState::c_str(void) const
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    qcc::String ret;
-    ret.clear();
-    ret.append("Lamps: \n");
-    LSFStringList::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
-    }
-    ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
-    }
-    ret.append("From State: ");
-    ret.append(fromState.c_str());
-    ret.append("To State: ");
-    ret.append(toState.c_str());
-    ret.append("\nStrobe Period: \n");
-    ret.append(qcc::U32ToString(strobePeriod));
-    ret.append("\nNumber Of Strobes: \n");
-    ret.append(qcc::U32ToString(numStrobes));
-    return ret.c_str();
-}
-
-StrobeLampsLampGroupsWithState::StrobeLampsLampGroupsWithState(const StrobeLampsLampGroupsWithState& other) :
-    lamps(other.lamps), lampGroups(other.lampGroups), fromState(other.fromState), toState(other.toState), strobePeriod(other.strobePeriod), numStrobes(other.numStrobes)
-{
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-StrobeLampsLampGroupsWithState& StrobeLampsLampGroupsWithState::operator=(const StrobeLampsLampGroupsWithState& other)
-{
-    lamps = other.lamps;
-    lampGroups = other.lampGroups;
-    fromState = other.fromState;
-    toState = other.toState;
-    strobePeriod = other.strobePeriod;
-    numStrobes = other.numStrobes;
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-    return *this;
-}
-
-void StrobeLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
-{
-    const char** lampList;
-    size_t numLamps;
-    const char** lampGroupList;
-    size_t numLampGroups;
-    MsgArg* fromStateArgs;
-    size_t fromStateArgsSize;
-    MsgArg* toStateArgs;
-    size_t toStateArgsSize;
-
-    component.Get("(asasa{sv}a{sv}uu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromStateArgsSize, &fromStateArgs, &toStateArgsSize, &toStateArgs, &strobePeriod, &numStrobes);
-
-    for (size_t j = 0; j < numLamps; j++) {
-        LSFString id(lampList[j]);
-        lamps.push_back(id);
-    }
-
-    for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString id(lampGroupList[k]);
-        lampGroups.push_back(id);
-    }
-
-    MsgArg fromArg;
-    fromArg.Set("a{sv}", fromStateArgsSize, fromStateArgs);
-    fromState.Set(fromArg);
-
-    MsgArg toArg;
-    toArg.Set("a{sv}", toStateArgsSize, toStateArgs);
-    toState.Set(toArg);
-
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-void StrobeLampsLampGroupsWithState::Get(ajn::MsgArg* component) const
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    size_t numLamps = lamps.size();
-    const char** lampList = NULL;
-    if (numLamps) {
-        lampList = new const char*[numLamps];
-        size_t j = 0;
-        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
-            lampList[j++] = nit->c_str();
-        }
-    }
-
-    size_t numLampGroups = lampGroups.size();
-    const char** lampGroupList = NULL;
-    if (numLampGroups) {
-        lampGroupList = new const char*[numLampGroups];
-        size_t j = 0;
-        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
-            lampGroupList[j++] = nit->c_str();
-        }
-    }
-
-    size_t fromStateArgsSize;
-    MsgArg* fromStateArgs;
-    MsgArg fromStateArg;
-
-    fromState.Get(&fromStateArg);
-    fromStateArg.Get("a{sv}", &fromStateArgsSize, &fromStateArgs);
-
-    size_t toStateArgsSize;
-    MsgArg* toStateArgs;
-    MsgArg toStateArg;
-
-    toState.Get(&toStateArg);
-    toStateArg.Get("a{sv}", &toStateArgsSize, &toStateArgs);
-
-    component->Set("(asasa{sv}a{sv}uu)", numLamps, lampList, numLampGroups, lampGroupList, fromStateArgsSize, fromStateArgs, toStateArgsSize, toStateArgs, strobePeriod, numStrobes);
-    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-}
-
-StrobeLampsLampGroupsWithPreset::StrobeLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList,  LSFString& fromPreset, LSFString& toPreset, uint32_t& period, uint32_t& numOfStrobes) :
-    lamps(lampList), lampGroups(lampGroupList), fromPreset(fromPreset), toPreset(toPreset), strobePeriod(period), numStrobes(numOfStrobes)
-{
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-StrobeLampsLampGroupsWithPreset::StrobeLampsLampGroupsWithPreset(const ajn::MsgArg& component)
-{
-    Set(component);
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-const char* StrobeLampsLampGroupsWithPreset::c_str(void) const
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    qcc::String ret;
-    ret.clear();
-    ret.append("Lamps: \n");
-    LSFStringList::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
-    }
-    ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
-    }
-    ret.append("From Preset: ");
-    ret.append(fromPreset.c_str());
-    ret.append("To Preset: ");
-    ret.append(toPreset.c_str());
-    ret.append("\nStrobe Period: \n");
-    ret.append(qcc::U32ToString(strobePeriod));
-    ret.append("\nNumber Of Strobes: \n");
-    ret.append(qcc::U32ToString(numStrobes));
-    return ret.c_str();
-}
-
-StrobeLampsLampGroupsWithPreset::StrobeLampsLampGroupsWithPreset(const StrobeLampsLampGroupsWithPreset& other) :
-    lamps(other.lamps), lampGroups(other.lampGroups), fromPreset(other.fromPreset), toPreset(other.toPreset), strobePeriod(other.strobePeriod), numStrobes(other.numStrobes)
-{
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-StrobeLampsLampGroupsWithPreset& StrobeLampsLampGroupsWithPreset::operator=(const StrobeLampsLampGroupsWithPreset& other)
-{
-    lamps = other.lamps;
-    lampGroups = other.lampGroups;
-    fromPreset = other.fromPreset;
-    toPreset = other.toPreset;
-    strobePeriod = other.strobePeriod;
-    numStrobes = other.numStrobes;
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-    return *this;
-}
-
-void StrobeLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
-{
-    const char** lampList;
-    size_t numLamps;
-    const char** lampGroupList;
-    size_t numLampGroups;
-    const char* fromPresetId;
-    const char* toPresetId;
-
-    component.Get("(asasssuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromPresetId, &toPresetId, &strobePeriod, &numStrobes);
-
-    for (size_t j = 0; j < numLamps; j++) {
-        LSFString id(lampList[j]);
-        lamps.push_back(id);
-    }
-
-    for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString id(lampGroupList[k]);
-        lampGroups.push_back(id);
-    }
-
-    fromPreset = LSFString(fromPresetId);
-    toPreset = LSFString(toPresetId);
-
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
-}
-
-void StrobeLampsLampGroupsWithPreset::Get(ajn::MsgArg* component) const
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    size_t numLamps = lamps.size();
-    const char** lampList = NULL;
-    if (numLamps) {
-        lampList = new const char*[numLamps];
-        size_t j = 0;
-        for (LSFStringList::const_iterator nit = lamps.begin(); nit != lamps.end(); nit++) {
-            lampList[j++] = nit->c_str();
-        }
-    }
-
-    size_t numLampGroups = lampGroups.size();
-    const char** lampGroupList = NULL;
-    if (numLampGroups) {
-        lampGroupList = new const char*[numLampGroups];
-        size_t j = 0;
-        for (LSFStringList::const_iterator nit = lampGroups.begin(); nit != lampGroups.end(); nit++) {
-            lampGroupList[j++] = nit->c_str();
-        }
-    }
-
-    component->Set("(asasssuu)", numLamps, lampList, numLampGroups, lampGroupList, fromPreset.c_str(), toPreset.c_str(), strobePeriod, numStrobes);
-    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-}
-
 Scene::Scene()
 {
     transitionToStateComponent.clear();
     transitionToPresetComponent.clear();
     pulseWithStateComponent.clear();
     pulseWithPresetComponent.clear();
-    strobeWithStateComponent.clear();
-    strobeWithPresetComponent.clear();
-    cycleWithStateComponent.clear();
-    cycleWithPresetComponent.clear();
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList,
-             const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList,
-             const ajn::MsgArg& strobeWithStateComponentList, const ajn::MsgArg& strobeWithPresetComponentList,
-             const ajn::MsgArg& cycleWithStateComponentList, const ajn::MsgArg& cycleWithPresetComponentList)
+             const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList)
 {
-    Set(transitionToStateComponentList, transitionToPresetComponentList, pulseWithStateComponentList, pulseWithPresetComponentList,
-        strobeWithStateComponentList, strobeWithPresetComponentList, cycleWithStateComponentList, cycleWithPresetComponentList);
+    Set(transitionToStateComponentList, transitionToPresetComponentList, pulseWithStateComponentList, pulseWithPresetComponentList);
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(TransitionLampsLampGroupsToStateList& transitionToStateComponentList, TransitionLampsLampGroupsToPresetList& transitionToPresetComponentList,
-             PulseLampsLampGroupsWithStateList& pulseWithStateComponentList, PulseLampsLampGroupsWithPresetList& pulseWithPresetComponentList,
-             StrobeLampsLampGroupsWithStateList& strobeWithStateComponentList, StrobeLampsLampGroupsWithPresetList& strobeWithPresetComponentList,
-             CycleLampsLampGroupsWithStateList& cycleWithStateComponentList, CycleLampsLampGroupsWithPresetList& cycleWithPresetComponentList)
+             PulseLampsLampGroupsWithStateList& pulseWithStateComponentList, PulseLampsLampGroupsWithPresetList& pulseWithPresetComponentList)
 {
     transitionToStateComponent.clear();
     transitionToPresetComponent.clear();
     pulseWithStateComponent.clear();
     pulseWithPresetComponent.clear();
-    strobeWithStateComponent.clear();
-    strobeWithPresetComponent.clear();
-    cycleWithStateComponent.clear();
-    cycleWithPresetComponent.clear();
     transitionToStateComponent = transitionToStateComponentList;
     transitionToPresetComponent = transitionToPresetComponentList;
     pulseWithStateComponent = pulseWithStateComponentList;
     pulseWithPresetComponent = pulseWithPresetComponentList;
-    strobeWithStateComponent = strobeWithStateComponentList;
-    strobeWithPresetComponent = strobeWithPresetComponentList;
-    cycleWithStateComponent = cycleWithStateComponentList;
-    cycleWithPresetComponent = cycleWithPresetComponentList;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
@@ -1388,18 +1153,10 @@ Scene::Scene(const Scene& other)
     transitionToPresetComponent.clear();
     pulseWithStateComponent.clear();
     pulseWithPresetComponent.clear();
-    strobeWithStateComponent.clear();
-    strobeWithPresetComponent.clear();
-    cycleWithStateComponent.clear();
-    cycleWithPresetComponent.clear();
     transitionToStateComponent = other.transitionToStateComponent;
     transitionToPresetComponent = other.transitionToPresetComponent;
     pulseWithStateComponent = other.pulseWithStateComponent;
     pulseWithPresetComponent = other.pulseWithPresetComponent;
-    strobeWithStateComponent = other.strobeWithStateComponent;
-    strobeWithPresetComponent = other.strobeWithPresetComponent;
-    cycleWithStateComponent = other.cycleWithStateComponent;
-    cycleWithPresetComponent = other.cycleWithPresetComponent;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
@@ -1409,18 +1166,10 @@ Scene& Scene::operator=(const Scene& other)
     transitionToPresetComponent.clear();
     pulseWithStateComponent.clear();
     pulseWithPresetComponent.clear();
-    strobeWithStateComponent.clear();
-    strobeWithPresetComponent.clear();
-    cycleWithStateComponent.clear();
-    cycleWithPresetComponent.clear();
     transitionToStateComponent = other.transitionToStateComponent;
     transitionToPresetComponent = other.transitionToPresetComponent;
     pulseWithStateComponent = other.pulseWithStateComponent;
     pulseWithPresetComponent = other.pulseWithPresetComponent;
-    strobeWithStateComponent = other.strobeWithStateComponent;
-    strobeWithPresetComponent = other.strobeWithPresetComponent;
-    cycleWithStateComponent = other.cycleWithStateComponent;
-    cycleWithPresetComponent = other.cycleWithPresetComponent;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -1458,50 +1207,16 @@ const char* Scene::c_str(void) const
         ret.append(prte->c_str());
         ret.append("\n***\n");
     }
-    ret.append("\n------------------------------------------------------------\n");
-    ret.append("StrobeWithState Components: \n");
-    StrobeLampsLampGroupsWithStateList::const_iterator ste;
-    for (ste = strobeWithStateComponent.begin(); ste != strobeWithStateComponent.end(); ste++) {
-        ret.append(ste->c_str());
-        ret.append("\n***\n");
-    }
-    ret.append("\n------------------------------------------------------------\n");
-    ret.append("StrobeWithPreset Components: \n");
-    StrobeLampsLampGroupsWithPresetList::const_iterator srte;
-    for (srte = strobeWithPresetComponent.begin(); srte != strobeWithPresetComponent.end(); srte++) {
-        ret.append(srte->c_str());
-        ret.append("\n***\n");
-    }
-    ret.append("\n------------------------------------------------------------\n");
-    ret.append("CycleWithState Components: \n");
-    CycleLampsLampGroupsWithStateList::const_iterator cte;
-    for (cte = cycleWithStateComponent.begin(); cte != cycleWithStateComponent.end(); cte++) {
-        ret.append(cte->c_str());
-        ret.append("\n***\n");
-    }
-    ret.append("\n------------------------------------------------------------\n");
-    ret.append("CycleWithPreset Components: \n");
-    CycleLampsLampGroupsWithPresetList::const_iterator crte;
-    for (crte = cycleWithPresetComponent.begin(); crte != cycleWithPresetComponent.end(); crte++) {
-        ret.append(crte->c_str());
-        ret.append("\n***\n");
-    }
-
     return ret.c_str();
 }
 
 void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList, const ajn::MsgArg& pulseWithStateComponentList,
-                const ajn::MsgArg& pulseWithPresetComponentList, const ajn::MsgArg& strobeWithStateComponentList, const ajn::MsgArg& strobeWithPresetComponentList,
-                const ajn::MsgArg& cycleWithStateComponentList, const ajn::MsgArg& cycleWithPresetComponentList)
+                const ajn::MsgArg& pulseWithPresetComponentList)
 {
     transitionToStateComponent.clear();
     transitionToPresetComponent.clear();
     pulseWithStateComponent.clear();
     pulseWithPresetComponent.clear();
-    strobeWithStateComponent.clear();
-    strobeWithPresetComponent.clear();
-    cycleWithStateComponent.clear();
-    cycleWithPresetComponent.clear();
 
     MsgArg* transitionToStateComponentArray;
     size_t transitionToStateComponentSize;
@@ -1536,44 +1251,11 @@ void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::Ms
         pulseWithPresetComponent.push_back(tempPulseComponent);
     }
 
-    MsgArg* strobeWithStateComponentArray;
-    size_t strobeWithStateComponentSize;
-    strobeWithStateComponentList.Get("a(asasa{sv}a{sv}uu)", &strobeWithStateComponentSize, &strobeWithStateComponentArray);
-    for (size_t i = 0; i < strobeWithStateComponentSize; i++) {
-        StrobeLampsLampGroupsWithState tempStrobeComponent(strobeWithStateComponentArray[i]);
-        strobeWithStateComponent.push_back(tempStrobeComponent);
-    }
-
-    MsgArg* strobeWithPresetComponentArray;
-    size_t strobeWithPresetComponentSize;
-    strobeWithPresetComponentList.Get("a(asasssuu)", &strobeWithPresetComponentSize, &strobeWithPresetComponentArray);
-    for (size_t i = 0; i < strobeWithPresetComponentSize; i++) {
-        StrobeLampsLampGroupsWithPreset tempStrobeComponent(strobeWithPresetComponentArray[i]);
-        strobeWithPresetComponent.push_back(tempStrobeComponent);
-    }
-
-    MsgArg* cycleWithStateComponentArray;
-    size_t cycleWithStateComponentSize;
-    cycleWithStateComponentList.Get("a(asasa{sv}a{sv}uuu)", &cycleWithStateComponentSize, &cycleWithStateComponentArray);
-    for (size_t i = 0; i < cycleWithStateComponentSize; i++) {
-        CycleLampsLampGroupsWithState tempCycleComponent(cycleWithStateComponentArray[i]);
-        cycleWithStateComponent.push_back(tempCycleComponent);
-    }
-
-    MsgArg* cycleWithPresetComponentArray;
-    size_t cycleWithPresetComponentSize;
-    cycleWithPresetComponentList.Get("a(asasssuuu)", &cycleWithPresetComponentSize, &cycleWithPresetComponentArray);
-    for (size_t i = 0; i < cycleWithPresetComponentSize; i++) {
-        CycleLampsLampGroupsWithPreset tempCycleComponent(cycleWithPresetComponentArray[i]);
-        cycleWithPresetComponent.push_back(tempCycleComponent);
-    }
-
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 void Scene::Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transitionToPresetComponentList, ajn::MsgArg* pulseWithStateComponentList,
-                ajn::MsgArg* pulseWithPresetComponentList, ajn::MsgArg* strobeWithStateComponentList, ajn::MsgArg* strobeWithPresetComponentList,
-                ajn::MsgArg* cycleWithStateComponentList, ajn::MsgArg* cycleWithPresetComponentList) const
+                ajn::MsgArg* pulseWithPresetComponentList) const
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     size_t transitionToStateComponentArraySize = transitionToStateComponent.size();
@@ -1627,58 +1309,6 @@ void Scene::Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transi
     } else {
         pulseWithPresetComponentList->Set("a(asasssuuu)", 0, NULL);
     }
-
-    size_t strobeWithStateComponentArraySize = strobeWithStateComponent.size();
-    if (strobeWithStateComponentArraySize) {
-        MsgArg* strobeWithStateComponentArray = new MsgArg[strobeWithStateComponentArraySize];
-        size_t i = 0;
-        for (StrobeLampsLampGroupsWithStateList::const_iterator it = strobeWithStateComponent.begin(); it != strobeWithStateComponent.end(); it++, i++) {
-            it->Get(&strobeWithStateComponentArray[i]);
-        }
-        strobeWithStateComponentList->Set("a(asasa{sv}a{sv}uu)", strobeWithStateComponentArraySize, strobeWithStateComponentArray);
-        strobeWithStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-    } else {
-        strobeWithStateComponentList->Set("a(asasa{sv}a{sv}uu)", 0, NULL);
-    }
-
-    size_t strobeWithPresetComponentArraySize = strobeWithPresetComponent.size();
-    if (strobeWithPresetComponentArraySize) {
-        MsgArg* strobeWithPresetComponentArray = new MsgArg[strobeWithPresetComponentArraySize];
-        size_t i = 0;
-        for (StrobeLampsLampGroupsWithPresetList::const_iterator it = strobeWithPresetComponent.begin(); it != strobeWithPresetComponent.end(); it++, i++) {
-            it->Get(&strobeWithPresetComponentArray[i]);
-        }
-        strobeWithPresetComponentList->Set("a(asasssuu)", strobeWithPresetComponentArraySize, strobeWithPresetComponentArray);
-        strobeWithPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-    } else {
-        strobeWithPresetComponentList->Set("a(asasssuu)", 0, NULL);
-    }
-
-    size_t cycleWithStateComponentArraySize = cycleWithStateComponent.size();
-    if (cycleWithStateComponentArraySize) {
-        MsgArg* cycleWithStateComponentArray = new MsgArg[cycleWithStateComponentArraySize];
-        size_t i = 0;
-        for (CycleLampsLampGroupsWithStateList::const_iterator it = cycleWithStateComponent.begin(); it != cycleWithStateComponent.end(); it++, i++) {
-            it->Get(&cycleWithStateComponentArray[i]);
-        }
-        cycleWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", cycleWithStateComponentArraySize, cycleWithStateComponentArray);
-        cycleWithStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-    } else {
-        cycleWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", 0, NULL);
-    }
-
-    size_t cycleWithPresetComponentArraySize = cycleWithPresetComponent.size();
-    if (cycleWithPresetComponentArraySize) {
-        MsgArg* cycleWithPresetComponentArray = new MsgArg[cycleWithPresetComponentArraySize];
-        size_t i = 0;
-        for (CycleLampsLampGroupsWithPresetList::const_iterator it = cycleWithPresetComponent.begin(); it != cycleWithPresetComponent.end(); it++, i++) {
-            it->Get(&cycleWithPresetComponentArray[i]);
-        }
-        cycleWithPresetComponentList->Set("a(asasssuuu)", cycleWithPresetComponentArraySize, cycleWithPresetComponentArray);
-        cycleWithPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-    } else {
-        cycleWithPresetComponentList->Set("a(asasssuuu)", 0, NULL);
-    }
 }
 
 LSFResponseCode Scene::IsDependentOnPreset(LSFString& presetID)
@@ -1694,26 +1324,6 @@ LSFResponseCode Scene::IsDependentOnPreset(LSFString& presetID)
 
     if (LSF_OK == responseCode) {
         for (PulseLampsLampGroupsWithPresetList::iterator it = pulseWithPresetComponent.begin(); it != pulseWithPresetComponent.end(); it++) {
-            if (0 == strcmp(it->fromPreset.c_str(), presetID.c_str())) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            } else if (0 == strcmp(it->toPreset.c_str(), presetID.c_str())) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            }
-        }
-    }
-
-    if (LSF_OK == responseCode) {
-        for (StrobeLampsLampGroupsWithPresetList::iterator it = strobeWithPresetComponent.begin(); it != strobeWithPresetComponent.end(); it++) {
-            if (0 == strcmp(it->fromPreset.c_str(), presetID.c_str())) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            } else if (0 == strcmp(it->toPreset.c_str(), presetID.c_str())) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            }
-        }
-    }
-
-    if (LSF_OK == responseCode) {
-        for (CycleLampsLampGroupsWithPresetList::iterator it = cycleWithPresetComponent.begin(); it != cycleWithPresetComponent.end(); it++) {
             if (0 == strcmp(it->fromPreset.c_str(), presetID.c_str())) {
                 responseCode = LSF_ERR_DEPENDENCY;
             } else if (0 == strcmp(it->toPreset.c_str(), presetID.c_str())) {
@@ -1747,24 +1357,6 @@ LSFResponseCode Scene::IsDependentOnLampGroup(LSFString& lampGroupID)
     }
 
     if (LSF_OK == responseCode) {
-        for (StrobeLampsLampGroupsWithStateList::iterator it = strobeWithStateComponent.begin(); it != strobeWithStateComponent.end(); it++) {
-            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
-            if (findIt != it->lampGroups.end()) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            }
-        }
-    }
-
-    if (LSF_OK == responseCode) {
-        for (CycleLampsLampGroupsWithStateList::iterator it = cycleWithStateComponent.begin(); it != cycleWithStateComponent.end(); it++) {
-            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
-            if (findIt != it->lampGroups.end()) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            }
-        }
-    }
-
-    if (LSF_OK == responseCode) {
         for (TransitionLampsLampGroupsToPresetList::iterator it = transitionToPresetComponent.begin(); it != transitionToPresetComponent.end(); it++) {
             LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
             if (findIt != it->lampGroups.end()) {
@@ -1775,24 +1367,6 @@ LSFResponseCode Scene::IsDependentOnLampGroup(LSFString& lampGroupID)
 
     if (LSF_OK == responseCode) {
         for (PulseLampsLampGroupsWithPresetList::iterator it = pulseWithPresetComponent.begin(); it != pulseWithPresetComponent.end(); it++) {
-            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
-            if (findIt != it->lampGroups.end()) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            }
-        }
-    }
-
-    if (LSF_OK == responseCode) {
-        for (StrobeLampsLampGroupsWithPresetList::iterator it = strobeWithPresetComponent.begin(); it != strobeWithPresetComponent.end(); it++) {
-            LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
-            if (findIt != it->lampGroups.end()) {
-                responseCode = LSF_ERR_DEPENDENCY;
-            }
-        }
-    }
-
-    if (LSF_OK == responseCode) {
-        for (CycleLampsLampGroupsWithPresetList::iterator it = cycleWithPresetComponent.begin(); it != cycleWithPresetComponent.end(); it++) {
             LSFStringList::iterator findIt = std::find(it->lampGroups.begin(), it->lampGroups.end(), lampGroupID);
             if (findIt != it->lampGroups.end()) {
                 responseCode = LSF_ERR_DEPENDENCY;

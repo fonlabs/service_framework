@@ -189,7 +189,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
         LSFString id = lampID;
         printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
         gotReply = true;
-        if (responseCode != ER_OK) {
+        if (responseCode != LSF_OK) {
             gotSignal = true;
         }
     }
@@ -222,7 +222,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
         gotReply = true;
     }
 
-    void GetLampParametersBrightnessLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& value) {
+    void GetLampParametersLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& value) {
         LSFString id = lampID;
         printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
         if (responseCode == LSF_OK) {
@@ -328,31 +328,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
         gotReply = true;
     }
 
-    void StrobeLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
-    void CycleLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
     void PulseLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
-    void StrobeLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
-    void CycleLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString id = lampID;
         printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
         gotReply = true;
@@ -419,12 +395,6 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     void ClearLampFaultReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCode& faultCode) {
         LSFString id = lampID;
         printf("\n%s: responseCode = %s lampID = %s faultCode=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), faultCode);
-        gotReply = true;
-    }
-
-    void GetLampRemainingLifeReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& remainingLife) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s remainingLife=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), remainingLife);
         gotReply = true;
     }
 
@@ -631,31 +601,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
         gotReply = true;
     }
 
-    void StrobeLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
-    void CycleLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
     void PulseLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
-    void StrobeLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
-        gotReply = true;
-    }
-
-    void CycleLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString id = lampGroupID;
         printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
         gotReply = true;
@@ -1037,68 +983,59 @@ void PrintHelp() {
     printf("(19):  ResetLampStateColorTempField\n");
     printf("(20):  TransitionLampState\n");
     printf("(21):  PulseLampWithState\n");
-    printf("(22):  StrobeLampWithState\n");
-    printf("(23):  CycleLampWithState\n");
-    printf("(24):  PulseLampWithPreset\n");
-    printf("(25):  StrobeLampWithPreset\n");
-    printf("(26):  CycleLampWithPreset\n");
-    printf("(27):  TransitionLampStateOnOffField\n");
-    printf("(28):  TransitionLampStateHueField\n");
-    printf("(29):  TransitionLampStateSaturationField\n");
-    printf("(30):  TransitionLampStateBrightnessField\n");
-    printf("(31):  TransitionLampStateColorTempField\n");
-    printf("(32):  TransitionLampStateToPreset\n");
-    printf("(33):  GetLampFaults\n");
-    printf("(34):  ClearLampFault\n");
-    printf("(35):  GetLampRemainingLife\n");
-    printf("(36):  GetLampServiceVersion\n");
-    printf("(37):  GetLampDetails\n");
-    printf("(38):  GetLampParameters\n");
-    printf("(39):  GetLampParametersEnergyUsageMilliwattsField\n");
-    printf("(40):  GetLampParametersBrightnessLumensField\n");
-    printf("(41):  GetAllLampGroupIDs\n");
-    printf("(42):  GetLampGroupName\n");
-    printf("(43):  SetLampGroupName\n");
-    printf("(44):  CreateLampGroup\n");
-    printf("(45):  UpdateLampGroup\n");
-    printf("(46):  DeleteLampGroup\n");
-    printf("(47):  GetLampGroup\n");
-    printf("(48):  ResetLampGroupState\n");
-    printf("(49):  ResetLampGroupStateField\n");
-    printf("(50):  TransitionLampGroupState\n");
-    printf("(51):  PulseLampGroupWithState\n");
-    printf("(52):  StrobeLampGroupWithState\n");
-    printf("(53):  CycleLampGroupWithState\n");
-    printf("(54):  PulseLampGroupWithPreset\n");
-    printf("(55):  StrobeLampGroupWithPreset\n");
-    printf("(56):  CycleLampGroupWithPreset\n");
-    printf("(57):  TransitionLampGroupStateToPreset\n");
-    printf("(58):  TransitionLampGroupStateField\n");
-    printf("(59):  GetDefaultLampState\n");
-    printf("(60):  SetDefaultLampState\n");
-    printf("(61):  GetAllPresetIDs\n");
-    printf("(62):  GetPresetName\n");
-    printf("(63):  SetPresetName\n");
-    printf("(64):  CreatePreset\n");
-    printf("(65):  UpdatePreset\n");
-    printf("(66):  DeletePreset\n");
-    printf("(67):  GetPreset\n");
-    printf("(68):  GetAllSceneIDs\n");
-    printf("(69):  GetSceneName\n");
-    printf("(70):  SetSceneName\n");
-    printf("(71):  CreateScene\n");
-    printf("(72):  UpdateScene\n");
-    printf("(73):  DeleteScene\n");
-    printf("(74):  GetScene\n");
-    printf("(75):  ApplyScene\n");
-    printf("(76):  GetAllMasterSceneIDs\n");
-    printf("(77):  GetMasterSceneName\n");
-    printf("(78):  SetMasterSceneName\n");
-    printf("(79):  CreateMasterScene\n");
-    printf("(80):  UpdateMasterScene\n");
-    printf("(81):  DeleteMasterScene\n");
-    printf("(82):  GetMasterScene\n");
-    printf("(83):  ApplyMasterScene\n");
+    printf("(22):  PulseLampWithPreset\n");
+    printf("(23):  TransitionLampStateOnOffField\n");
+    printf("(24):  TransitionLampStateHueField\n");
+    printf("(25):  TransitionLampStateSaturationField\n");
+    printf("(26):  TransitionLampStateBrightnessField\n");
+    printf("(27):  TransitionLampStateColorTempField\n");
+    printf("(28):  TransitionLampStateToPreset\n");
+    printf("(29):  GetLampFaults\n");
+    printf("(30):  ClearLampFault\n");
+    printf("(31):  GetLampServiceVersion\n");
+    printf("(32):  GetLampDetails\n");
+    printf("(33):  GetLampParameters\n");
+    printf("(34):  GetLampParametersEnergyUsageMilliwattsField\n");
+    printf("(35):  GetLampParametersLumensField\n");
+    printf("(36):  GetAllLampGroupIDs\n");
+    printf("(37):  GetLampGroupName\n");
+    printf("(38):  SetLampGroupName\n");
+    printf("(39):  CreateLampGroup\n");
+    printf("(40):  UpdateLampGroup\n");
+    printf("(41):  DeleteLampGroup\n");
+    printf("(42):  GetLampGroup\n");
+    printf("(43):  ResetLampGroupState\n");
+    printf("(44):  ResetLampGroupStateField\n");
+    printf("(45):  TransitionLampGroupState\n");
+    printf("(46):  PulseLampGroupWithState\n");
+    printf("(47):  PulseLampGroupWithPreset\n");
+    printf("(48):  TransitionLampGroupStateToPreset\n");
+    printf("(49):  TransitionLampGroupStateField\n");
+    printf("(50):  GetDefaultLampState\n");
+    printf("(51):  SetDefaultLampState\n");
+    printf("(52):  GetAllPresetIDs\n");
+    printf("(53):  GetPresetName\n");
+    printf("(54):  SetPresetName\n");
+    printf("(55):  CreatePreset\n");
+    printf("(56):  UpdatePreset\n");
+    printf("(57):  DeletePreset\n");
+    printf("(58):  GetPreset\n");
+    printf("(59):  GetAllSceneIDs\n");
+    printf("(60):  GetSceneName\n");
+    printf("(61):  SetSceneName\n");
+    printf("(62):  CreateScene\n");
+    printf("(63):  UpdateScene\n");
+    printf("(64):  DeleteScene\n");
+    printf("(65):  GetScene\n");
+    printf("(66):  ApplyScene\n");
+    printf("(67):  GetAllMasterSceneIDs\n");
+    printf("(68):  GetMasterSceneName\n");
+    printf("(69):  SetMasterSceneName\n");
+    printf("(70):  CreateMasterScene\n");
+    printf("(71):  UpdateMasterScene\n");
+    printf("(72):  DeleteMasterScene\n");
+    printf("(73):  GetMasterScene\n");
+    printf("(74):  ApplyMasterScene\n");
 }
 
 int main()
@@ -1263,141 +1200,107 @@ int main()
                 waitForSignal = true;
             } else if (cmd == "21") {
                 String id = NextTok(line);
-                LampState fromState(false, 7, 7, 7, 7);
                 LampState toState(false, 5, 5, 5, 5);
+                LampState fromState(false, 7, 7, 7, 7);
                 printf("\nInvoking PulseLampWithState(%s)\n", id.c_str());
-                lampManager.PulseLampWithState(id.c_str(), fromState, toState, 100, 10, 20);
+                lampManager.PulseLampWithState(id.c_str(), toState, 100, 10, 20, fromState);
                 waitForReply = true;
             } else if (cmd == "22") {
                 String id = NextTok(line);
-                LampState fromState(false, 7, 7, 7, 7);
-                LampState toState(false, 5, 5, 5, 5);
-                printf("\nInvoking StrobeLampWithState(%s)\n", id.c_str());
-                lampManager.StrobeLampWithState(id.c_str(), fromState, toState, 100, 20);
+                String toState = NextTok(line);
+                printf("\nInvoking PulseLampWithPreset(%s)\n", id.c_str());
+                lampManager.PulseLampWithPreset(id.c_str(), LSFString(toState.c_str()), 100, 10, 20, LSFString(toState.c_str()));
                 waitForReply = true;
             } else if (cmd == "23") {
                 String id = NextTok(line);
-                LampState stateA(false, 7, 7, 7, 7);
-                LampState stateB(false, 9, 9, 9, 9);
-                printf("\nInvoking CycleLampWithState(%s)\n", id.c_str());
-                lampManager.CycleLampWithState(id.c_str(), stateA, stateB, 100, 80, 20);
-                waitForReply = true;
-            } else if (cmd == "24") {
-                String id = NextTok(line);
-                String fromState = NextTok(line);
-                String toState = NextTok(line);
-                printf("\nInvoking PulseLampWithPreset(%s)\n", id.c_str());
-                lampManager.PulseLampWithPreset(id.c_str(), LSFString(fromState.c_str()), LSFString(toState.c_str()), 100, 10, 20);
-                waitForReply = true;
-            } else if (cmd == "25") {
-                String id = NextTok(line);
-                String fromState = NextTok(line);
-                String toState = NextTok(line);
-                printf("\nInvoking StrobeLampWithPreset(%s)\n", id.c_str());
-                lampManager.StrobeLampWithPreset(id.c_str(), LSFString(fromState.c_str()), LSFString(toState.c_str()), 100, 20);
-                waitForReply = true;
-            } else if (cmd == "26") {
-                String id = NextTok(line);
-                String stateA = NextTok(line);
-                String stateB = NextTok(line);
-                printf("\nInvoking CycleLampWithPreset(%s)\n", id.c_str());
-                lampManager.CycleLampWithPreset(id.c_str(), LSFString(stateA.c_str()), LSFString(stateB.c_str()), 100, 80, 20);
-                waitForReply = true;
-            } else if (cmd == "27") {
-                String id = NextTok(line);
                 printf("\nInvoking TransitionLampStateOnOffField(%s)\n", id.c_str());
-                lampManager.TransitionLampStateOnOffField(id.c_str(), false);
+                lampManager.TransitionLampStateOnOffField(id.c_str(), true);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "28") {
+            } else if (cmd == "24") {
                 String id = NextTok(line);
                 printf("\nInvoking TransitionLampStateHueField(%s)\n", id.c_str());
                 lampManager.TransitionLampStateHueField(id.c_str(), 10, 100);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "29") {
+            } else if (cmd == "25") {
                 String id = NextTok(line);
                 printf("\nInvoking TransitionLampStateSaturationField(%s)\n", id.c_str());
                 lampManager.TransitionLampStateSaturationField(id.c_str(), 20);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "30") {
+            } else if (cmd == "26") {
                 String id = NextTok(line);
                 printf("\nInvoking TransitionLampStateBrightnessField(%s)\n", id.c_str());
                 lampManager.TransitionLampStateBrightnessField(id.c_str(), 30, 100);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "31") {
+            } else if (cmd == "27") {
                 String id = NextTok(line);
                 printf("\nInvoking TransitionLampStateColorTempField(%s)\n", id.c_str());
                 lampManager.TransitionLampStateColorTempField(id.c_str(), 50);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "32") {
+            } else if (cmd == "28") {
                 String id = NextTok(line);
                 String presetID = NextTok(line);
                 printf("\nInvoking TransitionLampStateToPreset(%s, %s)\n", id.c_str(), presetID.c_str());
                 lampManager.TransitionLampStateToPreset(id.c_str(), presetID.c_str(), 25);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "33") {
+            } else if (cmd == "29") {
                 String id = NextTok(line);
                 printf("\nInvoking GetLampFaults(%s)\n", id.c_str());
                 status = lampManager.GetLampFaults(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "34") {
+            } else if (cmd == "30") {
                 String id = NextTok(line);
                 LampFaultCode code = qcc::StringToU32(NextTok(line));
                 printf("\nInvoking ClearLampFault(%s, %d)\n", id.c_str(), code);
                 status = lampManager.ClearLampFault(id.c_str(), code);
                 waitForReply = true;
-            } else if (cmd == "35") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampRemainingLife(%s)\n", id.c_str());
-                status = lampManager.GetLampRemainingLife(id.c_str());
-                waitForReply = true;
-            } else if (cmd == "36") {
+            } else if (cmd == "31") {
                 String id = NextTok(line);
                 printf("\nInvoking GetLampServiceVersion(%s)\n", id.c_str());
                 status = lampManager.GetLampServiceVersion(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "37") {
+            } else if (cmd == "32") {
                 String id = NextTok(line);
                 printf("\nInvoking GetLampDetails(%s)\n", id.c_str());
                 status = lampManager.GetLampDetails(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "38") {
+            } else if (cmd == "33") {
                 String id = NextTok(line);
                 status = lampManager.GetLampParameters(id.c_str());
                 printf("\nInvoking GetLampParameters(%s)\n", id.c_str());
                 waitForReply = true;
-            } else if (cmd == "39") {
+            } else if (cmd == "34") {
                 String id = NextTok(line);
                 printf("\nInvoking GetLampParametersEnergyUsageMilliwattsField(%s)\n", id.c_str());
                 lampManager.GetLampParametersEnergyUsageMilliwattsField(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "40") {
+            } else if (cmd == "35") {
                 String id = NextTok(line);
-                printf("\nInvoking GetLampParametersBrightnessLumensField(%s)\n", id.c_str());
-                lampManager.GetLampParametersBrightnessLumensField(id.c_str());
+                printf("\nInvoking GetLampParametersLumensField(%s)\n", id.c_str());
+                lampManager.GetLampParametersLumensField(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "41") {
+            } else if (cmd == "36") {
                 printf("\nInvoking GetAllLampGroupIDs()\n");
                 status = lampGroupManager.GetAllLampGroupIDs();
                 waitForReply = true;
-            } else if (cmd == "42") {
+            } else if (cmd == "37") {
                 String id = NextTok(line);
                 printf("\nInvoking GetLampGroupName(%s)\n", id.c_str());
                 status = lampGroupManager.GetLampGroupName(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "43") {
+            } else if (cmd == "38") {
                 String id = NextTok(line);
                 String name = NextTok(line);
                 printf("\nInvoking SetLampGroupName(%s, %s)\n", id.c_str(), name.c_str());
                 status = lampGroupManager.SetLampGroupName(id.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "44") {
+            } else if (cmd == "39") {
                 LSFStringList lamps;
                 lamps.push_back("abc");
                 lamps.push_back("xyz");
@@ -1406,7 +1309,7 @@ int main()
                 status = lampGroupManager.CreateLampGroup(group);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "45") {
+            } else if (cmd == "40") {
                 String id = NextTok(line);
                 LSFStringList lamps;
                 lamps.push_back("123");
@@ -1416,76 +1319,46 @@ int main()
                 status = lampGroupManager.UpdateLampGroup(id.c_str(), group);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "46") {
+            } else if (cmd == "41") {
                 String id = NextTok(line);
                 printf("\nInvoking DeleteLampGroup(%s)\n", id.c_str());
                 status = lampGroupManager.DeleteLampGroup(id.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "47") {
+            } else if (cmd == "42") {
                 String id = NextTok(line);
                 printf("\nInvoking GetLampGroup(%s)\n", id.c_str());
                 status = lampGroupManager.GetLampGroup(id.c_str());
                 waitForReply = true;
 #if 0
-            } else if (cmd == "48") {
+            } else if (cmd == "43") {
                 ResetLampGroupState;
-            } else if (cmd == "49") {
+            } else if (cmd == "44") {
                 String id = NextTok(line);
                 String fieldname = NextTok(line);
                 printf("\nInvoking ResetLampGroupFieldState(%s, %s)\n", id.c_str(), fieldname.c_str());
                 lampGroupManager.ResetLampGroupFieldState(id.c_str(), fieldname.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "50") {
+            } else if (cmd == "45") {
                 TransitionLampGroupState;
 #endif
-            } else if (cmd == "51") {
+            } else if (cmd == "46") {
                 String id = NextTok(line);
-                LampState fromState(false, 7, 7, 7, 7);
                 LampState toState(false, 5, 5, 5, 5);
                 printf("\nInvoking PulseLampGroupWithState(%s)\n", id.c_str());
-                lampGroupManager.PulseLampGroupWithState(id.c_str(), fromState, toState, 100, 10, 20);
+                lampGroupManager.PulseLampGroupWithState(id.c_str(), toState, 100, 10, 20);
                 waitForReply = true;
-            } else if (cmd == "52") {
+            } else if (cmd == "47") {
                 String id = NextTok(line);
-                LampState fromState(false, 7, 7, 7, 7);
-                LampState toState(false, 5, 5, 5, 5);
-                printf("\nInvoking StrobeLampGroupWithState(%s)\n", id.c_str());
-                lampGroupManager.StrobeLampGroupWithState(id.c_str(), fromState, toState, 100, 20);
-                waitForReply = true;
-            } else if (cmd == "53") {
-                String id = NextTok(line);
-                LampState stateA(false, 7, 7, 7, 7);
-                LampState stateB(false, 9, 9, 9, 9);
-                printf("\nInvoking CycleLampGroupWithState(%s)\n", id.c_str());
-                lampGroupManager.CycleLampGroupWithState(id.c_str(), stateA, stateB, 100, 80, 20);
-                waitForReply = true;
-            } else if (cmd == "54") {
-                String id = NextTok(line);
-                String fromState = NextTok(line);
                 String toState = NextTok(line);
                 printf("\nInvoking PulseLampGroupWithPreset(%s)\n", id.c_str());
-                lampGroupManager.PulseLampGroupWithPreset(id.c_str(), LSFString(fromState.c_str()), LSFString(toState.c_str()), 100, 10, 20);
-                waitForReply = true;
-            } else if (cmd == "55") {
-                String id = NextTok(line);
-                String fromState = NextTok(line);
-                String toState = NextTok(line);
-                printf("\nInvoking StrobeLampGroupWithPreset(%s)\n", id.c_str());
-                lampGroupManager.StrobeLampGroupWithPreset(id.c_str(), LSFString(fromState.c_str()), LSFString(toState.c_str()), 100, 20);
-                waitForReply = true;
-            } else if (cmd == "56") {
-                String id = NextTok(line);
-                String stateA = NextTok(line);
-                String stateB = NextTok(line);
-                printf("\nInvoking CycleLampGroupWithPreset(%s)\n", id.c_str());
-                lampGroupManager.CycleLampGroupWithPreset(id.c_str(), LSFString(stateA.c_str()), LSFString(stateB.c_str()), 100, 80, 20);
+                lampGroupManager.PulseLampGroupWithPreset(id.c_str(), LSFString(toState.c_str()), 100, 10, 20);
                 waitForReply = true;
 #if 0
-            } else if (cmd == "57") {
+            } else if (cmd == "48") {
                 TransitionLampGroupStateToPreset;
-            } else if (cmd == "58") {
+            } else if (cmd == "49") {
                 String id = NextTok(line);
                 String fieldname = NextTok(line);
                 printf("\nInvoking TransitionLampGroupStateField(%s, %s)\n", id.c_str(), fieldname.c_str());
@@ -1496,73 +1369,73 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
 #endif
-            } else if (cmd == "59") {
+            } else if (cmd == "50") {
                 printf("\nInvoking GetDefaultLampState()\n");
                 status = presetManager.GetDefaultLampState();
                 waitForReply = true;
-            } else if (cmd == "60") {
+            } else if (cmd == "51") {
                 printf("\nInvoking SetDefaultLampState()\n");
                 LampState state(true, 3, 3, 3, 3);
                 status = presetManager.SetDefaultLampState(state);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "61") {
+            } else if (cmd == "52") {
                 printf("\nInvoking GetAllPresetIDs()\n");
                 status = presetManager.GetAllPresetIDs();
                 waitForReply = true;
-            } else if (cmd == "62") {
+            } else if (cmd == "53") {
                 String id = NextTok(line);
                 printf("\nInvoking GetPresetName(%s)\n", id.c_str());
                 status = presetManager.GetPresetName(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "63") {
+            } else if (cmd == "54") {
                 String id = NextTok(line);
                 String name = NextTok(line);
                 printf("\nInvoking SetPresetName(%s, %s)\n", id.c_str(), name.c_str());
                 status = presetManager.SetPresetName(id.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "64") {
+            } else if (cmd == "55") {
                 LampState state(true, 5, 5, 5, 5);
                 printf("\nInvoking CreatePreset(%s)\n", state.c_str());
                 status = presetManager.CreatePreset(state);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "65") {
+            } else if (cmd == "56") {
                 String id = NextTok(line);
                 LampState state(true, 6, 6, 6, 6);
                 printf("\nInvoking UpdatePreset(%s, %s)\n", id.c_str(), state.c_str());
                 status = presetManager.UpdatePreset(id.c_str(), state);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "66") {
+            } else if (cmd == "57") {
                 String id = NextTok(line);
                 printf("\nInvoking DeletePreset(%s)\n", id.c_str());
                 status = presetManager.DeletePreset(id.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "67") {
+            } else if (cmd == "58") {
                 String id = NextTok(line);
                 printf("\nInvoking GetPreset(%s)\n", id.c_str());
                 status = presetManager.GetPreset(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "68") {
+            } else if (cmd == "59") {
                 printf("\nInvoking GetAllSceneIDs()\n");
                 status = sceneManager.GetAllSceneIDs();
                 waitForReply = true;
-            } else if (cmd == "69") {
+            } else if (cmd == "60") {
                 String id = NextTok(line);
                 printf("\nInvoking GetSceneName(%s)\n", id.c_str());
                 status = sceneManager.GetSceneName(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "70") {
+            } else if (cmd == "61") {
                 String id = NextTok(line);
                 String name = NextTok(line);
                 printf("\nInvoking SetSceneName(%s, %s)\n", id.c_str(), name.c_str());
                 status = sceneManager.SetSceneName(id.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "71") {
+            } else if (cmd == "62") {
                 LSFStringList lampList1, lampList2;
                 lampList1.push_back("abc");
                 lampList2.push_back("abc");
@@ -1570,25 +1443,15 @@ int main()
                 lampGroupList1.push_back("xyz");
                 lampGroupList2.push_back("xyz");
                 LampState state(false, 6, 6, 6, 6);
-                LampState toState(false, 5, 5, 5, 5);
                 LSFString presetID = LSFString("123");
-                LSFString toPresetID = LSFString("xyz");
                 uint32_t transPeriod = 35;
                 TransitionLampsLampGroupsToState transitionToStateComponent(lampList1, lampGroupList1, state, transPeriod);
                 TransitionLampsLampGroupsToPreset transitionToPresetComponent(lampList2, lampGroupList2, presetID, transPeriod);
                 uint32_t period = 100;
                 uint32_t duration = 20;
                 uint32_t numPulses = 25;
-                PulseLampsLampGroupsWithState pulseWithStateComponent(lampList2, lampGroupList2, state, toState, period, duration, numPulses);
-                PulseLampsLampGroupsWithPreset pulseWithPresetComponent(lampList2, lampGroupList2, presetID, toPresetID, period, duration, numPulses);
-
-                uint32_t numStrobes = 25;
-                StrobeLampsLampGroupsWithState strobeWithStateComponent(lampList2, lampGroupList2, state, toState, period, numStrobes);
-                StrobeLampsLampGroupsWithPreset strobeWithPresetComponent(lampList2, lampGroupList2, presetID, toPresetID, period, numStrobes);
-
-                uint32_t numCycles = 10;
-                CycleLampsLampGroupsWithState cycleWithStateComponent(lampList2, lampGroupList2, state, toState, period, duration, numCycles);
-                CycleLampsLampGroupsWithPreset cycleWithPresetComponent(lampList2, lampGroupList2, presetID, toPresetID, period, duration, numCycles);
+                PulseLampsLampGroupsWithState pulseWithStateComponent(lampList2, lampGroupList2, state, period, duration, numPulses);
+                PulseLampsLampGroupsWithPreset pulseWithPresetComponent(lampList2, lampGroupList2, presetID, period, duration, numPulses);
 
                 TransitionLampsLampGroupsToStateList transitionToStateList;
                 transitionToStateList.push_back(transitionToStateComponent);
@@ -1602,25 +1465,13 @@ int main()
                 PulseLampsLampGroupsWithPresetList pulseWithPresetList;
                 pulseWithPresetList.push_back(pulseWithPresetComponent);
 
-                StrobeLampsLampGroupsWithStateList strobeWithStateList;
-                strobeWithStateList.push_back(strobeWithStateComponent);
-
-                StrobeLampsLampGroupsWithPresetList strobeWithPresetList;
-                strobeWithPresetList.push_back(strobeWithPresetComponent);
-
-                CycleLampsLampGroupsWithStateList cycleWithStateList;
-                cycleWithStateList.push_back(cycleWithStateComponent);
-
-                CycleLampsLampGroupsWithPresetList cycleWithPresetList;
-                cycleWithPresetList.push_back(cycleWithPresetComponent);
-
-                Scene scene(transitionToStateList, transitionToPresetList, pulseWithStateList, pulseWithPresetList, strobeWithStateList, strobeWithPresetList, cycleWithStateList, cycleWithPresetList);
+                Scene scene(transitionToStateList, transitionToPresetList, pulseWithStateList, pulseWithPresetList);
 
                 printf("\nInvoking CreateScene(%s)\n", scene.c_str());
                 status = sceneManager.CreateScene(scene);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "72") {
+            } else if (cmd == "63") {
                 String id = NextTok(line);
 
                 LSFStringList lampList;
@@ -1639,14 +1490,6 @@ int main()
                 PulseLampsLampGroupsWithState pulseWithStateComponent(lampList, lampGroupList, state, toState, period, duration, numPulses);
                 PulseLampsLampGroupsWithPreset pulseWithPresetComponent(lampList, lampGroupList, presetID, toPresetID, period, duration, numPulses);
 
-                uint32_t numStrobes = 25;
-                StrobeLampsLampGroupsWithState strobeWithStateComponent(lampList, lampGroupList, state, toState, period, numStrobes);
-                StrobeLampsLampGroupsWithPreset strobeWithPresetComponent(lampList, lampGroupList, presetID, toPresetID, period, numStrobes);
-
-                uint32_t numCycles = 10;
-                CycleLampsLampGroupsWithState cycleWithStateComponent(lampList, lampGroupList, state, toState, period, duration, numCycles);
-                CycleLampsLampGroupsWithPreset cycleWithPresetComponent(lampList, lampGroupList, presetID, toPresetID, period, duration, numCycles);
-
                 TransitionLampsLampGroupsToStateList transitionToStateList;
                 transitionToStateList.push_back(transitionToStateComponent);
 
@@ -1659,56 +1502,44 @@ int main()
                 PulseLampsLampGroupsWithPresetList pulseWithPresetList;
                 pulseWithPresetList.push_back(pulseWithPresetComponent);
 
-                StrobeLampsLampGroupsWithStateList strobeWithStateList;
-                strobeWithStateList.push_back(strobeWithStateComponent);
-
-                StrobeLampsLampGroupsWithPresetList strobeWithPresetList;
-                strobeWithPresetList.push_back(strobeWithPresetComponent);
-
-                CycleLampsLampGroupsWithStateList cycleWithStateList;
-                cycleWithStateList.push_back(cycleWithStateComponent);
-
-                CycleLampsLampGroupsWithPresetList cycleWithPresetList;
-                cycleWithPresetList.push_back(cycleWithPresetComponent);
-
-                Scene scene(transitionToStateList, transitionToPresetList, pulseWithStateList, pulseWithPresetList, strobeWithStateList, strobeWithPresetList, cycleWithStateList, cycleWithPresetList);
+                Scene scene(transitionToStateList, transitionToPresetList, pulseWithStateList, pulseWithPresetList);
 
                 printf("\nInvoking UpdateScene(%s, %s)\n", id.c_str(), scene.c_str());
                 status = sceneManager.UpdateScene(id.c_str(), scene);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "73") {
+            } else if (cmd == "64") {
                 String id = NextTok(line);
                 printf("\nInvoking DeleteScene(%s)\n", id.c_str());
                 status = sceneManager.DeleteScene(id.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "74") {
+            } else if (cmd == "65") {
                 String id = NextTok(line);
                 printf("\nInvoking GetScene(%s)\n", id.c_str());
                 status = sceneManager.GetScene(id.c_str());
                 waitForReply = true;
 #if 0
-            } else if (cmd == "75") {
+            } else if (cmd == "66") {
                 ApplyScene;
 #endif
-            } else if (cmd == "76") {
+            } else if (cmd == "67") {
                 printf("\nInvoking GetAllMasterSceneIDs()\n");
                 status = masterSceneManager.GetAllMasterSceneIDs();
                 waitForReply = true;
-            } else if (cmd == "77") {
+            } else if (cmd == "68") {
                 String id = NextTok(line);
                 printf("\nInvoking GetMasterSceneName(%s)\n", id.c_str());
                 status = masterSceneManager.GetMasterSceneName(id.c_str());
                 waitForReply = true;
-            } else if (cmd == "78") {
+            } else if (cmd == "69") {
                 String id = NextTok(line);
                 String name = NextTok(line);
                 printf("\nInvoking SetMasterSceneName(%s, %s)\n", id.c_str(), name.c_str());
                 status = masterSceneManager.SetMasterSceneName(id.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "79") {
+            } else if (cmd == "70") {
                 LSFStringList scenes;
                 scenes.push_back("abc");
                 scenes.push_back("xyz");
@@ -1717,7 +1548,7 @@ int main()
                 status = masterSceneManager.CreateMasterScene(group);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "80") {
+            } else if (cmd == "71") {
                 String id = NextTok(line);
                 LSFStringList scenes;
                 scenes.push_back("123");
@@ -1727,19 +1558,19 @@ int main()
                 status = masterSceneManager.UpdateMasterScene(id.c_str(), group);
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "81") {
+            } else if (cmd == "72") {
                 String id = NextTok(line);
                 printf("\nInvoking DeleteMasterScene(%s)\n", id.c_str());
                 status = masterSceneManager.DeleteMasterScene(id.c_str());
                 waitForReply = true;
                 waitForSignal = true;
-            } else if (cmd == "82") {
+            } else if (cmd == "73") {
                 String id = NextTok(line);
                 printf("\nInvoking GetMasterScene(%s)\n", id.c_str());
                 status = masterSceneManager.GetMasterScene(id.c_str());
                 waitForReply = true;
 #if 0
-            } else if (cmd == "83") {
+            } else if (cmd == "74") {
                 ApplyMasterScene;
 #endif
             } else if (cmd == "help") {

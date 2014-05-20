@@ -333,11 +333,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
             AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampState", lampManagerPtr, &LampManager::TransitionLampStateReply);
             AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampStateToPreset", lampManagerPtr, &LampManager::TransitionLampStateToPresetReply);
             AddMethodReplyWithResponseCodeAndIDHandler("PulseLampWithState", lampManagerPtr, &LampManager::PulseLampWithStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("StrobeLampWithState", lampManagerPtr, &LampManager::StrobeLampWithStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CycleLampWithState", lampManagerPtr, &LampManager::CycleLampWithStateReply);
             AddMethodReplyWithResponseCodeAndIDHandler("PulseLampWithPreset", lampManagerPtr, &LampManager::PulseLampWithPresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("StrobeLampWithPreset", lampManagerPtr, &LampManager::StrobeLampWithPresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CycleLampWithPreset", lampManagerPtr, &LampManager::CycleLampWithPresetReply);
         }
 
         if (lampGroupManagerPtr) {
@@ -361,11 +357,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
             AddMethodReplyWithResponseCodeAndIDHandler("DeleteLampGroup", lampGroupManagerPtr, &LampGroupManager::DeleteLampGroupReply);
 
             AddMethodReplyWithResponseCodeAndIDHandler("PulseLampGroupWithState", lampGroupManagerPtr, &LampGroupManager::PulseLampGroupWithStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("StrobeLampGroupWithState", lampGroupManagerPtr, &LampGroupManager::StrobeLampGroupWithStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CycleLampGroupWithState", lampGroupManagerPtr, &LampGroupManager::CycleLampGroupWithStateReply);
             AddMethodReplyWithResponseCodeAndIDHandler("PulseLampGroupWithPreset", lampGroupManagerPtr, &LampGroupManager::PulseLampGroupWithPresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("StrobeLampGroupWithPreset", lampGroupManagerPtr, &LampGroupManager::StrobeLampGroupWithPresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CycleLampGroupWithPreset", lampGroupManagerPtr, &LampGroupManager::CycleLampGroupWithPresetReply);
         }
 
         if (presetManagerPtr) {

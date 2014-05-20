@@ -66,7 +66,6 @@ static const char* const LSF_Interface[] = {
     "@LampServiceVersion>u",
     "?ClearLampFault LampFaultCode<u LampResponseCode>u LampFaultCode>u",
     "@LampFaults>au",
-    "@RemainingLife>u",
     NULL
 };
 
@@ -95,14 +94,14 @@ static const char* const LSF_Details_Interface[] = {
     "@Color>b",
     "@VariableColorTemp>b",
     "@HasEffects>b",
-    "@Voltage>u",
+    "@MinVoltage>u",
+    "@MaxVoltage>u",
     "@Wattage>u",
-    "@WattageEquivalent>u",
-    "@MaxOutput>u",
+    "@IncandescentEquivalent>u",
+    "@MaxLumens>u",
     "@MinTemperature>u",
     "@MaxTemperature>u",
     "@ColorRenderingIndex>u",
-    "@Lifespan>u",
     "@LampID>s",
     NULL
 };
@@ -114,8 +113,6 @@ static const char* const LSF_State_Interface[] = {
     "@Version>u",
     "?TransitionLampState Timestamp<t NewState<a{sv} TransitionPeriod<u LampResponseCode>u",
     "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u duration<u numPulses<u startTimeStamp<t LampResponseCode>u",
-    "?ApplyStrobeEffect FromState<a{sv} ToState<a{sv} period<u numStrobes<u startTimeStamp<t LampResponseCode>u",
-    "?ApplyCycleEffect LampStateA<a{sv} LampStateB<a{sv} period<u duration<u numCycles<u startTimeStamp<t LampResponseCode>u",
     "!LampStateChanged LampID>s",
     "@OnOff>b",
     "@Hue>u",
@@ -163,13 +160,12 @@ uint32_t LAMP_GetServiceVersion(void)
 #define LSF_PROP_LSF_VERSION        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 1)
 #define LSF_METHOD_CLEARLAMPFAULTS  AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 2)
 #define LSF_PROP_FAULTS             AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 3)
-#define LSF_PROP_REMAINING_LIFE     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 4)
 
 
 // Run-time Parameters
 #define LSF_PROP_PARAMS_VERSION    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 0)
-#define LSF_PROP_PARAMS_POWER_DRAW AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 1)
-#define LSF_PROP_PARAMS_OUTPUT       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 2)
+#define LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 1)
+#define LSF_PROP_PARAMS_BRIGHTNESS_LUMENS     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 2)
 
 
 // Compile-time Details
@@ -184,29 +180,26 @@ uint32_t LAMP_GetServiceVersion(void)
 #define LSF_PROP_DETAILS_COLOR          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 8)
 #define LSF_PROP_DETAILS_VARCOLORTEMP   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 9)
 #define LSF_PROP_DETAILS_HASEFFECTS     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 10)
-#define LSF_PROP_DETAILS_VOLTAGE        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 11)
-#define LSF_PROP_DETAILS_WATTAGE        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 12)
-#define LSF_PROP_DETAILS_WATTEQV        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 13)
-#define LSF_PROP_DETAILS_MAXOUTPUT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 14)
-#define LSF_PROP_DETAILS_MINTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 15)
-#define LSF_PROP_DETAILS_MAXTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 16)
-#define LSF_PROP_DETAILS_CRI            AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 17)
-#define LSF_PROP_DETAILS_LIFESPAN       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 18)
+#define LSF_PROP_DETAILS_MINVOLTAGE     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 11)
+#define LSF_PROP_DETAILS_MAXVOLTAGE     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 12)
+#define LSF_PROP_DETAILS_WATTAGE        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 13)
+#define LSF_PROP_DETAILS_INCANEQV       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 14)
+#define LSF_PROP_DETAILS_MAXLUMENS      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 15)
+#define LSF_PROP_DETAILS_MINTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 16)
+#define LSF_PROP_DETAILS_MAXTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 17)
+#define LSF_PROP_DETAILS_CRI            AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 18)
 #define LSF_PROP_DETAILS_LAMPID         AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 19)
 
 // Run-time Lamp State
 #define LSF_PROP_STATE_VERSION          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 0)
 #define LSF_METHOD_STATE_SETSTATE       AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 1)
 #define LSF_METHOD_APPLY_PULSE          AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 2)
-#define LSF_METHOD_APPLY_STROBE         AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 3)
-#define LSF_METHOD_APPLY_CYCLE          AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 4)
-
-#define LSF_SIGNAL_STATE_STATECHANGED   AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 5)
-#define LSF_PROP_STATE_ONOFF    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 6)
-#define LSF_PROP_STATE_HUE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 7)
-#define LSF_PROP_STATE_SAT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 8)
-#define LSF_PROP_STATE_TEMP     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 9)
-#define LSF_PROP_STATE_BRIGHT   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 10)
+#define LSF_SIGNAL_STATE_STATECHANGED   AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 3)
+#define LSF_PROP_STATE_ONOFF    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 4)
+#define LSF_PROP_STATE_HUE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 5)
+#define LSF_PROP_STATE_SAT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 6)
+#define LSF_PROP_STATE_TEMP     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 7)
+#define LSF_PROP_STATE_BRIGHT   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 8)
 
 static uint32_t MyBusAuthPwdCB(uint8_t* buf, uint32_t bufLen)
 {
@@ -234,33 +227,33 @@ void LAMP_ClearFaults()
  * limitations.  Those two messages are already used in the message handlers
  * for (1) the incoming message and (2) the reply.
  */
-
-static AJNS_DictionaryEntry NotificationTexts = { "LSF_FAULTS", "A fault has occured" };
-
 static void CheckForFaults(void)
 {
     static uint32_t FaultNotificationSerialNumber = 0;
-    AJNS_NotificationContent NotificationContent;
+
     // if new faults have occured, send a notification
-
-    NotificationContent.originalSenderName = AJ_GetUniqueName(&Bus);
-
-    NotificationContent.numTexts = 1;
-    NotificationContent.texts = &NotificationTexts;
-
-    if (FaultNotificationSerialNumber != 0 && !PendingFaultNotification) {
-        // turn OFF notification
-        AJNS_Producer_CancelNotification(&Bus, FaultNotificationSerialNumber);
-        FaultNotificationSerialNumber = 0;
-    } else if (FaultNotificationSerialNumber == 0 && PendingFaultNotification) {
+    if (PendingFaultNotification) {
         // turn ON notification
+        AJNS_NotificationContent NotificationContent;
+        AJNS_DictionaryEntry NotificationTexts;
         uint16_t messageType = AJNS_NOTIFICATION_MESSAGE_TYPE_WARNING;
         uint32_t ttl = AJNS_NOTIFICATION_TTL_MAX;
+        const char* notif_text = OEM_GetFaultsText();
+        memset(&NotificationContent, 0, sizeof(AJNS_NotificationContent));
 
-        // if we clear this now, the Notification will be pulled on the next
-        // pass through the event loop
-        //PendingFaultNotification = FALSE;
-        AJNS_Producer_SendNotification(&Bus, &NotificationContent, messageType, ttl, &FaultNotificationSerialNumber);
+        if (notif_text != NULL) {
+            NotificationTexts.key = "LSF_FAULTS";
+            NotificationTexts.value = notif_text;
+
+            NotificationContent.originalSenderName = AJ_GetUniqueName(&Bus);
+            NotificationContent.numTexts = 1;
+            NotificationContent.texts = &NotificationTexts;
+
+            // if we clear this now, the Notification will be pulled on the next
+            // pass through the event loop
+            PendingFaultNotification = FALSE;
+            AJNS_Producer_SendNotification(&Bus, &NotificationContent, messageType, ttl, &FaultNotificationSerialNumber);
+        }
     }
 }
 
@@ -617,54 +610,6 @@ static AJ_Status ApplyPulseEffect(AJ_Message* msg)
     return AJ_OK;
 }
 
-//"?ApplyStrobeEffect LFromState<a{sv} ToState<a{sv} period<u numStrobes<u startTimeStamp<t LampResponseCode>u",
-static AJ_Status ApplyStrobeEffect(AJ_Message* msg)
-{
-    LampResponseCode rc = LAMP_OK;
-    LampState FromState, ToState;
-    uint32_t period, numStrobes;
-    uint64_t startTimeStamp;
-
-    AJ_Message reply;
-    AJ_MarshalReplyMsg(msg, &reply);
-
-    LAMP_UnmarshalState(&FromState, msg);
-    LAMP_UnmarshalState(&ToState, msg);
-    AJ_UnmarshalArgs(msg, "uut", &period, &numStrobes, &startTimeStamp);
-
-    rc = OEM_ApplyStrobeEffect(&FromState, &ToState, period, numStrobes, startTimeStamp);
-
-    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
-    AJ_DeliverMsg(&reply);
-    AJ_CloseMsg(&reply);
-    return AJ_OK;
-}
-
-// OEM_ApplyCycleEffect(LampState* lampStateA, LampState* lampStateB, uint32_t period, uint32_t duration, uint32_t numCycles, uint64_t startTimeStamp);
-//"?ApplyCycleEffect LampStateA<a{sv} LampStateB<a{sv} period<u duration<u numCycles<u startTimeStamp<t LampResponseCode>u"
-static AJ_Status ApplyCycleEffect(AJ_Message* msg)
-{
-    LampResponseCode rc = LAMP_OK;
-    LampState LampStateA, LampStateB;
-    uint32_t period, duration, numCycles;
-    uint64_t startTimeStamp;
-
-    AJ_Message reply;
-    AJ_MarshalReplyMsg(msg, &reply);
-
-    LAMP_UnmarshalState(&LampStateA, msg);
-    LAMP_UnmarshalState(&LampStateB, msg);
-    AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numCycles, &startTimeStamp);
-
-    rc = OEM_ApplyCycleEffect(&LampStateA, &LampStateB, period, duration, numCycles, startTimeStamp);
-
-    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
-    AJ_DeliverMsg(&reply);
-    AJ_CloseMsg(&reply);
-    return AJ_OK;
-}
-
-
 static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
 {
     LampState state;
@@ -711,18 +656,14 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
             return AJ_OK;
         }
 
-    case LSF_PROP_REMAINING_LIFE:
-        return AJ_MarshalArgs(replyMsg, "u", OEM_GetRemainingLife());
-
-
     // run-time parameters
     case LSF_PROP_PARAMS_VERSION:
         return AJ_MarshalArgs(replyMsg, "u", LSF_Parameters_Interface_Version);
 
-    case LSF_PROP_PARAMS_POWER_DRAW:
+    case LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS:
         return AJ_MarshalArgs(replyMsg, "u", OEM_GetEnergyUsageMilliwatts());
 
-    case LSF_PROP_PARAMS_OUTPUT:
+    case LSF_PROP_PARAMS_BRIGHTNESS_LUMENS:
         return AJ_MarshalArgs(replyMsg, "u", OEM_GetBrightnessLumens());
 
 
@@ -760,17 +701,20 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
     case LSF_PROP_DETAILS_HASEFFECTS:
         return AJ_MarshalArgs(replyMsg, "b", (LampDetails.deviceHasEffects ? TRUE : FALSE));
 
-    case LSF_PROP_DETAILS_VOLTAGE:
-        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceVoltage);
+    case LSF_PROP_DETAILS_MINVOLTAGE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMinVoltage);
+
+    case LSF_PROP_DETAILS_MAXVOLTAGE:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxVoltage);
 
     case LSF_PROP_DETAILS_WATTAGE:
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceWattage);
 
-    case LSF_PROP_DETAILS_WATTEQV:
-        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceWattageEquivalent);
+    case LSF_PROP_DETAILS_INCANEQV:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceIncandescentEquivalent);
 
-    case LSF_PROP_DETAILS_MAXOUTPUT:
-        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxOutput);
+    case LSF_PROP_DETAILS_MAXLUMENS:
+        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxLumens);
 
     case LSF_PROP_DETAILS_MINTEMP:
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMinTemperature);
@@ -780,9 +724,6 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
 
     case LSF_PROP_DETAILS_CRI:
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceColorRenderingIndex);
-
-    case LSF_PROP_DETAILS_LIFESPAN:
-        return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceLifespan);
 
     case LSF_PROP_DETAILS_LAMPID:
         return AJ_MarshalArgs(replyMsg, "s", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID));
@@ -818,8 +759,6 @@ static AJ_Status GetAllProps(AJ_Message* msg)
     if (0 == strcmp(iface, LSF_Interface_Name)) {
         AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Interface_Version);
         AJ_MarshalArgs(&reply, "{sv}", "LampServiceVersion", "u", LAMP_GetServiceVersion());
-        AJ_MarshalArgs(&reply, "{sv}", "RemainingLife", "u", OEM_GetRemainingLife());
-
 
         // now add the lamp faults to the message
         {
@@ -876,16 +815,8 @@ static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status
         *status = TransitionLampState(msg);
         break;
 
-    case LSF_METHOD_APPLY_CYCLE:
-        *status = ApplyCycleEffect(msg);
-        break;
-
     case LSF_METHOD_APPLY_PULSE:
         *status = ApplyPulseEffect(msg);
-        break;
-
-    case LSF_METHOD_APPLY_STROBE:
-        *status = ApplyStrobeEffect(msg);
         break;
 
     default:

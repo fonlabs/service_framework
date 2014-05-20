@@ -82,6 +82,9 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
 
     AJ_DumpMsg("LAMP_UnmarshalState", msg, TRUE);
 
+    // initialize with current state so that missing fields will have values
+    memcpy(state, &TheLampState, sizeof(LampState));
+
     do {
         char* field;
         char* sig;
