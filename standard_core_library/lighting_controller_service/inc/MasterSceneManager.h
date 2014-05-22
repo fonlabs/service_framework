@@ -46,9 +46,9 @@ class MasterSceneManager : public Manager {
 
     void AddMasterScene(const LSFString& id, const std::string& name, const MasterScene& group);
 
-  private:
+    LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
 
-    typedef std::map<LSFString, std::pair<LSFString, MasterScene> > MasterSceneMap;
+  private:
 
     MasterSceneMap masterScenes;
     Mutex masterScenesLock;

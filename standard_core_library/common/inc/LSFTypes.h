@@ -41,6 +41,8 @@ typedef std::string LSFString;
 typedef std::list<LSFString> LSFStringList;
 typedef std::list<LampFaultCode> LampFaultCodeList;
 
+typedef std::map<LSFString, LSFString> LampNameMap;
+
 class LampState {
 
   public:
@@ -64,6 +66,11 @@ class LampState {
     bool nullState;
 
 };
+
+/*
+ * std::map<presetID, std::pair<presetName, LampState>>
+ */
+typedef std::map<LSFString, std::pair<LSFString, LampState> > PresetMap;
 
 class LampParameters {
 
@@ -103,8 +110,8 @@ class LampDetails {
     LampMake make;
     LampModel model;
     DeviceType type;
-    LampMake lampType;
-    uint32_t lampBaseType;
+    LampType lampType;
+    BaseType lampBaseType;
     uint32_t lampBeamAngle;
     bool dimmable;
     bool color;
@@ -146,6 +153,11 @@ class LampGroup {
     LSFStringList lamps;
     LSFStringList lampGroups;
 };
+
+/*
+ * std::map<lampGroupID, std::pair<lampGroupName, LampGroup>>
+ */
+typedef std::map<LSFString, std::pair<LSFString, LampGroup> > LampGroupMap;
 
 class TransitionLampsLampGroupsToState {
   public:
@@ -273,6 +285,11 @@ class Scene {
     PulseLampsLampGroupsWithPresetList pulseWithPresetComponent;
 };
 
+/*
+ * std::map<sceneID, std::pair<sceneName, Scene>>
+ */
+typedef std::map<LSFString, std::pair<LSFString, Scene> > SceneMap;
+
 class MasterScene {
   public:
     MasterScene();
@@ -293,6 +310,11 @@ class MasterScene {
 
     LSFStringList scenes;
 };
+
+/*
+ * std::map<masterSceneID, std::pair<masterSceneName, masterScene>>
+ */
+typedef std::map<LSFString, std::pair<LSFString, MasterScene> > MasterSceneMap;
 
 }
 

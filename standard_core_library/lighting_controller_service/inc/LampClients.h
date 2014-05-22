@@ -33,35 +33,10 @@
 
 namespace lsf {
 
-class LampClientsCallback {
-  public:
-    virtual ~LampClientsCallback() { }
-
-    virtual void ChangeLampStateReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode) = 0;
-    virtual void TransitionLampStateFieldReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode) = 0;
-
-    virtual void GetLampStateReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode) = 0;
-    virtual void GetLampStateFieldReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode) = 0;
-    virtual void GetLampDetailsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode) = 0;
-    virtual void GetLampParametersReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode) = 0;
-    virtual void GetLampParametersFieldReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode) = 0;
-
-    virtual void GetLampNameReplyCB(ajn::Message& origMsg, const char* name, LSFResponseCode responseCode) = 0;
-    virtual void GetLampManufacturerReplyCB(ajn::Message& origMsg, const char* manufacturer, LSFResponseCode responseCode) = 0;
-    virtual void GetLampSupportedLanguagesReplyCB(ajn::Message& origMsg, const ajn::MsgArg& arg, LSFResponseCode responseCode) = 0;
-    virtual void SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode) = 0;
-
-    virtual void GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode) = 0;
-    virtual void ClearLampFaultReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode, LampFaultCode code) = 0;
-
-    virtual void GetLampVersionReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode, uint32_t version) = 0;
-};
-
-
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener, public ajn::ProxyBusObject::Listener {
   public:
 
-    LampClients(ControllerService& controllerSvc, LampClientsCallback& callback);
+    LampClients(ControllerService& controllerSvc);
 
     ~LampClients();
 
@@ -262,6 +237,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     LSFResponseCode ClearLampFault(const LSFString& lampID, LampFaultCode faultCode, ajn::Message& inMsg);
 
+    LSFResponseCode GetAllLamps(LampNameMap& lamps);
+
   private:
 
 
@@ -271,82 +248,67 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     typedef std::list<ajn::ProxyBusObject> ObjectMap;
 
-    typedef void (LampClientsCallback::* CallbackMethod)(ajn::Message&, const ajn::MsgArg&, LSFResponseCode);
-
-    struct QueuedMethodCall {
-        typedef LSFResponseCode (LampClients::* MethodHandler)(QueuedMethodCall*);
-
-        QueuedMethodCall(const ajn::Message& msg, LSFString lampId, std::string intf, std::string methodName, MethodHandler handler, ajn::MessageReceiver::ReplyHandler replyHandler, CallbackMethod cb = NULL) :
-            inMsg(msg), interface(intf), method(methodName), handler(handler), replyFunc(replyHandler), callbackMethod(cb) {
-            lamps.clear();
-            lamps.push_back(lampId);
-            args.clear();
-            standardReplyArgs.clear();
-            customReplyArgs.clear();
+    struct ResponseCounter {
+        ResponseCounter() { }
+        ResponseCounter(uint32_t numLamps) :
+            total(numLamps)
+        {
+            numWaiting = numLamps;
+            successCount = 0;
+            failCount = 0;
+            notFoundCount = 0;
         }
 
-        QueuedMethodCall(const ajn::Message& msg, LSFStringList lampList, std::string intf, std::string methodName, MethodHandler handler, ajn::MessageReceiver::ReplyHandler replyHandler, CallbackMethod cb = NULL) :
-            inMsg(msg), interface(intf), method(methodName), handler(handler), replyFunc(replyHandler), callbackMethod(cb) {
-            lamps.clear();
-            lamps = lampList;
-            args.clear();
-            standardReplyArgs.clear();
-            customReplyArgs.clear();
-        }
-
-        ajn::Message inMsg;
-
-        LSFStringList lamps;
-
-        std::string interface;
-        std::string method;
-        std::vector<ajn::MsgArg> args;
-
-        MethodHandler handler;
-        ajn::MessageReceiver::ReplyHandler replyFunc;
-        CallbackMethod callbackMethod;
+        volatile int32_t numWaiting;
+        volatile uint32_t successCount;
+        volatile uint32_t failCount;
+        volatile uint32_t notFoundCount;
+        uint32_t total;
 
         std::list<ajn::MsgArg> standardReplyArgs;
         std::list<ajn::MsgArg> customReplyArgs;
     };
 
-    void SendMethodReply(LSFResponseCode responseCode, QueuedMethodCall* queuedMethodCall);
+    struct QueuedMethodCall {
+        typedef LSFResponseCode (LampClients::* MethodHandler)(QueuedMethodCall*);
+
+        QueuedMethodCall(const ajn::Message& msg, LSFString lampId, std::string intf, std::string methodName, MethodHandler handler, ajn::MessageReceiver::ReplyHandler replyHandler) :
+            inMsg(msg), interface(intf), method(methodName), handler(handler), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(1) {
+            lamps.clear();
+            lamps.push_back(lampId);
+            args.clear();
+        }
+
+        QueuedMethodCall(const ajn::Message& msg, LSFStringList lampList, std::string intf, std::string methodName, MethodHandler handler, ajn::MessageReceiver::ReplyHandler replyHandler) :
+            inMsg(msg), interface(intf), method(methodName), handler(handler), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(lampList.size()) {
+            lamps.clear();
+            lamps = lampList;
+            args.clear();
+        }
+
+        ajn::Message inMsg;
+        LSFStringList lamps;
+        std::string interface;
+        std::string method;
+        std::vector<ajn::MsgArg> args;
+        MethodHandler handler;
+        ajn::MessageReceiver::ReplyHandler replyFunc;
+        LSFString responseID;
+        ResponseCounter responseCounter;
+    };
+
+    void SendMethodReply(LSFResponseCode responseCode, ajn::Message msg, std::list<ajn::MsgArg>& stdArgs, std::list<ajn::MsgArg>& custArgs);
 
     LSFResponseCode DoMethodCallAsync(QueuedMethodCall* call);
 
     LSFResponseCode QueueLampMethod(QueuedMethodCall* queuedCall);
 
-    void DoSetLampMultipleReply(ajn::Message& msg, void* context);
-    void DoGetPropertiesReply(ajn::Message& msg, void* context);
-    void DoClearLampFaultReply(ajn::Message& msg, void* context);
-    void DoGetLampFaultsReply(ajn::Message& msg, void* context);
-    void DoGetLampVersionReply(ajn::Message& msg, void* context);
-    void GetConfigurationsReply(ajn::Message& msg, void* context);
-    void UpdateConfigurationsReply(ajn::Message& msg, void* context);
-    void GetAboutReply(ajn::Message& msg, void* context);
+    void HandleReplyWithLampResponseCode(ajn::Message& msg, void* context);
+    void HandleGetReply(ajn::Message& msg, void* context);
+    void HandleReplyWithVariant(ajn::Message& msg, void* context);
+    void HandleReplyWithKeyValuePairs(ajn::Message& msg, void* context);
 
-    struct ResponseCounter {
-        ResponseCounter(ajn::Message msg, LSFString* ctx, CallbackMethod cb, uint32_t numLamps) :
-            inMsg(msg), context(ctx), callbackMethod(cb), total(numLamps)
-        {
-            numWaiting = numLamps;
-            successCount = 0;
-            failCount = 0;
-        }
-
-        volatile int32_t numWaiting;
-
-        // could be updated from multiple threads
-        volatile int32_t successCount;
-        volatile int32_t failCount;
-
-        ajn::Message inMsg;
-        LSFString* context;
-        CallbackMethod callbackMethod;
-        uint32_t total;
-    };
-
-    void DecrementWaitingAndSendResponse(ResponseCounter* counter);
+    void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
 
     class QueueHandler;
     QueueHandler* queueHandler;
@@ -366,7 +328,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     LampMap activeLamps;
     Mutex lampLock;
 
-    typedef std::map<LSFString, ResponseCounter*> ResponseMap;
+    typedef std::map<LSFString, ResponseCounter> ResponseMap;
     ResponseMap responseMap;
     Mutex responseLock;
 
@@ -374,8 +336,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     ServiceHandler* serviceHandler;
 
     LSFKeyListener keyListener;
-
-    LampClientsCallback& callback;
 };
 
 }

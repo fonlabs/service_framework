@@ -49,9 +49,9 @@ class SceneManager : public Manager {
 
     void AddScene(const LSFString& id, const std::string& name, const Scene& scene);
 
-  private:
+    LSFResponseCode GetAllScenes(SceneMap& sceneMap);
 
-    typedef std::map<LSFString, std::pair<LSFString, Scene> > SceneMap;
+  private:
 
     SceneMap scenes;
     Mutex scenesLock;

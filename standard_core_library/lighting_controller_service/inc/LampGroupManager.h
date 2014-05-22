@@ -31,6 +31,7 @@ class SceneManager;
 class LampGroupManager : public Manager {
 
   public:
+
     LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName, SceneManager* sceneMgrPtr);
 
     LSFResponseCode Reset(void);
@@ -65,6 +66,8 @@ class LampGroupManager : public Manager {
 
     void AddLampGroup(const LSFString& id, const std::string& name, const LampGroup& group);
 
+    LSFResponseCode GetAllLampGroups(LampGroupMap& lampGroupMap);
+
   protected:
 
 
@@ -73,8 +76,6 @@ class LampGroupManager : public Manager {
     typedef std::map<LSFString, bool> VisitedMap;
     bool IsGroupValid(const LampGroup& group) const;
     bool IsGroupValidHelper(const LSFString& id, VisitedMap& visited, VisitedMap& callStack) const;
-
-    typedef std::map<LSFString, std::pair<LSFString, LampGroup> > LampGroupMap;
 
     LampGroupMap lampGroups;
     Mutex lampGroupsLock;

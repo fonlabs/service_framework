@@ -31,7 +31,7 @@ using namespace ajn;
 #define QCC_MODULE "LAMP_MANAGER"
 
 LampManager::LampManager(ControllerService& controllerSvc, PresetManager& presetMgr, const char* ifaceName)
-    : Manager(controllerSvc), lampClients(controllerSvc, *this), presetManager(presetMgr), interfaceName(ifaceName)
+    : Manager(controllerSvc), lampClients(controllerSvc), presetManager(presetMgr), interfaceName(ifaceName)
 {
 
 }
@@ -89,34 +89,6 @@ void LampManager::GetLampFaults(ajn::Message& message)
     lampClients.GetLampFaults(lampID, message);
 }
 
-void LampManager::GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[3];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2] = replyMsg;
-
-    controllerService.SendMethodReply(origMsg, replyArgs, 3);
-}
-
-void LampManager::GetLampVersionReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode, uint32_t version)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[3];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2].Set("u", version);
-
-    controllerService.SendMethodReply(origMsg, replyArgs, 3);
-}
-
 void LampManager::ClearLampFault(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
@@ -128,20 +100,6 @@ void LampManager::ClearLampFault(ajn::Message& message)
     QCC_DbgPrintf(("lampID=%s faultCode=%d", lampID.c_str(), faultCode));
 
     lampClients.ClearLampFault(lampID, faultCode, message);
-}
-
-void LampManager::ClearLampFaultReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode, LampFaultCode code)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[3];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0]; // id
-    replyArgs[2].Set("u", code);
-
-    controllerService.SendMethodReply(origMsg, replyArgs, 3);
 }
 
 void LampManager::GetLampServiceVersion(ajn::Message& message)
@@ -168,19 +126,6 @@ void LampManager::GetLampSupportedLanguages(Message& message)
     lampClients.GetLampSupportedLanguages(lampID, message);
 }
 
-void LampManager::GetLampSupportedLanguagesReplyCB(ajn::Message& origMsg, const MsgArg& arg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg outArgs[3];
-    outArgs[0].Set("u", responseCode);
-    outArgs[1] = args[0]; // lamp id
-    outArgs[2] = arg;
-    controllerService.SendMethodReply(origMsg, outArgs, 3);
-}
-
 void LampManager::GetLampManufacturer(Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
@@ -192,21 +137,6 @@ void LampManager::GetLampManufacturer(Message& message)
     QCC_DbgPrintf(("lampID=%s language=%s", lampID.c_str(), language.c_str()));
 
     lampClients.GetLampManufacturer(lampID, language, message);
-}
-
-void LampManager::GetLampManufacturerReplyCB(ajn::Message& origMsg, const char* manufacturer, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg outArgs[4];
-    outArgs[0].Set("u", responseCode);
-    outArgs[1] = args[0]; // lamp id
-    outArgs[2] = args[1];
-    outArgs[3].Set("s", manufacturer ? manufacturer : "");
-
-    controllerService.SendMethodReply(origMsg, outArgs, 4);
 }
 
 void LampManager::GetLampName(Message& message)
@@ -221,21 +151,6 @@ void LampManager::GetLampName(Message& message)
     QCC_DbgPrintf(("lampID=%s language=%s", lampID.c_str(), language.c_str()));
 
     lampClients.GetLampName(lampID, language, message);
-}
-
-void LampManager::GetLampNameReplyCB(ajn::Message& origMsg, const char* name, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg outArgs[4];
-    outArgs[0].Set("u", responseCode);
-    outArgs[1] = args[0]; // lamp id
-    outArgs[2] = args[1];
-    outArgs[3].Set("s", name ? name : "");
-
-    controllerService.SendMethodReply(origMsg, outArgs, 4);
 }
 
 void LampManager::SetLampName(ajn::Message& message)
@@ -253,22 +168,6 @@ void LampManager::SetLampName(ajn::Message& message)
     lampClients.SetLampName(lampID, lampName, language, message);
 }
 
-void LampManager::SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg outArgs[3];
-    outArgs[0].Set("u", responseCode);
-    outArgs[1] = args[0]; // lamp id
-    outArgs[2] = args[2];
-
-    QCC_DbgPrintf(("Reply with %s\n", MsgArg::ToString(outArgs, 3).c_str()));
-
-    controllerService.SendMethodReply(origMsg, outArgs, 3);
-}
-
 void LampManager::GetLampDetails(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
@@ -279,20 +178,6 @@ void LampManager::GetLampDetails(ajn::Message& message)
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
     lampClients.GetLampDetails(lampID, message);
-}
-
-void LampManager::GetLampDetailsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[3];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2] = replyMsg;
-
-    controllerService.SendMethodReply(origMsg, replyArgs, 3);
 }
 
 void LampManager::GetLampParameters(ajn::Message& message)
@@ -308,20 +193,6 @@ void LampManager::GetLampParameters(ajn::Message& message)
     lampClients.GetLampParameters(lampID, message);
 }
 
-void LampManager::GetLampParametersReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[3];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2] = replyMsg;
-
-    controllerService.SendMethodReply(origMsg, replyArgs, 3);
-}
-
 void LampManager::GetLampParametersField(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
@@ -333,20 +204,6 @@ void LampManager::GetLampParametersField(ajn::Message& message)
     QCC_DbgPrintf(("lampID=%s fieldName=%s", lampID.c_str(), fieldName.c_str()));
 
     lampClients.GetLampParametersField(lampID, fieldName, message);
-}
-
-void LampManager::GetLampParametersFieldReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[4];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2] = args[1];
-    replyArgs[3] = replyMsg;
-    controllerService.SendMethodReply(origMsg, replyArgs, 4);
 }
 
 void LampManager::GetLampState(ajn::Message& message)
@@ -361,20 +218,6 @@ void LampManager::GetLampState(ajn::Message& message)
     lampClients.GetLampState(lampID, message);
 }
 
-void LampManager::GetLampStateReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[3];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2] = replyMsg;
-
-    controllerService.SendMethodReply(origMsg, replyArgs, 3);
-}
-
 void LampManager::GetLampStateField(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
@@ -386,20 +229,6 @@ void LampManager::GetLampStateField(ajn::Message& message)
     QCC_DbgPrintf(("lampID=%s fieldName=%s", lampID.c_str(), fieldName.c_str()));
 
     lampClients.GetLampStateField(lampID, fieldName, message);
-}
-
-void LampManager::GetLampStateFieldReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[4];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2] = args[1];
-    replyArgs[3] = replyMsg;
-    controllerService.SendMethodReply(origMsg, replyArgs, 4);
 }
 
 void LampManager::TransitionLampStateToPreset(Message& message)
@@ -565,19 +394,6 @@ LSFResponseCode LampManager::TransitionLampStateAndFieldInternal(ajn::Message& m
     return responseCode;
 }
 
-void LampManager::TransitionLampStateFieldReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-    MsgArg replyArgs[3];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    replyArgs[2] = args[1];
-    controllerService.SendMethodReply(origMsg, replyArgs, 3);
-}
-
 void LampManager::TransitionLampState(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
@@ -653,17 +469,4 @@ void LampManager::PulseLampWithPreset(ajn::Message& message)
     if (LSF_OK != responseCode) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
     }
-}
-
-void LampManager::ChangeLampStateReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode)
-{
-    size_t numArgs;
-    const MsgArg* args;
-    origMsg->GetArgs(numArgs, args);
-
-
-    MsgArg replyArgs[2];
-    replyArgs[0].Set("u", responseCode);
-    replyArgs[1] = args[0];
-    controllerService.SendMethodReply(origMsg, replyArgs, 2);
 }

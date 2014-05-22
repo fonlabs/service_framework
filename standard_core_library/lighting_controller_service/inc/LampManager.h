@@ -27,7 +27,7 @@
 
 namespace lsf {
 
-class LampManager : public Manager, public LampClientsCallback {
+class LampManager : public Manager {
   public:
 
     LampManager(ControllerService& controllerSvc, PresetManager& presetMgr, const char* ifaceName);
@@ -56,6 +56,10 @@ class LampManager : public Manager, public LampClientsCallback {
      * @param message   The params
      */
     void GetAllLampIDs(ajn::Message& message);
+
+    LSFResponseCode GetAllLamps(LampNameMap& lamps) {
+        return lampClients.GetAllLamps(lamps);
+    }
 
     /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampFaults
@@ -189,24 +193,6 @@ class LampManager : public Manager, public LampClientsCallback {
      * @param message   The params
      */
     void ResetLampStateField(ajn::Message& message);
-
-    void ChangeLampStateReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode);
-    void TransitionLampStateFieldReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode);
-
-    void GetLampStateReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode);
-    void GetLampStateFieldReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode);
-    void GetLampDetailsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode);
-    void GetLampParametersReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode);
-    void GetLampParametersFieldReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode);
-    void GetLampNameReplyCB(ajn::Message& origMsg, const char* name, LSFResponseCode responseCode);
-    void GetLampManufacturerReplyCB(ajn::Message& origMsg, const char* manufacturer, LSFResponseCode responseCode);
-    void SetLampNameReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode);
-    void GetLampSupportedLanguagesReplyCB(ajn::Message& origMsg, const ajn::MsgArg& arg, LSFResponseCode responseCode);
-    void GetLampFaultsReplyCB(ajn::Message& origMsg, const ajn::MsgArg& replyMsg, LSFResponseCode responseCode);
-
-    void GetLampVersionReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode, uint32_t version);
-
-    void ClearLampFaultReplyCB(ajn::Message& origMsg, LSFResponseCode responseCode, LampFaultCode code);
 
   private:
 

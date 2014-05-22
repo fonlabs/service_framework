@@ -24,6 +24,8 @@
 
 static volatile sig_atomic_t g_interrupt = false;
 
+static lsf::ControllerServiceManager* controllerSvcManagerPtr = NULL;
+
 static void SigIntHandler(int sig)
 {
     g_interrupt = true;
@@ -40,13 +42,17 @@ int main(int argc, char** argv)
 {
     signal(SIGINT, SigIntHandler);
 
-    lsf::ControllerService controllerSvc;
+    lsf::ControllerServiceManager controllerSvcManager;
 
-    controllerSvc.Start();
+    controllerSvcManagerPtr = &controllerSvcManager;
+
+    controllerSvcManager.Start();
 
     while (g_interrupt == false) {
         lsf_Sleep(1000);
     }
 
-    controllerSvc.Stop();
+    controllerSvcManager.Stop();
+
+    controllerSvcManagerPtr = NULL;
 }

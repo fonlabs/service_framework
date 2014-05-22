@@ -29,6 +29,25 @@ MasterSceneManager::MasterSceneManager(ControllerService& controllerSvc, SceneMa
 
 }
 
+LSFResponseCode MasterSceneManager::GetAllMasterScenes(MasterSceneMap& masterSceneMap)
+{
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = masterScenesLock.Lock();
+    if (ER_OK == status) {
+        masterSceneMap = masterScenes;
+        status = masterScenesLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+    }
+
+    return responseCode;
+}
+
 LSFResponseCode MasterSceneManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));

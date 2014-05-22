@@ -30,6 +30,25 @@ PresetManager::PresetManager(ControllerService& controllerSvc, const char* iface
     defaultLampState = { false, 0x100, 0x100, 0x100, 0x100 };
 }
 
+LSFResponseCode PresetManager::GetAllPresets(PresetMap& presetMap)
+{
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = presetsLock.Lock();
+    if (ER_OK == status) {
+        presetMap = presets;
+        status = presetsLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: presetsLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: presetsLock.Lock() failed", __FUNCTION__));
+    }
+
+    return responseCode;
+}
+
 LSFResponseCode PresetManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));

@@ -52,6 +52,7 @@ namespace lsf {
  * passes it on to AllJoyn
  */
 class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener {
+    friend class ControllerServiceManager;
   public:
 
     /**
@@ -87,6 +88,12 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * @return reference to the AllJoyn BusAttachment
      */
     ajn::BusAttachment& GetBusAttachment(void) { return bus; }
+
+    LampManager& GetLampManager(void) { return lampManager; };
+    LampGroupManager& GetLampGroupManager(void) { return lampGroupManager; };
+    PresetManager& GetPresetManager(void) { return presetManager; };
+    SceneManager& GetSceneManager(void) { return sceneManager; };
+    MasterSceneManager& GetMasterSceneManager(void) { return masterSceneManager; };
 
     void SendMethodReply(const ajn::Message& msg, const ajn::MsgArg* args = NULL, size_t numArgs = 0);
 
@@ -136,11 +143,12 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     ajn::services::AboutPropertyStoreImpl propertyStore;
     ajn::services::AboutServiceApi* aboutService;
     ajn::services::ConfigService configService;
+    ajn::services::NotificationSender* notificationSender;
 
     // Interface for ajn::services::ConfigService::Listener
-    virtual QStatus Restart();
-    virtual QStatus FactoryReset();
-    virtual QStatus SetPassphrase(const char* daemonRealm, size_t passcodeSize, const char* passcode, ajn::SessionId sessionId);
+    QStatus Restart();
+    QStatus FactoryReset();
+    QStatus SetPassphrase(const char* daemonRealm, size_t passcodeSize, const char* passcode, ajn::SessionId sessionId);
 
     void MethodCallDispatcher(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
@@ -188,6 +196,42 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     typedef std::map<std::string, MethodHandlerBase*> DispatcherMap;
     DispatcherMap messageHandlers;
+};
+
+class ControllerServiceManager {
+  public:
+    ControllerServiceManager() :
+        controllerService() {
+
+    }
+
+    ~ControllerServiceManager() {
+
+    }
+    /**
+     * Starts the ControllerService
+     *
+     * @param  None
+     * @return ER_OK if successful, error otherwise
+     */
+    QStatus Start(void) {
+        return controllerService.Start();
+    }
+
+    /**
+     * Stops the ControllerService
+     *
+     * @param  None
+     * @return ER_OK if successful, error otherwise
+     */
+    QStatus Stop(void) {
+        return controllerService.Stop();
+    }
+
+    ControllerService& GetControllerService(void) { return controllerService; };
+
+  private:
+    ControllerService controllerService;
 };
 
 

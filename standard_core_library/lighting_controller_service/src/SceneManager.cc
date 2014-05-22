@@ -30,6 +30,25 @@ SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& l
 {
 }
 
+LSFResponseCode SceneManager::GetAllScenes(SceneMap& sceneMap)
+{
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = scenesLock.Lock();
+    if (ER_OK == status) {
+        sceneMap = scenes;
+        status = scenesLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: scenesLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: scenesLock.Lock() failed", __FUNCTION__));
+    }
+
+    return responseCode;
+}
+
 LSFResponseCode SceneManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));

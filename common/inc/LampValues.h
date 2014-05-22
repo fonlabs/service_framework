@@ -127,7 +127,6 @@ typedef enum {
     LAMPTYPE_S11,
     LAMPTYPE_S14,
     LAMPTYPE_ST18,
-
 } LampType;
 
 typedef enum {

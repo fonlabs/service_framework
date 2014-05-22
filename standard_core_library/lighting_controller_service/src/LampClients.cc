@@ -113,12 +113,32 @@ LSFResponseCode LampClients::GetAllLampIDs(LSFStringList& lamps)
     return LSF_OK;
 }
 
-LampClients::LampClients(ControllerService& controllerSvc, LampClientsCallback& callback)
+LSFResponseCode LampClients::GetAllLamps(LampNameMap& lamps)
+{
+    lamps.clear();
+    QStatus status = lampLock.Lock();
+    if (ER_OK != status) {
+        QCC_LogError(ER_FAIL, ("%s: Failed to lock mutex", __FUNCTION__));
+        return LSF_ERR_BUSY;
+    }
+
+    for (LampMap::const_iterator it = activeLamps.begin(); it != activeLamps.end(); ++it) {
+        lamps.insert(std::make_pair(it->first, it->second->name));
+    }
+
+    status = lampLock.Unlock();
+    if (ER_OK != status) {
+        QCC_LogError(ER_FAIL, ("%s: Failed to unlock mutex", __FUNCTION__));
+    }
+
+    return LSF_OK;
+}
+
+LampClients::LampClients(ControllerService& controllerSvc)
     : Manager(controllerSvc),
     queueHandler(new QueueHandler(*this)),
     methodQueue(*queueHandler),
-    serviceHandler(new ServiceHandler(*this)),
-    callback(callback)
+    serviceHandler(new ServiceHandler(*this))
 {
     keyListener.SetPassCode(INITIAL_PASSCODE);
 }
@@ -250,25 +270,25 @@ void LampClients::SessionLost(SessionId sessionId, SessionLostReason reason)
 // TODO: Add processing
 }
 
-void LampClients::SendMethodReply(LSFResponseCode responseCode, QueuedMethodCall* queuedMethodCall)
+void LampClients::SendMethodReply(LSFResponseCode responseCode, ajn::Message msg, std::list<ajn::MsgArg>& stdArgs, std::list<ajn::MsgArg>& custArgs)
 {
-    size_t numArgs = queuedMethodCall->standardReplyArgs.size() + queuedMethodCall->customReplyArgs.size() + 1;
+    size_t numArgs = stdArgs.size() + custArgs.size() + 1;
     QCC_DbgPrintf(("%s: NumArgs = %d", __FUNCTION__, numArgs));
     MsgArg* args = new MsgArg[numArgs];
     if (args) {
         args[0] = MsgArg("u", responseCode);
         uint8_t index = 1;
-        while (queuedMethodCall->standardReplyArgs.size()) {
-            args[index] = queuedMethodCall->standardReplyArgs.front();
-            queuedMethodCall->standardReplyArgs.pop_front();
+        while (stdArgs.size()) {
+            args[index] = stdArgs.front();
+            stdArgs.pop_front();
             index++;
         }
-        while (queuedMethodCall->customReplyArgs.size()) {
-            args[index] = queuedMethodCall->customReplyArgs.front();
-            queuedMethodCall->customReplyArgs.pop_front();
+        while (custArgs.size()) {
+            args[index] = custArgs.front();
+            custArgs.pop_front();
             index++;
         }
-        controllerService.SendMethodReply(queuedMethodCall->inMsg, args, numArgs);
+        controllerService.SendMethodReply(msg, args, numArgs);
     } else {
         QCC_LogError(ER_OUT_OF_MEMORY, ("%s: Failed to allocate enough memory", __FUNCTION__));
     }
@@ -283,8 +303,13 @@ LSFResponseCode LampClients::QueueLampMethod(QueuedMethodCall* queuedCall)
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to add to queue", __FUNCTION__));
         responseCode = LSF_ERR_BUSY;
-        SendMethodReply(responseCode, queuedCall);
+        SendMethodReply(responseCode, queuedCall->inMsg, queuedCall->responseCounter.standardReplyArgs, queuedCall->responseCounter.customReplyArgs);
         delete queuedCall;
+    } else {
+        QCC_DbgPrintf(("%s: Adding response counter with ID=%s to response map", __FUNCTION__, queuedCall->responseID.c_str()));
+        responseLock.Lock();
+        responseMap.insert(std::make_pair(queuedCall->responseID, queuedCall->responseCounter));
+        responseLock.Unlock();
     }
 
     return responseCode;
@@ -295,26 +320,23 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
     QCC_DbgPrintf(("%s", __FUNCTION__));
     LSFResponseCode responseCode = LSF_OK;
 
-    LSFString responseID = GenerateUniqueID("RESPONSE");
-    LSFString* context = new LSFString(responseID);
-    ResponseCounter* response = new ResponseCounter(queuedCall->inMsg, context, queuedCall->callbackMethod, queuedCall->lamps.size());
+    uint32_t notFound = 0;
 
-    responseLock.Lock();
-    responseMap.insert(std::make_pair(responseID, response));
-    responseLock.Unlock();
+    LSFStringList lamps = queuedCall->lamps;
 
     QStatus status = lampLock.Lock();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Error acquiring mutex", __FUNCTION__));
         responseCode = LSF_ERR_BUSY;
-        delete queuedCall;
+        //TODO: Make this waiting block
+        DecrementWaitingAndSendResponse(queuedCall, 0, queuedCall->lamps.size(), 0);
         return responseCode;
     }
 
-    QCC_DbgPrintf(("%s: Acquired lock. Args size=%d Num Lamps=%d", __FUNCTION__, queuedCall->args.size(), queuedCall->lamps.size()));
-    for (LSFStringList::const_iterator it = queuedCall->lamps.begin(); it != queuedCall->lamps.end(); it++) {
+    QCC_DbgPrintf(("%s: Acquired lock. Args size=%d Num Lamps=%d", __FUNCTION__, queuedCall->args.size(), lamps.size()));
+    for (LSFStringList::const_iterator it = lamps.begin(); it != lamps.end(); it++) {
         QCC_DbgPrintf(("%s: Processing for LampID=%s", __FUNCTION__, (*it).c_str()));
-        LampMap::iterator lit = activeLamps.find(queuedCall->lamps.front());
+        LampMap::iterator lit = activeLamps.find(*it);
         if (lit != activeLamps.end()) {
             QCC_DbgPrintf(("%s: Found Lamp", __FUNCTION__));
             if (0 == strcmp(queuedCall->interface.c_str(), CONFIG_INTERFACE_NAME)) {
@@ -326,7 +348,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                     queuedCall->replyFunc,
                     &queuedCall->args[0],
                     queuedCall->args.size(),
-                    context
+                    queuedCall
                     );
             } else if (0 == strcmp(queuedCall->interface.c_str(), ABOUT_INTERFACE_NAME)) {
                 QCC_DbgPrintf(("%s: About Call", __FUNCTION__));
@@ -337,7 +359,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                     queuedCall->replyFunc,
                     &queuedCall->args[0],
                     queuedCall->args.size(),
-                    context
+                    queuedCall
                     );
             } else {
                 QCC_DbgPrintf(("%s: LampService Call", __FUNCTION__));
@@ -348,7 +370,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                     queuedCall->replyFunc,
                     &queuedCall->args[0],
                     queuedCall->args.size(),
-                    context
+                    queuedCall
                     );
             }
 
@@ -356,85 +378,88 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                 QCC_LogError(status, ("%s: MethodCallAsync failed", __FUNCTION__));
             }
         } else {
-            //TODO
+            notFound++;
         }
     }
-
     lampLock.Unlock();
 
-    delete queuedCall;
+    if (notFound) {
+        DecrementWaitingAndSendResponse(queuedCall, 0, 0, notFound);
+    }
 
     return responseCode;
 }
 
 LSFResponseCode LampClients::GetLampState(const LSFString& lampID, Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoGetPropertiesReply), &LampClientsCallback::GetLampStateReplyCB);
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
     queuedCall->args.push_back(MsgArg("s", "org.allseen.LSF.LampState"));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("a{sv}", 0, NULL));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("a{sv}", 0, NULL));
     return QueueLampMethod(queuedCall);
 }
 
 LSFResponseCode LampClients::GetLampStateField(const LSFString& lampID, const LSFString& field, Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoGetPropertiesReply), &LampClientsCallback::GetLampStateFieldReplyCB);
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
     queuedCall->args.push_back(MsgArg("s", "org.allseen.LSF.LampState"));
     queuedCall->args.push_back(MsgArg("s", field.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", field.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", field.c_str()));
     MsgArg arg("u", 0);
-    queuedCall->customReplyArgs.push_back(MsgArg("v", &arg));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("v", &arg));
     return QueueLampMethod(queuedCall);
 }
 
 LSFResponseCode LampClients::GetLampDetails(const LSFString& lampID, Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoGetPropertiesReply), &LampClientsCallback::GetLampDetailsReplyCB);
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
     queuedCall->args.push_back(MsgArg("s", "org.allseen.LSF.LampDetails"));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("a{sv}", 0, NULL));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("a{sv}", 0, NULL));
     return QueueLampMethod(queuedCall);
 }
 
 LSFResponseCode LampClients::GetLampParameters(const LSFString& lampID, Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoGetPropertiesReply), &LampClientsCallback::GetLampParametersReplyCB);
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
     queuedCall->args.push_back(MsgArg("s", "org.allseen.LSF.LampParameters"));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("a{sv}", 0, NULL));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("a{sv}", 0, NULL));
     return QueueLampMethod(queuedCall);
 }
 
 LSFResponseCode LampClients::GetLampParametersField(const LSFString& lampID, const LSFString& field, Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoGetPropertiesReply), &LampClientsCallback::GetLampParametersFieldReplyCB);
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
     queuedCall->args.push_back(MsgArg("s", "org.allseen.LSF.LampParameters"));
     queuedCall->args.push_back(MsgArg("s", field.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", field.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", field.c_str()));
     MsgArg arg("u", 0);
-    queuedCall->customReplyArgs.push_back(MsgArg("v", &arg));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("v", &arg));
     return QueueLampMethod(queuedCall);
 }
 
-void LampClients::DoGetPropertiesReply(ajn::Message& message, void* context)
+void LampClients::HandleGetReply(ajn::Message& message, void* context)
 {
     QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    LSFString* responseID = static_cast<LSFString*>(context);
+    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
 
-    size_t numArgs;
-    const MsgArg* args;
-    message->GetArgs(numArgs, args);
+    if (MESSAGE_METHOD_RET == message->GetType()) {
+        size_t numArgs;
+        const MsgArg* args;
+        message->GetArgs(numArgs, args);
 
-    responseLock.Lock();
-    if (responseMap[*responseID]->callbackMethod) {
-        LampClients::CallbackMethod cb = responseMap[*responseID]->callbackMethod;
-        (callback.*cb)(responseMap[*responseID]->inMsg, args[0], LSF_OK);
+        if (numArgs == 0) {
+            DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0);
+        } else {
+            DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, args);
+        }
+    } else {
+        DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
 }
 
 LSFResponseCode LampClients::TransitionLampStateField(
@@ -445,7 +470,7 @@ LSFResponseCode LampClients::TransitionLampStateField(
     const ajn::MsgArg& value,
     uint32_t period)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lamps, "org.allseen.LSF.LampState", "TransitionLampState", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoSetLampMultipleReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lamps, "org.allseen.LSF.LampState", "TransitionLampState", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
 
     MsgArg* arrayVals = new MsgArg[1];
     arrayVals[0].Set("{sv}", strdup(field), new MsgArg(value));
@@ -456,8 +481,9 @@ LSFResponseCode LampClients::TransitionLampStateField(
     queuedCall->args.push_back(MsgArg("u", period));
 
     //TODO: Fix for Lamp Groups
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", field));
+    LSFString lamp = lamps.front();
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lamp.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", field));
 
     return QueueLampMethod(queuedCall);
 }
@@ -472,7 +498,7 @@ LSFResponseCode LampClients::PulseLampWithState(
     uint32_t numPulses,
     uint64_t stateTimestamp)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lamps, "org.allseen.LSF.LampState", "ApplyPulseEffect", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoSetLampMultipleReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lamps, "org.allseen.LSF.LampState", "ApplyPulseEffect", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
 
     queuedCall->args.resize(6);
     queuedCall->args[0] = oldState;
@@ -483,14 +509,14 @@ LSFResponseCode LampClients::PulseLampWithState(
     queuedCall->args[5] = MsgArg("t", stateTimestamp);
 
     //TODO: Fix for Lamp Groups
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
 
     return QueueLampMethod(queuedCall);
 }
 
 LSFResponseCode LampClients::TransitionLampState(const Message& inMsg, const LSFStringList& lamps, uint64_t stateTimestamp, const MsgArg& state, uint32_t period)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lamps, "org.allseen.LSF.LampState", "TransitionLampState", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoSetLampMultipleReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lamps, "org.allseen.LSF.LampState", "TransitionLampState", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
 
     queuedCall->args.resize(3);
     queuedCall->args[0] = MsgArg("t", stateTimestamp);
@@ -498,35 +524,62 @@ LSFResponseCode LampClients::TransitionLampState(const Message& inMsg, const LSF
     queuedCall->args[2] = MsgArg("u", period);
 
     //TODO: Fix for Lamp Groups
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
 
     return QueueLampMethod(queuedCall);
 }
 
-void LampClients::DecrementWaitingAndSendResponse(ResponseCounter* counter)
+void LampClients::DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg)
 {
-    if (qcc::DecrementAndFetch(&counter->numWaiting) == 0) {
-        LSFResponseCode responseCode;
-        if (counter->successCount == 0) {
-            responseCode = LSF_ERR_FAILURE;
-        } else if (counter->failCount != 0) {
-            responseCode = LSF_ERR_PARTIAL;
-        } else {
-            responseCode = LSF_OK;
+    QCC_DbgPrintf(("%s: responseID=%s ", __FUNCTION__, queuedCall->responseID.c_str()));
+    LSFResponseCode responseCode = LSF_ERR_UNEXPECTED;
+    ResponseCounter responseCounter;
+    bool sendResponse = false;
+
+    responseLock.Lock();
+
+    ResponseMap::iterator it = responseMap.find(queuedCall->responseID);
+
+    if (it != responseMap.end()) {
+        it->second.notFoundCount += notFound;
+        it->second.numWaiting -= notFound;
+        it->second.successCount += success;
+        it->second.numWaiting -= success;
+        it->second.failCount += failure;
+        it->second.numWaiting -= failure;
+
+        if (arg) {
+            it->second.customReplyArgs.clear();
+            it->second.customReplyArgs.push_back(arg[0]);
         }
 
-        if ((0 == strcmp(counter->inMsg->GetMemberName(), "TransitionLampStateField")) ||
-            (0 == strcmp(counter->inMsg->GetMemberName(), "TransitionLampGroupStateField"))) {
-            callback.TransitionLampStateFieldReplyCB(counter->inMsg, responseCode);
-        } else {
-            callback.ChangeLampStateReplyCB(counter->inMsg, responseCode);
-        }
+        if (it->second.numWaiting == 0) {
+            if (it->second.notFoundCount == it->second.total) {
+                responseCode = LSF_ERR_NOT_FOUND;
+            } else if (it->second.successCount == it->second.total) {
+                responseCode = LSF_OK;
+            } else if (it->second.failCount == it->second.total) {
+                responseCode = LSF_ERR_FAILURE;
+            } else if ((it->second.notFoundCount + it->second.successCount + it->second.failCount) == it->second.total) {
+                responseCode = LSF_ERR_PARTIAL;
+            }
 
-        delete counter;
+            responseCounter = it->second;
+            responseMap.erase(it);
+            sendResponse = true;
+        }
+    } else {
+        QCC_LogError(ER_FAIL, ("%s: Response map entry not found for response ID = %s", __FUNCTION__, queuedCall->responseID.c_str()));
+    }
+    responseLock.Unlock();
+
+    if (sendResponse) {
+        SendMethodReply(responseCode, queuedCall->inMsg, responseCounter.standardReplyArgs, responseCounter.customReplyArgs);
+        delete queuedCall;
     }
 }
 
-void LampClients::DoSetLampMultipleReply(Message& message, void* context)
+void LampClients::HandleReplyWithLampResponseCode(Message& message, void* context)
 {
     QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
@@ -534,145 +587,80 @@ void LampClients::DoSetLampMultipleReply(Message& message, void* context)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    QCC_DbgPrintf(("MethodReplyMultiplePassthrough with message: %s\n", message->GetSignature()));
+    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
 
-    LSFString* responseID = static_cast<LSFString*>(context);
+    if (MESSAGE_METHOD_RET == message->GetType()) {
+        size_t numArgs;
+        const MsgArg* args;
+        message->GetArgs(numArgs, args);
 
-    QCC_DbgPrintf(("Found only one!\n"));
-    LSFResponseCode responseCode;
-    args[0].Get("u", &responseCode);
+        LampResponseCode responseCode;
+        args[0].Get("u", &responseCode);
 
-    responseLock.Lock();
-    // TODO: Chnage this
-    if ((0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "TransitionLampState")) ||
-        (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "ResetLampState")) ||
-        (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "TransitionLampStateToPreset")) ||
-        (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "TransitionLampGroupState")) ||
-        (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "PulseLampWithState")) ||
-        (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "PulseLampWithPreset"))) {
-        QCC_DbgPrintf(("%s: Method reply for state API", __FUNCTION__));
-        callback.ChangeLampStateReplyCB(responseMap[*responseID]->inMsg, responseCode);
+        uint32_t success = 0;
+        uint32_t failure = 0;
+
+        if (responseCode == LAMP_OK) {
+            success++;
+        } else {
+            failure++;
+        }
+
+        DecrementWaitingAndSendResponse(queuedCall, success, failure, 0);
     } else {
-        QCC_DbgPrintf(("%s: Method reply for Field API", __FUNCTION__));
-        callback.TransitionLampStateFieldReplyCB(responseMap[*responseID]->inMsg, responseCode);
+        DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
-
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
-
-#if 0
-} else {
-    LSFResponseCode responseCode;
-    // responseCode is always the LAST arg
-    args[0].Get("u", &responseCode);
-
-    switch (responseCode) {
-    case LSF_OK:
-        qcc::IncrementAndFetch(&counter->successCount);
-        break;
-
-    default:
-        qcc::IncrementAndFetch(&counter->failCount);
-        break;
-    }
-
-    // waiting on one less; possibly send reply!
-    DecrementWaitingAndSendResponse(counter);
-}
-#endif
 }
 
 LSFResponseCode LampClients::GetLampFaults(const LSFString& lampID, ajn::Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoGetLampFaultsReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithVariant));
     queuedCall->args.resize(2);
     queuedCall->args[0] = MsgArg("s", "org.allseen.LSF.LampService");
     queuedCall->args[1] = MsgArg("s", "LampFaults");
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("au", 0, NULL));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("au", 0, NULL));
     return QueueLampMethod(queuedCall);
 }
 
 LSFResponseCode LampClients::GetLampVersion(const LSFString& lampID, ajn::Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoGetLampVersionReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithVariant));
     queuedCall->args.push_back(MsgArg("s", "org.allseen.LSF.LampService"));
     queuedCall->args.push_back(MsgArg("s", "LampServiceVersion"));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("u", 0, NULL));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("u", 0, NULL));
     return QueueLampMethod(queuedCall);
 }
 
-void LampClients::DoGetLampVersionReply(ajn::Message& message, void* context)
+void LampClients::HandleReplyWithVariant(ajn::Message& message, void* context)
 {
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    LSFString* responseID = static_cast<LSFString*>(context);
+    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
 
-    size_t numArgs;
-    const MsgArg* args;
-    message->GetArgs(numArgs, args);
+    if (MESSAGE_METHOD_RET == message->GetType()) {
+        size_t numArgs;
+        const MsgArg* args;
+        message->GetArgs(numArgs, args);
 
-    MsgArg* verArg;
-    args[0].Get("v", &verArg);
+        MsgArg* verArg;
+        args[0].Get("v", &verArg);
 
-    responseLock.Lock();
-    callback.GetLampVersionReplyCB(responseMap[*responseID]->inMsg, LSF_OK, verArg->v_uint32);
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
-}
-
-void LampClients::DoGetLampFaultsReply(ajn::Message& message, void* context)
-{
-    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    LSFString* responseID = static_cast<LSFString*>(context);
-
-    size_t numArgs;
-    const MsgArg* args;
-    message->GetArgs(numArgs, args);
-
-    MsgArg* arrayArg;
-    args[0].Get("v", &arrayArg);
-
-    responseLock.Lock();
-    callback.GetLampFaultsReplyCB(responseMap[*responseID]->inMsg, *arrayArg, LSF_OK);
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
+        DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, verArg);
+    } else {
+        DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
+    }
 }
 
 LSFResponseCode LampClients::ClearLampFault(const LSFString& lampID, LampFaultCode faultCode, ajn::Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, "org.allseen.LSF.LampService", "ClearLampFault", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::DoClearLampFaultReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, "org.allseen.LSF.LampService", "ClearLampFault", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
     queuedCall->args.push_back(MsgArg("u", faultCode));
 
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("u", faultCode));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("u", faultCode));
 
     return QueueLampMethod(queuedCall);
-}
-
-void LampClients::DoClearLampFaultReply(ajn::Message& message, void* context)
-{
-    QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
-    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    LSFString* responseID = static_cast<LSFString*>(context);
-
-    const MsgArg* args;
-    size_t numArgs;
-    message->GetArgs(numArgs, args);
-
-    LSFResponseCode responseCode;
-    args[0].Get("u", &responseCode);
-
-    LampFaultCode code;
-    args[1].Get("u", &code);
-
-    responseLock.Lock();
-
-
-    callback.ClearLampFaultReplyCB(responseMap[*responseID]->inMsg, responseCode, code);
-
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
 }
 
 void LampClients::LampStateChangedSignalHandler(const InterfaceDescription::Member* member, const char* sourcePath, Message& message)
@@ -693,100 +681,70 @@ void LampClients::LampStateChangedSignalHandler(const InterfaceDescription::Memb
 
 LSFResponseCode LampClients::GetLampSupportedLanguages(const LSFString& lampID, ajn::Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, ABOUT_INTERFACE_NAME, "GetAboutData", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::GetAboutReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, ABOUT_INTERFACE_NAME, "GetAboutData", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithKeyValuePairs));
     queuedCall->args.push_back(MsgArg("s", "en"));
 
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("as", 0, NULL));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("as", 0, NULL));
 
     return QueueLampMethod(queuedCall);
 }
 
-void LampClients::GetAboutReply(Message& message, void* context)
+void LampClients::HandleReplyWithKeyValuePairs(Message& message, void* context)
 {
     QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    LSFString* responseID = static_cast<LSFString*>(context);
+    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
 
-    const MsgArg* args;
-    size_t numArgs;
-    message->GetArgs(numArgs, args);
+    if (MESSAGE_METHOD_RET == message->GetType()) {
+        const MsgArg* args;
+        size_t numArgs;
+        message->GetArgs(numArgs, args);
 
-    size_t numEntries;
-    MsgArg* entries;
+        size_t numEntries;
+        MsgArg* entries;
 
-    args[0].Get("a{sv}", &numEntries, &entries);
-    responseLock.Lock();
-    for (size_t i = 0; i < numEntries; ++i) {
-        char* key;
-        MsgArg* value;
-        entries[i].Get("{sv}", &key, &value);
-        QCC_DbgPrintf(("%s: %s", __FUNCTION__, key));
-        if ((0 == strcmp(key, "SupportedLanguages")) && (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "GetLampSupportedLanguages"))) {
-            callback.GetLampSupportedLanguagesReplyCB(responseMap[*responseID]->inMsg, *value, LSF_OK);
+        args[0].Get("a{sv}", &numEntries, &entries);
+        for (size_t i = 0; i < numEntries; ++i) {
+            char* key;
+            MsgArg* value;
+            entries[i].Get("{sv}", &key, &value);
+            QCC_DbgPrintf(("%s: %s", __FUNCTION__, key));
+            if (((0 == strcmp(key, "SupportedLanguages")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampSupportedLanguages"))) ||
+                ((0 == strcmp(key, "DeviceName")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampName"))) ||
+                ((0 == strcmp(key, "Manufacturer")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampManufacturer")))) {
+                DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, value);
+                break;
+            }
         }
+    } else {
+        DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
 }
 
 LSFResponseCode LampClients::GetLampName(const LSFString& lampID, const LSFString& language, Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, CONFIG_INTERFACE_NAME, "GetConfigurations", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::GetConfigurationsReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, CONFIG_INTERFACE_NAME, "GetConfigurations", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithKeyValuePairs));
     queuedCall->args.push_back(MsgArg("s", language.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", language.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("s", "<ERROR>"));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", language.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("s", "<ERROR>"));
     return QueueLampMethod(queuedCall);
 }
 
 LSFResponseCode LampClients::GetLampManufacturer(const LSFString& lampID, const LSFString& language, ajn::Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, CONFIG_INTERFACE_NAME, "GetConfigurations", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::GetConfigurationsReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, CONFIG_INTERFACE_NAME, "GetConfigurations", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithKeyValuePairs));
     queuedCall->args.push_back(MsgArg("s", language.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", language.c_str()));
-    queuedCall->customReplyArgs.push_back(MsgArg("s", "<ERROR>"));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", language.c_str()));
+    queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("s", "<ERROR>"));
     return QueueLampMethod(queuedCall);
-}
-
-void LampClients::GetConfigurationsReply(Message& message, void* context)
-{
-    QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
-    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    LSFString* responseID = static_cast<LSFString*>(context);
-
-    const MsgArg* args;
-    size_t numArgs;
-    message->GetArgs(numArgs, args);
-
-    size_t numEntries;
-    MsgArg* entries;
-
-    args[0].Get("a{sv}", &numEntries, &entries);
-    responseLock.Lock();
-    for (size_t i = 0; i < numEntries; ++i) {
-        char* key;
-        MsgArg* value;
-        entries[i].Get("{sv}", &key, &value);
-
-        char* name;
-        value->Get("s", &name);
-
-        QCC_DbgPrintf(("%s: %s(%s)", __FUNCTION__, key, name));
-        if ((0 == strcmp(key, "DeviceName")) && (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "GetLampName"))) {
-            callback.GetLampNameReplyCB(responseMap[*responseID]->inMsg, name, LSF_OK);
-        } else if (0 == strcmp(key, "Manufacturer") && (0 == strcmp(responseMap[*responseID]->inMsg->GetMemberName(), "GetLampManufacturer"))) {
-            callback.GetLampManufacturerReplyCB(responseMap[*responseID]->inMsg, name, LSF_OK);
-        }
-    }
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
 }
 
 LSFResponseCode LampClients::SetLampName(const LSFString& lampID, const LSFString& name, const LSFString& language, Message& inMsg)
 {
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, CONFIG_INTERFACE_NAME, "UpdateConfigurations", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::UpdateConfigurationsReply));
+    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, lampID, CONFIG_INTERFACE_NAME, "UpdateConfigurations", &LampClients::DoMethodCallAsync, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
 
     MsgArg name_arg("s", name.c_str());
     MsgArg arg("{sv}", "DeviceName", &name_arg);
@@ -794,22 +752,8 @@ LSFResponseCode LampClients::SetLampName(const LSFString& lampID, const LSFStrin
     queuedCall->args.push_back(MsgArg("s", language.c_str()));
     queuedCall->args.push_back(MsgArg("a{sv}", 1, &arg));
 
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
-    queuedCall->standardReplyArgs.push_back(MsgArg("s", language.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lampID.c_str()));
+    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", language.c_str()));
 
     return QueueLampMethod(queuedCall);
-}
-
-void LampClients::UpdateConfigurationsReply(Message& message, void* context)
-{
-    QCC_DbgPrintf(("UpdateConfigurationsReply: %s\n", message->ToString().c_str()));
-    LSFString* responseID = static_cast<LSFString*>(context);
-    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-
-    responseLock.Lock();
-
-    callback.SetLampNameReplyCB(responseMap[*responseID]->inMsg, LSF_OK);
-
-    delete responseMap[*responseID]->context;
-    responseLock.Unlock();
 }

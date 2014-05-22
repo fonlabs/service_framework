@@ -72,7 +72,8 @@ ControllerService::ControllerService() :
     masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface),
     propertyStore(),
     aboutService(NULL),
-    configService(bus, propertyStore, *this)
+    configService(bus, propertyStore, *this),
+    notificationSender(NULL)
 {
     AddMethodHandler("LightingResetControllerService", this, &ControllerService::LightingResetControllerService);
     AddMethodHandler("GetControllerServiceVersion", this, &ControllerService::GetControllerServiceVersion);
@@ -356,6 +357,8 @@ QStatus ControllerService::Start(void)
         QCC_LogError(status, ("%s: Failed to register About Service on the AllJoyn Bus", __FUNCTION__));
         return status;
     }
+
+    notificationSender = services::NotificationService::getInstance()->initSend(&bus, &propertyStore);
 
     /*
      * Register the BusObject for the Controller Service

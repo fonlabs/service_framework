@@ -52,12 +52,13 @@ class PresetManager : public Manager {
 
     void AddPreset(const LSFString& presetId, const std::string& presetName, const LampState& state);
 
-  private:
+    LSFResponseCode GetAllPresets(PresetMap& presetMap);
 
     LSFResponseCode GetDefaultLampStateInternal(LampState& state);
-    LSFResponseCode SetDefaultLampStateInternal(LampState& state);
 
-    typedef std::map<LSFString, std::pair<LSFString, LampState> > PresetMap;
+  private:
+
+    LSFResponseCode SetDefaultLampStateInternal(LampState& state);
 
     PresetMap presets;
     Mutex presetsLock;

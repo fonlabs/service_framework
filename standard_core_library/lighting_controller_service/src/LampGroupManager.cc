@@ -32,6 +32,25 @@ LampGroupManager::LampGroupManager(ControllerService& controllerSvc, LampManager
 {
 }
 
+LSFResponseCode LampGroupManager::GetAllLampGroups(LampGroupMap& lampGroupMap)
+{
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = lampGroupsLock.Lock();
+    if (ER_OK == status) {
+        lampGroupMap = lampGroups;
+        status = lampGroupsLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: lampGroupsLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __FUNCTION__));
+    }
+
+    return responseCode;
+}
+
 LSFResponseCode LampGroupManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));

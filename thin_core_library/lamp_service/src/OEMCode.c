@@ -31,7 +31,9 @@
  */
 #define AJ_MODULE OEM_CODE
 
+#ifndef NDEBUG
 uint8_t dbgOEM_CODE = 1;
+#endif
 
 const char FirmwareVersion[] = "1.0";
 const char HardwareVersion[] = "1.0";
