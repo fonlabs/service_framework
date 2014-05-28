@@ -100,7 +100,7 @@ ControllerService::ControllerService() :
     AddMethodHandler("ResetLampState", &lampManager, &LampManager::ResetLampState);
     AddMethodHandler("ResetLampGroupState", &lampGroupManager, &LampGroupManager::ResetLampGroupState);
     AddMethodHandler("ResetLampStateField", &lampManager, &LampManager::ResetLampStateField);
-    AddMethodHandler("ResetLampGroupFieldState", &lampGroupManager, &LampGroupManager::ResetLampGroupFieldState);
+    AddMethodHandler("ResetLampGroupStateField", &lampGroupManager, &LampGroupManager::ResetLampGroupStateField);
     AddMethodHandler("GetLampFaults", &lampManager, &LampManager::GetLampFaults);
     AddMethodHandler("ClearLampFault", &lampManager, &LampManager::ClearLampFault);
     AddMethodHandler("GetLampServiceVersion", &lampManager, &LampManager::GetLampServiceVersion);
@@ -196,6 +196,7 @@ QStatus ControllerService::CreateAndAddInterfaces(const InterfaceEntry* entries,
 
 QStatus ControllerService::Start(void)
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     QStatus status = ER_OK;
 
     /*
@@ -280,7 +281,7 @@ QStatus ControllerService::Start(void)
         { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupStateToPreset"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("TransitionLampGroupStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("ResetLampGroupState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("ResetLampGroupFieldState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("ResetLampGroupStateField"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServicePresetInterface->GetMember("GetDefaultLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServicePresetInterface->GetMember("SetDefaultLampState"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServicePresetInterface->GetMember("GetAllPresetIDs"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
@@ -382,6 +383,7 @@ QStatus ControllerService::Start(void)
 
 QStatus ControllerService::Stop(void)
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     aboutService->Unregister();
     services::AboutServiceApi::DestroyInstance();
 

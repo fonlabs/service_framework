@@ -161,16 +161,18 @@ ControllerClientStatus LampGroupManager::ResetLampGroupStateField(const LSFStrin
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
-               "ResetLampGroupFieldState",
+               "ResetLampGroupStateField",
                args,
                2);
 }
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupState(const LSFString& lampGroupID, const LampState& state, const uint32_t& transitionPeriod)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s state=%s", __FUNCTION__, lampGroupID.c_str(), state.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupID=%s state=%s transitionPeriod=%d", __FUNCTION__, lampGroupID.c_str(), state.c_str(), transitionPeriod));
     MsgArg args[3];
     args[0].Set("s", lampGroupID.c_str());
+    state.Get(&args[1]);
+    args[2].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
@@ -231,42 +233,49 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithPreset(
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupStateIntegerField(const LSFString& lampGroupID, const LSFString& stateFieldName, const uint32_t& value, const uint32_t& transitionPeriod)
 {
-    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s\n", __FUNCTION__, lampGroupID.c_str(), stateFieldName.c_str()));
+    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s value=%d transitionPeriod=%d\n", __FUNCTION__,
+                   lampGroupID.c_str(), stateFieldName.c_str(), value, transitionPeriod));
 
-    MsgArg args[3];
+    MsgArg args[4];
     args[0].Set("s", lampGroupID.c_str());
     args[1].Set("s", stateFieldName.c_str());
-    args[2].Set("v", &value);
+    MsgArg arg("u", value);
+    args[2].Set("v", &arg);
+    args[3].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
                "TransitionLampGroupStateField",
                args,
-               3);
+               4);
 }
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupStateBooleanField(const LSFString& lampGroupID, const LSFString& stateFieldName, const bool& value)
 {
     QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s\n", __FUNCTION__, lampGroupID.c_str(), stateFieldName.c_str()));
 
-    MsgArg args[3];
+    MsgArg args[4];
     args[0].Set("s", lampGroupID.c_str());
     args[1].Set("s", stateFieldName.c_str());
-    args[2].Set("v", &value);
+    MsgArg arg("b", value);
+    args[2].Set("v", &arg);
+    args[3].Set("u", 0);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
                "TransitionLampGroupStateField",
                args,
-               3);
+               4);
 }
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupStateToPreset(const LSFString& lampGroupID, const LSFString& presetID, const uint32_t& transitionPeriod)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s presetID=%s", __FUNCTION__, lampGroupID.c_str(), presetID.c_str()));
+    QCC_DbgPrintf(("\n%s: %s %s\n", __FUNCTION__, lampGroupID.c_str(), presetID.c_str()));
+
     MsgArg args[3];
     args[0].Set("s", lampGroupID.c_str());
     args[1].Set("s", presetID.c_str());
+    args[2].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
@@ -275,12 +284,40 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupStateToPreset(const 
                3);
 }
 
-void LampGroupManager::ResetLampGroupFieldStateReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
+void LampGroupManager::ResetLampGroupStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
+    QCC_DbgPrintf(("\n%s: %s %s %s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
 
+    if (0 == strcmp("OnOff", lsfName.c_str())) {
+        callback.ResetLampGroupStateOnOffFieldReplyCB(responseCode, lsfId);
+    } else {
+        if (0 == strcmp("Hue", lsfName.c_str())) {
+            callback.ResetLampGroupStateHueFieldReplyCB(responseCode, lsfId);
+        } else if (0 == strcmp("Saturation", lsfName.c_str())) {
+            callback.ResetLampGroupStateSaturationFieldReplyCB(responseCode, lsfId);
+        } else if (0 == strcmp("Brightness", lsfName.c_str())) {
+            callback.ResetLampGroupStateBrightnessFieldReplyCB(responseCode, lsfId);
+        } else if (0 == strcmp("ColorTemp", lsfName.c_str())) {
+            callback.ResetLampGroupStateColorTempFieldReplyCB(responseCode, lsfId);
+        }
+    }
 }
 
 void LampGroupManager::TransitionLampGroupStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
+    QCC_DbgPrintf(("\n%s: %s %s %s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
 
+    if (0 == strcmp("OnOff", lsfName.c_str())) {
+        callback.TransitionLampGroupStateOnOffFieldReplyCB(responseCode, lsfId);
+    } else {
+        if (0 == strcmp("Hue", lsfName.c_str())) {
+            callback.TransitionLampGroupStateHueFieldReplyCB(responseCode, lsfId);
+        } else if (0 == strcmp("Saturation", lsfName.c_str())) {
+            callback.TransitionLampGroupStateSaturationFieldReplyCB(responseCode, lsfId);
+        } else if (0 == strcmp("Brightness", lsfName.c_str())) {
+            callback.TransitionLampGroupStateBrightnessFieldReplyCB(responseCode, lsfId);
+        } else if (0 == strcmp("ColorTemp", lsfName.c_str())) {
+            callback.TransitionLampGroupStateColorTempFieldReplyCB(responseCode, lsfId);
+        }
+    }
 }

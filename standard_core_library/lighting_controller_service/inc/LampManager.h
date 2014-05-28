@@ -27,8 +27,66 @@
 
 namespace lsf {
 
+class LampsAndState {
+  public:
+    LampsAndState(LSFStringList lampList, LampState lampState, uint32_t period) :
+        lamps(lampList), state(lampState), transitionPeriod(period) { }
+
+    LSFStringList lamps;
+    LampState state;
+    uint32_t transitionPeriod;
+};
+
+class LampsAndPreset {
+  public:
+    LampsAndPreset(LSFStringList lampList, LSFString presetID, uint32_t period) :
+        lamps(lampList), presetID(presetID), transitionPeriod(period) { }
+
+    LSFStringList lamps;
+    LSFString presetID;
+    uint32_t transitionPeriod;
+};
+
+class LampsAndStateField {
+  public:
+    LampsAndStateField(LSFStringList lampList, LSFString fieldName, ajn::MsgArg arg, uint32_t period) :
+        lamps(lampList), stateFieldName(fieldName), stateFieldValue(arg), transitionPeriod(period) { }
+
+    LSFStringList lamps;
+    LSFString stateFieldName;
+    ajn::MsgArg stateFieldValue;
+    uint32_t transitionPeriod;
+};
+
+class PulseLampsWithState {
+  public:
+    PulseLampsWithState(LSFStringList lampList, LampState fromLampState, LampState toLampState, uint32_t period, uint32_t duration, uint32_t numPulses) :
+        lamps(lampList), fromState(fromLampState), toState(toLampState), period(period), duration(duration), numPulses(numPulses) { }
+
+    LSFStringList lamps;
+    LampState fromState;
+    LampState toState;
+    uint32_t period;
+    uint32_t duration;
+    uint32_t numPulses;
+};
+
+class PulseLampsWithPreset {
+  public:
+    PulseLampsWithPreset(LSFStringList lampList, LSFString fromPreset, LSFString toPreset, uint32_t period, uint32_t duration, uint32_t numPulses) :
+        lamps(lampList), fromPreset(fromPreset), toPreset(toPreset), period(period), duration(duration), numPulses(numPulses) { }
+
+    LSFStringList lamps;
+    LSFString fromPreset;
+    LSFString toPreset;
+    uint32_t period;
+    uint32_t duration;
+    uint32_t numPulses;
+};
+
 class LampManager : public Manager {
   public:
+    friend class LampGroupManager;
 
     LampManager(ControllerService& controllerSvc, PresetManager& presetMgr, const char* ifaceName);
 
@@ -196,42 +254,17 @@ class LampManager : public Manager {
 
   private:
 
-    class LampsAndState {
-      public:
-        LampsAndState(LSFStringList lampList, LampState lampState, uint32_t period) :
-            lamps(lampList), state(lampState), transitionPeriod(period) { }
+    LSFResponseCode ResetLampStateInternal(ajn::Message& message, LSFStringList lamps, bool groupOperation = false);
 
-        LSFStringList lamps;
-        LampState state;
-        uint32_t transitionPeriod;
-    };
+    LSFResponseCode ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName, bool groupOperation = false);
 
-    class LampsAndPreset {
-      public:
-        LampsAndPreset(LSFStringList lampList, LSFString presetID, uint32_t period) :
-            lamps(lampList), presetID(presetID), transitionPeriod(period) { }
-
-        LSFStringList lamps;
-        LSFString presetID;
-        uint32_t transitionPeriod;
-    };
-
-    class LampsAndStateField {
-      public:
-        LampsAndStateField(LSFStringList lampList, LSFString fieldName, ajn::MsgArg arg, uint32_t period) :
-            lamps(lampList), stateFieldName(fieldName), stateFieldValue(arg), transitionPeriod(period) { }
-
-        LSFStringList lamps;
-        LSFString stateFieldName;
-        ajn::MsgArg stateFieldValue;
-        uint32_t transitionPeriod;
-    };
-
-    LSFResponseCode ResetLampStateInternal(ajn::Message& message, LSFStringList lamps);
-
-    LSFResponseCode ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName);
-
-    LSFResponseCode TransitionLampStateAndFieldInternal(ajn::Message& message, LampsAndState* transitionToStateComponent, LampsAndPreset* transitionToPresetComponent, LampsAndStateField* stateFieldComponent);
+    LSFResponseCode ChangeLampStateAndField(ajn::Message& message,
+                                            LampsAndState* transitionToStateComponent = NULL,
+                                            LampsAndPreset* transitionToPresetComponent = NULL,
+                                            LampsAndStateField* stateFieldComponent = NULL,
+                                            PulseLampsWithState* pulseWithStateComponent = NULL,
+                                            PulseLampsWithPreset* pulseWithPresetComponent = NULL,
+                                            bool groupOperation = false);
 
     LampClients lampClients;
     PresetManager& presetManager;

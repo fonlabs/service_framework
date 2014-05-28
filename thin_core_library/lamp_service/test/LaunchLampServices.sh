@@ -41,15 +41,15 @@ trap ctrl_z TSTP
 
 function ctrl_c() {
   echo "Trapped CTRL-C"
-  echo "Please press any key to exit"
+  echo "Please press Enter to exit"
 }
 
 function ctrl_z() {
   echo "Trapped CTRL-Z"
-  echo "Please press any key to exit"
+  echo "Please press Enter to exit"
 }
 
-echo "Please press any key to exit"
+echo "Please press Enter to exit"
 read exitKey
 
 for pid in $pidLst

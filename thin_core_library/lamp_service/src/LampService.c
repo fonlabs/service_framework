@@ -614,21 +614,27 @@ static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
 {
     LampState state;
     LAMP_GetState(&state);
+    AJ_InfoPrintf(("%s\n", __FUNCTION__));
 
     switch (propId) {
     case LSF_PROP_STATE_ONOFF:
+        AJ_InfoPrintf(("onOff: %s\n", (state.onOff: "TRUE" : "FALSE")));
         return AJ_MarshalArgs(replyMsg, "b", (state.onOff ? TRUE : FALSE));
 
     case LSF_PROP_STATE_HUE:
+        AJ_InfoPrintf(("Hue: %u\n", state.hue));
         return AJ_MarshalArgs(replyMsg, "u", state.hue);
 
     case LSF_PROP_STATE_SAT:
+        AJ_InfoPrintf(("Saturation: %u\n", state.saturation));
         return AJ_MarshalArgs(replyMsg, "u", state.saturation);
 
     case LSF_PROP_STATE_TEMP:
+        AJ_InfoPrintf(("Color: %u\n", state.colorTemp));
         return AJ_MarshalArgs(replyMsg, "u", state.colorTemp);
 
     case LSF_PROP_STATE_BRIGHT:
+        AJ_InfoPrintf(("Brightness: %u\n", state.brightness));
         return AJ_MarshalArgs(replyMsg, "u", state.brightness);
 
     default:
@@ -642,14 +648,17 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
     switch (propId) {
     // org.allseen.LSF.LampService
     case LSF_PROP_VERSION:
+        AJ_InfoPrintf(("LSF_PROP_VERSION: %u\n", LSF_Interface_Version));
         return AJ_MarshalArgs(replyMsg, "u", LSF_Interface_Version);
 
     case LSF_PROP_LSF_VERSION:
+        AJ_InfoPrintf(("LSF_PROP_LSF_VERSION: %u\n", LAMP_GetServiceVersion()));
         return AJ_MarshalArgs(replyMsg, "u", LAMP_GetServiceVersion());
 
     case LSF_PROP_FAULTS:
         {
             AJ_Arg array1;
+
             AJ_MarshalContainer(replyMsg, &array1, AJ_ARG_ARRAY);
             OEM_GetLampFaults(replyMsg);
             AJ_MarshalCloseContainer(replyMsg, &array1);
@@ -658,79 +667,103 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
 
     // run-time parameters
     case LSF_PROP_PARAMS_VERSION:
+        AJ_InfoPrintf(("LSF_PROP_FAULTS: %u\n", LSF_Parameters_Interface_Version));
         return AJ_MarshalArgs(replyMsg, "u", LSF_Parameters_Interface_Version);
 
     case LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS:
+        AJ_InfoPrintf(("LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS: %u\n", OEM_GetEnergyUsageMilliwatts()));
         return AJ_MarshalArgs(replyMsg, "u", OEM_GetEnergyUsageMilliwatts());
 
     case LSF_PROP_PARAMS_BRIGHTNESS_LUMENS:
+        AJ_InfoPrintf(("LSF_PROP_PARAMS_BRIGHTNESS_LUMENS: %u\n", OEM_GetBrightnessLumens()));
         return AJ_MarshalArgs(replyMsg, "u", OEM_GetBrightnessLumens());
 
 
     // Compile-time Details
     case LSF_PROP_DETAILS_VERSION:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_VERSION: %u\n", LSF_Parameters_Interface_Version));
         return AJ_MarshalArgs(replyMsg, "u", LSF_Details_Interface_Version);
 
     case LSF_PROP_DETAILS_MAKE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_MAKE: %u\n", LampDetails.lampMake));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampMake);
 
     case LSF_PROP_DETAILS_MODEL:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_MODEL: %u\n", LampDetails.lampModel));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampModel);
 
     case LSF_PROP_DETAILS_DEV_TYPE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_DEV_TYPE: %u\n", LampDetails.deviceType));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceType);
 
     case LSF_PROP_DETAILS_LAMP_TYPE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_LAMP_TYPE: %u\n", LampDetails.lampType));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.lampType);
 
     case LSF_PROP_DETAILS_BASETYPE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_BASETYPE: %u\n", LampDetails.baseType));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.baseType);
 
     case LSF_PROP_DETAILS_BEAMANGLE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_BEAMANGLE: %u\n", LampDetails.deviceLampBeamAngle));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceLampBeamAngle);
 
     case LSF_PROP_DETAILS_DIMMABLE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_DIMMABLE: %s\n", (LampDetails.deviceDimmable ? "TRUE" : "FALSE")));
         return AJ_MarshalArgs(replyMsg, "b", (LampDetails.deviceDimmable ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_COLOR:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_COLOR: %s\n", (LampDetails.deviceColor ? "TRUE" : "FALSE")));
         return AJ_MarshalArgs(replyMsg, "b", (LampDetails.deviceColor ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_VARCOLORTEMP:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_VARCOLORTEMP: %s\n", (LampDetails.variableColorTemp ? "TRUE" : "FALSE")));
         return AJ_MarshalArgs(replyMsg, "b", (LampDetails.variableColorTemp ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_HASEFFECTS:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_HASEFFECTS: %s\n", (LampDetails.deviceHasEffects ? "TRUE" : "FALSE")));
         return AJ_MarshalArgs(replyMsg, "b", (LampDetails.deviceHasEffects ? TRUE : FALSE));
 
     case LSF_PROP_DETAILS_MINVOLTAGE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_MINVOLTAGE: %u\n", LampDetails.deviceMinVoltage));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMinVoltage);
 
     case LSF_PROP_DETAILS_MAXVOLTAGE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_MAXVOLTAGE: %u\n", LampDetails.deviceMaxVoltage));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxVoltage);
 
     case LSF_PROP_DETAILS_WATTAGE:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_WATTAGE: %u\n", LampDetails.deviceWattage));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceWattage);
 
     case LSF_PROP_DETAILS_INCANEQV:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_INCANEQV: %u\n", LampDetails.deviceIncandescentEquivalent));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceIncandescentEquivalent);
 
     case LSF_PROP_DETAILS_MAXLUMENS:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_MAXLUMENS: %u\n", LampDetails.deviceMaxLumens));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxLumens);
 
     case LSF_PROP_DETAILS_MINTEMP:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_MINTEMP: %u\n", LampDetails.deviceMinTemperature));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMinTemperature);
 
     case LSF_PROP_DETAILS_MAXTEMP:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_MAXTEMP: %u\n", LampDetails.deviceMaxTemperature));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceMaxTemperature);
 
     case LSF_PROP_DETAILS_CRI:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_CRI: %u\n", LampDetails.deviceColorRenderingIndex));
         return AJ_MarshalArgs(replyMsg, "u", LampDetails.deviceColorRenderingIndex);
 
     case LSF_PROP_DETAILS_LAMPID:
+        AJ_InfoPrintf(("LSF_PROP_DETAILS_LAMPID: %s\n", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID)));
         return AJ_MarshalArgs(replyMsg, "s", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID));
 
 
     // LampState properties
     case LSF_PROP_STATE_VERSION:
+        AJ_InfoPrintf(("LSF_PROP_STATE_VERSION: %u\n", LSF_State_Interface_Version));
         return AJ_MarshalArgs(replyMsg, "u", LSF_State_Interface_Version);
 
     case LSF_PROP_STATE_ONOFF:
@@ -752,10 +785,12 @@ static AJ_Status GetAllProps(AJ_Message* msg)
     AJ_Message reply;
     AJ_Arg array1;
 
+    AJ_UnmarshalArgs(msg, "s", &iface);
+    AJ_InfoPrintf(("%s: Interface=%s\n", __FUNCTION__, iface));
+
     AJ_MarshalReplyMsg(msg, &reply);
     AJ_MarshalContainer(&reply, &array1, AJ_ARG_ARRAY);
 
-    AJ_UnmarshalArgs(msg, "s", &iface);
     if (0 == strcmp(iface, LSF_Interface_Name)) {
         AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Interface_Version);
         AJ_MarshalArgs(&reply, "{sv}", "LampServiceVersion", "u", LAMP_GetServiceVersion());

@@ -145,7 +145,7 @@ static char machineIdVar[MACHINE_ID_LENGTH + 1] = { 0 };
 static char* machineIdVars[] = { machineIdVar };
 
 
-static char deviceNameVar[DEVICE_NAME_VALUE_LENGTH + 1][AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES];
+static char deviceNameVar[AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES][DEVICE_NAME_VALUE_LENGTH + 1];
 static char* deviceNameVars[] = { deviceNameVar[0], deviceNameVar[1] };
 
 static char defaultLanguageVar[LANG_VALUE_LENGTH + 1] = { 0 };

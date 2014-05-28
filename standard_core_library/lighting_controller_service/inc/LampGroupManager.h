@@ -37,8 +37,8 @@ class LampGroupManager : public Manager {
     LSFResponseCode Reset(void);
     LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
 
-    void ResetLampGroupState(ajn::Message& msg);
-    void TransitionLampGroupState(ajn::Message& msg);
+    void ResetLampGroupState(ajn::Message& message);
+    void TransitionLampGroupState(ajn::Message& message);
     /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampGroupState
      *
@@ -53,16 +53,16 @@ class LampGroupManager : public Manager {
      */
     void PulseLampGroupWithPreset(ajn::Message& message);
 
-    void TransitionLampGroupStateToPreset(ajn::Message& msg);
-    void TransitionLampGroupStateField(ajn::Message& msg);
-    void ResetLampGroupFieldState(ajn::Message& msg);
-    void GetAllLampGroupIDs(ajn::Message& msg);
-    void GetLampGroupName(ajn::Message& msg);
-    void SetLampGroupName(ajn::Message& msg);
-    void CreateLampGroup(ajn::Message& msg);
-    void UpdateLampGroup(ajn::Message& msg);
-    void DeleteLampGroup(ajn::Message& msg);
-    void GetLampGroup(ajn::Message& msg);
+    void TransitionLampGroupStateToPreset(ajn::Message& message);
+    void TransitionLampGroupStateField(ajn::Message& message);
+    void ResetLampGroupStateField(ajn::Message& message);
+    void GetAllLampGroupIDs(ajn::Message& message);
+    void GetLampGroupName(ajn::Message& message);
+    void SetLampGroupName(ajn::Message& message);
+    void CreateLampGroup(ajn::Message& message);
+    void UpdateLampGroup(ajn::Message& message);
+    void DeleteLampGroup(ajn::Message& message);
+    void GetLampGroup(ajn::Message& message);
 
     void AddLampGroup(const LSFString& id, const std::string& name, const LampGroup& group);
 
@@ -70,12 +70,7 @@ class LampGroupManager : public Manager {
 
   protected:
 
-
-    void GetAllGroupLamps(const LampGroup& group, LSFStringList& Lamps) const;
-
-    typedef std::map<LSFString, bool> VisitedMap;
-    bool IsGroupValid(const LampGroup& group) const;
-    bool IsGroupValidHelper(const LSFString& id, VisitedMap& visited, VisitedMap& callStack) const;
+    LSFResponseCode GetAllGroupLamps(LSFString& lampGroupId, LSFStringList& lamps);
 
     LampGroupMap lampGroups;
     Mutex lampGroupsLock;

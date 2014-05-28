@@ -49,8 +49,8 @@ LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, 
 
 LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transition_period)
 {
-    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u)\n", __FUNCTION__,
-                   newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff));
+    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), transition_period=%u\n", __FUNCTION__,
+                   newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff, transition_period));
 
     LAMP_SetState(newState);
     return LAMP_OK;
@@ -107,13 +107,17 @@ void OEM_FactoryReset(void)
 
 uint32_t OEM_GetEnergyUsageMilliwatts()
 {
-    return 15;
+    uint32_t energyUsageMilliwatts = 15;
+    AJ_InfoPrintf(("%s: energy usage %u mW\n", __FUNCTION__, energyUsageMilliwatts));
+    return energyUsageMilliwatts;
 }
 
 
 uint32_t OEM_GetBrightnessLumens()
 {
-    return 100;
+    uint32_t brightnessLumens = 100;
+    AJ_InfoPrintf(("%s: brightness %u lumens\n", __FUNCTION__, brightnessLumens));
+    return brightnessLumens;
 }
 
 LampResponseCode OEM_GetLampFaults(AJ_Message* msg)
@@ -140,7 +144,11 @@ LampResponseCode OEM_ClearLampFault(LampFaultCode fault)
 
 AJ_Status OEM_GetLampParameters(AJ_Message* msg)
 {
+    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+
+    AJ_InfoPrintf(("Energy_Usage_Milliwatts: %u\n", OEM_GetEnergyUsageMilliwatts()));
     AJ_MarshalArgs(msg, "{sv}", "Energy_Usage_Milliwatts", "u", OEM_GetEnergyUsageMilliwatts());
+    AJ_InfoPrintf(("Brightness_Lumens: %u\n", OEM_GetBrightnessLumens()));
     AJ_MarshalArgs(msg, "{sv}", "Brightness_Lumens", "u", OEM_GetBrightnessLumens());
     return AJ_OK;
 }
@@ -172,32 +180,63 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
 {
     AJ_InfoPrintf(("%s", __FUNCTION__));
 
+
+    AJ_InfoPrintf(("LampVersion: %u\n", LAMP_GetServiceVersion()));
     AJ_MarshalArgs(msg, "{sv}", "LampVersion", "u", LAMP_GetServiceVersion());
 
+    AJ_InfoPrintf(("Make: %u\n", LampDetails.lampMake));
     AJ_MarshalArgs(msg, "{sv}", "Make", "u", LampDetails.lampMake);
+
+    AJ_InfoPrintf(("Model: %u\n", LampDetails.lampModel));
     AJ_MarshalArgs(msg, "{sv}", "Model", "u", LampDetails.lampModel);
+
+    AJ_InfoPrintf(("Type: %u\n", LampDetails.deviceType));
     AJ_MarshalArgs(msg, "{sv}", "Type", "u", LampDetails.deviceType);
+
+    AJ_InfoPrintf(("LampType: %u\n", LampDetails.lampType));
     AJ_MarshalArgs(msg, "{sv}", "LampType", "u", LampDetails.lampType);
+
+    AJ_InfoPrintf(("LampBaseType: %u\n", LampDetails.baseType));
     AJ_MarshalArgs(msg, "{sv}", "LampBaseType", "u", LampDetails.baseType);
 
 
+    AJ_InfoPrintf(("LampBeamAngle: %u\n", LampDetails.deviceLampBeamAngle));
     AJ_MarshalArgs(msg, "{sv}", "LampBeamAngle", "u", LampDetails.deviceLampBeamAngle);
 
+    AJ_InfoPrintf(("Dimmable: %s\n", (LampDetails.deviceDimmable: "TRUE" : "FALSE")));
     AJ_MarshalArgs(msg, "{sv}", "Dimmable", "b", (LampDetails.deviceDimmable ? TRUE : FALSE));
+    AJ_InfoPrintf(("Color: %s\n", (LampDetails.deviceColor: "TRUE" : "FALSE")));
     AJ_MarshalArgs(msg, "{sv}", "Color", "b", (LampDetails.deviceColor ? TRUE : FALSE));
+    AJ_InfoPrintf(("VariableColorTemp: %s\n", (LampDetails.variableColorTemp: "TRUE" : "FALSE")));
     AJ_MarshalArgs(msg, "{sv}", "VariableColorTemp", "b", (LampDetails.variableColorTemp ? TRUE : FALSE));
+    AJ_InfoPrintf(("HasEffects: %s\n", (LampDetails.deviceHasEffects: "TRUE" : "FALSE")));
     AJ_MarshalArgs(msg, "{sv}", "HasEffects", "b", (LampDetails.deviceHasEffects ? TRUE : FALSE));
 
+    AJ_InfoPrintf(("MinVoltage: %u\n", LampDetails.deviceMinVoltage));
     AJ_MarshalArgs(msg, "{sv}", "MinVoltage", "u", LampDetails.deviceMinVoltage);
+
+    AJ_InfoPrintf(("MaxVoltage: %u\n", LampDetails.deviceMaxVoltage));
     AJ_MarshalArgs(msg, "{sv}", "MaxVoltage", "u", LampDetails.deviceMaxVoltage);
+
+    AJ_InfoPrintf(("Wattage: %u\n", LampDetails.deviceWattage));
     AJ_MarshalArgs(msg, "{sv}", "Wattage", "u", LampDetails.deviceWattage);
+
+    AJ_InfoPrintf(("IncandescentEquivalent: %u\n", LampDetails.deviceIncandescentEquivalent));
     AJ_MarshalArgs(msg, "{sv}", "IncandescentEquivalent", "u", LampDetails.deviceIncandescentEquivalent);
+
+    AJ_InfoPrintf(("MaxLumens: %u\n", LampDetails.deviceMaxLumens));
     AJ_MarshalArgs(msg, "{sv}", "MaxLumens", "u", LampDetails.deviceMaxLumens);
+
+    AJ_InfoPrintf(("MinTemperature: %u\n", LampDetails.deviceMinTemperature));
     AJ_MarshalArgs(msg, "{sv}", "MinTemperature", "u", LampDetails.deviceMinTemperature);
+
+    AJ_InfoPrintf(("MaxTemperature: %u\n", LampDetails.deviceMaxTemperature));
     AJ_MarshalArgs(msg, "{sv}", "MaxTemperature", "u", LampDetails.deviceMaxTemperature);
 
+    AJ_InfoPrintf(("ColorRenderingIndex: %u\n", LampDetails.deviceColorRenderingIndex));
     AJ_MarshalArgs(msg, "{sv}", "ColorRenderingIndex", "u", LampDetails.deviceColorRenderingIndex);
 
+    AJ_InfoPrintf(("LampID: %s\n", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID)));
     AJ_MarshalArgs(msg, "{sv}", "LampID", "s", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID));
     return LAMP_OK;
 }

@@ -15,13 +15,15 @@
  ******************************************************************************/
 
 #include <Thread.h>
+#include <qcc/Debug.h>
 
 using namespace lsf;
 
-#define QCC_MODULE "THREAD"
+#define QCC_MODULE "LSF_THREAD"
 
 void* Thread::RunThread(void* data)
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     Thread* thread = static_cast<Thread*>(data);
     thread->Run();
     return NULL;
@@ -29,22 +31,24 @@ void* Thread::RunThread(void* data)
 
 Thread::Thread()
 {
-
+    QCC_DbgPrintf(("%s", __FUNCTION__));
 }
 
 Thread::~Thread()
 {
-
+    QCC_DbgPrintf(("%s", __FUNCTION__));
 }
 
 QStatus Thread::Start()
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     int rc = pthread_create(&thread, NULL, &Thread::RunThread, this);
     return rc == 0 ? ER_OK : ER_FAIL;
 }
 
 QStatus Thread::Join()
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     Stop();
     pthread_join(thread, NULL);
     return ER_OK;

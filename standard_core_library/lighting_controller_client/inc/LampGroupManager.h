@@ -670,9 +670,9 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Method Reply Handler for the signal ResetLampGroupFieldState
+     * Method Reply Handler for the signal ResetLampGroupStateField
      */
-    void ResetLampGroupFieldStateReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
+    void ResetLampGroupStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
 
     /**
      * Method Reply Handler for the signal ResetLampGroupState

@@ -22,8 +22,8 @@
 #include <alljoyn/about/AnnouncementRegistrar.h>
 #include <LSFKeyListener.h>
 #include <Mutex.h>
-#include <WorkerQueue.h>
 #include <Manager.h>
+#include <Thread.h>
 
 #include <string>
 #include <map>
@@ -33,14 +33,16 @@
 
 namespace lsf {
 
-class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener, public ajn::ProxyBusObject::Listener {
+#define MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
+
+class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener, public ajn::ProxyBusObject::Listener, public lsf::Thread {
   public:
 
     LampClients(ControllerService& controllerSvc);
 
     ~LampClients();
 
-    LSFResponseCode GetAllLampIDs(LSFStringList& lamps);
+    void RequestAllLampIDs(ajn::Message& message);
 
     /**
      * Start the Lamp Clients
@@ -50,13 +52,17 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     QStatus Start(void);
 
+    QStatus Join(void);
+
+    void Run(void);
+
     /**
      * Stop the Lamp Clients
      *
      * @param   None
      * @return  ER_OK if successful, error otherwise
      */
-    QStatus Stop(void);
+    void Stop(void);
 
     /**
      * Called when JoinSessionAsync() completes.
@@ -66,7 +72,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param opts         Session options.
      * @param context      User defined context which will be passed as-is to callback.
      */
-    virtual void JoinSessionCB(QStatus status, ajn::SessionId sessionId, const ajn::SessionOpts& opts, void* context);
+    void JoinSessionCB(QStatus status, ajn::SessionId sessionId, const ajn::SessionOpts& opts, void* context);
 
     /**
      * Called by the bus when an existing session becomes disconnected.
@@ -74,7 +80,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param sessionId     Id of session that was lost.
      * @param reason        The reason for the session being lost
      */
-    virtual void SessionLost(ajn::SessionId sessionId, SessionLostReason reason);
+    void SessionLost(ajn::SessionId sessionId, SessionLostReason reason);
 
     /**
      * Get the Lamp name
@@ -189,10 +195,12 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * The method LampClientsCallback::GetLampDetailsReplyCB will be called when all lamps have responded
      */
-    LSFResponseCode TransitionLampState(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t stateTimestamp, const ajn::MsgArg& state, uint32_t period);
+    LSFResponseCode TransitionLampState(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
+                                        const ajn::MsgArg& state, uint32_t period, bool groupOperation);
 
 
-    LSFResponseCode PulseLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& oldState, const ajn::MsgArg& newState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t stateTimestamp);
+    LSFResponseCode PulseLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& oldState,
+                                       const ajn::MsgArg& newState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimestamp, bool groupOperation);
     /**
      * Apply a Lamp State Field to one or more lamps
      *
@@ -207,7 +215,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * The method LampClientsCallback::GetLampDetailsReplyCB will be called when all lamps have responded
      */
-    LSFResponseCode TransitionLampStateField(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t stateTimestamp, const char* field, const ajn::MsgArg& value, uint32_t period);
+    LSFResponseCode TransitionLampStateField(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
+                                             const char* field, const ajn::MsgArg& value, uint32_t period, bool groupOperation);
 
     /**
      * Get the lamp faults
@@ -239,8 +248,11 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFResponseCode GetAllLamps(LampNameMap& lamps);
 
+    void IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* context);
+
   private:
 
+    void* LampClientsThread(void* data);
 
     void HandleAboutAnnounce(const LSFString lampID, const LSFString& lampName, uint16_t port, const char* busName);
 
@@ -310,10 +322,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
 
-    class QueueHandler;
-    QueueHandler* queueHandler;
-    WorkerQueue<QueuedMethodCall> methodQueue;
-
     struct LampConnection {
         LSFString id;
         ajn::ProxyBusObject object;
@@ -321,12 +329,21 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         ajn::ProxyBusObject aboutObject;
         LSFString wkn;
         LSFString name;
+        uint16_t port;
         ajn::SessionId sessionID;
     };
 
     typedef std::map<LSFString, LampConnection*> LampMap;
     LampMap activeLamps;
-    Mutex lampLock;
+
+    std::list<LampConnection*> aboutsList;
+    Mutex aboutsListLock;
+
+    std::list<LampConnection*> joinSessionCBList;
+    Mutex joinSessionCBListLock;
+
+    std::set<uint32_t> lostSessionList;
+    Mutex lostSessionListLock;
 
     typedef std::map<LSFString, ResponseCounter> ResponseMap;
     ResponseMap responseMap;
@@ -336,6 +353,15 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     ServiceHandler* serviceHandler;
 
     LSFKeyListener keyListener;
+
+    Mutex queueLock;
+    std::list<QueuedMethodCall*> methodQueue;
+    bool isRunning;
+
+    bool lampStateChangedSignalHandlerRegistered;
+
+    std::list<ajn::Message> getAllLampIDsRequests;
+    Mutex getAllLampIDsLock;
 };
 
 }

@@ -119,9 +119,9 @@ LSFResponseCode LampGroupManager::IsDependentOnLampGroup(LSFString& lampGroupID)
     return responseCode;
 }
 
-void LampGroupManager::GetAllLampGroupIDs(Message& msg)
+void LampGroupManager::GetAllLampGroupIDs(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
 
     LSFStringList idList;
     LSFResponseCode responseCode = LSF_OK;
@@ -140,18 +140,18 @@ void LampGroupManager::GetAllLampGroupIDs(Message& msg)
         QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __FUNCTION__));
     }
 
-    controllerService.SendMethodReplyWithResponseCodeAndListOfIDs(msg, responseCode, idList);
+    controllerService.SendMethodReplyWithResponseCodeAndListOfIDs(message, responseCode, idList);
 }
 
-void LampGroupManager::GetLampGroupName(Message& msg)
+void LampGroupManager::GetLampGroupName(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
     LSFString name;
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
 
     const char* id;
     args[0].Get("s", &id);
@@ -180,18 +180,18 @@ void LampGroupManager::GetLampGroupName(Message& msg)
         }
     }
 
-    controllerService.SendMethodReplyWithResponseCodeIDLanguageAndName(msg, responseCode, lampGroupID, language, name);
+    controllerService.SendMethodReplyWithResponseCodeIDLanguageAndName(message, responseCode, lampGroupID, language, name);
 }
 
-void LampGroupManager::SetLampGroupName(Message& msg)
+void LampGroupManager::SetLampGroupName(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
     bool nameChanged = false;
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
 
     const char* id;
     args[0].Get("s", &id);
@@ -229,7 +229,7 @@ void LampGroupManager::SetLampGroupName(Message& msg)
         }
     }
 
-    controllerService.SendMethodReplyWithResponseCodeIDAndName(msg, responseCode, lampGroupID, language);
+    controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lampGroupID, language);
 
     if (nameChanged) {
         LSFStringList idList;
@@ -238,9 +238,9 @@ void LampGroupManager::SetLampGroupName(Message& msg)
     }
 }
 
-void LampGroupManager::CreateLampGroup(Message& msg)
+void LampGroupManager::CreateLampGroup(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
 
     LSFResponseCode responseCode = LSF_OK;
 
@@ -249,7 +249,7 @@ void LampGroupManager::CreateLampGroup(Message& msg)
 
     const ajn::MsgArg* inputArgs;
     size_t numInputArgs;
-    msg->GetArgs(numInputArgs, inputArgs);
+    message->GetArgs(numInputArgs, inputArgs);
 
     QStatus status = lampGroupsLock.Lock();
     if (ER_OK == status) {
@@ -272,7 +272,7 @@ void LampGroupManager::CreateLampGroup(Message& msg)
         QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __FUNCTION__));
     }
 
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, lampGroupID);
+    controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
 
     if (created) {
         LSFStringList idList;
@@ -281,16 +281,16 @@ void LampGroupManager::CreateLampGroup(Message& msg)
     }
 }
 
-void LampGroupManager::UpdateLampGroup(Message& msg)
+void LampGroupManager::UpdateLampGroup(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
     bool updated = false;
 
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
 
     const char* id;
     args[0].Get("s", &id);
@@ -315,7 +315,7 @@ void LampGroupManager::UpdateLampGroup(Message& msg)
         QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __FUNCTION__));
     }
 
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, lampGroupID);
+    controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
 
     if (updated) {
         LSFStringList idList;
@@ -324,16 +324,16 @@ void LampGroupManager::UpdateLampGroup(Message& msg)
     }
 }
 
-void LampGroupManager::DeleteLampGroup(Message& msg)
+void LampGroupManager::DeleteLampGroup(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
     LSFResponseCode responseCode = LSF_OK;
 
     bool deleted = false;
 
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
 
     const char* lampGroupId;
     args[0].Get("s", &lampGroupId);
@@ -362,7 +362,7 @@ void LampGroupManager::DeleteLampGroup(Message& msg)
         }
     }
 
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, lampGroupID);
+    controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
 
     if (deleted) {
         LSFStringList idList;
@@ -371,9 +371,9 @@ void LampGroupManager::DeleteLampGroup(Message& msg)
     }
 }
 
-void LampGroupManager::GetLampGroup(Message& msg)
+void LampGroupManager::GetLampGroup(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
 
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
@@ -381,7 +381,7 @@ void LampGroupManager::GetLampGroup(Message& msg)
 
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
 
     const char* id;
     args[0].Get("s", &id);
@@ -408,79 +408,62 @@ void LampGroupManager::GetLampGroup(Message& msg)
     outArgs[0].Set("u", responseCode);
     outArgs[1].Set("s", id);
 
-    controllerService.SendMethodReply(msg, outArgs, 4);
+    controllerService.SendMethodReply(message, outArgs, 4);
 }
 
-void LampGroupManager::ResetLampGroupState(Message& msg)
+void LampGroupManager::ResetLampGroupState(Message& message)
 {
-#if 0
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    LSFResponseCode responseCode = LSF_OK;
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
+    QCC_DbgPrintf(("lampGroupId=%s", lampGroupId.c_str()));
 
-    const char* lampGroupID;
-    args[0].Get("s", &lampGroupID);
+    LSFStringList lamps;
+    lamps.clear();
 
-    LSFStringList Lamps;
-    LSFResponseCode rc = LSF_OK;
-    lampGroupsLock.Lock();
-    LampGroupMap::iterator it = lampGroups.find(lampGroupID);
-    if (it != lampGroups.end()) {
-        GetAllGroupLamps(it->second.second, Lamps);
+    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+
+    if (lamps.empty()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
     } else {
-        rc = LSF_ERR_NOT_FOUND;
+        lampManager.ResetLampStateInternal(message, lamps, true);
     }
-    lampGroupsLock.Unlock();
-
-
-    if (rc != LSF_OK) {
-        MsgArg replyArg("u", rc);
-        controllerService.SendMethodReply(msg, &replyArg, 1);
-    }
-#endif
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
-    LSFString id;
-    LSFResponseCode responseCode = LSF_OK;
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, id);
 }
 
-void LampGroupManager::TransitionLampGroupState(Message& msg)
+void LampGroupManager::TransitionLampGroupState(Message& message)
 {
-#if 0
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    LSFResponseCode responseCode = LSF_OK;
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
+    LampState state(args[1]);
+    uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupId=%s state=%s transitionPeriod=%d", __FUNCTION__, lampGroupId.c_str(), state.c_str(), transitionPeriod));
 
-    const char* lampGroupID;
-    args[0].Get("s", &lampGroupID);
+    LSFStringList lamps;
+    lamps.clear();
 
-    LSFStringList Lamps;
+    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
 
-    LSFResponseCode rc = LSF_OK;
-    lampGroupsLock.Lock();
-    LampGroupMap::iterator it = lampGroups.find(lampGroupID);
-    if (it != lampGroups.end()) {
-        GetAllGroupLamps(it->second.second, Lamps);
+    if (lamps.empty()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
     } else {
-        rc = LSF_ERR_NOT_FOUND;
+        LampsAndState transitionToStateComponent(lamps, state, transitionPeriod);
+        lampManager.ChangeLampStateAndField(message, &transitionToStateComponent, NULL, NULL, NULL, NULL, true);
     }
-    lampGroupsLock.Unlock();
-
-
-    if (rc != LSF_OK) {
-        MsgArg replyArg("u", rc);
-        controllerService.SendMethodReply(msg, &replyArg, 1);
-    }
-#endif
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
-    LSFString id;
-    LSFResponseCode responseCode = LSF_OK;
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, id);
 }
 
 void LampGroupManager::PulseLampGroupWithState(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    LSFResponseCode responseCode = LSF_OK;
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -494,16 +477,24 @@ void LampGroupManager::PulseLampGroupWithState(ajn::Message& message)
                    __FUNCTION__, lampGroupID.c_str(), fromLampGroupState.c_str(), period, duration, numPulses));
     QCC_DbgPrintf(("%s: toLampGroupState=%s", __FUNCTION__, toLampGroupState.c_str()));
 
-    //TODO: Add LampGroup Clients Plumbing
-    LSFResponseCode responseCode = LSF_ERR_FAILURE;
-    if (responseCode != LSF_OK) {
+    LSFStringList lamps;
+    lamps.clear();
+
+    responseCode = GetAllGroupLamps(lampGroupID, lamps);
+    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+
+    if (lamps.empty()) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    } else {
+        PulseLampsWithState pulseWithStateComponent(lamps, fromLampGroupState, toLampGroupState, period, duration, numPulses);
+        lampManager.ChangeLampStateAndField(message, NULL, NULL, NULL, &pulseWithStateComponent, NULL, true);
     }
 }
 
 void LampGroupManager::PulseLampGroupWithPreset(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    LSFResponseCode responseCode = LSF_OK;
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -516,187 +507,140 @@ void LampGroupManager::PulseLampGroupWithPreset(ajn::Message& message)
     QCC_DbgPrintf(("%s: lampGroupID=%s, fromPresetID=%s, toPresetID=%s, period=%d, duration=%d, numPulses=%d",
                    __FUNCTION__, lampGroupID.c_str(), fromPresetID.c_str(), toPresetID.c_str(), period, duration, numPulses));
 
-    //TODO: Add LampGroup Clients Plumbing
-    LSFResponseCode responseCode = LSF_ERR_FAILURE;
-    if (responseCode != LSF_OK) {
+    LSFStringList lamps;
+    lamps.clear();
+
+    responseCode = GetAllGroupLamps(lampGroupID, lamps);
+    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+
+    if (lamps.empty()) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
+    } else {
+        PulseLampsWithPreset pulseWithPresetComponent(lamps, fromPresetID, toPresetID, period, duration, numPulses);
+        lampManager.ChangeLampStateAndField(message, NULL, NULL, NULL, NULL, &pulseWithPresetComponent, true);
     }
 }
 
-void LampGroupManager::TransitionLampGroupStateToPreset(Message& msg)
+void LampGroupManager::TransitionLampGroupStateToPreset(Message& message)
 {
-#if 0
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    LSFResponseCode responseCode = LSF_OK;
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
+    LSFString preset = static_cast<LSFString>(args[1].v_string.str);
+    uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
+    QCC_DbgPrintf(("%s: lampGroupId=%s preset=%s transitionPeriod=%d", __FUNCTION__, lampGroupId.c_str(), preset.c_str(), transitionPeriod));
 
-    const char* lampGroupID;
-    args[0].Get("s", &lampGroupID);
-    const char* presetID;
-    args[1].Get("s", &presetID);
+    LSFStringList lamps;
+    lamps.clear();
 
-    LampState state;
-    LSFResponseCode rc = LSF_OK;
+    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
 
-    LSFStringList Lamps;
-    if (rc == LSF_OK) {
-        lampGroupsLock.Lock();
-        LampGroupMap::iterator it = lampGroups.find(lampGroupID);
+    if (lamps.empty()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
+    } else {
+        LampsAndPreset transitionToPresetComponent(lamps, preset, transitionPeriod);
+        lampManager.ChangeLampStateAndField(message, NULL, &transitionToPresetComponent, NULL, NULL, NULL, true);
+    }
+}
+
+void LampGroupManager::TransitionLampGroupStateField(Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    LSFResponseCode responseCode = LSF_OK;
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
+    LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
+    MsgArg* varArg;
+    args[2].Get("v", &varArg);
+    uint32_t transitionPeriod = static_cast<uint32_t>(args[3].v_uint32);
+    QCC_DbgPrintf(("lampGroupId=%s fieldName=%s transitionPeriod=%d", lampGroupId.c_str(), fieldName.c_str(), transitionPeriod));
+
+    LSFStringList lamps;
+    lamps.clear();
+
+    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+
+    if (lamps.empty()) {
+        controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lampGroupId, fieldName);
+    } else {
+        LampsAndStateField stateFieldComponent(lamps, fieldName, *varArg, transitionPeriod);
+        lampManager.ChangeLampStateAndField(message, NULL, NULL, &stateFieldComponent, NULL, NULL, true);
+    }
+}
+
+void LampGroupManager::ResetLampGroupStateField(Message& message)
+{
+    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    LSFResponseCode responseCode = LSF_OK;
+    size_t numArgs;
+    const MsgArg* args;
+    message->GetArgs(numArgs, args);
+    LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
+    LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
+    QCC_DbgPrintf(("%s: lampGroupId=%s fieldName=%s", __FUNCTION__, lampGroupId.c_str(), fieldName.c_str()));
+
+    LSFStringList lamps;
+    lamps.clear();
+
+    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+
+    if (lamps.empty()) {
+        controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lampGroupId, fieldName);
+    } else {
+        lampManager.ResetLampStateFieldInternal(message, lamps, fieldName, true);
+    }
+}
+
+LSFResponseCode LampGroupManager::GetAllGroupLamps(LSFString& lampGroupId, LSFStringList& lamps)
+{
+    QCC_DbgPrintf(("%s: lampGroupID(%s)", __FUNCTION__, lampGroupId.c_str()));
+    LSFResponseCode responseCode = LSF_OK;
+
+    QStatus status = lampGroupsLock.Lock();
+    if (ER_OK == status) {
+        LampGroupMap::iterator it = lampGroups.find(lampGroupId);
         if (it != lampGroups.end()) {
-            GetAllGroupLamps(it->second.second, Lamps);
-        } else {
-            rc = LSF_ERR_NOT_FOUND;
-        }
-        lampGroupsLock.Unlock();
-    }
-
-    if (rc != LSF_OK) {
-        MsgArg replyArg("u", rc);
-        controllerService.SendMethodReply(msg, &replyArg, 1);
-    }
-#endif
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
-    LSFString id;
-    LSFResponseCode responseCode = LSF_OK;
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, id);
-}
-
-void LampGroupManager::TransitionLampGroupStateField(Message& msg)
-{
-#if 0
-    size_t numArgs;
-    const MsgArg* args;
-    msg->GetArgs(numArgs, args);
-
-    const char* lampGroupID;
-    args[0].Get("s", &lampGroupID);
-
-    LSFStringList Lamps;
-
-    LSFResponseCode rc = LSF_OK;
-    lampGroupsLock.Lock();
-    LampGroupMap::iterator it = lampGroups.find(lampGroupID);
-    if (it != lampGroups.end()) {
-        GetAllGroupLamps(it->second.second, Lamps);
-    } else {
-        rc = LSF_ERR_NOT_FOUND;
-    }
-    lampGroupsLock.Unlock();
-
-    if (rc != LSF_OK) {
-        MsgArg replyArg("u", rc);
-        controllerService.SendMethodReply(msg, &replyArg, 1);
-    }
-#endif
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
-    LSFString id;
-    LSFString name;
-    LSFResponseCode responseCode = LSF_OK;
-    controllerService.SendMethodReplyWithResponseCodeIDAndName(msg, responseCode, id, name);
-}
-
-void LampGroupManager::ResetLampGroupFieldState(Message& msg)
-{
-#if 0
-    size_t numArgs;
-    const MsgArg* args;
-    msg->GetArgs(numArgs, args);
-
-    const char* lampGroupID;
-    args[0].Get("s", &lampGroupID);
-    const char* field_name;
-    args[1].Get("s", &field_name);
-
-    LSFStringList Lamps;
-    LSFResponseCode rc = LSF_OK;
-    lampGroupsLock.Lock();
-    LampGroupMap::iterator it = lampGroups.find(lampGroupID);
-    if (it != lampGroups.end()) {
-        GetAllGroupLamps(it->second.second, Lamps);
-    } else {
-        rc = LSF_ERR_NOT_FOUND;
-    }
-    lampGroupsLock.Unlock();
-
-
-    // we now have a std::list of all Lamps in the group and its subgroups
-    if (!Lamps.empty()) {
-        MsgArg methodArgs[5];
-        methodArgs[0].Set("s", field_name);
-    }
-
-    if (rc != LSF_OK) {
-        MsgArg replyArg("u", rc);
-        controllerService.SendMethodReply(msg, &replyArg, 1);
-    }
-#endif
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
-    LSFString id;
-    LSFString name;
-    LSFResponseCode responseCode = LSF_OK;
-    controllerService.SendMethodReplyWithResponseCodeIDAndName(msg, responseCode, id, name);
-}
-
-void LampGroupManager::GetAllGroupLamps(const LampGroup& group, LSFStringList& Lamps) const
-{
-    QCC_DbgPrintf(("Add implementation"));
-}
-
-bool LampGroupManager::IsGroupValidHelper(const LSFString& id, VisitedMap& visited, VisitedMap& callStack) const
-{
-#if 0
-    if (visited[id] == false) {
-        // Mark the current Lamp as visited and part of recursion stack
-        visited[id] = true;
-        callStack[id] = true;
-
-        // check that the subgroup exists
-        LampGroupMap::const_iterator nit = lampGroups.find(id);
-        if (nit == lampGroups.end()) {
-            return false;
-        }
-
-        // search the adjacent vertices of the graph
-        const LSFStringList& subGroups = nit->second.second.GetLampGroups();
-        for (LSFStringList::const_iterator it = subGroups.begin(); it != subGroups.end(); ++it) {
-            if (!visited[*it] && IsGroupValidHelper(*it, visited, callStack)) {
-                return true;
-            } else if (callStack[*it]) {
-                return true;
+            QCC_DbgPrintf(("%s: Lamp list size = %d", __FUNCTION__, it->second.second.lamps.size()));
+            for (LSFStringList::iterator lampIt = it->second.second.lamps.begin(); lampIt != it->second.second.lamps.end(); lampIt++) {
+                lamps.push_back(*lampIt);
+                QCC_DbgPrintf(("%s: lampId = %s", __FUNCTION__, (*lampIt).c_str()));
             }
+            QCC_DbgPrintf(("%s: Lamp Groups list size = %d", __FUNCTION__, it->second.second.lampGroups.size()));
+            for (LSFStringList::iterator listIt = it->second.second.lampGroups.begin(); listIt != it->second.second.lampGroups.end(); listIt++) {
+                QCC_DbgPrintf(("%s: lampGroupId = %s", __FUNCTION__, (*listIt).c_str()));
+                LSFResponseCode tempResponseCode = GetAllGroupLamps(*listIt, lamps);
+                if (LSF_ERR_NOT_FOUND == tempResponseCode) {
+                    responseCode = LSF_ERR_PARTIAL;
+                } else {
+                    responseCode = tempResponseCode;
+                }
+            }
+        } else {
+            QCC_DbgPrintf(("%s: Lamp Group %s not found", __FUNCTION__, lampGroupId.c_str()));
+            responseCode = LSF_ERR_NOT_FOUND;
         }
+        status = lampGroupsLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: lampGroupsLock.Unlock() failed", __FUNCTION__));
+        }
+    } else {
+        responseCode = LSF_ERR_BUSY;
+        QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __FUNCTION__));
     }
 
-    callStack[id] = false;
-#endif
-    return false;
+    return responseCode;
 }
 
 void LampGroupManager::AddLampGroup(const LSFString& id, const std::string& name, const LampGroup& group)
 {
     std::pair<LSFString, LampGroup> thePair(name, group);
     lampGroups[id] = thePair;
-}
-
-/*
- * Check if a Group is valid.  This primarily means that we want to ensure the tree
- * is NOT a cyclic graph.
- *
- * Also check that all subgroups are valid.
- * TODO? Check if all member Lamps are valid?
- *
- * This should be called only when lampGroupsLock is locked!
- */
-bool LampGroupManager::IsGroupValid(const LampGroup& group) const
-{
-    bool valid = true;
-#if 0
-    VisitedMap visited;
-    VisitedMap callStack;
-    const LSFStringList& subGroups = group.GetLampGroups();
-    for (LSFStringList::const_iterator it = subGroups.begin(); valid && it != subGroups.end(); ++it) {
-        valid = IsGroupValidHelper(*it, visited, callStack);
-    }
-#endif
-    return valid;
 }
