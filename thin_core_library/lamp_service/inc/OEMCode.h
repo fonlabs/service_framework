@@ -102,6 +102,47 @@ extern AJOBS_Settings OEM_OnboardingSettings;
 
 #endif
 
+
+/**
+ * Change the lamp's on/off state
+ *
+ * @param onoff On or off
+ * @return      LSF_OK if the state was successfully changed
+ */
+LampResponseCode OEM_SetLampOnOff(uint8_t onoff);
+
+/**
+ * Change the lamp's hue
+ *
+ * @param hue   The hue
+ * @return      LSF_OK if the state was successfully changed
+ */
+LampResponseCode OEM_SetLampHue(uint32_t hue);
+
+/**
+ * Change the lamp's brightness
+ *
+ * @param brightness    The brightness
+ * @return      LSF_OK if the state was successfully changed
+ */
+LampResponseCode OEM_SetLampBrightness(uint32_t brightness);
+
+/**
+ * Change the lamp's saturation
+ *
+ * @param saturation    The saturation
+ * @return      LSF_OK if the state was successfully changed
+ */
+LampResponseCode OEM_SetLampSaturation(uint32_t saturation);
+
+/**
+ * Change the lamp's color temperature
+ *
+ * @param colorTemp     The color temperature
+ * @return      LSF_OK if the state was successfully changed
+ */
+LampResponseCode OEM_SetLampColorTemp(uint32_t colorTemp);
+
 /**
  * Change the lamp state
  *
@@ -183,6 +224,30 @@ typedef struct {
  * A global struct to hold this Lamp's details.
  */
 extern LampDetails_t LampDetails;
+
+/**
+ * The about icon MIME type
+ */
+extern const char* aboutIconMimetype;
+
+/**
+ * The about icon raw data.
+ * Note that when showing an icon, the About client may choose to use either
+ * this raw image OR fetch the image pointed to by aboutIconUrl.
+ */
+extern const uint8_t aboutIconContent[];
+
+/**
+ * The about icon size
+ */
+extern const size_t aboutIconSize;
+
+/**
+ * The about icon URL
+ * Note that when showing an icon, the About client may choose to use either
+ * fetch it from this URL or use the raw data in aboutIconContent.
+ */
+extern const char* aboutIconUrl;
 
 /**
  * @}

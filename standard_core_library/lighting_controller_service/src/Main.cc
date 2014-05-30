@@ -31,6 +31,37 @@ static void SigIntHandler(int sig)
     g_interrupt = true;
 }
 
+static std::string factoryConfigFile = "OEMConfig.ini";
+static std::string configFile = "Config.ini";
+
+static const std::string usage = "<factory config> <config>";
+
+static bool parseCommandLine(int argc, char** argv)
+{
+    int c;
+    while ((c = getopt(argc, argv, "f:c:h")) != -1) {
+        switch (c) {
+        case 'f':
+            factoryConfigFile = optarg;
+            break;
+
+        case 'c':
+            configFile = optarg;
+            break;
+
+        default:
+            printf("Usage: %s %s\n", argv[0], usage.c_str());
+            return false;
+
+        case 'h':
+            printf("Usage: %s %s\n", argv[0], usage.c_str());
+            break;
+        }
+    }
+
+    return true;
+}
+
 
 void lsf_Sleep(uint32_t msec)
 {
@@ -42,7 +73,11 @@ int main(int argc, char** argv)
 {
     signal(SIGINT, SigIntHandler);
 
-    lsf::ControllerServiceManager controllerSvcManager;
+    if (!parseCommandLine(argc, argv)) {
+        return -1;
+    }
+
+    lsf::ControllerServiceManager controllerSvcManager(factoryConfigFile, configFile);
 
     controllerSvcManagerPtr = &controllerSvcManager;
 

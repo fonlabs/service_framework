@@ -114,11 +114,11 @@ static const char* const LSF_State_Interface[] = {
     "?TransitionLampState Timestamp<t NewState<a{sv} TransitionPeriod<u LampResponseCode>u",
     "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u duration<u numPulses<u startTimeStamp<t LampResponseCode>u",
     "!LampStateChanged LampID>s",
-    "@OnOff>b",
-    "@Hue>u",
-    "@Saturation>u",
-    "@ColorTemp>u",
-    "@Brightness>u",
+    "@OnOff=b",
+    "@Hue=u",
+    "@Saturation=u",
+    "@ColorTemp=u",
+    "@Brightness=u",
     NULL
 };
 
@@ -153,6 +153,7 @@ uint32_t LAMP_GetServiceVersion(void)
 #define LSF_IFACE_DETAILS 3
 #define LSF_IFACE_STATE 4
 
+#define APP_SET_PROP        AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_SET)
 #define APP_GET_PROP        AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_GET)
 #define APP_GET_PROP_ALL    AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_GET_ALL)
 
@@ -618,7 +619,7 @@ static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
 
     switch (propId) {
     case LSF_PROP_STATE_ONOFF:
-        AJ_InfoPrintf(("onOff: %s\n", (state.onOff: "TRUE" : "FALSE")));
+        AJ_InfoPrintf(("onOff: %s\n", (state.onOff ? "TRUE" : "FALSE")));
         return AJ_MarshalArgs(replyMsg, "b", (state.onOff ? TRUE : FALSE));
 
     case LSF_PROP_STATE_HUE:
@@ -640,6 +641,77 @@ static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
     default:
         return AJ_ERR_UNEXPECTED;
     }
+}
+
+static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
+{
+    AJ_Status status = AJ_OK;
+    LampResponseCode rc = LAMP_OK;
+
+    AJ_InfoPrintf(("%s\n", __FUNCTION__));
+
+    switch (propId) {
+    case LSF_PROP_STATE_ONOFF:
+        {
+            uint32_t onoff;
+            status = AJ_UnmarshalArgs(msg, "b", &onoff);
+            if (status == AJ_OK) {
+                rc = OEM_SetLampOnOff(onoff);
+            }
+            break;
+        }
+
+    case LSF_PROP_STATE_HUE:
+        {
+            uint32_t hue;
+            status = AJ_UnmarshalArgs(msg, "u", &hue);
+            if (status == AJ_OK) {
+                rc = OEM_SetLampHue(hue);
+            }
+            break;
+        }
+
+    case LSF_PROP_STATE_SAT:
+        {
+            uint32_t saturation;
+            status = AJ_UnmarshalArgs(msg, "u", &saturation);
+            if (status == AJ_OK) {
+                rc = OEM_SetLampSaturation(saturation);
+            }
+            break;
+        }
+
+    case LSF_PROP_STATE_TEMP:
+        {
+            uint32_t colorTemp;
+            status = AJ_UnmarshalArgs(msg, "u", &colorTemp);
+            if (status == AJ_OK) {
+                rc = OEM_SetLampColorTemp(colorTemp);
+            }
+            break;
+        }
+
+    case LSF_PROP_STATE_BRIGHT:
+        {
+            uint32_t brightness;
+            status = AJ_UnmarshalArgs(msg, "u", &brightness);
+            if (status == AJ_OK) {
+                rc = OEM_SetLampBrightness(brightness);
+            }
+            break;
+        }
+
+    default:
+        status = AJ_ERR_DISALLOWED;
+        break;
+    }
+
+    // need to indicate some kind of failure
+    if (rc != LAMP_OK) {
+        status = AJ_ERR_FAILURE;
+    }
+
+    return status;
 }
 
 
@@ -836,6 +908,10 @@ static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status
 
     case APP_GET_PROP:
         *status = AJ_BusPropGet(msg, PropGetHandler, NULL);
+        break;
+
+    case APP_SET_PROP:
+        *status = AJ_BusPropSet(msg, PropSetHandler, NULL);
         break;
 
     case APP_GET_PROP_ALL:

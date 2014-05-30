@@ -115,8 +115,8 @@ class LampManager : public Manager {
      */
     void GetAllLampIDs(ajn::Message& message);
 
-    LSFResponseCode GetAllLamps(LampNameMap& lamps) {
-        return lampClients.GetAllLamps(lamps);
+    void GetAllLamps(LampNameMap& lamps) {
+        lampClients.GetAllLamps(lamps);
     }
 
     /**
@@ -254,17 +254,17 @@ class LampManager : public Manager {
 
   private:
 
-    LSFResponseCode ResetLampStateInternal(ajn::Message& message, LSFStringList lamps, bool groupOperation = false);
+    void ResetLampStateInternal(ajn::Message& message, LSFStringList lamps, bool groupOperation = false);
 
-    LSFResponseCode ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName, bool groupOperation = false);
+    void ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName, bool groupOperation = false);
 
-    LSFResponseCode ChangeLampStateAndField(ajn::Message& message,
-                                            LampsAndState* transitionToStateComponent = NULL,
-                                            LampsAndPreset* transitionToPresetComponent = NULL,
-                                            LampsAndStateField* stateFieldComponent = NULL,
-                                            PulseLampsWithState* pulseWithStateComponent = NULL,
-                                            PulseLampsWithPreset* pulseWithPresetComponent = NULL,
-                                            bool groupOperation = false);
+    void ChangeLampStateAndField(ajn::Message& message,
+                                 LampsAndState* transitionToStateComponent = NULL,
+                                 LampsAndPreset* transitionToPresetComponent = NULL,
+                                 LampsAndStateField* stateFieldComponent = NULL,
+                                 PulseLampsWithState* pulseWithStateComponent = NULL,
+                                 PulseLampsWithPreset* pulseWithPresetComponent = NULL,
+                                 bool groupOperation = false);
 
     LampClients lampClients;
     PresetManager& presetManager;

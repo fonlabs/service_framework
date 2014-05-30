@@ -28,7 +28,6 @@
 #include <alljoyn/BusAttachment.h>
 #include <alljoyn/ProxyBusObject.h>
 #include <alljoyn/notification/NotificationSender.h>
-#include <alljoyn/about/AboutPropertyStoreImpl.h>
 #include <alljoyn/about/AboutService.h>
 #include <alljoyn/config/ConfigService.h>
 
@@ -36,6 +35,7 @@
 #include <LSFTypes.h>
 #include <Mutex.h>
 
+#include <LSFPropertyStore.h>
 #include <LampManager.h>
 #include <LampGroupManager.h>
 #include <PresetManager.h>
@@ -58,7 +58,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     /**
      * Constructor
      */
-    ControllerService();
+    ControllerService(const std::string& factoryConfigFile, const std::string& configFile);
 
     /**
      * Destructor
@@ -140,7 +140,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void LeaveSession(ajn::SessionId sessionId);
     void SessionJoined(ajn::SessionId sessionId);
 
-    ajn::services::AboutPropertyStoreImpl propertyStore;
+    LSFPropertyStore propertyStore;
     ajn::services::AboutServiceApi* aboutService;
     ajn::services::ConfigService configService;
     ajn::services::NotificationSender* notificationSender;
@@ -200,8 +200,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
 class ControllerServiceManager {
   public:
-    ControllerServiceManager() :
-        controllerService() {
+    ControllerServiceManager(const std::string& factoryConfigFile, const std::string& configFile) :
+        controllerService(factoryConfigFile, configFile) {
 
     }
 

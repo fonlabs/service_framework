@@ -293,7 +293,7 @@ void LampManager::ResetLampStateField(ajn::Message& message)
     ResetLampStateFieldInternal(message, lampList, fieldName);
 }
 
-LSFResponseCode LampManager::ResetLampStateInternal(ajn::Message& message, LSFStringList lamps, bool groupOperation)
+void LampManager::ResetLampStateInternal(ajn::Message& message, LSFStringList lamps, bool groupOperation)
 {
     LampState defaultLampState;
 
@@ -303,7 +303,7 @@ LSFResponseCode LampManager::ResetLampStateInternal(ajn::Message& message, LSFSt
 
     if (LSF_OK == responseCode) {
         LampsAndState transitionToStateComponent(lamps, defaultLampState, 0);
-        responseCode = ChangeLampStateAndField(message, &transitionToStateComponent, NULL, NULL, NULL, NULL, groupOperation);
+        ChangeLampStateAndField(message, &transitionToStateComponent, NULL, NULL, NULL, NULL, groupOperation);
     } else {
         QCC_LogError(ER_FAIL, ("%s: Error getting the default lamp state", __FUNCTION__));
         if (groupOperation) {
@@ -316,11 +316,9 @@ LSFResponseCode LampManager::ResetLampStateInternal(ajn::Message& message, LSFSt
             controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lamps.front());
         }
     }
-
-    return responseCode;
 }
 
-LSFResponseCode LampManager::ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName, bool groupOperation)
+void LampManager::ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName, bool groupOperation)
 {
     LampState defaultLampState;
 
@@ -344,7 +342,7 @@ LSFResponseCode LampManager::ResetLampStateFieldInternal(ajn::Message& message, 
         }
 
         LampsAndStateField stateFieldComponent(lamps, stateFieldName, arg, 0);
-        responseCode = ChangeLampStateAndField(message, NULL, NULL, &stateFieldComponent, NULL, NULL, groupOperation);
+        ChangeLampStateAndField(message, NULL, NULL, &stateFieldComponent, NULL, NULL, groupOperation);
     } else {
         QCC_LogError(ER_FAIL, ("%s: Error getting the default lamp state", __FUNCTION__));
         controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lamps.front(), stateFieldName);
@@ -358,17 +356,15 @@ LSFResponseCode LampManager::ResetLampStateFieldInternal(ajn::Message& message, 
             controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lamps.front(), stateFieldName);
         }
     }
-
-    return responseCode;
 }
 
-LSFResponseCode LampManager::ChangeLampStateAndField(Message& message,
-                                                     LampsAndState* transitionToStateComponent,
-                                                     LampsAndPreset* transitionToPresetComponent,
-                                                     LampsAndStateField* stateFieldComponent,
-                                                     PulseLampsWithState* pulseWithStateComponent,
-                                                     PulseLampsWithPreset* pulseWithPresetComponent,
-                                                     bool groupOperation)
+void LampManager::ChangeLampStateAndField(Message& message,
+                                          LampsAndState* transitionToStateComponent,
+                                          LampsAndPreset* transitionToPresetComponent,
+                                          LampsAndStateField* stateFieldComponent,
+                                          PulseLampsWithState* pulseWithStateComponent,
+                                          PulseLampsWithPreset* pulseWithPresetComponent,
+                                          bool groupOperation)
 {
     LSFResponseCode responseCode = LSF_ERR_FAILURE;
 
@@ -445,8 +441,6 @@ LSFResponseCode LampManager::ChangeLampStateAndField(Message& message,
             }
         }
     }
-
-    return responseCode;
 }
 
 void LampManager::TransitionLampState(ajn::Message& message)

@@ -60,7 +60,7 @@ class ControllerService::ControllerListener : public SessionPortListener, public
     ControllerService& controller;
 };
 
-ControllerService::ControllerService() :
+ControllerService::ControllerService(const std::string& factoryConfigFile, const std::string& configFile) :
     BusObject(ControllerServicePath),
     bus("LightingServiceController", true),
     serviceSession(0),
@@ -70,7 +70,7 @@ ControllerService::ControllerService() :
     presetManager(*this, ControllerPresetInterface, &sceneManager),
     sceneManager(*this, lampGroupManager, ControllerSceneInterface, &masterSceneManager),
     masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface),
-    propertyStore(),
+    propertyStore(factoryConfigFile, configFile),
     aboutService(NULL),
     configService(bus, propertyStore, *this),
     notificationSender(NULL)
@@ -137,19 +137,7 @@ ControllerService::ControllerService() :
     AddMethodHandler("GetMasterScene", &masterSceneManager, &MasterSceneManager::GetMasterScene);
     AddMethodHandler("ApplyMasterScene", &masterSceneManager, &MasterSceneManager::ApplyMasterScene);
 
-    // TODO: fill the property store!
-    std::vector<qcc::String> languages(1);
-    languages[0] = "en";
-
-    propertyStore.setSupportedLangs(languages);
-    propertyStore.setDefaultLang(languages[0]);
-
-    qcc::String deviceId = qcc::RandHexString(16);
-    propertyStore.setDeviceId(deviceId);
-    propertyStore.setAppId(deviceId);
-
-    propertyStore.setAppName("LightingControllerService");
-    propertyStore.setDeviceName("LightingControllerService_" + deviceId);
+    propertyStore.Initialize();
 }
 
 ControllerService::~ControllerService()

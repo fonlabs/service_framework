@@ -88,7 +88,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param lampID    The lamp id
      * @param msg   The original message
      */
-    LSFResponseCode GetLampName(const LSFString& lampID, const LSFString& language, ajn::Message& msg);
+    void GetLampName(const LSFString& lampID, const LSFString& language, ajn::Message& msg);
 
     /**
      * Set the Lamp name
@@ -97,7 +97,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param name      The new name
      * @param inMsg     The original message
      */
-    LSFResponseCode SetLampName(const LSFString& lampID, const LSFString& name, const LSFString& language, ajn::Message& inMsg);
+    void SetLampName(const LSFString& lampID, const LSFString& name, const LSFString& language, ajn::Message& inMsg);
 
     /**
      * Get the Lamp manufacturer
@@ -105,7 +105,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param lampID    The lamp id
      * @param msg   The original message
      */
-    LSFResponseCode GetLampManufacturer(const LSFString& lampID, const LSFString& language, ajn::Message& msg);
+    void GetLampManufacturer(const LSFString& lampID, const LSFString& language, ajn::Message& msg);
 
     /**
      * Get the Lamp manufacturer
@@ -113,7 +113,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param lampID    The lamp id
      * @param msg   The original message
      */
-    LSFResponseCode GetLampSupportedLanguages(const LSFString& lampID, ajn::Message& msg);
+    void GetLampSupportedLanguages(const LSFString& lampID, ajn::Message& msg);
 
     /**
      * Get the Lamp's entire state
@@ -126,7 +126,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The reply will trigger a call to LampClientsCallback::GetLampStateReplyCB.
      * The callback will only happen if LSF_OK is returned
      */
-    LSFResponseCode GetLampState(const LSFString& lampID, ajn::Message& inMsg);
+    void GetLampState(const LSFString& lampID, ajn::Message& inMsg);
 
     /**
      * Get the Lamp's details
@@ -139,7 +139,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The reply will trigger a call to LampClientsCallback::GetLampDetailsReplyCB.
      * The callback will only happen if LSF_OK is returned
      */
-    LSFResponseCode GetLampDetails(const LSFString& lampID, ajn::Message& inMsg);
+    void GetLampDetails(const LSFString& lampID, ajn::Message& inMsg);
 
     /**
      * Get the Lamp's parameters
@@ -152,7 +152,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The reply will trigger a call to LampClientsCallback::GetLampParametersReplyCB.
      * The callback will only happen if LSF_OK is returned
      */
-    LSFResponseCode GetLampParameters(const LSFString& lampID, ajn::Message& inMsg);
+    void GetLampParameters(const LSFString& lampID, ajn::Message& inMsg);
 
     /**
      * Get the Lamp's state field
@@ -166,7 +166,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The reply will trigger a call to LampClientsCallback::GetLampStateFieldReplyCB.
      * The callback will only happen if LSF_OK is returned
      */
-    LSFResponseCode GetLampStateField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
+    void GetLampStateField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
 
     /**
      * Get the Lamp's parameters field
@@ -180,7 +180,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The reply will trigger a call to LampClientsCallback::GetLampParametersFieldReplyCB.
      * The callback will only happen if LSF_OK is returned
      */
-    LSFResponseCode GetLampParametersField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
+    void GetLampParametersField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
 
     /**
      * Apply a LampState to one or more lamps
@@ -195,12 +195,12 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * The method LampClientsCallback::GetLampDetailsReplyCB will be called when all lamps have responded
      */
-    LSFResponseCode TransitionLampState(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
-                                        const ajn::MsgArg& state, uint32_t period, bool groupOperation);
+    void TransitionLampState(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
+                             const ajn::MsgArg& state, uint32_t period, bool groupOperation);
 
 
-    LSFResponseCode PulseLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& oldState,
-                                       const ajn::MsgArg& newState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimestamp, bool groupOperation);
+    void PulseLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& oldState,
+                            const ajn::MsgArg& newState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimestamp, bool groupOperation);
     /**
      * Apply a Lamp State Field to one or more lamps
      *
@@ -215,8 +215,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * The method LampClientsCallback::GetLampDetailsReplyCB will be called when all lamps have responded
      */
-    LSFResponseCode TransitionLampStateField(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
-                                             const char* field, const ajn::MsgArg& value, uint32_t period, bool groupOperation);
+    void TransitionLampStateField(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
+                                  const char* field, const ajn::MsgArg& value, uint32_t period, bool groupOperation);
 
     /**
      * Get the lamp faults
@@ -229,9 +229,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The reply will trigger a call to LampClientsCallback::GetLampFaultsReplyCB.
      * The callback will only happen if LSF_OK is returned
      */
-    LSFResponseCode GetLampFaults(const LSFString& lampID, ajn::Message& inMsg);
+    void GetLampFaults(const LSFString& lampID, ajn::Message& inMsg);
 
-    LSFResponseCode GetLampVersion(const LSFString& lampID, ajn::Message& inMsg);
+    void GetLampVersion(const LSFString& lampID, ajn::Message& inMsg);
 
     /**
      * Clear the given lamp fault specified in inMsg
@@ -244,9 +244,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * The reply will trigger a call to LampClientsCallback::ClearLampFaultReplyCB.
      * The callback will only happen if LSF_OK is returned
      */
-    LSFResponseCode ClearLampFault(const LSFString& lampID, LampFaultCode faultCode, ajn::Message& inMsg);
+    void ClearLampFault(const LSFString& lampID, LampFaultCode faultCode, ajn::Message& inMsg);
 
-    LSFResponseCode GetAllLamps(LampNameMap& lamps);
+    void GetAllLamps(LampNameMap& lamps);
 
     void IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* context);
 
@@ -282,17 +282,15 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     };
 
     struct QueuedMethodCall {
-        typedef LSFResponseCode (LampClients::* MethodHandler)(QueuedMethodCall*);
-
-        QueuedMethodCall(const ajn::Message& msg, LSFString lampId, std::string intf, std::string methodName, MethodHandler handler, ajn::MessageReceiver::ReplyHandler replyHandler) :
-            inMsg(msg), interface(intf), method(methodName), handler(handler), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(1) {
+        QueuedMethodCall(const ajn::Message& msg, LSFString lampId, std::string intf, std::string methodName, ajn::MessageReceiver::ReplyHandler replyHandler) :
+            inMsg(msg), interface(intf), method(methodName), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(1) {
             lamps.clear();
             lamps.push_back(lampId);
             args.clear();
         }
 
-        QueuedMethodCall(const ajn::Message& msg, LSFStringList lampList, std::string intf, std::string methodName, MethodHandler handler, ajn::MessageReceiver::ReplyHandler replyHandler) :
-            inMsg(msg), interface(intf), method(methodName), handler(handler), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(lampList.size()) {
+        QueuedMethodCall(const ajn::Message& msg, LSFStringList lampList, std::string intf, std::string methodName, ajn::MessageReceiver::ReplyHandler replyHandler) :
+            inMsg(msg), interface(intf), method(methodName), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(lampList.size()) {
             lamps.clear();
             lamps = lampList;
             args.clear();
@@ -303,7 +301,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         std::string interface;
         std::string method;
         std::vector<ajn::MsgArg> args;
-        MethodHandler handler;
         ajn::MessageReceiver::ReplyHandler replyFunc;
         LSFString responseID;
         ResponseCounter responseCounter;
@@ -313,7 +310,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFResponseCode DoMethodCallAsync(QueuedMethodCall* call);
 
-    LSFResponseCode QueueLampMethod(QueuedMethodCall* queuedCall);
+    void QueueLampMethod(QueuedMethodCall* queuedCall);
 
     void HandleReplyWithLampResponseCode(ajn::Message& msg, void* context);
     void HandleGetReply(ajn::Message& msg, void* context);
