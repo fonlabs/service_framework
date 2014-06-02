@@ -35,6 +35,7 @@
 #include <LSFTypes.h>
 #include <Mutex.h>
 
+#include <WorkerQueue.h>
 #include <LSFPropertyStore.h>
 #include <LampManager.h>
 #include <LampGroupManager.h>
@@ -51,14 +52,29 @@ namespace lsf {
  * and forwards it to the appropriate manager and receives a reply from a manager and
  * passes it on to AllJoyn
  */
-class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener {
+class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener, public WorkerQueue<Manager>::Handler {
     friend class ControllerServiceManager;
   public:
 
     /**
      * Constructor
      */
-    ControllerService(const std::string& factoryConfigFile, const std::string& configFile);
+    ControllerService(
+        const std::string& factoryConfigFile,
+        const std::string& configFile,
+        const std::string& lampGroupFile,
+        const std::string& presetFile,
+        const std::string& sceneFile,
+        const std::string& masterSceneFile);
+
+    ControllerService(
+        ajn::services::PropertyStore& propStore,
+        const std::string& factoryConfigFile,
+        const std::string& configFile,
+        const std::string& lampGroupFile,
+        const std::string& presetFile,
+        const std::string& sceneFile,
+        const std::string& masterSceneFile);
 
     /**
      * Destructor
@@ -111,7 +127,22 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     QStatus SendSignalWithoutArg(const char* ifaceName, const char* signalName);
 
+    void ScheduleFileWrite(Manager* manager);
+
   private:
+
+    void Initialize();
+
+    uint32_t GetControllerInterfaceVersion(void);
+
+    /**
+     * Handles the GetPropery request
+     * @param ifcName  interface name
+     * @param propName the name of the propery
+     * @param val reference of MsgArg out parameter.
+     * @return status - success/failure
+     */
+    QStatus Get(const char* ifcName, const char* propName, ajn::MsgArg& val);
 
     virtual void ObjectRegistered(void);
 
@@ -140,7 +171,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void LeaveSession(ajn::SessionId sessionId);
     void SessionJoined(ajn::SessionId sessionId);
 
-    LSFPropertyStore propertyStore;
+    LSFPropertyStore internalPropertyStore;
+    ajn::services::PropertyStore& propertyStore;
     ajn::services::AboutServiceApi* aboutService;
     ajn::services::ConfigService configService;
     ajn::services::NotificationSender* notificationSender;
@@ -196,12 +228,35 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     typedef std::map<std::string, MethodHandlerBase*> DispatcherMap;
     DispatcherMap messageHandlers;
+
+
+    virtual int HandleItem(Manager* item);
+
+    WorkerQueue<Manager> fileWriterThread;
 };
 
 class ControllerServiceManager {
   public:
-    ControllerServiceManager(const std::string& factoryConfigFile, const std::string& configFile) :
-        controllerService(factoryConfigFile, configFile) {
+    ControllerServiceManager(
+        const std::string& factoryConfigFile,
+        const std::string& configFile,
+        const std::string& lampGroupFile,
+        const std::string& presetFile,
+        const std::string& sceneFile,
+        const std::string& masterSceneFile) :
+        controllerService(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
+
+    }
+
+    ControllerServiceManager(
+        ajn::services::PropertyStore& propStore,
+        const std::string& factoryConfigFile,
+        const std::string& configFile,
+        const std::string& lampGroupFile,
+        const std::string& presetFile,
+        const std::string& sceneFile,
+        const std::string& masterSceneFile) :
+        controllerService(propStore, factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
 
     }
 

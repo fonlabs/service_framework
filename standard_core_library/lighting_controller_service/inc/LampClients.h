@@ -24,6 +24,7 @@
 #include <Mutex.h>
 #include <Manager.h>
 #include <Thread.h>
+#include <Condition.h>
 
 #include <string>
 #include <map>
@@ -32,8 +33,6 @@
 #define INITIAL_PASSCODE "000000"
 
 namespace lsf {
-
-#define MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
 
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener, public ajn::ProxyBusObject::Listener, public lsf::Thread {
   public:
@@ -320,7 +319,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
 
     struct LampConnection {
-        LSFString id;
+        LSFString uniqueId;
         ajn::ProxyBusObject object;
         ajn::ProxyBusObject configObject;
         ajn::ProxyBusObject aboutObject;
@@ -359,6 +358,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     std::list<ajn::Message> getAllLampIDsRequests;
     Mutex getAllLampIDsLock;
+
+    Condition wakeUp;
 };
 
 }

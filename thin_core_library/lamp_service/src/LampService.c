@@ -449,12 +449,12 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
             case AJ_SIGNAL_SESSION_LOST_WITH_REASON:
                 {
                     // this might not be an error.
-                    uint32_t id, reason;
-                    AJ_UnmarshalArgs(&msg, "uu", &id, &reason);
+                    uint32_t sessionId, reason;
+                    AJ_UnmarshalArgs(&msg, "uu", &sessionId, &reason);
                     ControllerSessionID = 0;
                     // cancel signal
                     SendStateChanged = FALSE;
-                    AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u", __FUNCTION__, id, reason));
+                    AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u", __FUNCTION__, sessionId, reason));
                     status = AJ_ERR_SESSION_LOST;
                     break;
                 }
@@ -547,15 +547,15 @@ void LAMP_SendStateChangedSignal(void)
 
 static AJ_Status ClearLampFault(AJ_Message* msg)
 {
-    LampResponseCode rc = LAMP_OK;
+    LampResponseCode responseCode = LAMP_OK;
     uint32_t faultCode;
     AJ_Message reply;
     AJ_MarshalReplyMsg(msg, &reply);
 
     AJ_UnmarshalArgs(msg, "u", &faultCode);
-    rc = OEM_ClearLampFault(faultCode);
+    responseCode = OEM_ClearLampFault(faultCode);
 
-    AJ_MarshalArgs(&reply, "uu", (uint32_t) rc, (uint32_t) faultCode);
+    AJ_MarshalArgs(&reply, "uu", (uint32_t) responseCode, (uint32_t) faultCode);
     AJ_DeliverMsg(&reply);
     AJ_CloseMsg(&reply);
 
@@ -564,7 +564,7 @@ static AJ_Status ClearLampFault(AJ_Message* msg)
 
 static AJ_Status TransitionLampState(AJ_Message* msg)
 {
-    LampResponseCode rc = LAMP_OK;
+    LampResponseCode responseCode = LAMP_OK;
     LampState new_state;
     uint64_t timestamp;
     uint32_t TransitionPeriod;
@@ -577,9 +577,9 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
     AJ_UnmarshalArgs(msg, "u", &TransitionPeriod);
 
     // apply the new state
-    rc = OEM_TransitionLampState(&new_state, timestamp, TransitionPeriod);
+    responseCode = OEM_TransitionLampState(&new_state, timestamp, TransitionPeriod);
 
-    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
+    AJ_MarshalArgs(&reply, "u", (uint32_t) responseCode);
     AJ_DeliverMsg(&reply);
     AJ_CloseMsg(&reply);
     return AJ_OK;
@@ -588,7 +588,7 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
 // "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u ratio<y numPulses<u startTimeStamp<t LampResponseCode>u"
 static AJ_Status ApplyPulseEffect(AJ_Message* msg)
 {
-    LampResponseCode rc = LAMP_OK;
+    LampResponseCode responseCode = LAMP_OK;
     LampState FromState, ToState;
     uint32_t period;
     uint32_t duration;
@@ -603,9 +603,9 @@ static AJ_Status ApplyPulseEffect(AJ_Message* msg)
     AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numPulses, &startTimeStamp);
 
     // apply the new state
-    rc = OEM_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, startTimeStamp);
+    responseCode = OEM_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, startTimeStamp);
 
-    AJ_MarshalArgs(&reply, "u", (uint32_t) rc);
+    AJ_MarshalArgs(&reply, "u", (uint32_t) responseCode);
     AJ_DeliverMsg(&reply);
     AJ_CloseMsg(&reply);
     return AJ_OK;
@@ -646,7 +646,7 @@ static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
 static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
 {
     AJ_Status status = AJ_OK;
-    LampResponseCode rc = LAMP_OK;
+    LampResponseCode responseCode = LAMP_OK;
 
     AJ_InfoPrintf(("%s\n", __FUNCTION__));
 
@@ -656,7 +656,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t onoff;
             status = AJ_UnmarshalArgs(msg, "b", &onoff);
             if (status == AJ_OK) {
-                rc = OEM_SetLampOnOff(onoff);
+                responseCode = OEM_SetLampOnOff(onoff);
             }
             break;
         }
@@ -666,7 +666,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t hue;
             status = AJ_UnmarshalArgs(msg, "u", &hue);
             if (status == AJ_OK) {
-                rc = OEM_SetLampHue(hue);
+                responseCode = OEM_SetLampHue(hue);
             }
             break;
         }
@@ -676,7 +676,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t saturation;
             status = AJ_UnmarshalArgs(msg, "u", &saturation);
             if (status == AJ_OK) {
-                rc = OEM_SetLampSaturation(saturation);
+                responseCode = OEM_SetLampSaturation(saturation);
             }
             break;
         }
@@ -686,7 +686,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t colorTemp;
             status = AJ_UnmarshalArgs(msg, "u", &colorTemp);
             if (status == AJ_OK) {
-                rc = OEM_SetLampColorTemp(colorTemp);
+                responseCode = OEM_SetLampColorTemp(colorTemp);
             }
             break;
         }
@@ -696,7 +696,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t brightness;
             status = AJ_UnmarshalArgs(msg, "u", &brightness);
             if (status == AJ_OK) {
-                rc = OEM_SetLampBrightness(brightness);
+                responseCode = OEM_SetLampBrightness(brightness);
             }
             break;
         }
@@ -707,7 +707,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
     }
 
     // need to indicate some kind of failure
-    if (rc != LAMP_OK) {
+    if (responseCode != LAMP_OK) {
         status = AJ_ERR_FAILURE;
     }
 

@@ -19,14 +19,18 @@
 #include <qcc/atomic.h>
 #include <qcc/Debug.h>
 #include <MasterSceneManager.h>
+#include <OEMConfig.h>
+#include <FileParser.h>
 
 using namespace lsf;
 using namespace ajn;
 
 #define QCC_MODULE "SCENE_MANAGER"
 
-SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName, MasterSceneManager* masterSceneMgr) :
-    Manager(controllerSvc), lampGroupManager(lampGroupMgr), interfaceName(ifaceName), masterSceneManager(masterSceneMgr)
+static const uint32_t controllerSceneInterfaceVersion = 1;
+
+SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName, MasterSceneManager* masterSceneMgr, const std::string& sceneFile) :
+    Manager(controllerSvc, sceneFile), lampGroupManager(lampGroupMgr), interfaceName(ifaceName), masterSceneManager(masterSceneMgr)
 {
 }
 
@@ -171,10 +175,10 @@ void SceneManager::GetSceneName(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString sceneID(id);
+    LSFString sceneID(uniqueId);
 
     LSFString language = static_cast<LSFString>(args[1].v_string.str);
     if (0 != strcmp("en", language.c_str())) {
@@ -183,7 +187,7 @@ void SceneManager::GetSceneName(Message& msg)
     } else {
         QStatus status = scenesLock.Lock();
         if (ER_OK == status) {
-            SceneMap::iterator it = scenes.find(id);
+            SceneMap::iterator it = scenes.find(uniqueId);
             if (it != scenes.end()) {
                 name = it->second.first;
                 responseCode = LSF_OK;
@@ -211,10 +215,10 @@ void SceneManager::SetSceneName(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString sceneID(id);
+    LSFString sceneID(uniqueId);
 
     const char* name;
     args[1].Get("s", &name);
@@ -230,7 +234,7 @@ void SceneManager::SetSceneName(Message& msg)
         } else {
             QStatus status = scenesLock.Lock();
             if (ER_OK == status) {
-                SceneMap::iterator it = scenes.find(id);
+                SceneMap::iterator it = scenes.find(uniqueId);
                 if (it != scenes.end()) {
                     it->second.first = LSFString(name);
                     responseCode = LSF_OK;
@@ -250,6 +254,7 @@ void SceneManager::SetSceneName(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeIDAndName(msg, responseCode, sceneID, language);
 
     if (nameChanged) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
         controllerService.SendSignal(interfaceName, "ScenesNameChanged", idList);
@@ -293,6 +298,7 @@ void SceneManager::CreateScene(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, sceneID);
 
     if (created) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
         controllerService.SendSignal(interfaceName, "ScenesCreated", idList);
@@ -310,15 +316,15 @@ void SceneManager::UpdateScene(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString sceneID(id);
+    LSFString sceneID(uniqueId);
     Scene scene(args[1], args[2], args[3], args[4]);
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        SceneMap::iterator it = scenes.find(id);
+        SceneMap::iterator it = scenes.find(uniqueId);
         if (it != scenes.end()) {
             scenes[sceneID].second = scene;
             responseCode = LSF_OK;
@@ -336,6 +342,7 @@ void SceneManager::UpdateScene(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, sceneID);
 
     if (updated) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
         controllerService.SendSignal(interfaceName, "ScenesUpdated", idList);
@@ -383,6 +390,7 @@ void SceneManager::DeleteScene(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, sceneID);
 
     if (deleted) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
         controllerService.SendSignal(interfaceName, "ScenesDeleted", idList);
@@ -401,12 +409,12 @@ void SceneManager::GetScene(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        SceneMap::iterator it = scenes.find(id);
+        SceneMap::iterator it = scenes.find(uniqueId);
         if (it != scenes.end()) {
             it->second.second.Get(&outArgs[2], &outArgs[3], &outArgs[4], &outArgs[5]);
             responseCode = LSF_OK;
@@ -426,7 +434,7 @@ void SceneManager::GetScene(Message& msg)
     }
 
     outArgs[0].Set("u", responseCode);
-    outArgs[1].Set("s", id);
+    outArgs[1].Set("s", uniqueId);
 
     controllerService.SendMethodReply(msg, outArgs, 6);
 }
@@ -440,7 +448,7 @@ void SceneManager::ApplyScene(ajn::Message& msg)
 
     const char* sceneID;
     args[0].Get("s", &sceneID);
-    LSFResponseCode rc = LSF_OK;
+    LSFResponseCode responseCode = LSF_OK;
 
     scenesLock.Lock();
     SceneMap::iterator sit = scenes.find(sceneID);
@@ -451,22 +459,266 @@ void SceneManager::ApplyScene(ajn::Message& msg)
 
         // TODO: something with this!
     } else {
-        rc = LSF_ERR_INVALID;
+        responseCode = LSF_ERR_INVALID;
     }
 
     scenesLock.Unlock();
 #endif
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
-    LSFString id;
+    LSFString uniqueId;
     LSFResponseCode responseCode = LSF_OK;
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, id);
+    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, uniqueId);
     LSFStringList idList;
     idList.push_back("abc");
     controllerService.SendSignal(interfaceName, "ScenesApplied", idList);
 }
 
-void SceneManager::AddScene(const LSFString& id, const std::string& name, const Scene& scene)
+void SceneManager::ReadSavedData()
 {
-    std::pair<LSFString, Scene> thePair(name, scene);
-    scenes[id] = thePair;
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::ifstream stream(filePath.c_str());
+
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    while (!stream.eof()) {
+        std::string token;
+        std::string id;
+        std::string name;
+        LSFStringList subScenes;
+        bool in_scene = false;
+
+        Scene scene;
+        do {
+            token = ParseString(stream);
+
+            if (token == "Scene") {
+                in_scene = true;
+                id = ParseString(stream);
+                name = ParseString(stream);
+            } else if (token == "EndScene") {
+                in_scene = false;
+            }
+
+            if (in_scene) {
+                std::string type = ParseString(stream);
+
+                if (type == "TransitionLampsLampGroupsToState") {
+                    LSFStringList lampList;
+                    LSFStringList lampGroupList;
+                    LampState lampState;
+                    uint32_t period = 0;
+
+                    do {
+                        type = ParseString(stream);
+
+                        if (type == "Lamp") {
+                            std::string id = ParseString(stream);
+                            lampList.push_back(id);
+                        } else if (type == "LampGroup") {
+                            std::string id = ParseString(stream);
+                            lampGroupList.push_back(id);
+                        } else if (type == "LampState") {
+                            ParseLampState(stream, lampState);
+                        } else if (type == "Period") {
+                            period = ParseValue<uint32_t>(stream);
+                        }
+                    } while (type != "EndTransitionLampsLampGroupsToState");
+                    scene.transitionToStateComponent.push_back(TransitionLampsLampGroupsToState(lampList, lampGroupList, lampState, period));
+                } else if (type == "TransitionLampsLampGroupsToPreset") {
+                    LSFStringList lampList;
+                    LSFStringList lampGroupList;
+                    LSFString preset;
+                    uint32_t period = 0;
+
+                    do {
+                        type = ParseString(stream);
+
+                        if (type == "Lamp") {
+                            std::string id = ParseString(stream);
+                            lampList.push_back(id);
+                        } else if (type == "LampGroup") {
+                            std::string id = ParseString(stream);
+                            lampGroupList.push_back(id);
+                        } else if (type == "LampState") {
+                            preset = ParseString(stream);
+                        } else if (type == "Period") {
+                            period = ParseValue<uint32_t>(stream);
+                        }
+                    } while (type != "EndTransitionLampsLampGroupsToPreset");
+                    scene.transitionToPresetComponent.push_back(TransitionLampsLampGroupsToPreset(lampList, lampGroupList, preset, period));
+                } else if (type == "PulseLampsLampGroupsWithState") {
+                    LSFStringList lampList;
+                    LSFStringList lampGroupList;
+                    LampState fromState, toState;
+                    uint32_t period = 0, duration = 0, pulses = 0;
+
+                    do {
+                        if (type == "Lamp") {
+                            std::string id = ParseString(stream);
+                            lampList.push_back(id);
+                        } else if (type == "LampGroup") {
+                            std::string id = ParseString(stream);
+                            lampGroupList.push_back(id);
+                        } else if (type == "FromState") {
+                            ParseLampState(stream, fromState);
+                        } else if (type == "ToState") {
+                            ParseLampState(stream, toState);
+                        } else if (type == "Period") {
+                            period = ParseValue<uint32_t>(stream);
+                        } else if (type == "Duration") {
+                            duration = ParseValue<uint32_t>(stream);
+                        } else if (type == "Pulses") {
+                            pulses = ParseValue<uint32_t>(stream);
+                        }
+                    } while (type != "EndPulseLampsLampGroupsWithState");
+                    scene.pulseWithStateComponent.push_back(PulseLampsLampGroupsWithState(lampList, lampGroupList, fromState, toState, period, duration, pulses));
+                } else if (type == "PulseLampsLampGroupsWithPreset") {
+                    LSFStringList lampList;
+                    LSFStringList lampGroupList;
+                    LSFString fromState, toState;
+                    uint32_t period = 0, duration = 0, pulses = 0;
+
+                    do {
+                        if (type == "Lamp") {
+                            std::string id = ParseString(stream);
+                            lampList.push_back(id);
+                        } else if (type == "LampGroup") {
+                            std::string id = ParseString(stream);
+                            lampGroupList.push_back(id);
+                        } else if (type == "FromState") {
+                            fromState = ParseString(stream);
+                        } else if (type == "ToState") {
+                            toState = ParseString(stream);
+                        } else if (type == "Period") {
+                            period = ParseValue<uint32_t>(stream);
+                        } else if (type == "Duration") {
+                            duration = ParseValue<uint32_t>(stream);
+                        } else if (type == "Pulses") {
+                            pulses = ParseValue<uint32_t>(stream);
+                        }
+                    } while (type != "EndPulseLampsLampGroupsWithPreset");
+                    scene.pulseWithPresetComponent.push_back(PulseLampsLampGroupsWithPreset(lampList, lampGroupList, fromState, toState, period, duration, pulses));
+                }
+            }
+        } while (token != "EndScene");
+
+        std::pair<LSFString, Scene> thePair(name, scene);
+        scenes[id] = thePair;
+    }
+}
+
+static void OutputLamps(std::ofstream& stream, const std::string& name, const LSFStringList& list)
+{
+    for (LSFStringList::const_iterator it = list.begin(); it != list.end(); ++it) {
+        stream << name << ' ' << *it << ' ';
+    }
+}
+
+static void OutputState(std::ofstream& stream, const std::string& name, const LampState& state)
+{
+    stream << name << ' '
+           << (state.onOff ? 1 : 0) << ' '
+           << state.hue << ' ' << state.saturation << ' '
+           << state.colorTemp << ' ' << state.brightness << ' ';
+}
+
+void SceneManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        return;
+    }
+
+    if (filePath.empty()) {
+        return;
+    }
+
+    scenesLock.Lock();
+    // we can't hold this lock for the entire time!
+    SceneMap mapCopy = scenes;
+    updated = false;
+    scenesLock.Unlock();
+
+
+    std::ofstream stream(filePath.c_str(), std::ios_base::out);
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    for (SceneMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+        const LSFString& id = it->first;
+        const LSFString& name = it->second.first;
+        const Scene& scene = it->second.second;
+
+        stream << "Scene " << id << " \"" << name << "\"\n";
+
+        // TransitionLampsLampGroupsToState
+        if (!scene.transitionToStateComponent.empty()) {
+            stream << "\tTransitionLampsLampGroupsToState\n";
+            for (TransitionLampsLampGroupsToStateList::const_iterator cit = scene.transitionToStateComponent.begin(); cit != scene.transitionToStateComponent.end(); ++cit) {
+                const TransitionLampsLampGroupsToState& comp = *cit;
+
+                stream << "\t\t";
+                OutputLamps(stream, "Lamp", comp.lamps);
+                OutputLamps(stream, "LampGroup", comp.lampGroups);
+                OutputState(stream, "LampState", comp.state);
+                stream << "Period " << comp.transitionPeriod << '\n';
+            }
+        }
+
+        if (!scene.transitionToPresetComponent.empty()) {
+            stream << "\tTransitionLampsLampGroupsToPreset ";
+            for (TransitionLampsLampGroupsToPresetList::const_iterator cit = scene.transitionToPresetComponent.begin(); cit != scene.transitionToPresetComponent.end(); ++cit) {
+                const TransitionLampsLampGroupsToPreset& comp = *cit;
+
+                stream << "\t\t";
+                OutputLamps(stream, "Lamp", comp.lamps);
+                OutputLamps(stream, "LampGroup", comp.lampGroups);
+                stream << " LampState " << comp.presetID << " Period " << comp.transitionPeriod << '\n';
+            }
+        }
+
+
+        if (!scene.pulseWithStateComponent.empty()) {
+            stream << "\tPulseLampsLampGroupsWithState ";
+            for (PulseLampsLampGroupsWithStateList::const_iterator cit = scene.pulseWithStateComponent.begin(); cit != scene.pulseWithStateComponent.end(); ++cit) {
+                const PulseLampsLampGroupsWithState& comp = *cit;
+
+                stream << "\t\t";
+                OutputLamps(stream, "Lamp", comp.lamps);
+                OutputLamps(stream, "LampGroup", comp.lampGroups);
+                OutputState(stream, "FromState", comp.fromState);
+                OutputState(stream, "ToState", comp.toState);
+                stream << " Period " << comp.pulsePeriod << " Duration " << comp.pulseDuration << " Pulses " << comp.numPulses << '\n';
+            }
+        }
+
+        if (!scene.pulseWithPresetComponent.empty()) {
+            stream << "\tPulseLampsLampGroupsWithPreset ";
+            for (PulseLampsLampGroupsWithPresetList::const_iterator cit = scene.pulseWithPresetComponent.begin(); cit != scene.pulseWithPresetComponent.end(); ++cit) {
+                const PulseLampsLampGroupsWithPreset& comp = *cit;
+
+                stream << "\t\t";
+                OutputLamps(stream, "Lamp", comp.lamps);
+                OutputLamps(stream, "LampGroup", comp.lampGroups);
+                stream << " FromState " << comp.fromPreset << " ToState " << comp.toPreset
+                       << " Period " << comp.pulsePeriod << " Duration " << comp.pulseDuration << " Pulses " << comp.numPulses << '\n';
+            }
+        }
+    }
+
+    stream.close();
+}
+
+uint32_t SceneManager::GetControllerSceneInterfaceVersion(void)
+{
+    QCC_DbgPrintf(("%s: controllerSceneInterfaceVersion=%d", __FUNCTION__, controllerSceneInterfaceVersion));
+    return controllerSceneInterfaceVersion;
 }

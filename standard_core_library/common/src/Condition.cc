@@ -15,6 +15,7 @@
  ******************************************************************************/
 
 #include <Condition.h>
+#include <qcc/Debug.h>
 
 #include <time.h>
 
@@ -24,36 +25,39 @@ using namespace lsf;
 
 Condition::Condition()
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    pthread_mutex_init(&lock, NULL);
     pthread_cond_init(&condition, NULL);
 }
 
 
 Condition::~Condition()
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     pthread_cond_destroy(&condition);
+    pthread_mutex_destroy(&lock);
 }
 
-int Condition::Wait(Mutex& mutex, uint32_t timeout)
+void Condition::Wait(void)
 {
-    pthread_mutex_t* thelock = mutex.GetMutex();
-
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    // now add the offset
-    ts.tv_sec += timeout / 1000;
-    ts.tv_nsec += (timeout % 1000) * 1000;
-
-    // WHY is ts an ABSTIME?
-    return pthread_cond_timedwait(&condition, thelock, &ts);
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    pthread_mutex_lock(&lock);
+    pthread_cond_wait(&condition, &lock);
+    pthread_mutex_unlock(&lock);
 }
 
-int Condition::Signal()
+void Condition::Signal(void)
 {
-    return pthread_cond_signal(&condition);
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    pthread_mutex_lock(&lock);
+    pthread_cond_signal(&condition);
+    pthread_mutex_unlock(&lock);
 }
 
-int Condition::Broadcast()
+void Condition::Broadcast(void)
 {
-    return pthread_cond_broadcast(&condition);
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    pthread_mutex_lock(&lock);
+    pthread_cond_broadcast(&condition);
+    pthread_mutex_unlock(&lock);
 }

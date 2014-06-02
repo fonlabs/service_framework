@@ -29,14 +29,15 @@ class Condition {
 
     ~Condition();
 
-    int Wait(Mutex& mutex, uint32_t timeout);
+    void Wait(void);
 
-    int Signal();
+    void Signal(void);
 
-    int Broadcast();
+    void Broadcast(void);
 
   private:
 
+    pthread_mutex_t lock;
     pthread_cond_t condition;
 };
 

@@ -160,9 +160,9 @@ void MyTestHandler::Announce(uint16_t version, uint16_t port, const char* busNam
     AboutData::const_iterator ait = aboutData.find("DeviceId");
     if (ait != aboutData.end()) {
         QCC_DbgPrintf(("DeviceId found\n"));
-        const char* id;
-        ait->second.Get("s", &id);
-        _lampID = id;
+        const char* uniqueId;
+        ait->second.Get("s", &uniqueId);
+        _lampID = uniqueId;
     } else {
         is_lamp = false;
     }
@@ -187,8 +187,8 @@ void MyTestHandler::Announce(uint16_t version, uint16_t port, const char* busNam
         status = _config->IntrospectRemoteObject();
         printf("Config::IntrospectRemoteObject(): %s\n", QCC_StatusText(status));
 
-        const InterfaceDescription* id = bus.GetInterface("org.allseen.LSF.LampService");
-        const InterfaceDescription::Member* sig = id->GetMember("LampStateChanged");
+        const InterfaceDescription* uniqueId = bus.GetInterface("org.allseen.LSF.LampService");
+        const InterfaceDescription::Member* sig = uniqueId->GetMember("LampStateChanged");
         bus.RegisterSignalHandler(this, static_cast<MessageReceiver::SignalHandler>(&MyTestHandler::LampsStateChangedSignalHandler), sig, "/org/allseen/LSF/Lamp");
     }
 }
@@ -358,11 +358,11 @@ int main()
                 size_t numArgs;
                 replyMsg->GetArgs(numArgs, args);
 
-                const char* id;
-                args[0].Get("s", &id);
-                uint32_t rc;
-                args[1].Get("u", &rc);
-                QCC_DbgPrintf(("TransitionLampState (%s) returns rc %u\n", id, rc));
+                const char* uniqueId;
+                args[0].Get("s", &uniqueId);
+                uint32_t responseCode;
+                args[1].Get("u", &responseCode);
+                QCC_DbgPrintf(("TransitionLampState (%s) returns responseCode %u\n", uniqueId, responseCode));
             }
         } else if (cmd == "TestState") {
             Message replyMsg(bus);
@@ -391,9 +391,9 @@ int main()
                 size_t numArgs;
                 replyMsg->GetArgs(numArgs, args);
 
-                uint32_t rc;
-                args[1].Get("u", &rc);
-                QCC_DbgPrintf(("TransitionLampState returns rc %u\n", rc));
+                uint32_t responseCode;
+                args[1].Get("u", &responseCode);
+                QCC_DbgPrintf(("TransitionLampState returns responseCode %u\n", responseCode));
             }
 
             MsgArg stateValues;

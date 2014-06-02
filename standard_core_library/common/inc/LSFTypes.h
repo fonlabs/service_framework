@@ -33,8 +33,6 @@ using namespace qcc;
 
 #define LSF_CASE(_case) case _case: return # _case
 
-#define MAX_SUPPORTED_NUM_LSF_ENTITY 100
-
 namespace lsf {
 
 typedef std::string LSFString;
@@ -87,7 +85,7 @@ class LampParameters {
     void Set(const ajn::MsgArg& arg);
     void Get(ajn::MsgArg* arg) const;
 
-    uint32_t energy_usage_milliwatts;
+    uint32_t energyUsageMilliwatts;
     uint32_t lumens;
 
 };

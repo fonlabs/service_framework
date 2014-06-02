@@ -78,7 +78,7 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
 {
     AJ_Arg array1, struct1;
     AJ_Status status = AJ_UnmarshalContainer(msg, &array1, AJ_ARG_ARRAY);
-    LampResponseCode rc = LAMP_OK;
+    LampResponseCode responseCode = LAMP_OK;
 
     AJ_DumpMsg("LAMP_UnmarshalState", msg, TRUE);
 
@@ -121,16 +121,16 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
             status = AJ_UnmarshalArgs(msg, "u", &state->brightness);
         } else {
             AJ_ErrPrintf(("Unknown field: %s\n", field));
-            rc = LAMP_ERR_MESSAGE;
+            responseCode = LAMP_ERR_MESSAGE;
             AJ_SkipArg(msg);
         }
 
         status = AJ_UnmarshalCloseContainer(msg, &struct1);
         // if field invalid, throw the whole thing out and return the error
-    } while (status == AJ_OK && rc == LAMP_OK);
+    } while (status == AJ_OK && responseCode == LAMP_OK);
     AJ_UnmarshalCloseContainer(msg, &array1);
 
-    return rc;
+    return responseCode;
 }
 
 

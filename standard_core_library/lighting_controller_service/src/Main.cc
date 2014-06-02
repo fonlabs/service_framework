@@ -33,13 +33,35 @@ static void SigIntHandler(int sig)
 
 static std::string factoryConfigFile = "OEMConfig.ini";
 static std::string configFile = "Config.ini";
+static std::string lampGroupFile = "LampGroups.lmp";
+static std::string presetFile = "Presets.lmp";
+static std::string sceneFile = "Scenes.lmp";
+static std::string masterSceneFile = "MasterScenes.lmp";
 
-static const std::string usage = "<factory config> <config>";
+static void usage(int argc, char** argv)
+{
+    printf("Usage: %s -h -f -c -l -p -s -m\n\n", argv[0]);
+    printf("Options:\n");
+    printf("   -h                    = Print this help message\n");
+    printf("   -?                    = Print this help message\n");
+    printf("   -f <OEM Config File>  = The file containing the default OEM configuration\n");
+    printf("   -c <config>           = The file where the configuration will be saved\n");
+    printf("   -l                    = The file where the Lamp Groups will be saved\n");
+    printf("   -p                    = The file where the Presets will be saved\n");
+    printf("   -s                    = The file where the Scenes will be saved\n");
+    printf("   -m                    = The file where the Master Scenes will be saved\n\n");
+    printf("Default:\n");
+    printf("    %s -f %s -c %s -l %s -p %s -s %s -m %s\n",
+           argv[0],
+           factoryConfigFile.c_str(), configFile.c_str(),
+           lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str());
+}
 
-static bool parseCommandLine(int argc, char** argv)
+
+static void parseCommandLine(int argc, char** argv)
 {
     int c;
-    while ((c = getopt(argc, argv, "f:c:h")) != -1) {
+    while ((c = getopt(argc, argv, "f:c:l:p:s:m:h")) != -1) {
         switch (c) {
         case 'f':
             factoryConfigFile = optarg;
@@ -49,17 +71,32 @@ static bool parseCommandLine(int argc, char** argv)
             configFile = optarg;
             break;
 
+        case 'l':
+            lampGroupFile = optarg;
+            break;
+
+        case 'p':
+            presetFile = optarg;
+            break;
+
+        case 's':
+            sceneFile = optarg;
+            break;
+
+        case 'm':
+            masterSceneFile = optarg;
+            break;
+
         default:
-            printf("Usage: %s %s\n", argv[0], usage.c_str());
-            return false;
+            usage(argc, argv);
+            exit(-1);
 
         case 'h':
-            printf("Usage: %s %s\n", argv[0], usage.c_str());
-            break;
+        case '?':
+            usage(argc, argv);
+            exit(0);
         }
     }
-
-    return true;
 }
 
 
@@ -73,11 +110,9 @@ int main(int argc, char** argv)
 {
     signal(SIGINT, SigIntHandler);
 
-    if (!parseCommandLine(argc, argv)) {
-        return -1;
-    }
+    parseCommandLine(argc, argv);
 
-    lsf::ControllerServiceManager controllerSvcManager(factoryConfigFile, configFile);
+    lsf::ControllerServiceManager controllerSvcManager(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile);
 
     controllerSvcManagerPtr = &controllerSvcManager;
 

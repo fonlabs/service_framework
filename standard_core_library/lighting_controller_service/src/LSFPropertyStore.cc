@@ -13,12 +13,13 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-#include "LSFPropertyStore.h"
-#include "PropertyParser.h"
+#include <LSFPropertyStore.h>
+#include <PropertyParser.h>
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
 
+#include <qcc/StringUtil.h>
 #include <alljoyn/about/AboutServiceApi.h>
 
 using namespace ajn;
@@ -50,18 +51,13 @@ void LSFPropertyStore::Initialize()
 void LSFPropertyStore::ReadFactoryConfiguration()
 {
     StringMap data;
-    if (!PropertyParser::ParseFile(factoryConfigFileName.c_str(), data)) {
-        return;
+    if (!PropertyParser::ParseFile(factoryConfigFileName, data)) {
+        printf("Required factory config not found: %s; exiting\n", factoryConfigFileName.c_str());
+        exit(-1);
     }
 
 
     StringMap::const_iterator iter;
-
-    iter = data.find("DeviceId");
-    if (iter != data.end()) {
-        setDeviceId(iter->second.c_str());
-        setAppId(iter->second.c_str());
-    }
 
     iter = data.find("SupportedLanguages");
     if (iter != data.end()) {
@@ -117,11 +113,35 @@ void LSFPropertyStore::ReadConfiguration()
     std::vector<std::string> languages;
 
     StringMap data;
-    if (!PropertyParser::ParseFile(factoryConfigFileName.c_str(), data)) {
+    if (!PropertyParser::ParseFile(configFileName, data)) {
+        // generate a new uniqueId!
+        // a device uniqueId has not yet been generated!
+        qcc::String new_id = qcc::RandHexString(16);
+        setDeviceId(new_id);
+        setAppId(new_id);
+        // now save the file!
+        data["DeviceId"] = new_id.c_str();
+        data["AppId"] = new_id.c_str();
+        PropertyParser::WriteFile(configFileName, data);
         return;
     }
 
     StringMap::const_iterator iter;
+
+    iter = data.find("DeviceId");
+    if (iter != data.end()) {
+        setDeviceId(iter->second.c_str());
+        setAppId(iter->second.c_str());
+    } else {
+        // this should never happen!
+        qcc::String new_id = qcc::RandHexString(16);
+        setDeviceId(new_id);
+        setAppId(new_id);
+        // now save the file!
+        data["DeviceId"] = new_id.c_str();
+        data["AppId"] = new_id.c_str();
+        PropertyParser::WriteFile(configFileName, data);
+    }
 
     iter = data.find("DefaultLanguage");
     if (iter != data.end()) {
@@ -143,11 +163,23 @@ void LSFPropertyStore::FactoryReset()
     // delete the user config file
     unlink(configFileName.c_str());
 
+    // save the uniqueId!
+    PropertyStoreProperty* deviceId = getProperty(DEVICE_ID);
+    std::string uniqueId = deviceId->getPropertyValue().v_string.str;
+    StringMap data;
+    data["DeviceId"] = uniqueId;
+    data["AppId"] = uniqueId;
+    PropertyParser::WriteFile(configFileName, data);
+
     m_Properties.clear();
     supportedLanguages.clear();
 
     // now reparse the factory config file
     ReadFactoryConfiguration();
+
+    // keep the uniqueId from before!
+    setDeviceId(uniqueId.c_str());
+    setAppId(uniqueId.c_str());
 }
 
 

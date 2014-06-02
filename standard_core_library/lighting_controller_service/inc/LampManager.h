@@ -252,6 +252,8 @@ class LampManager : public Manager {
      */
     void ResetLampStateField(ajn::Message& message);
 
+    uint32_t GetControllerLampInterfaceVersion(void);
+
   private:
 
     void ResetLampStateInternal(ajn::Message& message, LSFStringList lamps, bool groupOperation = false);

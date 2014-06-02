@@ -77,26 +77,26 @@ class ControllerClientCallbackHandler : public ControllerClientCallback {
     ~ControllerClientCallbackHandler() { }
 
     void ConnectedToControllerServiceCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
-        LSFString id = controllerServiceDeviceID;
+        LSFString uniqueId = controllerServiceDeviceID;
         LSFString name = controllerServiceName;
-        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, id.c_str(), name.c_str());
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, uniqueId.c_str(), name.c_str());
         connectedToControllerService = true;
         gotReply = true;
         gotSignal = true;
     }
 
     void ConnectToControllerServiceFailedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
-        LSFString id = controllerServiceDeviceID;
+        LSFString uniqueId = controllerServiceDeviceID;
         LSFString name = controllerServiceName;
-        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, id.c_str(), name.c_str());
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, uniqueId.c_str(), name.c_str());
         gotReply = true;
         gotSignal = true;
     }
 
     void DisconnectedFromControllerServiceCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
-        LSFString id = controllerServiceDeviceID;
+        LSFString uniqueId = controllerServiceDeviceID;
         LSFString name = controllerServiceName;
-        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, id.c_str(), name.c_str());
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, uniqueId.c_str(), name.c_str());
         connectedToControllerService = false;
         gotReply = true;
         gotSignal = true;
@@ -170,9 +170,9 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampManufacturerReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language, const LSFString& manufacturer) {
-        LSFString id = lampID;
+        LSFString uniqueId = lampID;
 
-        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nmanufacturer = %s", manufacturer.c_str());
@@ -181,9 +181,9 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language, const LSFString& lampName) {
-        LSFString id = lampID;
+        LSFString uniqueId = lampID;
 
-        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nlampName = %s", lampName.c_str());
@@ -192,8 +192,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void SetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (responseCode != LSF_OK) {
             gotSignal = true;
@@ -211,8 +211,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampDetailsReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampDetails& lampDetails) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf("\n%s: lampDetails = %s", __FUNCTION__, lampDetails.c_str());
         }
@@ -220,8 +220,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampParametersReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampParameters& lampParameters) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf("\n%s: parameters = %s", __FUNCTION__, lampParameters.c_str());
         }
@@ -229,8 +229,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampParametersLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& value) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" value = %d", value);
         }
@@ -238,8 +238,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampParametersEnergyUsageMilliwattsFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& value) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" value = %d", value);
         }
@@ -247,8 +247,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampState& lampState) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf("\nstate=%s\n", lampState.c_str());
         }
@@ -256,8 +256,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const bool& onOff) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" onOff = %d", onOff);
         }
@@ -265,8 +265,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& hue) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" hue = %d", hue);
         }
@@ -274,8 +274,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& saturation) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" saturation = %d", saturation);
         }
@@ -283,8 +283,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& brightness) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" brightness = %d", brightness);
         }
@@ -292,8 +292,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& colorTemp) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" colorTemp = %d", colorTemp);
         }
@@ -301,8 +301,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void ResetLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -320,8 +320,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void TransitionLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (responseCode != LSF_OK) {
             gotSignal = true;
@@ -329,20 +329,20 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void PulseLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void PulseLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void TransitionLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -350,8 +350,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void TransitionLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -359,8 +359,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void TransitionLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -368,8 +368,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void TransitionLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -377,8 +377,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void TransitionLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -386,8 +386,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampFaultsReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCodeList& faultCodes) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             LampFaultCodeList::const_iterator it = faultCodes.begin();
             for (; it != faultCodes.end(); ++it) {
@@ -399,20 +399,20 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void ClearLampFaultReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCode& faultCode) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s faultCode=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), faultCode);
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s faultCode=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), faultCode);
         gotReply = true;
     }
 
     void GetLampServiceVersionReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& lampServiceVersion) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s lampServiceVersion=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), lampServiceVersion);
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s lampServiceVersion=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), lampServiceVersion);
         gotReply = true;
     }
 
     void ResetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -420,8 +420,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void ResetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -429,8 +429,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void ResetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -438,8 +438,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void ResetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -447,8 +447,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void ResetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -456,8 +456,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void TransitionLampStateToPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
-        LSFString id = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -489,9 +489,9 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void GetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language, const LSFString& lampGroupName) {
-        LSFString id = lampGroupID;
+        LSFString uniqueId = lampGroupID;
 
-        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nlampGroupName = %s", lampGroupName.c_str());
@@ -500,8 +500,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void SetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -578,8 +578,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void ResetLampGroupStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -587,8 +587,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void TransitionLampGroupStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (responseCode != LSF_OK) {
             gotSignal = true;
@@ -596,20 +596,20 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void PulseLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void PulseLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void TransitionLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -617,8 +617,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void TransitionLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -626,8 +626,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void TransitionLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -635,8 +635,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void TransitionLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -644,8 +644,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void TransitionLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -653,8 +653,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void ResetLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -662,8 +662,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void ResetLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -671,8 +671,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void ResetLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -680,8 +680,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void ResetLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -689,8 +689,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void ResetLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -698,8 +698,8 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void TransitionLampGroupStateToPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        LSFString id = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str());
+        LSFString uniqueId = lampGroupID;
+        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -732,9 +732,9 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void GetPresetNameReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LSFString& language, const LSFString& presetName) {
-        LSFString id = presetID;
+        LSFString uniqueId = presetID;
 
-        printf("\n%s: responseCode = %s presetID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s presetID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\npresetName = %s", presetName.c_str());
@@ -743,8 +743,8 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void SetPresetNameReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LSFString& language) {
-        LSFString id = presetID;
-        printf("\n%s: responseCode = %s presetID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        LSFString uniqueId = presetID;
+        printf("\n%s: responseCode = %s presetID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -863,9 +863,9 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void GetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language, const LSFString& sceneName) {
-        LSFString id = sceneID;
+        LSFString uniqueId = sceneID;
 
-        printf("\n%s: responseCode = %s sceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s sceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nsceneName = %s", sceneName.c_str());
@@ -874,8 +874,8 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void SetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language) {
-        LSFString id = sceneID;
-        printf("\n%s: responseCode = %s sceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        LSFString uniqueId = sceneID;
+        printf("\n%s: responseCode = %s sceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -973,9 +973,9 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void GetMasterSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const LSFString& language, const LSFString& masterSceneName) {
-        LSFString id = masterSceneID;
+        LSFString uniqueId = masterSceneID;
 
-        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nmasterSceneName = %s", masterSceneName.c_str());
@@ -984,8 +984,8 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void SetMasterSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const LSFString& language) {
-        LSFString id = masterSceneID;
-        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), id.c_str(), language.c_str());
+        LSFString uniqueId = masterSceneID;
+        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -1211,200 +1211,200 @@ int main()
                 status = lampManager.GetAllLampIDs();
                 waitForReply = true;
             } else if (cmd == "4") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampManufacturer(%s)\n", id.c_str());
-                status = lampManager.GetLampManufacturer(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampManufacturer(%s)\n", uniqueId.c_str());
+                status = lampManager.GetLampManufacturer(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "5") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampSupportedLanguages(%s)\n", id.c_str());
-                lampManager.GetLampSupportedLanguages(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampSupportedLanguages(%s)\n", uniqueId.c_str());
+                lampManager.GetLampSupportedLanguages(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "6") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampName(%s)\n", id.c_str());
-                status = lampManager.GetLampName(id.c_str(), "en");
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampName(%s)\n", uniqueId.c_str());
+                status = lampManager.GetLampName(uniqueId.c_str(), "en");
                 waitForReply = true;
             } else if (cmd == "7") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String name = NextTok(line);
-                printf("\nInvoking SetLampName(%s, %s)\n", id.c_str(), name.c_str());
-                lampManager.SetLampName(id.c_str(), name.c_str());
+                printf("\nInvoking SetLampName(%s, %s)\n", uniqueId.c_str(), name.c_str());
+                lampManager.SetLampName(uniqueId.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "8") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampState(%s)\n", id.c_str());
-                status = lampManager.GetLampState(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampState(%s)\n", uniqueId.c_str());
+                status = lampManager.GetLampState(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "9") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampStateOnOffField(%s)\n", id.c_str());
-                lampManager.GetLampStateOnOffField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampStateOnOffField(%s)\n", uniqueId.c_str());
+                lampManager.GetLampStateOnOffField(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "10") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampStateHueField(%s)\n", id.c_str());
-                lampManager.GetLampStateHueField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampStateHueField(%s)\n", uniqueId.c_str());
+                lampManager.GetLampStateHueField(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "11") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampStateSaturationField(%s)\n", id.c_str());
-                lampManager.GetLampStateSaturationField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampStateSaturationField(%s)\n", uniqueId.c_str());
+                lampManager.GetLampStateSaturationField(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "12") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampStateBrightnessField(%s)\n", id.c_str());
-                lampManager.GetLampStateBrightnessField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampStateBrightnessField(%s)\n", uniqueId.c_str());
+                lampManager.GetLampStateBrightnessField(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "13") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampStateColorTempField(%s)\n", id.c_str());
-                lampManager.GetLampStateColorTempField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampStateColorTempField(%s)\n", uniqueId.c_str());
+                lampManager.GetLampStateColorTempField(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "14") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampState(%s)\n", id.c_str());
-                lampManager.ResetLampState(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampState(%s)\n", uniqueId.c_str());
+                lampManager.ResetLampState(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "15") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampStateOnOffField(%s)\n", id.c_str());
-                lampManager.ResetLampStateOnOffField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampStateOnOffField(%s)\n", uniqueId.c_str());
+                lampManager.ResetLampStateOnOffField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "16") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampStateHueField(%s)\n", id.c_str());
-                lampManager.ResetLampStateHueField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampStateHueField(%s)\n", uniqueId.c_str());
+                lampManager.ResetLampStateHueField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "17") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampStateSaturationField(%s)\n", id.c_str());
-                lampManager.ResetLampStateSaturationField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampStateSaturationField(%s)\n", uniqueId.c_str());
+                lampManager.ResetLampStateSaturationField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "18") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampStateBrightnessField(%s)\n", id.c_str());
-                lampManager.ResetLampStateBrightnessField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampStateBrightnessField(%s)\n", uniqueId.c_str());
+                lampManager.ResetLampStateBrightnessField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "19") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampStateColorTempField(%s)\n", id.c_str());
-                lampManager.ResetLampStateColorTempField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampStateColorTempField(%s)\n", uniqueId.c_str());
+                lampManager.ResetLampStateColorTempField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "20") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LampState state(false, 7, 7, 7, 7);
-                printf("\nInvoking TransitionLampState(%s)\n", id.c_str());
-                lampManager.TransitionLampState(id.c_str(), state, 5);
+                printf("\nInvoking TransitionLampState(%s)\n", uniqueId.c_str());
+                lampManager.TransitionLampState(uniqueId.c_str(), state, 5);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "21") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LampState toState(false, 5, 5, 5, 5);
                 LampState fromState(false, 7, 7, 7, 7);
-                printf("\nInvoking PulseLampWithState(%s)\n", id.c_str());
-                lampManager.PulseLampWithState(id.c_str(), toState, 100, 10, 20, fromState);
+                printf("\nInvoking PulseLampWithState(%s)\n", uniqueId.c_str());
+                lampManager.PulseLampWithState(uniqueId.c_str(), toState, 100, 10, 20, fromState);
                 waitForReply = true;
             } else if (cmd == "22") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String toState = NextTok(line);
-                printf("\nInvoking PulseLampWithPreset(%s)\n", id.c_str());
-                lampManager.PulseLampWithPreset(id.c_str(), LSFString(toState.c_str()), 100, 10, 20, LSFString(toState.c_str()));
+                printf("\nInvoking PulseLampWithPreset(%s)\n", uniqueId.c_str());
+                lampManager.PulseLampWithPreset(uniqueId.c_str(), LSFString(toState.c_str()), 100, 10, 20, LSFString(toState.c_str()));
                 waitForReply = true;
             } else if (cmd == "23") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampStateOnOffField(%s)\n", id.c_str());
-                lampManager.TransitionLampStateOnOffField(id.c_str(), true);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampStateOnOffField(%s)\n", uniqueId.c_str());
+                lampManager.TransitionLampStateOnOffField(uniqueId.c_str(), true);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "24") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampStateHueField(%s)\n", id.c_str());
-                lampManager.TransitionLampStateHueField(id.c_str(), 10, 100);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampStateHueField(%s)\n", uniqueId.c_str());
+                lampManager.TransitionLampStateHueField(uniqueId.c_str(), 10, 100);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "25") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampStateSaturationField(%s)\n", id.c_str());
-                lampManager.TransitionLampStateSaturationField(id.c_str(), 20);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampStateSaturationField(%s)\n", uniqueId.c_str());
+                lampManager.TransitionLampStateSaturationField(uniqueId.c_str(), 20);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "26") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampStateBrightnessField(%s)\n", id.c_str());
-                lampManager.TransitionLampStateBrightnessField(id.c_str(), 30, 100);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampStateBrightnessField(%s)\n", uniqueId.c_str());
+                lampManager.TransitionLampStateBrightnessField(uniqueId.c_str(), 30, 100);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "27") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampStateColorTempField(%s)\n", id.c_str());
-                lampManager.TransitionLampStateColorTempField(id.c_str(), 50);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampStateColorTempField(%s)\n", uniqueId.c_str());
+                lampManager.TransitionLampStateColorTempField(uniqueId.c_str(), 50);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "28") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String presetID = NextTok(line);
-                printf("\nInvoking TransitionLampStateToPreset(%s, %s)\n", id.c_str(), presetID.c_str());
-                lampManager.TransitionLampStateToPreset(id.c_str(), presetID.c_str(), 25);
+                printf("\nInvoking TransitionLampStateToPreset(%s, %s)\n", uniqueId.c_str(), presetID.c_str());
+                lampManager.TransitionLampStateToPreset(uniqueId.c_str(), presetID.c_str(), 25);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "29") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampFaults(%s)\n", id.c_str());
-                status = lampManager.GetLampFaults(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampFaults(%s)\n", uniqueId.c_str());
+                status = lampManager.GetLampFaults(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "30") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LampFaultCode code = qcc::StringToU32(NextTok(line));
-                printf("\nInvoking ClearLampFault(%s, %d)\n", id.c_str(), code);
-                status = lampManager.ClearLampFault(id.c_str(), code);
+                printf("\nInvoking ClearLampFault(%s, %d)\n", uniqueId.c_str(), code);
+                status = lampManager.ClearLampFault(uniqueId.c_str(), code);
                 waitForReply = true;
             } else if (cmd == "31") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampServiceVersion(%s)\n", id.c_str());
-                status = lampManager.GetLampServiceVersion(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampServiceVersion(%s)\n", uniqueId.c_str());
+                status = lampManager.GetLampServiceVersion(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "32") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampDetails(%s)\n", id.c_str());
-                status = lampManager.GetLampDetails(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampDetails(%s)\n", uniqueId.c_str());
+                status = lampManager.GetLampDetails(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "33") {
-                String id = NextTok(line);
-                status = lampManager.GetLampParameters(id.c_str());
-                printf("\nInvoking GetLampParameters(%s)\n", id.c_str());
+                String uniqueId = NextTok(line);
+                status = lampManager.GetLampParameters(uniqueId.c_str());
+                printf("\nInvoking GetLampParameters(%s)\n", uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "34") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampParametersEnergyUsageMilliwattsField(%s)\n", id.c_str());
-                lampManager.GetLampParametersEnergyUsageMilliwattsField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampParametersEnergyUsageMilliwattsField(%s)\n", uniqueId.c_str());
+                lampManager.GetLampParametersEnergyUsageMilliwattsField(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "35") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampParametersLumensField(%s)\n", id.c_str());
-                lampManager.GetLampParametersLumensField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampParametersLumensField(%s)\n", uniqueId.c_str());
+                lampManager.GetLampParametersLumensField(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "36") {
                 printf("\nInvoking GetAllLampGroupIDs()\n");
                 status = lampGroupManager.GetAllLampGroupIDs();
                 waitForReply = true;
             } else if (cmd == "37") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampGroupName(%s)\n", id.c_str());
-                status = lampGroupManager.GetLampGroupName(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampGroupName(%s)\n", uniqueId.c_str());
+                status = lampGroupManager.GetLampGroupName(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "38") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String name = NextTok(line);
-                printf("\nInvoking SetLampGroupName(%s, %s)\n", id.c_str(), name.c_str());
-                status = lampGroupManager.SetLampGroupName(id.c_str(), name.c_str());
+                printf("\nInvoking SetLampGroupName(%s, %s)\n", uniqueId.c_str(), name.c_str());
+                status = lampGroupManager.SetLampGroupName(uniqueId.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "39") {
@@ -1428,117 +1428,117 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "40") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LSFStringList lamps;
                 lamps.push_back("123");
                 lamps.push_back("456");
                 LampGroup group(lamps, lamps);
-                printf("\nInvoking UpdateLampGroup(%s, %s)\n", id.c_str(), group.c_str());
-                status = lampGroupManager.UpdateLampGroup(id.c_str(), group);
+                printf("\nInvoking UpdateLampGroup(%s, %s)\n", uniqueId.c_str(), group.c_str());
+                status = lampGroupManager.UpdateLampGroup(uniqueId.c_str(), group);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "41") {
-                String id = NextTok(line);
-                printf("\nInvoking DeleteLampGroup(%s)\n", id.c_str());
-                status = lampGroupManager.DeleteLampGroup(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking DeleteLampGroup(%s)\n", uniqueId.c_str());
+                status = lampGroupManager.DeleteLampGroup(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "42") {
-                String id = NextTok(line);
-                printf("\nInvoking GetLampGroup(%s)\n", id.c_str());
-                status = lampGroupManager.GetLampGroup(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampGroup(%s)\n", uniqueId.c_str());
+                status = lampGroupManager.GetLampGroup(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "43") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampGroupState(%s)\n", id.c_str());
-                lampGroupManager.ResetLampGroupState(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampGroupState(%s)\n", uniqueId.c_str());
+                lampGroupManager.ResetLampGroupState(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "44") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampGroupStateOnOffField(%s)\n", id.c_str());
-                lampGroupManager.ResetLampGroupStateOnOffField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampGroupStateOnOffField(%s)\n", uniqueId.c_str());
+                lampGroupManager.ResetLampGroupStateOnOffField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "45") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampGroupStateHueField(%s)\n", id.c_str());
-                lampGroupManager.ResetLampGroupStateHueField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampGroupStateHueField(%s)\n", uniqueId.c_str());
+                lampGroupManager.ResetLampGroupStateHueField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "46") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampGroupStateSaturationField(%s)\n", id.c_str());
-                lampGroupManager.ResetLampGroupStateSaturationField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampGroupStateSaturationField(%s)\n", uniqueId.c_str());
+                lampGroupManager.ResetLampGroupStateSaturationField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "47") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampGroupStateBrightnessField(%s)\n", id.c_str());
-                lampGroupManager.ResetLampGroupStateBrightnessField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampGroupStateBrightnessField(%s)\n", uniqueId.c_str());
+                lampGroupManager.ResetLampGroupStateBrightnessField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "48") {
-                String id = NextTok(line);
-                printf("\nInvoking ResetLampGroupStateColorTempField(%s)\n", id.c_str());
-                lampGroupManager.ResetLampGroupStateColorTempField(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ResetLampGroupStateColorTempField(%s)\n", uniqueId.c_str());
+                lampGroupManager.ResetLampGroupStateColorTempField(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "49") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LampState state(false, 7, 7, 7, 7);
-                printf("\nInvoking TransitionLampGroupState(%s)\n", id.c_str());
-                lampGroupManager.TransitionLampGroupState(id.c_str(), state, 5);
+                printf("\nInvoking TransitionLampGroupState(%s)\n", uniqueId.c_str());
+                lampGroupManager.TransitionLampGroupState(uniqueId.c_str(), state, 5);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "50") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LampState toState(false, 5, 5, 5, 5);
                 LampState fromState(false, 7, 7, 7, 7);
-                printf("\nInvoking PulseLampGroupWithState(%s)\n", id.c_str());
-                lampGroupManager.PulseLampGroupWithState(id.c_str(), toState, 100, 10, 20, fromState);
+                printf("\nInvoking PulseLampGroupWithState(%s)\n", uniqueId.c_str());
+                lampGroupManager.PulseLampGroupWithState(uniqueId.c_str(), toState, 100, 10, 20, fromState);
                 waitForReply = true;
             } else if (cmd == "51") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String toState = NextTok(line);
-                printf("\nInvoking PulseLampGroupWithPreset(%s)\n", id.c_str());
-                lampGroupManager.PulseLampGroupWithPreset(id.c_str(), LSFString(toState.c_str()), 100, 10, 20, LSFString(toState.c_str()));
+                printf("\nInvoking PulseLampGroupWithPreset(%s)\n", uniqueId.c_str());
+                lampGroupManager.PulseLampGroupWithPreset(uniqueId.c_str(), LSFString(toState.c_str()), 100, 10, 20, LSFString(toState.c_str()));
                 waitForReply = true;
             } else if (cmd == "52") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampGroupStateOnOffField(%s)\n", id.c_str());
-                lampGroupManager.TransitionLampGroupStateOnOffField(id.c_str(), true);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampGroupStateOnOffField(%s)\n", uniqueId.c_str());
+                lampGroupManager.TransitionLampGroupStateOnOffField(uniqueId.c_str(), true);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "53") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampGroupStateHueField(%s)\n", id.c_str());
-                lampGroupManager.TransitionLampGroupStateHueField(id.c_str(), 10, 100);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampGroupStateHueField(%s)\n", uniqueId.c_str());
+                lampGroupManager.TransitionLampGroupStateHueField(uniqueId.c_str(), 10, 100);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "54") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampGroupStateSaturationField(%s)\n", id.c_str());
-                lampGroupManager.TransitionLampGroupStateSaturationField(id.c_str(), 20);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampGroupStateSaturationField(%s)\n", uniqueId.c_str());
+                lampGroupManager.TransitionLampGroupStateSaturationField(uniqueId.c_str(), 20);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "55") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampGroupStateBrightnessField(%s)\n", id.c_str());
-                lampGroupManager.TransitionLampGroupStateBrightnessField(id.c_str(), 30, 100);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampGroupStateBrightnessField(%s)\n", uniqueId.c_str());
+                lampGroupManager.TransitionLampGroupStateBrightnessField(uniqueId.c_str(), 30, 100);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "56") {
-                String id = NextTok(line);
-                printf("\nInvoking TransitionLampGroupStateColorTempField(%s)\n", id.c_str());
-                lampGroupManager.TransitionLampGroupStateColorTempField(id.c_str(), 50);
+                String uniqueId = NextTok(line);
+                printf("\nInvoking TransitionLampGroupStateColorTempField(%s)\n", uniqueId.c_str());
+                lampGroupManager.TransitionLampGroupStateColorTempField(uniqueId.c_str(), 50);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "57") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String presetID = NextTok(line);
-                printf("\nInvoking TransitionLampGroupStateToPreset(%s, %s)\n", id.c_str(), presetID.c_str());
-                lampGroupManager.TransitionLampGroupStateToPreset(id.c_str(), presetID.c_str(), 25);
+                printf("\nInvoking TransitionLampGroupStateToPreset(%s, %s)\n", uniqueId.c_str(), presetID.c_str());
+                lampGroupManager.TransitionLampGroupStateToPreset(uniqueId.c_str(), presetID.c_str(), 25);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "58") {
@@ -1556,15 +1556,15 @@ int main()
                 status = presetManager.GetAllPresetIDs();
                 waitForReply = true;
             } else if (cmd == "61") {
-                String id = NextTok(line);
-                printf("\nInvoking GetPresetName(%s)\n", id.c_str());
-                status = presetManager.GetPresetName(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetPresetName(%s)\n", uniqueId.c_str());
+                status = presetManager.GetPresetName(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "62") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String name = NextTok(line);
-                printf("\nInvoking SetPresetName(%s, %s)\n", id.c_str(), name.c_str());
-                status = presetManager.SetPresetName(id.c_str(), name.c_str());
+                printf("\nInvoking SetPresetName(%s, %s)\n", uniqueId.c_str(), name.c_str());
+                status = presetManager.SetPresetName(uniqueId.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "63") {
@@ -1574,37 +1574,37 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "64") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LampState state(true, 6, 6, 6, 6);
-                printf("\nInvoking UpdatePreset(%s, %s)\n", id.c_str(), state.c_str());
-                status = presetManager.UpdatePreset(id.c_str(), state);
+                printf("\nInvoking UpdatePreset(%s, %s)\n", uniqueId.c_str(), state.c_str());
+                status = presetManager.UpdatePreset(uniqueId.c_str(), state);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "65") {
-                String id = NextTok(line);
-                printf("\nInvoking DeletePreset(%s)\n", id.c_str());
-                status = presetManager.DeletePreset(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking DeletePreset(%s)\n", uniqueId.c_str());
+                status = presetManager.DeletePreset(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "66") {
-                String id = NextTok(line);
-                printf("\nInvoking GetPreset(%s)\n", id.c_str());
-                status = presetManager.GetPreset(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetPreset(%s)\n", uniqueId.c_str());
+                status = presetManager.GetPreset(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "67") {
                 printf("\nInvoking GetAllSceneIDs()\n");
                 status = sceneManager.GetAllSceneIDs();
                 waitForReply = true;
             } else if (cmd == "68") {
-                String id = NextTok(line);
-                printf("\nInvoking GetSceneName(%s)\n", id.c_str());
-                status = sceneManager.GetSceneName(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetSceneName(%s)\n", uniqueId.c_str());
+                status = sceneManager.GetSceneName(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "69") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String name = NextTok(line);
-                printf("\nInvoking SetSceneName(%s, %s)\n", id.c_str(), name.c_str());
-                status = sceneManager.SetSceneName(id.c_str(), name.c_str());
+                printf("\nInvoking SetSceneName(%s, %s)\n", uniqueId.c_str(), name.c_str());
+                status = sceneManager.SetSceneName(uniqueId.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "70") {
@@ -1644,7 +1644,7 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "71") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
 
                 LSFStringList lampList;
                 lampList.push_back("ABC");
@@ -1676,20 +1676,20 @@ int main()
 
                 Scene scene(transitionToStateList, transitionToPresetList, pulseWithStateList, pulseWithPresetList);
 
-                printf("\nInvoking UpdateScene(%s, %s)\n", id.c_str(), scene.c_str());
-                status = sceneManager.UpdateScene(id.c_str(), scene);
+                printf("\nInvoking UpdateScene(%s, %s)\n", uniqueId.c_str(), scene.c_str());
+                status = sceneManager.UpdateScene(uniqueId.c_str(), scene);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "72") {
-                String id = NextTok(line);
-                printf("\nInvoking DeleteScene(%s)\n", id.c_str());
-                status = sceneManager.DeleteScene(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking DeleteScene(%s)\n", uniqueId.c_str());
+                status = sceneManager.DeleteScene(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "73") {
-                String id = NextTok(line);
-                printf("\nInvoking GetScene(%s)\n", id.c_str());
-                status = sceneManager.GetScene(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetScene(%s)\n", uniqueId.c_str());
+                status = sceneManager.GetScene(uniqueId.c_str());
                 waitForReply = true;
 #if 0
             } else if (cmd == "74") {
@@ -1700,15 +1700,15 @@ int main()
                 status = masterSceneManager.GetAllMasterSceneIDs();
                 waitForReply = true;
             } else if (cmd == "76") {
-                String id = NextTok(line);
-                printf("\nInvoking GetMasterSceneName(%s)\n", id.c_str());
-                status = masterSceneManager.GetMasterSceneName(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetMasterSceneName(%s)\n", uniqueId.c_str());
+                status = masterSceneManager.GetMasterSceneName(uniqueId.c_str());
                 waitForReply = true;
             } else if (cmd == "77") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 String name = NextTok(line);
-                printf("\nInvoking SetMasterSceneName(%s, %s)\n", id.c_str(), name.c_str());
-                status = masterSceneManager.SetMasterSceneName(id.c_str(), name.c_str());
+                printf("\nInvoking SetMasterSceneName(%s, %s)\n", uniqueId.c_str(), name.c_str());
+                status = masterSceneManager.SetMasterSceneName(uniqueId.c_str(), name.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "78") {
@@ -1721,25 +1721,25 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "79") {
-                String id = NextTok(line);
+                String uniqueId = NextTok(line);
                 LSFStringList scenes;
                 scenes.push_back("123");
                 scenes.push_back("456");
                 MasterScene group(scenes);
-                printf("\nInvoking UpdateMasterScene(%s, %s)\n", id.c_str(), group.c_str());
-                status = masterSceneManager.UpdateMasterScene(id.c_str(), group);
+                printf("\nInvoking UpdateMasterScene(%s, %s)\n", uniqueId.c_str(), group.c_str());
+                status = masterSceneManager.UpdateMasterScene(uniqueId.c_str(), group);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "80") {
-                String id = NextTok(line);
-                printf("\nInvoking DeleteMasterScene(%s)\n", id.c_str());
-                status = masterSceneManager.DeleteMasterScene(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking DeleteMasterScene(%s)\n", uniqueId.c_str());
+                status = masterSceneManager.DeleteMasterScene(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "81") {
-                String id = NextTok(line);
-                printf("\nInvoking GetMasterScene(%s)\n", id.c_str());
-                status = masterSceneManager.GetMasterScene(id.c_str());
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetMasterScene(%s)\n", uniqueId.c_str());
+                status = masterSceneManager.GetMasterScene(uniqueId.c_str());
                 waitForReply = true;
 #if 0
             } else if (cmd == "82") {

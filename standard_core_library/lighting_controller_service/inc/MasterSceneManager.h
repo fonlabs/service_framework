@@ -30,7 +30,7 @@ namespace lsf {
 class MasterSceneManager : public Manager {
 
   public:
-    MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const char* ifaceName);
+    MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const char* ifaceName, const std::string& masterSceneFile);
 
     LSFResponseCode Reset(void);
     LSFResponseCode IsDependentOnScene(LSFString& sceneID);
@@ -44,9 +44,12 @@ class MasterSceneManager : public Manager {
     void GetMasterScene(ajn::Message& msg);
     void ApplyMasterScene(ajn::Message& msg);
 
-    void AddMasterScene(const LSFString& id, const std::string& name, const MasterScene& group);
-
     LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
+
+    void ReadSavedData();
+    virtual void WriteFile();
+
+    uint32_t GetControllerMasterSceneInterfaceVersion(void);
 
   private:
 

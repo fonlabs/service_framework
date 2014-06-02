@@ -1,5 +1,3 @@
-#ifndef _MANAGER_H_
-#define _MANAGER_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -16,46 +14,28 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <alljoyn/Message.h>
-#include <alljoyn/InterfaceDescription.h>
-#include <alljoyn/MessageReceiver.h>
-
-#include <LSFResponseCodes.h>
-#include <LSFTypes.h>
-
-#include <string>
-#include <vector>
+#include <OEMConfig.h>
+#include <qcc/Debug.h>
 
 namespace lsf {
 
-class ControllerService;
+#define QCC_MODULE "OEM_CONFIG"
 
-class Manager : public ajn::MessageReceiver {
+static const LampState defaultLampState = LampState(true, 256, 256, 256, 256);
 
-    static const size_t ID_STR_LEN = 8;
-
-  public:
-
-    Manager(ControllerService& controllerSvc, const std::string& filePath = "");
-
-    virtual void WriteFile() { }
-
-    void ScheduleFileUpdate();
-
-    //protected:
-
-    LSFString GenerateUniqueID(const LSFString& prefix) const;
-
-    ControllerService& controllerService;
-
-    bool updated;
-
-    const std::string filePath;
-
-    void MethodReplyPassthrough(ajn::Message& msg, void* context);
-};
-
+void GetFactorySetDefaultLampState(LampState& defaultState)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    defaultState = defaultLampState;
 }
 
+void GetSyncTimeStamp(uint64_t& timeStamp)
+{
+    /* This is just a sample implementation and so it passes back a
+     * hard coded value. OEMs are supposed to integrate this
+     * with their Time Sync module*/
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    timeStamp = 0x4444444444444444;
+}
 
-#endif
+}

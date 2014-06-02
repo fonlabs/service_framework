@@ -19,6 +19,7 @@
 #include <qcc/Debug.h>
 #include <algorithm>
 #include <ControllerService.h>
+#include <OEMConfig.h>
 
 using namespace lsf;
 using namespace ajn;
@@ -57,9 +58,9 @@ void LampClients::ServiceHandler::Announce(
         if (std::find(oit->second.begin(), oit->second.end(), LampInterface) != oit->second.end()) {
             AboutData::const_iterator ait = aboutData.find("DeviceId");
             if (ait != aboutData.end()) {
-                const char* id;
-                ait->second.Get("s", &id);
-                lampID = id;
+                const char* uniqueId;
+                ait->second.Get("s", &uniqueId);
+                lampID = uniqueId;
             }
 
             ait = aboutData.find("DeviceName");
@@ -84,22 +85,23 @@ void LampClients::RequestAllLampIDs(Message& message)
         LSFStringList idList;
         LSFResponseCode responseCode = LSF_ERR_FAILURE;
         controllerService.SendMethodReplyWithResponseCodeAndListOfIDs(message, responseCode, idList);
-    }
+    } else {
+        getAllLampIDsRequests.push_back(message);
 
-    getAllLampIDsRequests.push_back(message);
-
-    status = getAllLampIDsLock.Unlock();
-    if (ER_OK != status) {
-        QCC_LogError(ER_FAIL, ("%s: Failed to unlock mutex", __FUNCTION__));
+        status = getAllLampIDsLock.Unlock();
+        if (ER_OK != status) {
+            QCC_LogError(ER_FAIL, ("%s: Failed to unlock mutex", __FUNCTION__));
+        }
+        wakeUp.Signal();
     }
 }
 
 void LampClients::GetAllLamps(LampNameMap& lamps)
 {
     QCC_LogError(ER_OK, ("%s: PLEASE NOTE THIS FUNCTION IS NOT THREAD SAFE", __FUNCTION__));
-
     lamps.clear();
-    for (LampMap::const_iterator it = activeLamps.begin(); it != activeLamps.end(); ++it) {
+    LampMap tempMap = activeLamps;
+    for (LampMap::const_iterator it = tempMap.begin(); it != tempMap.end(); ++it) {
         lamps.insert(std::make_pair(it->first, it->second->name));
     }
 }
@@ -170,6 +172,8 @@ QStatus LampClients::Join(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
+    Stop();
+    wakeUp.Signal();
     Thread::Join();
 
     services::AnnouncementRegistrar::UnRegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler);
@@ -196,7 +200,7 @@ void LampClients::HandleAboutAnnounce(const LSFString lampID, const LSFString& l
     QCC_DbgPrintf(("LampClients::HandleAboutAnnounce(%s,%s,%u,%s)\n", lampID.c_str(), lampName.c_str(), port, busName));
     LampConnection* connection = new LampConnection();
     if (connection) {
-        connection->id = lampID;
+        connection->uniqueId = lampID;
         connection->wkn = busName;
         connection->name = lampName;
         connection->port = port;
@@ -211,6 +215,8 @@ void LampClients::HandleAboutAnnounce(const LSFString lampID, const LSFString& l
     if (ER_OK != status) {
         QCC_LogError(status, ("%s: aboutsListLock.Unlock() failed", __FUNCTION__));
     }
+
+    wakeUp.Signal();
 }
 
 void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context)
@@ -222,12 +228,12 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
     QCC_DbgPrintf(("Controller::JoinSessionCB(%s, %u)\n", QCC_StatusText(status), sessionId));
 
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Join Session failed for lamp with ID = %s", connection->id.c_str()));
+        QCC_LogError(status, ("%s: Join Session failed for lamp with ID = %s", connection->uniqueId.c_str()));
         delete connection;
         return;
     }
 
-    QCC_DbgPrintf(("New connection to lamp ID [%s]\n", connection->id.c_str()));
+    QCC_DbgPrintf(("New connection to lamp ID [%s]\n", connection->uniqueId.c_str()));
 
     connection->sessionID = sessionId;
     connection->object = ProxyBusObject(controllerService.GetBusAttachment(), connection->wkn.c_str(), LampServicePath, sessionId);
@@ -260,6 +266,7 @@ void LampClients::SessionLost(SessionId sessionId, SessionLostReason reason)
     if (ER_OK != status) {
         QCC_LogError(status, ("%s: lostSessionListLock.Unlock() failed", __FUNCTION__));
     }
+    wakeUp.Signal();
 }
 
 void LampClients::SendMethodReply(LSFResponseCode responseCode, ajn::Message msg, std::list<ajn::MsgArg>& stdArgs, std::list<ajn::MsgArg>& custArgs)
@@ -314,6 +321,7 @@ void LampClients::QueueLampMethod(QueuedMethodCall* queuedCall)
         responseLock.Lock();
         responseMap.insert(std::make_pair(queuedCall->responseID, queuedCall->responseCounter));
         responseLock.Unlock();
+        wakeUp.Signal();
     } else {
         SendMethodReply(responseCode, queuedCall->inMsg, queuedCall->responseCounter.standardReplyArgs, queuedCall->responseCounter.customReplyArgs);
         delete queuedCall;
@@ -685,10 +693,10 @@ void LampClients::LampStateChangedSignalHandler(const InterfaceDescription::Memb
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
     LSFStringList ids;
-    ids.push_back(id);
+    ids.push_back(uniqueId);
 
     controllerService.SendSignal("org.allseen.LSF.ControllerService.Lamp", "LampsStateChanged", ids);
 }
@@ -812,11 +820,12 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
                     QCC_LogError(tempStatus, ("%s: joinSessionCBListLock.Lock() failed", __FUNCTION__));
                 } else {
                     joinSessionCBList.push_back(connection);
-                    QCC_DbgPrintf(("%s: Add %s to joinSessionCBList", __FUNCTION__, connection->id.c_str()));
+                    QCC_DbgPrintf(("%s: Add %s to joinSessionCBList", __FUNCTION__, connection->uniqueId.c_str()));
                     tempStatus = joinSessionCBListLock.Unlock();
                     if (ER_OK != tempStatus) {
                         QCC_LogError(tempStatus, ("%s: joinSessionCBListLock.Unlock() failed", __FUNCTION__));
                     }
+                    wakeUp.Signal();
                 }
             }
         }
@@ -830,6 +839,12 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
 void LampClients::Run(void)
 {
     while (isRunning) {
+
+        /*
+         * Wait for something to happen
+         */
+        wakeUp.Wait();
+
         /*
          * Handle all received About Announcements as appropriate
          */
@@ -855,7 +870,7 @@ void LampClients::Run(void)
         joinSessionList.clear();
         while (tempAboutList.size()) {
             LampConnection* newConn = tempAboutList.front();
-            LampMap::const_iterator lit = activeLamps.find(newConn->id);
+            LampMap::const_iterator lit = activeLamps.find(newConn->uniqueId);
             if (lit != activeLamps.end()) {
                 /*
                  * We already know about this Lamp
@@ -863,18 +878,18 @@ void LampClients::Run(void)
                 LampConnection* conn = lit->second;
                 if (conn->name != newConn->name) {
                     conn->name = newConn->name;
-                    nameChangedList.push_back(conn->id);
-                    QCC_DbgPrintf(("%s: Name Changed for %s", __FUNCTION__, newConn->id.c_str()));
+                    nameChangedList.push_back(conn->uniqueId);
+                    QCC_DbgPrintf(("%s: Name Changed for %s", __FUNCTION__, newConn->uniqueId.c_str()));
                 }
                 delete newConn;
             } else {
                 /*
-                 * We should only support a maximum of MAX_SUPPORTED_NUM_LSF_ENTITY lamps at
+                 * We should only support a maximum of MAX_SUPPORTED_LAMPS lamps at
                  * any given point in time
                  */
-                if (activeLamps.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
+                if (activeLamps.size() < MAX_SUPPORTED_LAMPS) {
                     joinSessionList.push_back(newConn);
-                    QCC_DbgPrintf(("%s: Added %s to JoinSession List", __FUNCTION__, newConn->id.c_str()));
+                    QCC_DbgPrintf(("%s: Added %s to JoinSession List", __FUNCTION__, newConn->uniqueId.c_str()));
                 } else {
                     QCC_DbgPrintf(("%s: No slot for connection with a new lamp", __FUNCTION__));
                     delete newConn;
@@ -930,16 +945,16 @@ void LampClients::Run(void)
         while (tempJoinList.size()) {
             LampConnection* newConn = tempJoinList.front();
             /*
-             * We should only support a maximum of MAX_SUPPORTED_NUM_LSF_ENTITY lamps at
+             * We should only support a maximum of MAX_SUPPORTED_LAMPS lamps at
              * any given point in time
              */
-            if (activeLamps.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
-                activeLamps.insert(std::make_pair(newConn->id, newConn));
-                QCC_DbgPrintf(("%s: Added new connection for %s to activeLamps", __FUNCTION__, newConn->id.c_str()));
+            if (activeLamps.size() < MAX_SUPPORTED_LAMPS) {
+                activeLamps.insert(std::make_pair(newConn->uniqueId, newConn));
+                QCC_DbgPrintf(("%s: Added new connection for %s to activeLamps", __FUNCTION__, newConn->uniqueId.c_str()));
             } else {
                 QCC_DbgPrintf(("%s: No slot for connection with a new lamp", __FUNCTION__));
                 leaveSessionList.push_back(newConn);
-                QCC_DbgPrintf(("%s: Added connection for %s to leaveSessionList", __FUNCTION__, newConn->id.c_str()));
+                QCC_DbgPrintf(("%s: Added connection for %s to leaveSessionList", __FUNCTION__, newConn->uniqueId.c_str()));
             }
             tempJoinList.pop_front();
         }
@@ -951,7 +966,7 @@ void LampClients::Run(void)
             LampConnection* connection = leaveSessionList.front();
             status = controllerService.GetBusAttachment().LeaveSession(connection->sessionID);
             QCC_DbgPrintf(("%s: controllerService.GetBusAttachment().LeaveSession for %s returns %s\n",
-                           __FUNCTION__, connection->id.c_str(), QCC_StatusText(status)));
+                           __FUNCTION__, connection->uniqueId.c_str(), QCC_StatusText(status)));
             delete connection;
             leaveSessionList.pop_front();
         }
@@ -979,7 +994,7 @@ void LampClients::Run(void)
         if (tempLostSessionList.size()) {
             for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); it++) {
                 if (tempLostSessionList.find((uint32_t)it->second->sessionID) != tempLostSessionList.end()) {
-                    QCC_DbgPrintf(("%s: Removing %s from activeLamps", __FUNCTION__, it->second->id.c_str()));
+                    QCC_DbgPrintf(("%s: Removing %s from activeLamps", __FUNCTION__, it->second->uniqueId.c_str()));
                     delete it->second;
                     activeLamps.erase(it);
                 }

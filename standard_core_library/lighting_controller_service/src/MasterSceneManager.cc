@@ -17,14 +17,18 @@
 #include <MasterSceneManager.h>
 #include <ControllerService.h>
 #include <qcc/Debug.h>
+#include <OEMConfig.h>
+#include <FileParser.h>
 
 using namespace lsf;
 using namespace ajn;
 
 #define QCC_MODULE "MASTER_SCENE_MANAGER"
 
-MasterSceneManager::MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const char* ifaceName) :
-    Manager(controllerSvc), sceneManager(sceneMgr), interfaceName(ifaceName)
+static const uint32_t controllerMasterSceneInterfaceVersion = 1;
+
+MasterSceneManager::MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const char* ifaceName, const std::string& masterSceneFile) :
+    Manager(controllerSvc, masterSceneFile), sceneManager(sceneMgr), interfaceName(ifaceName)
 {
 
 }
@@ -146,10 +150,10 @@ void MasterSceneManager::GetMasterSceneName(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString masterSceneID(id);
+    LSFString masterSceneID(uniqueId);
 
     LSFString language = static_cast<LSFString>(args[1].v_string.str);
     if (0 != strcmp("en", language.c_str())) {
@@ -158,7 +162,7 @@ void MasterSceneManager::GetMasterSceneName(Message& msg)
     } else {
         QStatus status = masterScenesLock.Lock();
         if (ER_OK == status) {
-            MasterSceneMap::iterator it = masterScenes.find(id);
+            MasterSceneMap::iterator it = masterScenes.find(uniqueId);
             if (it != masterScenes.end()) {
                 name = it->second.first;
                 responseCode = LSF_OK;
@@ -186,10 +190,10 @@ void MasterSceneManager::SetMasterSceneName(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString masterSceneID(id);
+    LSFString masterSceneID(uniqueId);
 
     const char* name;
     args[1].Get("s", &name);
@@ -205,7 +209,7 @@ void MasterSceneManager::SetMasterSceneName(Message& msg)
         } else {
             QStatus status = masterScenesLock.Lock();
             if (ER_OK == status) {
-                MasterSceneMap::iterator it = masterScenes.find(id);
+                MasterSceneMap::iterator it = masterScenes.find(uniqueId);
                 if (it != masterScenes.end()) {
                     it->second.first = LSFString(name);
                     responseCode = LSF_OK;
@@ -225,6 +229,7 @@ void MasterSceneManager::SetMasterSceneName(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeIDAndName(msg, responseCode, masterSceneID, language);
 
     if (nameChanged) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(interfaceName, "MasterScenesNameChanged", idList);
@@ -268,6 +273,7 @@ void MasterSceneManager::CreateMasterScene(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, masterSceneID);
 
     if (created) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(interfaceName, "MasterScenesCreated", idList);
@@ -285,15 +291,15 @@ void MasterSceneManager::UpdateMasterScene(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString masterSceneID(id);
+    LSFString masterSceneID(uniqueId);
     MasterScene masterScene(args[1]);
 
     QStatus status = masterScenesLock.Lock();
     if (ER_OK == status) {
-        MasterSceneMap::iterator it = masterScenes.find(id);
+        MasterSceneMap::iterator it = masterScenes.find(uniqueId);
         if (it != masterScenes.end()) {
             masterScenes[masterSceneID].second = masterScene;
             responseCode = LSF_OK;
@@ -311,6 +317,7 @@ void MasterSceneManager::UpdateMasterScene(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, masterSceneID);
 
     if (updated) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(interfaceName, "MasterScenesUpdated", idList);
@@ -329,14 +336,14 @@ void MasterSceneManager::DeleteMasterScene(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString masterSceneID(id);
+    LSFString masterSceneID(uniqueId);
 
     QStatus status = masterScenesLock.Lock();
     if (ER_OK == status) {
-        MasterSceneMap::iterator it = masterScenes.find(id);
+        MasterSceneMap::iterator it = masterScenes.find(uniqueId);
         if (it != masterScenes.end()) {
             masterScenes.erase(it);
             responseCode = LSF_OK;
@@ -354,6 +361,7 @@ void MasterSceneManager::DeleteMasterScene(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, masterSceneID);
 
     if (deleted) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(interfaceName, "MasterScenesDeleted", idList);
@@ -372,12 +380,12 @@ void MasterSceneManager::GetMasterScene(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
     QStatus status = masterScenesLock.Lock();
     if (ER_OK == status) {
-        MasterSceneMap::iterator it = masterScenes.find(id);
+        MasterSceneMap::iterator it = masterScenes.find(uniqueId);
         if (it != masterScenes.end()) {
             it->second.second.Get(&outArgs[2]);
             responseCode = LSF_OK;
@@ -394,7 +402,7 @@ void MasterSceneManager::GetMasterScene(Message& msg)
     }
 
     outArgs[0].Set("u", responseCode);
-    outArgs[1].Set("s", id);
+    outArgs[1].Set("s", uniqueId);
 
     controllerService.SendMethodReply(msg, outArgs, 3);
 }
@@ -408,7 +416,7 @@ void MasterSceneManager::ApplyMasterScene(ajn::Message& msg)
 
     const char* masterSceneID;
     args[0].Get("s", &masterSceneID);
-    LSFResponseCode rc = LSF_OK;
+    LSFResponseCode responseCode = LSF_OK;
 
     masterScenesLock.Lock();
     MasterSceneMap::iterator sit = masterScenes.find(masterSceneID);
@@ -419,22 +427,101 @@ void MasterSceneManager::ApplyMasterScene(ajn::Message& msg)
 
         // TODO: something with this!
     } else {
-        rc = LSF_ERR_INVALID;
+        responseCode = LSF_ERR_INVALID;
     }
 
     masterScenesLock.Unlock();
 #endif
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, msg->ToString().c_str()));
-    LSFString id;
+    LSFString uniqueId;
     LSFResponseCode responseCode = LSF_OK;
-    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, id);
+    controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, uniqueId);
     LSFStringList idList;
     idList.push_back("abc");
     controllerService.SendSignal(interfaceName, "MasterScenesApplied", idList);
 }
 
-void MasterSceneManager::AddMasterScene(const LSFString& id, const std::string& name, const MasterScene& group)
+// Saved scenes have the format:
+// (MasterScene id "name" (Scene id)* EndMasterScene)*
+void MasterSceneManager::ReadSavedData()
 {
-    std::pair<LSFString, MasterScene> thePair(name, group);
-    masterScenes[id] = thePair;
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::ifstream stream(filePath.c_str());
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    while (!stream.eof()) {
+        std::string token = ParseString(stream);
+
+        if (token == "MasterScene") {
+            std::string id = ParseString(stream);
+            std::string name = ParseString(stream);
+            LSFStringList subScenes;
+
+            do {
+                token = ParseString(stream);
+
+                if (token == "Scene") {
+                    std::string scene = ParseString(stream);
+                    subScenes.push_back(scene);
+                }
+            } while (token != "EndMasterScene");
+
+            MasterScene msc(subScenes);
+            std::pair<LSFString, MasterScene> thePair(name, msc);
+            masterScenes[id] = thePair;
+        }
+    }
+}
+
+void MasterSceneManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        return;
+    }
+
+    if (filePath.empty()) {
+        return;
+    }
+
+    masterScenesLock.Lock();
+    // we can't hold this lock for the entire time!
+    MasterSceneMap mapCopy = masterScenes;
+    updated = false;
+    masterScenesLock.Unlock();
+
+    std::ofstream stream(filePath.c_str(), std::ios_base::out);
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    // (MasterScene id "name" (Scene id)* EndMasterScene)*
+    for (MasterSceneMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+        const LSFString& id = it->first;
+        const LSFString& name = it->second.first;
+        const MasterScene& msc = it->second.second;
+
+        stream << "MasterScene " << id << " \"" << name << "\"";
+
+        for (LSFStringList::const_iterator sit = msc.scenes.begin(); sit != msc.scenes.end(); ++sit) {
+            stream << " Scene " << *sit;
+        }
+
+        stream << " EndMasterScene" << std::endl;
+    }
+
+    stream.close();
+}
+
+uint32_t MasterSceneManager::GetControllerMasterSceneInterfaceVersion(void)
+{
+    QCC_DbgPrintf(("%s: controllerMasterSceneInterfaceVersion=%d", __FUNCTION__, controllerMasterSceneInterfaceVersion));
+    return controllerMasterSceneInterfaceVersion;
 }

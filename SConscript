@@ -56,7 +56,7 @@ lsf_client_env.Install('$LSF_CLIENT_DISTDIR/inc', lsf_client_env.Glob('standard_
 lsf_client_env['client_srcs'] = lsf_client_env.Glob('standard_core_library/lighting_controller_client/src/*.cc')
 lsf_client_env['client_objs'] = lsf_client_env.Object(lsf_client_env['client_srcs']) 
 lighting_controller_client_static_lib = lsf_client_env.StaticLibrary('$LSF_CLIENT_DISTDIR/lib/lighting_controller_client', lsf_client_env['client_objs'] + lsf_env['common_objs']);
-#lighting_controller_client_sample = lsf_client_env.Program('$LSF_CLIENT_DISTDIR/test/lighting_controller_client_sample', ['standard_core_library/lighting_controller_client/test/LightingControllerClientSample.cc'] + lsf_client_env['client_objs'] + lsf_env['common_objs'])
+lighting_controller_client_sample = lsf_client_env.Program('$LSF_CLIENT_DISTDIR/test/lighting_controller_client_sample', ['standard_core_library/lighting_controller_client/test/LightingControllerClientSample.cc'] + lsf_client_env['client_objs'] + lsf_env['common_objs'])
 lsf_client_env.Install('$LSF_CLIENT_DISTDIR/bin', lsf_client_env['client_objs'])
 lsf_client_env.Install('$LSF_CLIENT_DISTDIR/bin', lsf_env['common_objs'])
 

@@ -18,16 +18,20 @@
 #include <ControllerService.h>
 #include <qcc/Debug.h>
 #include <SceneManager.h>
+#include <OEMConfig.h>
+#include <FileParser.h>
 
 using namespace lsf;
 using namespace ajn;
 
 #define QCC_MODULE "PRESET_MANAGER"
 
-PresetManager::PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr) :
-    Manager(controllerSvc), interfaceName(ifaceName), sceneManagerPtr(sceneMgrPtr)
+static const uint32_t controllerPresetInterfaceVersion = 1;
+
+PresetManager::PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& presetFile) :
+    Manager(controllerSvc, presetFile), interfaceName(ifaceName), sceneManagerPtr(sceneMgrPtr)
 {
-    defaultLampState = { false, 0x100, 0x100, 0x100, 0x100 };
+    GetFactorySetDefaultLampState(defaultLampState);
 }
 
 LSFResponseCode PresetManager::GetAllPresets(PresetMap& presetMap)
@@ -160,10 +164,10 @@ void PresetManager::GetPresetName(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString presetID(id);
+    LSFString presetID(uniqueId);
 
     LSFString language = static_cast<LSFString>(args[1].v_string.str);
     if (0 != strcmp("en", language.c_str())) {
@@ -172,7 +176,7 @@ void PresetManager::GetPresetName(Message& msg)
     } else {
         QStatus status = presetsLock.Lock();
         if (ER_OK == status) {
-            PresetMap::iterator it = presets.find(id);
+            PresetMap::iterator it = presets.find(uniqueId);
             if (it != presets.end()) {
                 name = it->second.first;
                 responseCode = LSF_OK;
@@ -200,10 +204,10 @@ void PresetManager::SetPresetName(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString presetID(id);
+    LSFString presetID(uniqueId);
 
     const char* name;
     args[1].Get("s", &name);
@@ -219,7 +223,7 @@ void PresetManager::SetPresetName(Message& msg)
         } else {
             QStatus status = presetsLock.Lock();
             if (ER_OK == status) {
-                PresetMap::iterator it = presets.find(id);
+                PresetMap::iterator it = presets.find(uniqueId);
                 if (it != presets.end()) {
                     it->second.first = LSFString(name);
                     responseCode = LSF_OK;
@@ -239,6 +243,7 @@ void PresetManager::SetPresetName(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeIDAndName(msg, responseCode, presetID, language);
 
     if (nameChanged) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
         controllerService.SendSignal(interfaceName, "PresetsNameChanged", idList);
@@ -282,6 +287,7 @@ void PresetManager::CreatePreset(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, presetID);
 
     if (created) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
         controllerService.SendSignal(interfaceName, "PresetsCreated", idList);
@@ -325,6 +331,7 @@ void PresetManager::UpdatePreset(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, presetID);
 
     if (updated) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
         controllerService.SendSignal(interfaceName, "PresetsUpdated", idList);
@@ -372,6 +379,7 @@ void PresetManager::DeletePreset(Message& msg)
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, presetID);
 
     if (deleted) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
         controllerService.SendSignal(interfaceName, "PresetsDeleted", idList);
@@ -501,9 +509,84 @@ LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset)
     return responseCode;
 }
 
-
-void PresetManager::AddPreset(const LSFString& presetId, const std::string& presetName, const LampState& state)
+// never call this when the ControllerService is up; it isn't thread-safe!
+// Presets follow the form:
+// (Preset id "name" on/off hue saturation colortemp brightness)*
+void PresetManager::ReadSavedData()
 {
-    std::pair<LSFString, LampState> thePair(presetName, state);
-    presets[presetId] = thePair;
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::ifstream stream(filePath.c_str());
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    while (!stream.eof()) {
+        std::string type = ParseString(stream);
+
+        // keep searching for "Preset", which indicates the beginning of a saved Preset state
+        if (type == "Preset") {
+            std::string presetId = ParseString(stream);
+            std::string presetName = ParseString(stream);
+
+            //printf("SavedState id=%s, name=[%s]\n", id.c_str(), name.c_str());
+            LampState state;
+            ParseLampState(stream, state);
+
+            std::pair<LSFString, LampState> thePair(presetName, state);
+            presets[presetId] = thePair;
+        }
+    }
+
+    stream.close();
+}
+
+void PresetManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        return;
+    }
+
+    if (filePath.empty()) {
+        return;
+    }
+
+    presetsLock.Lock();
+
+    // we can't hold this lock for the entire time!
+    PresetMap mapCopy = presets;
+    updated = false;
+    presetsLock.Unlock();
+
+
+
+    std::ofstream stream(filePath.c_str(), std::ios_base::out);
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    // // (Preset id "name" on/off hue saturation colortemp brightness)*
+    for (PresetMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+        const LSFString& id = it->first;
+        const LSFString& name = it->second.first;
+        const LampState& state = it->second.second;
+
+        stream << "Preset " << id << " \"" << name << "\" "
+               << (state.onOff ? 1 : 0) << ' '
+               << state.hue << ' ' << state.saturation << ' '
+               << state.colorTemp << ' ' << state.brightness << '\n';
+    }
+
+    stream.close();
+}
+
+uint32_t PresetManager::GetControllerPresetInterfaceVersion(void)
+{
+    QCC_DbgPrintf(("%s: controllerPresetInterfaceVersion=%d", __FUNCTION__, controllerPresetInterfaceVersion));
+    return controllerPresetInterfaceVersion;
 }

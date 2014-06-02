@@ -23,6 +23,7 @@ namespace lsf {
 const std::string ControllerServiceDescription =
     "<node>"
     "  <interface name='org.allseen.LSF.ControllerService'>"
+    "  <property name='Version' type='u' access='read'/>"
     "    <method name='LightingResetControllerService'>"
     "      <arg name='responseCode' type='u' direction='out'/>"
     "    </method>"
@@ -37,6 +38,7 @@ const std::string ControllerServiceDescription =
 const std::string ControllerServiceLampDescription =
     "<node>"
     "  <interface name='org.allseen.LSF.ControllerService.Lamp'>"
+    "    <property name='Version' type='u' access='read'/>"
     "    <method name='GetAllLampIDs'>"
     "      <arg name='responseCode' type='u' direction='out'/>"
     "      <arg name='lampIDs' type='as' direction='out'/>"
@@ -191,6 +193,7 @@ const std::string ControllerServiceLampDescription =
 const std::string ControllerServiceLampGroupDescription =
     "<node>"
     "  <interface name='org.allseen.LSF.ControllerService.LampGroup'>"
+    "  <property name='Version' type='u' access='read'/>"
     "    <method name='GetAllLampGroupIDs'>"
     "      <arg name='responseCode' type='u' direction='out'/>"
     "      <arg name='lampGroupIDs' type='as' direction='out'/>"
@@ -309,6 +312,7 @@ const std::string ControllerServiceLampGroupDescription =
 const std::string ControllerServicePresetDescription =
     "<node>"
     "  <interface name='org.allseen.LSF.ControllerService.Preset'>"
+    "  <property name='Version' type='u' access='read'/>"
     "    <method name='GetDefaultLampState'>"
     "      <arg name='responseCode' type='u' direction='out'/>"
     "      <arg name='lampState' type='a{sv}' direction='out'/>"
@@ -379,6 +383,7 @@ const std::string ControllerServicePresetDescription =
 const std::string ControllerServiceSceneDescription =
     "<node>"
     "  <interface name='org.allseen.LSF.ControllerService.Scene'>"
+    "  <property name='Version' type='u' access='read'/>"
     "    <method name='GetAllSceneIDs'>"
     "      <arg name='responseCode' type='u' direction='out'/>"
     "      <arg name='sceneIDs' type='as' direction='out'/>"
@@ -456,6 +461,7 @@ const std::string ControllerServiceSceneDescription =
 const std::string ControllerServiceMasterSceneDescription =
     "<node>"
     "  <interface name='org.allseen.LSF.ControllerService.MasterScene'>"
+    "  <property name='Version' type='u' access='read'/>"
     "    <method name='GetAllMasterSceneIDs'>"
     "      <arg name='responseCode' type='u' direction='out'/>"
     "      <arg name='masterSceneIDs' type='as' direction='out'/>"

@@ -16,6 +16,7 @@
 
 #include <LampManager.h>
 #include <LSFResponseCodes.h>
+#include <OEMConfig.h>
 
 #include <ControllerService.h>
 
@@ -29,6 +30,8 @@ using namespace lsf;
 using namespace ajn;
 
 #define QCC_MODULE "LAMP_MANAGER"
+
+static const uint32_t controllerLampInterfaceVersion = 1;
 
 LampManager::LampManager(ControllerService& controllerSvc, PresetManager& presetMgr, const char* ifaceName)
     : Manager(controllerSvc), lampClients(controllerSvc), presetManager(presetMgr), interfaceName(ifaceName)
@@ -370,11 +373,14 @@ void LampManager::ChangeLampStateAndField(Message& message,
 
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
+    uint64_t startTimeStamp = 0;
+    GetSyncTimeStamp(startTimeStamp);
+
     if (transitionToStateComponent) {
         MsgArg state;
         transitionToStateComponent->state.Get(&state);
         QCC_DbgPrintf(("%s: Applying transitionToStateComponent", __FUNCTION__));
-        lampClients.TransitionLampState(message, transitionToStateComponent->lamps, 0x5555555555555555, state, 0, groupOperation);
+        lampClients.TransitionLampState(message, transitionToStateComponent->lamps, startTimeStamp, state, 0, groupOperation);
     }
 
     if (transitionToPresetComponent) {
@@ -384,7 +390,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
             MsgArg state;
             preset.Get(&state);
             QCC_DbgPrintf(("%s: Applying transitionToPresetComponent", __FUNCTION__));
-            lampClients.TransitionLampState(message, transitionToPresetComponent->lamps, 0x6666666666666666, state, 0, groupOperation);
+            lampClients.TransitionLampState(message, transitionToPresetComponent->lamps, startTimeStamp, state, 0, groupOperation);
         } else {
             if (groupOperation) {
                 size_t numArgs;
@@ -400,7 +406,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
 
     if (stateFieldComponent) {
         QCC_DbgPrintf(("%s: Applying stateFieldComponent", __FUNCTION__));
-        lampClients.TransitionLampStateField(message, stateFieldComponent->lamps, 0x7777777777777777, stateFieldComponent->stateFieldName.c_str(),
+        lampClients.TransitionLampStateField(message, stateFieldComponent->lamps, startTimeStamp, stateFieldComponent->stateFieldName.c_str(),
                                              stateFieldComponent->stateFieldValue, stateFieldComponent->transitionPeriod, groupOperation);
     }
 
@@ -411,7 +417,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
         pulseWithStateComponent->fromState.Get(&fromState);
         pulseWithStateComponent->toState.Get(&toState);
         lampClients.PulseLampWithState(message, pulseWithStateComponent->lamps, fromState, toState, pulseWithStateComponent->period, pulseWithStateComponent->duration,
-                                       pulseWithStateComponent->numPulses, 0x9999999999999999, groupOperation);
+                                       pulseWithStateComponent->numPulses, startTimeStamp, groupOperation);
     }
 
     if (pulseWithPresetComponent) {
@@ -427,7 +433,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
                 toPreset.Get(&toState);
                 QCC_DbgPrintf(("%s: Applying pulseWithPresetComponent", __FUNCTION__));
                 lampClients.PulseLampWithState(message, pulseWithPresetComponent->lamps, fromState, toState, pulseWithPresetComponent->period, pulseWithPresetComponent->duration,
-                                               pulseWithPresetComponent->numPulses, 0x4444444444444444, groupOperation);
+                                               pulseWithPresetComponent->numPulses, startTimeStamp, groupOperation);
             }
         } else {
             if (groupOperation) {
@@ -505,4 +511,10 @@ void LampManager::PulseLampWithPreset(ajn::Message& message)
 
     PulseLampsWithPreset pulseWithPresetComponent(lampList, fromPresetID, toPresetID, period, duration, numPulses);
     ChangeLampStateAndField(message, NULL, NULL, NULL, NULL, &pulseWithPresetComponent);
+}
+
+uint32_t LampManager::GetControllerLampInterfaceVersion(void)
+{
+    QCC_DbgPrintf(("%s: controllerLampInterfaceVersion=%d", __FUNCTION__, controllerLampInterfaceVersion));
+    return controllerLampInterfaceVersion;
 }

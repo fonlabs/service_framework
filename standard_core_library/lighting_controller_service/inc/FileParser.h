@@ -1,5 +1,5 @@
-#ifndef _MANAGER_H_
-#define _MANAGER_H_
+#ifndef LSF_FILE_PARSER_H
+#define LSF_FILE_PARSER_H
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -16,46 +16,36 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <alljoyn/Message.h>
-#include <alljoyn/InterfaceDescription.h>
-#include <alljoyn/MessageReceiver.h>
-
-#include <LSFResponseCodes.h>
-#include <LSFTypes.h>
-
 #include <string>
-#include <vector>
+#include <fstream>
 
 namespace lsf {
 
-class ControllerService;
+class LampState;
 
-class Manager : public ajn::MessageReceiver {
+void ParseLampState(std::ifstream& stream, LampState& state);
 
-    static const size_t ID_STR_LEN = 8;
+/**
+ * Read a string from the stream.  Spaces will be included between double-quotes
+ *
+ * @param stream    The stream
+ * @return          The next token in the stream
+ */
+std::string ParseString(std::ifstream& stream);
 
-  public:
-
-    Manager(ControllerService& controllerSvc, const std::string& filePath = "");
-
-    virtual void WriteFile() { }
-
-    void ScheduleFileUpdate();
-
-    //protected:
-
-    LSFString GenerateUniqueID(const LSFString& prefix) const;
-
-    ControllerService& controllerService;
-
-    bool updated;
-
-    const std::string filePath;
-
-    void MethodReplyPassthrough(ajn::Message& msg, void* context);
-};
-
+template <typename T>
+T ParseValue(std::ifstream& stream)
+{
+    T t;
+    stream >> t;
+    return t;
 }
 
+std::ofstream& WriteValue(std::ofstream& stream, const std::string& name);
+
+std::ofstream& WriteString(std::ofstream& stream, const std::string& name);
+
+
+}
 
 #endif

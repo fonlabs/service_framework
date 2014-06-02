@@ -24,6 +24,8 @@
 #include <alljoyn/notification/NotificationService.h>
 #include <string>
 
+static const uint32_t controllerInterfaceVersion = 1;
+
 static const char* const ControllerServicePath = "/org/allseen/LSF/ControllerService";
 static const char* const ControllerInterface = "org.allseen.LSF.ControllerService";
 static const char* const ControllerLampInterface = "org.allseen.LSF.ControllerService.Lamp";
@@ -60,21 +62,67 @@ class ControllerService::ControllerListener : public SessionPortListener, public
     ControllerService& controller;
 };
 
-ControllerService::ControllerService(const std::string& factoryConfigFile, const std::string& configFile) :
+ControllerService::ControllerService(
+    ajn::services::PropertyStore& propStore,
+    const std::string& factoryConfigFile,
+    const std::string& configFile,
+    const std::string& lampGroupFile,
+    const std::string& presetFile,
+    const std::string& sceneFile,
+    const std::string& masterSceneFile) :
     BusObject(ControllerServicePath),
     bus("LightingServiceController", true),
     serviceSession(0),
     listener(new ControllerListener(*this)),
     lampManager(*this, presetManager, ControllerLampInterface),
-    lampGroupManager(*this, lampManager, ControllerLampGroupInterface, &sceneManager),
-    presetManager(*this, ControllerPresetInterface, &sceneManager),
-    sceneManager(*this, lampGroupManager, ControllerSceneInterface, &masterSceneManager),
-    masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface),
-    propertyStore(factoryConfigFile, configFile),
+    lampGroupManager(*this, lampManager, ControllerLampGroupInterface, &sceneManager, lampGroupFile),
+    presetManager(*this, ControllerPresetInterface, &sceneManager, sceneFile),
+    sceneManager(*this, lampGroupManager, ControllerSceneInterface, &masterSceneManager, presetFile),
+    masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface, masterSceneFile),
+    internalPropertyStore(factoryConfigFile, configFile), // we don't use this!
+    propertyStore(propStore),
     aboutService(NULL),
     configService(bus, propertyStore, *this),
-    notificationSender(NULL)
+    notificationSender(NULL),
+    fileWriterThread(*this)
 {
+    Initialize();
+}
+
+ControllerService::ControllerService(
+    const std::string& factoryConfigFile,
+    const std::string& configFile,
+    const std::string& lampGroupFile,
+    const std::string& presetFile,
+    const std::string& sceneFile,
+    const std::string& masterSceneFile) :
+    BusObject(ControllerServicePath),
+    bus("LightingServiceController", true),
+    serviceSession(0),
+    listener(new ControllerListener(*this)),
+    lampManager(*this, presetManager, ControllerLampInterface),
+    lampGroupManager(*this, lampManager, ControllerLampGroupInterface, &sceneManager, lampGroupFile),
+    presetManager(*this, ControllerPresetInterface, &sceneManager, sceneFile),
+    sceneManager(*this, lampGroupManager, ControllerSceneInterface, &masterSceneManager, presetFile),
+    masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface, masterSceneFile),
+    internalPropertyStore(factoryConfigFile, configFile),
+    propertyStore(internalPropertyStore),
+    aboutService(NULL),
+    configService(bus, propertyStore, *this),
+    notificationSender(NULL),
+    fileWriterThread(*this)
+{
+    Initialize();
+    internalPropertyStore.Initialize();
+}
+
+void ControllerService::Initialize()
+{
+    lampGroupManager.ReadSavedData();
+    presetManager.ReadSavedData();
+    sceneManager.ReadSavedData();
+    masterSceneManager.ReadSavedData();
+
     AddMethodHandler("LightingResetControllerService", this, &ControllerService::LightingResetControllerService);
     AddMethodHandler("GetControllerServiceVersion", this, &ControllerService::GetControllerServiceVersion);
     AddMethodHandler("GetAllLampIDs", &lampManager, &LampManager::GetAllLampIDs);
@@ -136,8 +184,6 @@ ControllerService::ControllerService(const std::string& factoryConfigFile, const
     AddMethodHandler("DeleteMasterScene", &masterSceneManager, &MasterSceneManager::DeleteMasterScene);
     AddMethodHandler("GetMasterScene", &masterSceneManager, &MasterSceneManager::GetMasterScene);
     AddMethodHandler("ApplyMasterScene", &masterSceneManager, &MasterSceneManager::ApplyMasterScene);
-
-    propertyStore.Initialize();
 }
 
 ControllerService::~ControllerService()
@@ -302,6 +348,12 @@ QStatus ControllerService::Start(void)
         return status;
     }
 
+    status = fileWriterThread.Start();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to start file writer thread", __FUNCTION__));
+        return status;
+    }
+
     /*
      * Initialize About
      */
@@ -382,6 +434,8 @@ QStatus ControllerService::Stop(void)
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Error stopping Lamp Manager", __FUNCTION__));
     }
+
+    fileWriterThread.Stop();
 
     status = bus.Disconnect();
     if (status != ER_OK) {
@@ -666,3 +720,47 @@ void ControllerService::SendMethodReplyWithResponseCodeIDLanguageAndName(const a
     }
 }
 
+void ControllerService::ScheduleFileWrite(Manager* manager)
+{
+    fileWriterThread.AddItem(manager);
+}
+
+int ControllerService::HandleItem(Manager* manager)
+{
+    manager->WriteFile();
+    return 0;
+}
+
+uint32_t ControllerService::GetControllerInterfaceVersion(void)
+{
+    QCC_DbgPrintf(("%s: controllerInterfaceVersion=%d", __FUNCTION__, controllerInterfaceVersion));
+    return controllerInterfaceVersion;
+}
+
+QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& val)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QStatus status = ER_OK;
+    // Check the requested property and return the value if it exists
+    if (0 == strcmp("Version", propName)) {
+        if (0 == strcmp(ifcName, ControllerInterface)) {
+            status = val.Set("u", GetControllerInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerLampInterface)) {
+            status = val.Set("u", lampManager.GetControllerLampInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerLampGroupInterface)) {
+            status = val.Set("u", lampGroupManager.GetControllerLampGroupInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerPresetInterface)) {
+            status = val.Set("u", presetManager.GetControllerPresetInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerSceneInterface)) {
+            status = val.Set("u", sceneManager.GetControllerSceneInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerMasterSceneInterface)) {
+            status = val.Set("u", masterSceneManager.GetControllerMasterSceneInterfaceVersion());
+        } else {
+            status = ER_BUS_OBJECT_NO_SUCH_INTERFACE;
+        }
+    } else {
+        status = ER_BUS_NO_SUCH_PROPERTY;
+    }
+
+    return status;
+}

@@ -14,7 +14,6 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-
 #include <LSFTypes.h>
 #include <LampValues.h>
 #include <qcc/Debug.h>
@@ -159,7 +158,7 @@ void LampState::Get(ajn::MsgArg* arg) const
 }
 
 LampParameters::LampParameters() :
-    energy_usage_milliwatts(0),
+    energyUsageMilliwatts(0),
     lumens(0)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
@@ -172,7 +171,7 @@ LampParameters::LampParameters(const ajn::MsgArg& arg)
 }
 
 LampParameters::LampParameters(const LampParameters& other) :
-    energy_usage_milliwatts(other.energy_usage_milliwatts),
+    energyUsageMilliwatts(other.energyUsageMilliwatts),
     lumens(other.lumens)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
@@ -180,7 +179,7 @@ LampParameters::LampParameters(const LampParameters& other) :
 
 LampParameters& LampParameters::operator=(const LampParameters& other)
 {
-    energy_usage_milliwatts = other.energy_usage_milliwatts;
+    energyUsageMilliwatts = other.energyUsageMilliwatts;
     lumens = other.lumens;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
@@ -191,8 +190,8 @@ const char* LampParameters::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("\nenergy_usage_milliwatts=");
-    ret.append(qcc::U32ToString(energy_usage_milliwatts));
+    ret.append("\nenergyUsageMilliwatts=");
+    ret.append(qcc::U32ToString(energyUsageMilliwatts));
     ret.append("\nlumens=");
     ret.append(qcc::U32ToString(lumens));
     return ret.c_str();
@@ -210,7 +209,7 @@ void LampParameters::Set(const ajn::MsgArg& arg)
         args[i].Get("{sv}", &field, &value);
 
         if (0 == strcmp(field, "Energy_Usage_Milliwatts")) {
-            value->Get("u", &energy_usage_milliwatts);
+            value->Get("u", &energyUsageMilliwatts);
         } else if (0 == strcmp(field, "Brightness_Lumens")) {
             value->Get("u", &lumens);
         }
@@ -224,7 +223,7 @@ void LampParameters::Get(ajn::MsgArg* arg) const
     const char* str[] = { "Energy_Usage_Milliwatts", "Brightness_Lumens" };
     MsgArg* dict = new MsgArg[2];
 
-    MsgArg* var = new MsgArg("u", energy_usage_milliwatts);
+    MsgArg* var = new MsgArg("u", energyUsageMilliwatts);
     dict[0].Set("{sv}", str[0], var);
     dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
@@ -415,7 +414,7 @@ void LampDetails::Get(ajn::MsgArg* arg) const
         "MinVoltage",
         "Wattage",
         "IncandescentEquivalent",
-        "MaxOutput",
+        "MaxLumens",
         "MinTemperature",
         "MaxTemperature",
         "ColorRenderingIndex",
@@ -425,80 +424,80 @@ void LampDetails::Get(ajn::MsgArg* arg) const
     MsgArg* dict = new MsgArg[19];
 
     MsgArg* var = new MsgArg("u", make);
-    dict[2].Set("{sv}", str[0], var);
-    dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[0].Set("{sv}", str[0], var);
+    dict[0].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", model);
-    dict[3].Set("{sv}", str[1], var);
-    dict[3].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[1].Set("{sv}", str[1], var);
+    dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", type);
-    dict[4].Set("{sv}", str[2], var);
-    dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[2].Set("{sv}", str[2], var);
+    dict[2].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", lampType);
-    dict[5].Set("{sv}", str[3], var);
-    dict[5].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[3].Set("{sv}", str[3], var);
+    dict[3].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", lampBaseType);
-    dict[6].Set("{sv}", str[4], var);
-    dict[6].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[4].Set("{sv}", str[4], var);
+    dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", lampBeamAngle);
-    dict[7].Set("{sv}", str[5], var);
-    dict[7].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[5].Set("{sv}", str[5], var);
+    dict[5].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", dimmable);
-    dict[8].Set("{sv}", str[6], var);
-    dict[8].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[6].Set("{sv}", str[6], var);
+    dict[6].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", color);
-    dict[9].Set("{sv}", str[7], var);
-    dict[9].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[7].Set("{sv}", str[7], var);
+    dict[7].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", variableColorTemp);
-    dict[10].Set("{sv}", str[8], var);
-    dict[10].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[8].Set("{sv}", str[8], var);
+    dict[8].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("b", hasEffects);
-    dict[11].Set("{sv}", str[9], var);
-    dict[11].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[9].Set("{sv}", str[9], var);
+    dict[9].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", maxVoltage);
-    dict[12].Set("{sv}", str[10], var);
-    dict[12].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[10].Set("{sv}", str[10], var);
+    dict[10].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", minVoltage);
-    dict[12].Set("{sv}", str[11], var);
-    dict[12].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[11].Set("{sv}", str[11], var);
+    dict[11].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", wattage);
-    dict[13].Set("{sv}", str[12], var);
-    dict[13].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[12].Set("{sv}", str[12], var);
+    dict[12].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", incandescentEquivalent);
-    dict[14].Set("{sv}", str[13], var);
-    dict[14].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[13].Set("{sv}", str[13], var);
+    dict[13].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", maxLumens);
-    dict[15].Set("{sv}", str[14], var);
-    dict[15].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[14].Set("{sv}", str[14], var);
+    dict[14].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", minTemperature);
-    dict[16].Set("{sv}", str[15], var);
-    dict[16].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[15].Set("{sv}", str[15], var);
+    dict[15].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", maxTemperature);
-    dict[17].Set("{sv}", str[16], var);
-    dict[17].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[16].Set("{sv}", str[16], var);
+    dict[16].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("u", colorRenderingIndex);
-    dict[18].Set("{sv}", str[17], var);
-    dict[18].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[17].Set("{sv}", str[17], var);
+    dict[17].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     var = new MsgArg("s", lampID.c_str());
-    dict[20].Set("{sv}", str[18], var);
-    dict[20].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    dict[18].Set("{sv}", str[18], var);
+    dict[18].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     arg->Set("a{sv}", (size_t)19, dict);
 }
@@ -699,13 +698,13 @@ void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
     component.Get("(asasa{sv}u)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &stateArgsSize, &stateArgs, &transitionPeriod);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString id(lampList[j]);
-        lamps.push_back(id);
+        LSFString uniqueId(lampList[j]);
+        lamps.push_back(uniqueId);
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString id(lampGroupList[k]);
-        lampGroups.push_back(id);
+        LSFString uniqueId(lampGroupList[k]);
+        lampGroups.push_back(uniqueId);
     }
 
     MsgArg arg;
@@ -816,13 +815,13 @@ void TransitionLampsLampGroupsToPreset::Set(const ajn::MsgArg& component)
     component.Get("(asassu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &presetId, &transitionPeriod);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString id(lampList[j]);
-        lamps.push_back(id);
+        LSFString uniqueId(lampList[j]);
+        lamps.push_back(uniqueId);
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString id(lampGroupList[k]);
-        lampGroups.push_back(id);
+        LSFString uniqueId(lampGroupList[k]);
+        lampGroups.push_back(uniqueId);
     }
 
     presetID = LSFString(presetId);
@@ -936,13 +935,13 @@ void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
     component.Get("(asasa{sv}a{sv}uuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromStateArgsSize, &fromStateArgs, &toStateArgsSize, &toStateArgs, &pulsePeriod, &pulseDuration, &numPulses);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString id(lampList[j]);
-        lamps.push_back(id);
+        LSFString uniqueId(lampList[j]);
+        lamps.push_back(uniqueId);
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString id(lampGroupList[k]);
-        lampGroups.push_back(id);
+        LSFString uniqueId(lampGroupList[k]);
+        lampGroups.push_back(uniqueId);
     }
 
     MsgArg fromArg;
@@ -1075,13 +1074,13 @@ void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
     component.Get("(asasssuuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromPresetId, &toPresetId, &pulsePeriod, &pulseDuration, &numPulses);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString id(lampList[j]);
-        lamps.push_back(id);
+        LSFString uniqueId(lampList[j]);
+        lamps.push_back(uniqueId);
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString id(lampGroupList[k]);
-        lampGroups.push_back(id);
+        LSFString uniqueId(lampGroupList[k]);
+        lampGroups.push_back(uniqueId);
     }
 
     fromPreset = LSFString(fromPresetId);

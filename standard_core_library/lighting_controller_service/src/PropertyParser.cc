@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include "PropertyParser.h"
+#include <PropertyParser.h>
 #include <fstream>
 #include <sstream>
 #include <qcc/Debug.h>

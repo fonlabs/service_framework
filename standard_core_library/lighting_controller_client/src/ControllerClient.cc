@@ -218,11 +218,11 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
 
     // we don't care about this session any more
     SessionMap::iterator sit = activeSessions.find(sessionID);
-    std::string id = sit->second;
+    std::string sessionId = sit->second;
     activeSessions.erase(sit);
 
     // this is no longer active unless it is Announced again
-    ActiveServiceMap::iterator ait = activeServices.find(id);
+    ActiveServiceMap::iterator ait = activeServices.find(sessionId);
     activeServices.erase(ait);
 
     delete proxyObject;
@@ -465,8 +465,66 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                 }
             }
         }
-
         lock.Unlock();
+
+        /*
+         * Get and print the versions of all the Controller Service interfaces
+         */
+        QCC_DbgPrintf(("%s: Trying to read the versions of all the Controller Service interfaces", __FUNCTION__));
+        MsgArg val;
+        status = proxyObject->GetProperty(ControllerServiceInterfaceName.c_str(), "Version", val);
+        if (ER_OK == status) {
+            uint32_t iVal = 0;
+            val.Get("u", &iVal);
+            QCC_DbgPrintf(("%s: ControllerServiceInterfaceVersion = %d", __FUNCTION__, iVal));
+        } else {
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceInterfaceName.c_str()));
+        }
+        val.Clear();
+        status = proxyObject->GetProperty(ControllerServiceLampInterfaceName.c_str(), "Version", val);
+        if (ER_OK == status) {
+            uint32_t iVal = 0;
+            val.Get("u", &iVal);
+            QCC_DbgPrintf(("%s: ControllerServiceLampInterfaceVersion = %d", __FUNCTION__, iVal));
+        } else {
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampInterfaceName.c_str()));
+        }
+        val.Clear();
+        status = proxyObject->GetProperty(ControllerServiceLampGroupInterfaceName.c_str(), "Version", val);
+        if (ER_OK == status) {
+            uint32_t iVal = 0;
+            val.Get("u", &iVal);
+            QCC_DbgPrintf(("%s: ControllerServiceLampGroupInterfaceVersion = %d", __FUNCTION__, iVal));
+        } else {
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampGroupInterfaceName.c_str()));
+        }
+        val.Clear();
+        status = proxyObject->GetProperty(ControllerServicePresetInterfaceName.c_str(), "Version", val);
+        if (ER_OK == status) {
+            uint32_t iVal = 0;
+            val.Get("u", &iVal);
+            QCC_DbgPrintf(("%s: ControllerServicePresetInterfaceVersion = %d", __FUNCTION__, iVal));
+        } else {
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServicePresetInterfaceName.c_str()));
+        }
+        val.Clear();
+        status = proxyObject->GetProperty(ControllerServiceSceneInterfaceName.c_str(), "Version", val);
+        if (ER_OK == status) {
+            uint32_t iVal = 0;
+            val.Get("u", &iVal);
+            QCC_DbgPrintf(("%s: ControllerServiceSceneInterfaceVersion = %d", __FUNCTION__, iVal));
+        } else {
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceSceneInterfaceName.c_str()));
+        }
+        val.Clear();
+        status = proxyObject->GetProperty(ControllerServiceMasterSceneInterfaceName.c_str(), "Version", val);
+        if (ER_OK == status) {
+            uint32_t iVal = 0;
+            val.Get("u", &iVal);
+            QCC_DbgPrintf(("%s: ControllerServiceMasterSceneInterfaceVersion = %d", __FUNCTION__, iVal));
+        } else {
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceMasterSceneInterfaceName.c_str()));
+        }
         callback.ConnectedToControllerServiceCB(deviceID, deviceName);
 /*
         ActiveServiceMap::reverse_iterator rit = activeServices.rbegin();
@@ -479,7 +537,6 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
             JoinNextAvailableController();
         }
  */
-        lock.Unlock();
     } else {
         isJoining = false;
         lock.Lock();
@@ -720,15 +777,15 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& m
             const MsgArg* inputArgs;
             message->GetArgs(numInputArgs, inputArgs);
 
-            char* id;
+            char* uniqueId;
             char* name;
             LSFResponseCode responseCode;
 
             inputArgs[0].Get("u", &responseCode);
-            inputArgs[1].Get("s", &id);
+            inputArgs[1].Get("s", &uniqueId);
             inputArgs[2].Get("s", &name);
 
-            LSFString lsfId = LSFString(id);
+            LSFString lsfId = LSFString(uniqueId);
             LSFString lsfName = LSFString(name);
 
             handler->Handle(responseCode, lsfId, lsfName);

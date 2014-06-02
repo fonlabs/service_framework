@@ -19,6 +19,8 @@
 #include <qcc/atomic.h>
 #include <qcc/Debug.h>
 #include <SceneManager.h>
+#include <OEMConfig.h>
+#include <FileParser.h>
 
 #include <algorithm>
 
@@ -27,8 +29,10 @@ using namespace ajn;
 
 #define QCC_MODULE "LAMP_GROUP_MANAGER"
 
-LampGroupManager::LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName, SceneManager* sceneMgrPtr) :
-    Manager(controllerSvc), lampManager(lampMgr), interfaceName(ifaceName), sceneManagerPtr(sceneMgrPtr)
+static const uint32_t controllerLampGroupInterfaceVersion = 1;
+
+LampGroupManager::LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& lampGroupFile) :
+    Manager(controllerSvc, lampGroupFile), lampManager(lampMgr), interfaceName(ifaceName), sceneManagerPtr(sceneMgrPtr)
 {
 }
 
@@ -153,10 +157,10 @@ void LampGroupManager::GetLampGroupName(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString lampGroupID(id);
+    LSFString lampGroupID(uniqueId);
 
     LSFString language = static_cast<LSFString>(args[1].v_string.str);
     if (0 != strcmp("en", language.c_str())) {
@@ -165,7 +169,7 @@ void LampGroupManager::GetLampGroupName(Message& message)
     } else {
         QStatus status = lampGroupsLock.Lock();
         if (ER_OK == status) {
-            LampGroupMap::iterator it = lampGroups.find(id);
+            LampGroupMap::iterator it = lampGroups.find(uniqueId);
             if (it != lampGroups.end()) {
                 name = it->second.first;
                 responseCode = LSF_OK;
@@ -193,10 +197,10 @@ void LampGroupManager::SetLampGroupName(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString lampGroupID(id);
+    LSFString lampGroupID(uniqueId);
 
     const char* name;
     args[1].Get("s", &name);
@@ -212,7 +216,7 @@ void LampGroupManager::SetLampGroupName(Message& message)
         } else {
             QStatus status = lampGroupsLock.Lock();
             if (ER_OK == status) {
-                LampGroupMap::iterator it = lampGroups.find(id);
+                LampGroupMap::iterator it = lampGroups.find(uniqueId);
                 if (it != lampGroups.end()) {
                     it->second.first = LSFString(name);
                     responseCode = LSF_OK;
@@ -232,6 +236,7 @@ void LampGroupManager::SetLampGroupName(Message& message)
     controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lampGroupID, language);
 
     if (nameChanged) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
         controllerService.SendSignal(interfaceName, "LampGroupsNameChanged", idList);
@@ -275,6 +280,7 @@ void LampGroupManager::CreateLampGroup(Message& message)
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
 
     if (created) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
         controllerService.SendSignal(interfaceName, "LampGroupsCreated", idList);
@@ -292,15 +298,15 @@ void LampGroupManager::UpdateLampGroup(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
-    LSFString lampGroupID(id);
+    LSFString lampGroupID(uniqueId);
     LampGroup lampGroup(args[1], args[2]);
 
     QStatus status = lampGroupsLock.Lock();
     if (ER_OK == status) {
-        LampGroupMap::iterator it = lampGroups.find(id);
+        LampGroupMap::iterator it = lampGroups.find(uniqueId);
         if (it != lampGroups.end()) {
             lampGroups[lampGroupID].second = lampGroup;
             responseCode = LSF_OK;
@@ -318,6 +324,7 @@ void LampGroupManager::UpdateLampGroup(Message& message)
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
 
     if (updated) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
         controllerService.SendSignal(interfaceName, "LampGroupsUpdated", idList);
@@ -365,6 +372,7 @@ void LampGroupManager::DeleteLampGroup(Message& message)
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
 
     if (deleted) {
+        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
         controllerService.SendSignal(interfaceName, "LampGroupsDeleted", idList);
@@ -383,12 +391,12 @@ void LampGroupManager::GetLampGroup(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    const char* id;
-    args[0].Get("s", &id);
+    const char* uniqueId;
+    args[0].Get("s", &uniqueId);
 
     QStatus status = lampGroupsLock.Lock();
     if (ER_OK == status) {
-        LampGroupMap::iterator it = lampGroups.find(id);
+        LampGroupMap::iterator it = lampGroups.find(uniqueId);
         if (it != lampGroups.end()) {
             it->second.second.Get(&outArgs[2], &outArgs[3]);
             responseCode = LSF_OK;
@@ -406,7 +414,7 @@ void LampGroupManager::GetLampGroup(Message& message)
     }
 
     outArgs[0].Set("u", responseCode);
-    outArgs[1].Set("s", id);
+    outArgs[1].Set("s", uniqueId);
 
     controllerService.SendMethodReply(message, outArgs, 4);
 }
@@ -639,8 +647,97 @@ LSFResponseCode LampGroupManager::GetAllGroupLamps(LSFString& lampGroupId, LSFSt
     return responseCode;
 }
 
-void LampGroupManager::AddLampGroup(const LSFString& id, const std::string& name, const LampGroup& group)
+void LampGroupManager::ReadSavedData()
 {
-    std::pair<LSFString, LampGroup> thePair(name, group);
-    lampGroups[id] = thePair;
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::ifstream stream(filePath.c_str());
+
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    while (!stream.eof()) {
+        std::string token = ParseString(stream);
+
+        if (token == "LampGroup") {
+            std::string id = ParseString(stream);
+            std::string name = ParseString(stream);
+            LampGroup group;
+
+            do {
+                token = ParseString(stream);
+
+                if (token == "Lamp") {
+                    std::string member = ParseString(stream);
+                    group.lamps.push_back(member);
+                } else if (token == "LampGroup") {
+                    std::string member = ParseString(stream);
+                    group.lampGroups.push_back(member);
+                } else {
+                    break;
+                }
+            } while (token != "EndLampGroup");
+
+            std::pair<LSFString, LampGroup> thePair(name, group);
+            lampGroups[id] = thePair;
+        }
+    }
+}
+
+void LampGroupManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        printf("Not updated\n");
+        return;
+    }
+
+    if (filePath.empty()) {
+        printf("No path\n");
+        return;
+    }
+
+    lampGroupsLock.Lock();
+    // we can't hold this lock for the entire time!
+    LampGroupMap mapCopy = lampGroups;
+    updated = false;
+    lampGroupsLock.Unlock();
+
+    std::ofstream stream(filePath.c_str(), std::ios_base::out);
+    if (!stream.is_open()) {
+        printf("File not found: %s\n", filePath.c_str());
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    // (LampGroup id "name" (Lamp id)* (SubGroup id)* EndLampGroup)*
+
+    for (LampGroupMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+        const LSFString& id = it->first;
+        const LSFString& name = it->second.first;
+        const LampGroup& group = it->second.second;
+
+        stream << "LampGroup " << id << " \"" << name << "\"";
+
+        for (LSFStringList::const_iterator lit = group.lamps.begin(); lit != group.lamps.end(); ++lit) {
+            stream << " Lamp " << *lit;
+        }
+        for (LSFStringList::const_iterator lit = group.lampGroups.begin(); lit != group.lampGroups.end(); ++lit) {
+            stream << " LampGroup " << *lit;
+        }
+
+        stream << " EndLampGroup" << std::endl;
+    }
+
+    stream.close();
+}
+
+uint32_t LampGroupManager::GetControllerLampGroupInterfaceVersion(void)
+{
+    QCC_DbgPrintf(("%s: controllerLampGroupInterfaceVersion=%d", __FUNCTION__, controllerLampGroupInterfaceVersion));
+    return controllerLampGroupInterfaceVersion;
 }

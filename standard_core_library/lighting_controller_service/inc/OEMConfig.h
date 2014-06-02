@@ -1,5 +1,5 @@
-#ifndef _MANAGER_H_
-#define _MANAGER_H_
+#ifndef _OEM_CONFIG_H_
+#define _OEM_CONFIG_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,47 +15,45 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-
-#include <alljoyn/Message.h>
-#include <alljoyn/InterfaceDescription.h>
-#include <alljoyn/MessageReceiver.h>
-
-#include <LSFResponseCodes.h>
 #include <LSFTypes.h>
-
-#include <string>
-#include <vector>
 
 namespace lsf {
 
-class ControllerService;
+/*
+ * Maximum number of supported LSF entities i.e. Lamp Groups, Scenes,
+ * Master Scenes, etc
+ */
+#define MAX_SUPPORTED_NUM_LSF_ENTITY 100
 
-class Manager : public ajn::MessageReceiver {
+/*
+ * Maximum number of supported Lamps
+ */
+#define MAX_SUPPORTED_LAMPS 100
 
-    static const size_t ID_STR_LEN = 8;
+/*
+ * Maximum number of outstanding requests
+ */
+#define MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
 
-  public:
+/*
+ * Returns the factory set value of the default lamp state. The
+ * PresetManager will use this value to initialize the default
+ * lamp state if it does not find a persisted value for the same
+ *
+ * @param  defaultState Container to pass back the Default Lamp State
+ * @return None
+ */
+void GetFactorySetDefaultLampState(LampState& defaultState);
 
-    Manager(ControllerService& controllerSvc, const std::string& filePath = "");
+/*
+ * Returns the time sync time stamp used to synchronize state
+ * changes in amonst multiple Lamp Services
+ *
+ * @param  timeStamp Container to pass back the time stamp
+ * @return None
+ */
+void GetSyncTimeStamp(uint64_t& timeStamp);
 
-    virtual void WriteFile() { }
-
-    void ScheduleFileUpdate();
-
-    //protected:
-
-    LSFString GenerateUniqueID(const LSFString& prefix) const;
-
-    ControllerService& controllerService;
-
-    bool updated;
-
-    const std::string filePath;
-
-    void MethodReplyPassthrough(ajn::Message& msg, void* context);
-};
-
-}
-
+} //lsf
 
 #endif

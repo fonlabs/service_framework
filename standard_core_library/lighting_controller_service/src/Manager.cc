@@ -25,7 +25,10 @@ using namespace lsf;
 
 #define QCC_MODULE "MANAGER"
 
-Manager::Manager(ControllerService& controllerSvc) : controllerService(controllerSvc)
+Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
+    : controllerService(controllerSvc),
+    updated(false),
+    filePath(filePath)
 {
 
 }
@@ -47,4 +50,10 @@ LSFString Manager::GenerateUniqueID(const LSFString& prefix) const
     // generate a GUID string with a given prefix
     qcc::String str = qcc::RandHexString(ID_STR_LEN);
     return prefix + str.c_str();
+}
+
+void Manager::ScheduleFileUpdate()
+{
+    updated = true;
+    controllerService.ScheduleFileWrite(this);
 }

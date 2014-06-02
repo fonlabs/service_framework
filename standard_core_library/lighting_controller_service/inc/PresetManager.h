@@ -32,7 +32,7 @@ class PresetManager : public Manager {
     friend class LampManager;
   public:
 
-    PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr);
+    PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& presetFile);
 
     LSFResponseCode Reset(void);
     LSFResponseCode ResetDefaultState(void);
@@ -50,11 +50,14 @@ class PresetManager : public Manager {
     void GetDefaultLampState(ajn::Message& msg);
     void SetDefaultLampState(ajn::Message& msg);
 
-    void AddPreset(const LSFString& presetId, const std::string& presetName, const LampState& state);
-
     LSFResponseCode GetAllPresets(PresetMap& presetMap);
 
     LSFResponseCode GetDefaultLampStateInternal(LampState& state);
+
+    void ReadSavedData();
+    virtual void WriteFile();
+
+    uint32_t GetControllerPresetInterfaceVersion(void);
 
   private:
 
