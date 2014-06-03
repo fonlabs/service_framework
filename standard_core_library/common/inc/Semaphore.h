@@ -1,5 +1,5 @@
-#ifndef _CONDITION_H_
-#define _CONDITION_H_
+#ifndef _SEMAPHORE_H_
+#define _SEMAPHORE_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -17,28 +17,26 @@
  ******************************************************************************/
 
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdint.h>
 #include <Mutex.h>
 
 namespace lsf {
 
-class Condition {
+class Semaphore {
   public:
 
-    Condition();
+    Semaphore();
 
-    ~Condition();
+    ~Semaphore();
 
     void Wait(void);
 
-    void Signal(void);
-
-    void Broadcast(void);
+    void Post(void);
 
   private:
 
-    pthread_mutex_t lock;
-    pthread_cond_t condition;
+    sem_t mutex;
 };
 
 

@@ -118,10 +118,12 @@ ControllerService::ControllerService(
 
 void ControllerService::Initialize()
 {
+#if 0
     lampGroupManager.ReadSavedData();
     presetManager.ReadSavedData();
     sceneManager.ReadSavedData();
     masterSceneManager.ReadSavedData();
+#endif
 
     AddMethodHandler("LightingResetControllerService", this, &ControllerService::LightingResetControllerService);
     AddMethodHandler("GetControllerServiceVersion", this, &ControllerService::GetControllerServiceVersion);

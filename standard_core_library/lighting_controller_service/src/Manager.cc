@@ -54,6 +54,8 @@ LSFString Manager::GenerateUniqueID(const LSFString& prefix) const
 
 void Manager::ScheduleFileUpdate()
 {
+#if 0
     updated = true;
     controllerService.ScheduleFileWrite(this);
+#endif
 }

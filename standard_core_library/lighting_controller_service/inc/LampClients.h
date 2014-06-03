@@ -24,7 +24,7 @@
 #include <Mutex.h>
 #include <Manager.h>
 #include <Thread.h>
-#include <Condition.h>
+#include <Semaphore.h>
 
 #include <string>
 #include <map>
@@ -260,14 +260,13 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     typedef std::list<ajn::ProxyBusObject> ObjectMap;
 
     struct ResponseCounter {
-        ResponseCounter() { }
-        ResponseCounter(uint32_t numLamps) :
-            total(numLamps)
+        ResponseCounter() :
+            numWaiting(0), successCount(0), failCount(0), notFoundCount(0), total(0) { }
+
+        void AddLamps(uint32_t numLamps)
         {
-            numWaiting = numLamps;
-            successCount = 0;
-            failCount = 0;
-            notFoundCount = 0;
+            total += numLamps;
+            numWaiting += numLamps;
         }
 
         volatile int32_t numWaiting;
@@ -280,29 +279,44 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         std::list<ajn::MsgArg> customReplyArgs;
     };
 
-    struct QueuedMethodCall {
-        QueuedMethodCall(const ajn::Message& msg, LSFString lampId, std::string intf, std::string methodName, ajn::MessageReceiver::ReplyHandler replyHandler) :
-            inMsg(msg), interface(intf), method(methodName), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(1) {
+    struct QueuedMethodCallElement {
+        QueuedMethodCallElement() {
             lamps.clear();
-            lamps.push_back(lampId);
             args.clear();
         }
 
-        QueuedMethodCall(const ajn::Message& msg, LSFStringList lampList, std::string intf, std::string methodName, ajn::MessageReceiver::ReplyHandler replyHandler) :
-            inMsg(msg), interface(intf), method(methodName), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(lampList.size()) {
+        QueuedMethodCallElement(LSFStringList lampList, std::string intf, std::string methodName) :
+            lamps(lampList), interface(intf), method(methodName) { }
+
+        QueuedMethodCallElement(LSFString lamp, std::string intf, std::string methodName) :
+            interface(intf), method(methodName) {
             lamps.clear();
-            lamps = lampList;
-            args.clear();
+            lamps.push_back(lamp);
         }
 
-        ajn::Message inMsg;
         LSFStringList lamps;
         std::string interface;
         std::string method;
         std::vector<ajn::MsgArg> args;
+    };
+
+    typedef std::list<QueuedMethodCallElement> QueuedMethodCallElementList;
+
+    struct QueuedMethodCall {
+        QueuedMethodCall(const ajn::Message& msg, ajn::MessageReceiver::ReplyHandler replyHandler) :
+            inMsg(msg), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter() {
+        }
+
+        void AddMethodCallElement(QueuedMethodCallElement& element) {
+            methodCallElements.push_back(element);
+            responseCounter.AddLamps(element.lamps.size());
+        }
+
+        ajn::Message inMsg;
         ajn::MessageReceiver::ReplyHandler replyFunc;
         LSFString responseID;
         ResponseCounter responseCounter;
+        QueuedMethodCallElementList methodCallElements;
     };
 
     void SendMethodReply(LSFResponseCode responseCode, ajn::Message msg, std::list<ajn::MsgArg>& stdArgs, std::list<ajn::MsgArg>& custArgs);
@@ -359,7 +373,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     std::list<ajn::Message> getAllLampIDsRequests;
     Mutex getAllLampIDsLock;
 
-    Condition wakeUp;
+    Semaphore wakeUp;
 };
 
 }

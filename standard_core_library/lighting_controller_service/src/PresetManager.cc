@@ -95,7 +95,7 @@ LSFResponseCode PresetManager::Reset(void)
 
 LSFResponseCode PresetManager::ResetDefaultState(void)
 {
-    LampState state = { false, 0x100, 0x100, 0x100, 0x100 };
+    LampState state(false, 0x100, 0x100, 0x100, 0x100);
     return SetDefaultLampStateInternal(state);
 }
 

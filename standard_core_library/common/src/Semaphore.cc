@@ -14,50 +14,35 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Condition.h>
+#include <Semaphore.h>
 #include <qcc/Debug.h>
 
 #include <time.h>
 
 using namespace lsf;
 
-#define QCC_MODULE "CONDITION"
+#define QCC_MODULE "SEMAPHORE"
 
-Condition::Condition()
+Semaphore::Semaphore()
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    pthread_mutex_init(&lock, NULL);
-    pthread_cond_init(&condition, NULL);
+    sem_init(&mutex, 1, 1);
 }
 
-
-Condition::~Condition()
+Semaphore::~Semaphore()
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    pthread_cond_destroy(&condition);
-    pthread_mutex_destroy(&lock);
+    sem_destroy(&mutex);
 }
 
-void Condition::Wait(void)
+void Semaphore::Wait(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    pthread_mutex_lock(&lock);
-    pthread_cond_wait(&condition, &lock);
-    pthread_mutex_unlock(&lock);
+    sem_wait(&mutex);
 }
 
-void Condition::Signal(void)
+void Semaphore::Post(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    pthread_mutex_lock(&lock);
-    pthread_cond_signal(&condition);
-    pthread_mutex_unlock(&lock);
-}
-
-void Condition::Broadcast(void)
-{
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    pthread_mutex_lock(&lock);
-    pthread_cond_broadcast(&condition);
-    pthread_mutex_unlock(&lock);
+    sem_post(&mutex);
 }

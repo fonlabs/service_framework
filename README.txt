@@ -11,7 +11,7 @@ core/
 
 	service_framework/   (https://git.allseenalliance.org/cgit/lighting/service_framework.git)
 
-	ajtcl/   (https://git.allseenalliance.org/cgit/core/ajtcl.git Commit ID:e797f8df27d81c8201a432af6b455452ab2b2008)
+	ajtcl/   (https://git.allseenalliance.org/cgit/core/ajtcl.git Commit ID:cad2cb5f7e066485bbe828e25be7063df2587ae2)
 
 	alljoyn/ (https://git.allseenalliance.org/cgit/core/alljoyn.git Commit ID:96088edcd68faef2350500d773e72c7c8aa8f582)
 
@@ -38,6 +38,18 @@ From under the directory core/service_framework/build/linux/x86/debug/dist/cpp/b
 Now on another terminal, from under the directory core/service_framework/build/linux/thin_core_library/lamp_service/bin, run the lamp service using the following command:
 
 	./lamp_service
+	
+You could also use the shell script LaunchLampServices.sh that can be found in the core/service_framework/build/linux/thin_core_library/lamp_service/bin directory to launch from 1 up to a 100 Lamp Services on Ubuntu. 
+Run the following command from under the core/service_framework/build/linux/thin_core_library/lamp_service/bin directory
+
+./LaunchLampServices.sh
+
+The script will then prompt you to enter the number of Lamp Services to launch. Enter the number and then press enter.
+
+Please note that the script launches the lamp services as background processes and also creates a number of directories. In order to ensure that the 
+script cleans those up properly on exit, use Ctrl+C to exit the script. The script will then prompt you to press enter. Once you do so, all the 
+directories and background processes are cleaned up. If this process is not followed to exit the script, you would need to explicitly clean up all 
+the lamp services and directories.
 
 In a third terminal, from under the directory core/service_framework/build/linux/standard_core_library/lighting_controller_service/bin, run the Lighting Controller Service:
 

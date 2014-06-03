@@ -30,6 +30,8 @@ namespace lsf {
  */
 class LSFPropertyStore : public ajn::services::AboutPropertyStoreImpl {
 
+    friend void PopulateDefaultProperties(LSFPropertyStore& propStore);
+
   public:
     /**
      * PropertyStoreImpl - constructor

@@ -54,6 +54,20 @@ void GetFactorySetDefaultLampState(LampState& defaultState);
  */
 void GetSyncTimeStamp(uint64_t& timeStamp);
 
+/**
+ * LSFPropertyStore predeclaration
+ */
+class LSFPropertyStore;
+
+/**
+ * If no Factory Configuration ini file is found,
+ * this function will be called to populate
+ * the default values.
+ *
+ * @param propStore The property store
+ */
+void PopulateDefaultProperties(LSFPropertyStore& propStore);
+
 } //lsf
 
 #endif

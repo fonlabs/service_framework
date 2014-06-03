@@ -15,6 +15,7 @@
  ******************************************************************************/
 #include <LSFPropertyStore.h>
 #include <PropertyParser.h>
+#include <OEMConfig.h>
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
@@ -52,8 +53,9 @@ void LSFPropertyStore::ReadFactoryConfiguration()
 {
     StringMap data;
     if (!PropertyParser::ParseFile(factoryConfigFileName, data)) {
-        printf("Required factory config not found: %s; exiting\n", factoryConfigFileName.c_str());
-        exit(-1);
+        // ini not found: fall back to hard-coded defaults
+        PopulateDefaultProperties(*this);
+        return;
     }
 
 

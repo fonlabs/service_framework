@@ -14,6 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <LSFPropertyStore.h>
 #include <OEMConfig.h>
 #include <qcc/Debug.h>
 
@@ -36,6 +37,32 @@ void GetSyncTimeStamp(uint64_t& timeStamp)
      * with their Time Sync module*/
     QCC_DbgPrintf(("%s", __FUNCTION__));
     timeStamp = 0x4444444444444444;
+}
+
+// NOTE: this function will only be called if no Factory Configuration ini file is found.
+// This file is specified on the command line and defaults to OEMConfig.ini in the current
+// working directory.
+void PopulateDefaultProperties(LSFPropertyStore& propStore)
+{
+    std::vector<qcc::String> languages;
+    languages.push_back("en");
+    languages.push_back("de-AT");
+    propStore.setSupportedLangs(languages);
+
+    propStore.setDefaultLang("en");
+    propStore.setAppName("LampControllerService");
+
+    propStore.setProperty(ajn::services::DEVICE_NAME, "English Name", "en", true, true, true);
+    propStore.setProperty(ajn::services::DEVICE_NAME, "German Name", "de-AT", true, true, true);
+
+    propStore.setProperty(ajn::services::SUPPORT_URL, "www.company_a.com/en", "en", true, false, true);
+    propStore.setProperty(ajn::services::SUPPORT_URL, "www.company_a.com/de-AT", "de-AT", true, false, true);
+
+    propStore.setProperty(ajn::services::MANUFACTURER, "Company A (EN)", "en", true, false, true);
+    propStore.setProperty(ajn::services::MANUFACTURER, "Firma A (DE-AT)", "de-AT", true, false, true);
+
+    propStore.setProperty(ajn::services::DESCRIPTION, "Lamp", "en", true, false, false);
+    propStore.setProperty(ajn::services::DESCRIPTION, "Lampe", "de-AT", true, false, false);
 }
 
 }
