@@ -1,5 +1,3 @@
-#ifndef _SEMAPHORE_H_
-#define _SEMAPHORE_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -16,30 +14,35 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <pthread.h>
-#include <semaphore.h>
-#include <stdint.h>
-#include <Mutex.h>
+#include <LSFSemaphore.h>
+#include <qcc/Debug.h>
 
-namespace lsf {
+#include <time.h>
 
-class Semaphore {
-  public:
+using namespace lsf;
 
-    Semaphore();
+#define QCC_MODULE "LSF_SEMAPHORE"
 
-    ~Semaphore();
-
-    void Wait(void);
-
-    void Post(void);
-
-  private:
-
-    sem_t mutex;
-};
-
-
+LSFSemaphore::LSFSemaphore()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    sem_init(&mutex, 1, 1);
 }
 
-#endif
+LSFSemaphore::~LSFSemaphore()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    sem_destroy(&mutex);
+}
+
+void LSFSemaphore::Wait(void)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    sem_wait(&mutex);
+}
+
+void LSFSemaphore::Post(void)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    sem_post(&mutex);
+}

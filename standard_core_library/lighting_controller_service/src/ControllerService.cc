@@ -392,6 +392,12 @@ QStatus ControllerService::Start(void)
         return status;
     }
 
+    status = bus.RegisterBusObject(configService);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to register Config Service on the AllJoyn Bus", __FUNCTION__));
+        return status;
+    }
+
     /*
      * Register the About Service on the AllJoyn bus
      */

@@ -24,7 +24,7 @@
 #include <Mutex.h>
 #include <Manager.h>
 #include <Thread.h>
-#include <Semaphore.h>
+#include <LSFSemaphore.h>
 
 #include <string>
 #include <map>
@@ -33,6 +33,44 @@
 #define INITIAL_PASSCODE "000000"
 
 namespace lsf {
+
+typedef struct _TransitionStateFieldParams {
+    _TransitionStateFieldParams(LSFStringList& lampList, uint64_t& timeStamp, const char* fieldName, ajn::MsgArg& fieldValue, uint32_t& transPeriod) :
+        lamps(lampList), startTimestamp(timeStamp), field(fieldName), value(fieldValue), period(transPeriod) { }
+
+    LSFStringList lamps;
+    uint64_t startTimestamp;
+    const char* field;
+    ajn::MsgArg value;
+    uint32_t period;
+} TransitionStateFieldParams;
+
+typedef struct _TransitionStateParams {
+    _TransitionStateParams(LSFStringList& lampList, uint64_t& timeStamp, ajn::MsgArg& lampState, uint32_t& transPeriod) :
+        lamps(lampList), startTimestamp(timeStamp), state(lampState), period(transPeriod) { }
+
+    LSFStringList lamps;
+    uint64_t startTimestamp;
+    ajn::MsgArg state;
+    uint32_t period;
+} TransitionStateParams;
+
+typedef struct _PulseStateParams {
+    _PulseStateParams(LSFStringList& lampList, ajn::MsgArg& oldLampState, ajn::MsgArg& newLampState, uint32_t& pulsePeriod, uint32_t& pulseDuration, uint32_t& numPul, uint64_t& timeStamp) :
+        lamps(lampList), oldState(oldLampState), newState(newLampState), period(pulsePeriod), duration(pulseDuration), numPulses(numPul), startTimestamp(timeStamp) { }
+
+    LSFStringList lamps;
+    ajn::MsgArg oldState;
+    ajn::MsgArg newState;
+    uint32_t period;
+    uint32_t duration;
+    uint32_t numPulses;
+    uint64_t startTimestamp;
+} PulseStateParams;
+
+typedef std::list<TransitionStateFieldParams> TransitionStateFieldParamsList;
+typedef std::list<TransitionStateParams> TransitionStateParamsList;
+typedef std::list<PulseStateParams> PulseStateParamsList;
 
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener, public ajn::ProxyBusObject::Listener, public lsf::Thread {
   public:
@@ -181,41 +219,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     void GetLampParametersField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
 
-    /**
-     * Apply a LampState to one or more lamps
-     *
-     * @param inMsg     The original message that led to this call
-     * @param lamps     A list of lamps to apply the state to
-     * @param timestamp The transition timestamp
-     * @param arg       A MsgArg with the LampState encoded
-     * @param period    The transition period
-     *
-     * @return      LSF_OK if all messages were successfully sent.
-     *
-     * The method LampClientsCallback::GetLampDetailsReplyCB will be called when all lamps have responded
-     */
-    void TransitionLampState(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
-                             const ajn::MsgArg& state, uint32_t period, bool groupOperation);
-
-
-    void PulseLampWithState(const ajn::Message& inMsg, const LSFStringList& lamps, const ajn::MsgArg& oldState,
-                            const ajn::MsgArg& newState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimestamp, bool groupOperation);
-    /**
-     * Apply a Lamp State Field to one or more lamps
-     *
-     * @param inMsg     The original message that led to this call
-     * @param lamps     A list of lamps to apply the state to
-     * @param timestamp The transition timestamp
-     * @param field     The State field to change
-     * @param value     The state field's new value
-     * @param period    The transition period
-     *
-     * @return      LSF_OK if all messages were successfully sent.
-     *
-     * The method LampClientsCallback::GetLampDetailsReplyCB will be called when all lamps have responded
-     */
-    void TransitionLampStateField(const ajn::Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
-                                  const char* field, const ajn::MsgArg& value, uint32_t period, bool groupOperation);
+    void ChangeLampState(const ajn::Message& inMsg, bool groupOperation, bool sceneOperation, TransitionStateParamsList& transitionStateParams,
+                         TransitionStateFieldParamsList& transitionStateFieldparams, PulseStateParamsList& pulseParams);
 
     /**
      * Get the lamp faults
@@ -373,7 +378,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     std::list<ajn::Message> getAllLampIDsRequests;
     Mutex getAllLampIDsLock;
 
-    Semaphore wakeUp;
+    LSFSemaphore wakeUp;
 };
 
 }

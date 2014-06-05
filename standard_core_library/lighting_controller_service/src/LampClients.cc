@@ -486,95 +486,90 @@ void LampClients::HandleGetReply(ajn::Message& message, void* context)
     }
 }
 
-void LampClients::TransitionLampStateField(
-    const ajn::Message& inMsg,
-    const LSFStringList& lamps,
-    uint64_t startTimestamp,
-    const char* field,
-    const ajn::MsgArg& value,
-    uint32_t period,
-    bool groupOperation)
+void LampClients::ChangeLampState(const ajn::Message& inMsg, bool groupOperation, bool sceneOperation, TransitionStateParamsList& transitionStateParams,
+                                  TransitionStateFieldParamsList& transitionStateFieldparams, PulseStateParamsList& pulseParams)
 {
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
-    QueuedMethodCallElement element = QueuedMethodCallElement(lamps, "org.allseen.LSF.LampState", "TransitionLampState");
 
-    MsgArg* arrayVals = new MsgArg[1];
-    arrayVals[0].Set("{sv}", strdup(field), new MsgArg(value));
-    arrayVals[0].SetOwnershipFlags(MsgArg::OwnsArgs | MsgArg::OwnsData);
-
-    element.args.push_back(MsgArg("t", startTimestamp));
-    element.args.push_back(MsgArg("a{sv}", 1, arrayVals));
-    element.args.push_back(MsgArg("u", period));
-    queuedCall->AddMethodCallElement(element);
-
-    if (groupOperation) {
+    if (groupOperation || sceneOperation) {
         size_t numArgs;
         const MsgArg* args;
         Message tempMsg = inMsg;
         tempMsg->GetArgs(numArgs, args);
         queuedCall->responseCounter.standardReplyArgs.push_back(args[0]);
-    } else {
-        queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
-    }
-    queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", field));
-
-    QueueLampMethod(queuedCall);
-}
-
-void LampClients::PulseLampWithState(
-    const ajn::Message& inMsg,
-    const LSFStringList& lamps,
-    const ajn::MsgArg& oldState,
-    const ajn::MsgArg& newState,
-    uint32_t period,
-    uint32_t duration,
-    uint32_t numPulses,
-    uint64_t startTimestamp,
-    bool groupOperation)
-{
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
-    QueuedMethodCallElement element = QueuedMethodCallElement(lamps, "org.allseen.LSF.LampState", "ApplyPulseEffect");
-
-    element.args.push_back(oldState);
-    element.args.push_back(newState);
-    element.args.push_back(MsgArg("u", period));
-    element.args.push_back(MsgArg("u", duration));
-    element.args.push_back(MsgArg("u", numPulses));
-    element.args.push_back(MsgArg("t", startTimestamp));
-    queuedCall->AddMethodCallElement(element);
-
-    if (groupOperation) {
-        size_t numArgs;
-        const MsgArg* args;
-        Message tempMsg = inMsg;
-        tempMsg->GetArgs(numArgs, args);
-        queuedCall->responseCounter.standardReplyArgs.push_back(args[0]);
-    } else {
-        queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
     }
 
-    QueueLampMethod(queuedCall);
-}
+    while (transitionStateFieldparams.size()) {
+        bool firstIteration = true;
+        TransitionStateFieldParams transitionStateFieldParam = transitionStateFieldparams.front();
 
-void LampClients::TransitionLampState(const Message& inMsg, const LSFStringList& lamps, uint64_t startTimestamp,
-                                      const MsgArg& state, uint32_t period, bool groupOperation)
-{
-    QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
-    QueuedMethodCallElement element = QueuedMethodCallElement(lamps, "org.allseen.LSF.LampState", "TransitionLampState");
+        if (firstIteration) {
+            if (!groupOperation && !sceneOperation) {
+                queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", transitionStateFieldParam.lamps.front().c_str()));
+            }
 
-    element.args.push_back(MsgArg("t", startTimestamp));
-    element.args.push_back(state);
-    element.args.push_back(MsgArg("u", period));
-    queuedCall->AddMethodCallElement(element);
+            if (!sceneOperation) {
+                queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", transitionStateFieldParam.field));
+            }
+            firstIteration = false;
+        }
 
-    if (groupOperation) {
-        size_t numArgs;
-        const MsgArg* args;
-        Message tempMsg = inMsg;
-        tempMsg->GetArgs(numArgs, args);
-        queuedCall->responseCounter.standardReplyArgs.push_back(args[0]);
-    } else {
-        queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", lamps.front().c_str()));
+        QueuedMethodCallElement element = QueuedMethodCallElement(transitionStateFieldParam.lamps, "org.allseen.LSF.LampState", "TransitionLampState");
+        MsgArg* arrayVals = new MsgArg[1];
+        arrayVals[0].Set("{sv}", strdup(transitionStateFieldParam.field), new MsgArg(transitionStateFieldParam.value));
+        arrayVals[0].SetOwnershipFlags(MsgArg::OwnsArgs | MsgArg::OwnsData);
+
+        element.args.push_back(MsgArg("t", transitionStateFieldParam.startTimestamp));
+        element.args.push_back(MsgArg("a{sv}", 1, arrayVals));
+        element.args.push_back(MsgArg("u", transitionStateFieldParam.period));
+        queuedCall->AddMethodCallElement(element);
+
+        transitionStateFieldparams.pop_front();
+    }
+
+    while (transitionStateParams.size()) {
+        bool firstIteration = true;
+        TransitionStateParams transitionStateParam = transitionStateParams.front();
+
+        if (firstIteration) {
+            if (!groupOperation && !sceneOperation) {
+                queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", transitionStateParam.lamps.front().c_str()));
+            }
+            firstIteration = false;
+        }
+
+        QueuedMethodCallElement element = QueuedMethodCallElement(transitionStateParam.lamps, "org.allseen.LSF.LampState", "TransitionLampState");
+
+        element.args.push_back(MsgArg("t", transitionStateParam.startTimestamp));
+        element.args.push_back(transitionStateParam.state);
+        element.args.push_back(MsgArg("u", transitionStateParam.period));
+        queuedCall->AddMethodCallElement(element);
+
+        transitionStateParams.pop_front();
+    }
+
+    while (pulseParams.size()) {
+        bool firstIteration = true;
+        PulseStateParams pulseParam = pulseParams.front();
+
+        if (firstIteration) {
+            if (!groupOperation && !sceneOperation) {
+                queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", pulseParam.lamps.front().c_str()));
+            }
+            firstIteration = false;
+        }
+
+        QueuedMethodCallElement element = QueuedMethodCallElement(pulseParam.lamps, "org.allseen.LSF.LampState", "ApplyPulseEffect");
+
+        element.args.push_back(pulseParam.oldState);
+        element.args.push_back(pulseParam.newState);
+        element.args.push_back(MsgArg("u", pulseParam.period));
+        element.args.push_back(MsgArg("u", pulseParam.duration));
+        element.args.push_back(MsgArg("u", pulseParam.numPulses));
+        element.args.push_back(MsgArg("t", pulseParam.startTimestamp));
+        queuedCall->AddMethodCallElement(element);
+
+        pulseParams.pop_front();
     }
 
     QueueLampMethod(queuedCall);

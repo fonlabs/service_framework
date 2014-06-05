@@ -30,7 +30,7 @@ namespace lsf {
 class MasterSceneManager;
 
 class SceneManager : public Manager {
-
+    friend class MasterSceneManager;
   public:
     SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName, MasterSceneManager* masterSceneMgr, const std::string& sceneFile);
 
@@ -38,14 +38,14 @@ class SceneManager : public Manager {
     LSFResponseCode IsDependentOnPreset(LSFString& presetID);
     LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
 
-    void GetAllSceneIDs(ajn::Message& msg);
-    void GetSceneName(ajn::Message& msg);
-    void SetSceneName(ajn::Message& msg);
-    void DeleteScene(ajn::Message& msg);
-    void CreateScene(ajn::Message& msg);
-    void UpdateScene(ajn::Message& msg);
-    void GetScene(ajn::Message& msg);
-    void ApplyScene(ajn::Message& msg);
+    void GetAllSceneIDs(ajn::Message& message);
+    void GetSceneName(ajn::Message& message);
+    void SetSceneName(ajn::Message& message);
+    void DeleteScene(ajn::Message& message);
+    void CreateScene(ajn::Message& message);
+    void UpdateScene(ajn::Message& message);
+    void GetScene(ajn::Message& message);
+    void ApplyScene(ajn::Message& message);
 
     LSFResponseCode GetAllScenes(SceneMap& sceneMap);
 
@@ -55,6 +55,8 @@ class SceneManager : public Manager {
     uint32_t GetControllerSceneInterfaceVersion(void);
 
   private:
+
+    LSFResponseCode ApplySceneInternal(ajn::Message message, LSFStringList& sceneList);
 
     SceneMap scenes;
     Mutex scenesLock;

@@ -76,8 +76,8 @@ QStatus WorkerQueue<T>::AddItem(T* item)
     pthread_mutex_lock(&lock);
 
     queue.push_back(item);
-    pthread_cond_signal(&condition);
     pthread_mutex_unlock(&lock);
+    pthread_cond_signal(&condition);
 
     return ER_OK;
 }

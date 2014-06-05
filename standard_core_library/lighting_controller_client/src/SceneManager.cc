@@ -112,6 +112,19 @@ ControllerClientStatus SceneManager::GetScene(const LSFString& sceneID)
                1);
 }
 
+ControllerClientStatus SceneManager::ApplyScene(const LSFString& sceneID)
+{
+    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
+    MsgArg arg;
+    arg.Set("s", sceneID.c_str());
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               "ApplyScene",
+               &arg,
+               1);
+}
+
 void SceneManager::GetSceneReply(Message& message)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));

@@ -432,7 +432,10 @@ void LampGroupManager::ResetLampGroupState(Message& message)
     LSFStringList lamps;
     lamps.clear();
 
-    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    LSFStringList lampGroupList;
+    lampGroupList.push_back(lampGroupId);
+
+    responseCode = GetAllGroupLamps(lampGroupList, lamps);
     QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
 
     if (lamps.empty()) {
@@ -457,14 +460,21 @@ void LampGroupManager::TransitionLampGroupState(Message& message)
     LSFStringList lamps;
     lamps.clear();
 
-    responseCode = GetAllGroupLamps(lampGroupId, lamps);
-    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+    LSFStringList lampGroupList;
+    lampGroupList.push_back(lampGroupId);
 
-    if (lamps.empty()) {
+    TransitionLampsLampGroupsToStateList transitionToStateComponent;
+    TransitionLampsLampGroupsToPresetList transitionToPresetComponent;
+    PulseLampsLampGroupsWithStateList pulseWithStateComponent;
+    PulseLampsLampGroupsWithPresetList pulseWithPresetComponent;
+
+    TransitionLampsLampGroupsToState component(lamps, lampGroupList, state, transitionPeriod);
+    transitionToStateComponent.push_back(component);
+
+    responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+
+    if (LSF_ERR_NOT_FOUND == responseCode) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
-    } else {
-        LampsAndState transitionToStateComponent(lamps, state, transitionPeriod);
-        lampManager.ChangeLampStateAndField(message, &transitionToStateComponent, NULL, NULL, NULL, NULL, true);
     }
 }
 
@@ -488,14 +498,24 @@ void LampGroupManager::PulseLampGroupWithState(ajn::Message& message)
     LSFStringList lamps;
     lamps.clear();
 
-    responseCode = GetAllGroupLamps(lampGroupID, lamps);
+    LSFStringList lampGroupList;
+    lampGroupList.push_back(lampGroupID);
+
+    responseCode = GetAllGroupLamps(lampGroupList, lamps);
     QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
 
-    if (lamps.empty()) {
+    TransitionLampsLampGroupsToStateList transitionToStateComponent;
+    TransitionLampsLampGroupsToPresetList transitionToPresetComponent;
+    PulseLampsLampGroupsWithStateList pulseWithStateComponent;
+    PulseLampsLampGroupsWithPresetList pulseWithPresetComponent;
+
+    PulseLampsLampGroupsWithState component(lamps, lampGroupList, fromLampGroupState, toLampGroupState, period, duration, numPulses);
+    pulseWithStateComponent.push_back(component);
+
+    responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+
+    if (LSF_ERR_NOT_FOUND == responseCode) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
-    } else {
-        PulseLampsWithState pulseWithStateComponent(lamps, fromLampGroupState, toLampGroupState, period, duration, numPulses);
-        lampManager.ChangeLampStateAndField(message, NULL, NULL, NULL, &pulseWithStateComponent, NULL, true);
     }
 }
 
@@ -518,14 +538,21 @@ void LampGroupManager::PulseLampGroupWithPreset(ajn::Message& message)
     LSFStringList lamps;
     lamps.clear();
 
-    responseCode = GetAllGroupLamps(lampGroupID, lamps);
-    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+    LSFStringList lampGroupList;
+    lampGroupList.push_back(lampGroupID);
 
-    if (lamps.empty()) {
+    TransitionLampsLampGroupsToStateList transitionToStateComponent;
+    TransitionLampsLampGroupsToPresetList transitionToPresetComponent;
+    PulseLampsLampGroupsWithStateList pulseWithStateComponent;
+    PulseLampsLampGroupsWithPresetList pulseWithPresetComponent;
+
+    PulseLampsLampGroupsWithPreset component(lamps, lampGroupList, fromPresetID, toPresetID, period, duration, numPulses);
+    pulseWithPresetComponent.push_back(component);
+
+    responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+
+    if (LSF_ERR_NOT_FOUND == responseCode) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
-    } else {
-        PulseLampsWithPreset pulseWithPresetComponent(lamps, fromPresetID, toPresetID, period, duration, numPulses);
-        lampManager.ChangeLampStateAndField(message, NULL, NULL, NULL, NULL, &pulseWithPresetComponent, true);
     }
 }
 
@@ -544,14 +571,21 @@ void LampGroupManager::TransitionLampGroupStateToPreset(Message& message)
     LSFStringList lamps;
     lamps.clear();
 
-    responseCode = GetAllGroupLamps(lampGroupId, lamps);
-    QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+    LSFStringList lampGroupList;
+    lampGroupList.push_back(lampGroupId);
 
-    if (lamps.empty()) {
+    TransitionLampsLampGroupsToStateList transitionToStateComponent;
+    TransitionLampsLampGroupsToPresetList transitionToPresetComponent;
+    PulseLampsLampGroupsWithStateList pulseWithStateComponent;
+    PulseLampsLampGroupsWithPresetList pulseWithPresetComponent;
+
+    TransitionLampsLampGroupsToPreset component(lamps, lampGroupList, preset, transitionPeriod);
+    transitionToPresetComponent.push_back(component);
+
+    responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+
+    if (LSF_ERR_NOT_FOUND == responseCode) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
-    } else {
-        LampsAndPreset transitionToPresetComponent(lamps, preset, transitionPeriod);
-        lampManager.ChangeLampStateAndField(message, NULL, &transitionToPresetComponent, NULL, NULL, NULL, true);
     }
 }
 
@@ -572,15 +606,109 @@ void LampGroupManager::TransitionLampGroupStateField(Message& message)
     LSFStringList lamps;
     lamps.clear();
 
-    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    LSFStringList lampGroupList;
+    lampGroupList.push_back(lampGroupId);
+
+    responseCode = GetAllGroupLamps(lampGroupList, lamps);
     QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
+
+    LampsAndStateList transitionToState;
+    LampsAndPresetList transitionToPreset;
+    LampsAndStateFieldList stateField;
+    PulseLampsWithStateList pulseWithState;
+    PulseLampsWithPresetList pulseWithPreset;
 
     if (lamps.empty()) {
         controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lampGroupId, fieldName);
     } else {
         LampsAndStateField stateFieldComponent(lamps, fieldName, *varArg, transitionPeriod);
-        lampManager.ChangeLampStateAndField(message, NULL, NULL, &stateFieldComponent, NULL, NULL, true);
+        stateField.push_back(stateFieldComponent);
+        lampManager.ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset, true);
     }
+}
+
+LSFResponseCode LampGroupManager::ChangeLampGroupStateAndField(Message& message,
+                                                               TransitionLampsLampGroupsToStateList& transitionToStateComponent,
+                                                               TransitionLampsLampGroupsToPresetList& transitionToPresetComponent,
+                                                               PulseLampsLampGroupsWithStateList& pulseWithStateComponent,
+                                                               PulseLampsLampGroupsWithPresetList& pulseWithPresetComponent,
+                                                               bool groupOperation)
+{
+    LSFResponseCode responseCode = LSF_OK;
+
+    LampsAndStateList transitionToStateList;
+    LampsAndPresetList transitionToPresetList;
+    PulseLampsWithStateList pulseWithStateList;
+    PulseLampsWithPresetList pulseWithPresetList;
+    LampsAndStateFieldList stateFieldList;
+
+    uint8_t numLamps = 0;
+
+    while (transitionToStateComponent.size()) {
+        TransitionLampsLampGroupsToState transitionToStateComp = transitionToStateComponent.front();
+        LampsAndState lampsAndState(transitionToStateComp.lamps, transitionToStateComp.state, transitionToStateComp.transitionPeriod);
+
+        GetAllGroupLamps(transitionToStateComp.lampGroups, lampsAndState.lamps);
+
+        if (lampsAndState.lamps.size()) {
+            transitionToStateList.push_back(lampsAndState);
+            numLamps += lampsAndState.lamps.size();
+        }
+
+        transitionToStateComponent.pop_front();
+    }
+
+    while (transitionToPresetComponent.size()) {
+        TransitionLampsLampGroupsToPreset transitionToPresetComp = transitionToPresetComponent.front();
+        LampsAndPreset lampsAndPreset(transitionToPresetComp.lamps, transitionToPresetComp.presetID, transitionToPresetComp.transitionPeriod);
+
+        GetAllGroupLamps(transitionToPresetComp.lampGroups, lampsAndPreset.lamps);
+
+        if (lampsAndPreset.lamps.size()) {
+            transitionToPresetList.push_back(lampsAndPreset);
+            numLamps += lampsAndPreset.lamps.size();
+        }
+
+        transitionToPresetComponent.pop_front();
+    }
+
+    while (pulseWithStateComponent.size()) {
+        PulseLampsLampGroupsWithState pulseWithStateComp = pulseWithStateComponent.front();
+        PulseLampsWithState pulseWithState(pulseWithStateComp.lamps, pulseWithStateComp.fromState, pulseWithStateComp.toState,
+                                           pulseWithStateComp.pulsePeriod, pulseWithStateComp.pulseDuration, pulseWithStateComp.numPulses);
+
+        GetAllGroupLamps(pulseWithStateComp.lampGroups, pulseWithState.lamps);
+
+        if (pulseWithState.lamps.size()) {
+            pulseWithStateList.push_back(pulseWithState);
+            numLamps += pulseWithState.lamps.size();
+        }
+
+        pulseWithStateComponent.pop_front();
+    }
+
+    while (pulseWithPresetComponent.size()) {
+        PulseLampsLampGroupsWithPreset pulseWithPresetComp = pulseWithPresetComponent.front();
+        PulseLampsWithPreset pulseWithPreset(pulseWithPresetComp.lamps, pulseWithPresetComp.fromPreset, pulseWithPresetComp.toPreset,
+                                             pulseWithPresetComp.pulsePeriod, pulseWithPresetComp.pulseDuration, pulseWithPresetComp.numPulses);
+
+        GetAllGroupLamps(pulseWithPresetComp.lampGroups, pulseWithPreset.lamps);
+
+        if (pulseWithPreset.lamps.size()) {
+            pulseWithPresetList.push_back(pulseWithPreset);
+            numLamps += pulseWithPreset.lamps.size();
+        }
+
+        pulseWithPresetComponent.pop_front();
+    }
+
+    if (numLamps == 0) {
+        responseCode = LSF_ERR_NOT_FOUND;
+    } else {
+        lampManager.ChangeLampStateAndField(message, transitionToStateList, transitionToPresetList, stateFieldList, pulseWithStateList, pulseWithPresetList, groupOperation, !groupOperation);
+    }
+
+    return responseCode;
 }
 
 void LampGroupManager::ResetLampGroupStateField(Message& message)
@@ -597,7 +725,10 @@ void LampGroupManager::ResetLampGroupStateField(Message& message)
     LSFStringList lamps;
     lamps.clear();
 
-    responseCode = GetAllGroupLamps(lampGroupId, lamps);
+    LSFStringList lampGroupList;
+    lampGroupList.push_back(lampGroupId);
+
+    responseCode = GetAllGroupLamps(lampGroupList, lamps);
     QCC_DbgPrintf(("%s: Got a list of %d lamps", __FUNCTION__, lamps.size()));
 
     if (lamps.empty()) {
@@ -607,33 +738,37 @@ void LampGroupManager::ResetLampGroupStateField(Message& message)
     }
 }
 
-LSFResponseCode LampGroupManager::GetAllGroupLamps(LSFString& lampGroupId, LSFStringList& lamps)
+LSFResponseCode LampGroupManager::GetAllGroupLamps(LSFStringList& lampGroupList, LSFStringList& lamps)
 {
-    QCC_DbgPrintf(("%s: lampGroupID(%s)", __FUNCTION__, lampGroupId.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupList.size()(%d)", __FUNCTION__, lampGroupList.size()));
     LSFResponseCode responseCode = LSF_OK;
 
     QStatus status = lampGroupsLock.Lock();
     if (ER_OK == status) {
-        LampGroupMap::iterator it = lampGroups.find(lampGroupId);
-        if (it != lampGroups.end()) {
-            QCC_DbgPrintf(("%s: Lamp list size = %d", __FUNCTION__, it->second.second.lamps.size()));
-            for (LSFStringList::iterator lampIt = it->second.second.lamps.begin(); lampIt != it->second.second.lamps.end(); lampIt++) {
-                lamps.push_back(*lampIt);
-                QCC_DbgPrintf(("%s: lampId = %s", __FUNCTION__, (*lampIt).c_str()));
-            }
-            QCC_DbgPrintf(("%s: Lamp Groups list size = %d", __FUNCTION__, it->second.second.lampGroups.size()));
-            for (LSFStringList::iterator listIt = it->second.second.lampGroups.begin(); listIt != it->second.second.lampGroups.end(); listIt++) {
-                QCC_DbgPrintf(("%s: lampGroupId = %s", __FUNCTION__, (*listIt).c_str()));
-                LSFResponseCode tempResponseCode = GetAllGroupLamps(*listIt, lamps);
-                if (LSF_ERR_NOT_FOUND == tempResponseCode) {
-                    responseCode = LSF_ERR_PARTIAL;
-                } else {
-                    responseCode = tempResponseCode;
+        while (lampGroupList.size()) {
+            LSFString lampGroupId = lampGroupList.front();
+            LampGroupMap::iterator it = lampGroups.find(lampGroupId);
+            if (it != lampGroups.end()) {
+                QCC_DbgPrintf(("%s: Lamp list size = %d", __FUNCTION__, it->second.second.lamps.size()));
+                for (LSFStringList::iterator lampIt = it->second.second.lamps.begin(); lampIt != it->second.second.lamps.end(); lampIt++) {
+                    lamps.push_back(*lampIt);
+                    QCC_DbgPrintf(("%s: lampId = %s", __FUNCTION__, (*lampIt).c_str()));
                 }
+                QCC_DbgPrintf(("%s: Lamp Groups list size = %d", __FUNCTION__, it->second.second.lampGroups.size()));
+                if (it->second.second.lampGroups.size()) {
+                    LSFStringList groupList = it->second.second.lampGroups;
+                    LSFResponseCode tempResponseCode = GetAllGroupLamps(groupList, lamps);
+                    if (LSF_ERR_NOT_FOUND == tempResponseCode) {
+                        responseCode = LSF_ERR_PARTIAL;
+                    } else {
+                        responseCode = tempResponseCode;
+                    }
+                }
+            } else {
+                QCC_DbgPrintf(("%s: Lamp Group %s not found", __FUNCTION__, lampGroupId.c_str()));
+                responseCode = LSF_ERR_NOT_FOUND;
             }
-        } else {
-            QCC_DbgPrintf(("%s: Lamp Group %s not found", __FUNCTION__, lampGroupId.c_str()));
-            responseCode = LSF_ERR_NOT_FOUND;
+            lampGroupList.pop_front();
         }
         status = lampGroupsLock.Unlock();
         if (ER_OK != status) {

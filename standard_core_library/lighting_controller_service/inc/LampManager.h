@@ -84,6 +84,12 @@ class PulseLampsWithPreset {
     uint32_t numPulses;
 };
 
+typedef std::list<LampsAndState> LampsAndStateList;
+typedef std::list<LampsAndPreset> LampsAndPresetList;
+typedef std::list<LampsAndStateField> LampsAndStateFieldList;
+typedef std::list<PulseLampsWithState> PulseLampsWithStateList;
+typedef std::list<PulseLampsWithPreset> PulseLampsWithPresetList;
+
 class LampManager : public Manager {
   public:
     friend class LampGroupManager;
@@ -261,12 +267,13 @@ class LampManager : public Manager {
     void ResetLampStateFieldInternal(ajn::Message& message, LSFStringList lamps, LSFString stateFieldName, bool groupOperation = false);
 
     void ChangeLampStateAndField(ajn::Message& message,
-                                 LampsAndState* transitionToStateComponent = NULL,
-                                 LampsAndPreset* transitionToPresetComponent = NULL,
-                                 LampsAndStateField* stateFieldComponent = NULL,
-                                 PulseLampsWithState* pulseWithStateComponent = NULL,
-                                 PulseLampsWithPreset* pulseWithPresetComponent = NULL,
-                                 bool groupOperation = false);
+                                 LampsAndStateList& transitionToStateComponent,
+                                 LampsAndPresetList& transitionToPresetComponent,
+                                 LampsAndStateFieldList& stateFieldComponent,
+                                 PulseLampsWithStateList& pulseWithStateComponent,
+                                 PulseLampsWithPresetList& pulseWithPresetComponent,
+                                 bool groupOperation = false,
+                                 bool sceneOperation = false);
 
     LampClients lampClients;
     PresetManager& presetManager;

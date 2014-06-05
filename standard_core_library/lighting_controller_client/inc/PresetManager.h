@@ -128,7 +128,7 @@ class PresetManagerCallback {
     /**
      *  Indicates that a reply has been received for the SetDefaultLampState method call
      *
-     *  @param responseCode   The response code from the LampControllerService
+     *  @param responseCode   The response code from the LightingControllerService
      */
     virtual void SetDefaultLampStateReplyCB(const LSFResponseCode& responseCode) { }
 

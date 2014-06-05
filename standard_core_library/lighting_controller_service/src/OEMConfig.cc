@@ -50,7 +50,7 @@ void PopulateDefaultProperties(LSFPropertyStore& propStore)
     propStore.setSupportedLangs(languages);
 
     propStore.setDefaultLang("en");
-    propStore.setAppName("LampControllerService");
+    propStore.setAppName("LightingControllerService");
 
     propStore.setProperty(ajn::services::DEVICE_NAME, "English Name", "en", true, true, true);
     propStore.setProperty(ajn::services::DEVICE_NAME, "German Name", "de-AT", true, true, true);

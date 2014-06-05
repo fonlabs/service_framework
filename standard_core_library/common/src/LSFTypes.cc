@@ -80,20 +80,12 @@ const char* LampState::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    if (nullState) {
-        ret.append("\nNULL STATE");
-    } else {
-        ret.append("\nonOff=");
-        ret.append(qcc::U32ToString(onOff));
-        ret.append("\nhue=");
-        ret.append(qcc::U32ToString(hue));
-        ret.append("\nsaturation=");
-        ret.append(qcc::U32ToString(saturation));
-        ret.append("\nbrightness=");
-        ret.append(qcc::U32ToString(brightness));
-        ret.append("\ncolorTemp=");
-        ret.append(qcc::U32ToString(colorTemp));
-    }
+    ret = qcc::String("LampState") + qcc::String("\n");
+    ret += qcc::String("OnOff=") + U32ToString(onOff) + qcc::String("\n");
+    ret += qcc::String("Hue=") + U32ToString(hue) + qcc::String("\n");
+    ret += qcc::String("Saturation=") + U32ToString(saturation) + qcc::String("\n");
+    ret += qcc::String("Brightness=") + U32ToString(brightness) + qcc::String("\n");
+    ret += qcc::String("ColorTemp=") + U32ToString(colorTemp) + qcc::String("\n");
     return ret.c_str();
 }
 
@@ -190,10 +182,9 @@ const char* LampParameters::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("\nenergyUsageMilliwatts=");
-    ret.append(qcc::U32ToString(energyUsageMilliwatts));
-    ret.append("\nlumens=");
-    ret.append(qcc::U32ToString(lumens));
+    ret = qcc::String("LampParameters") + qcc::String("\n");
+    ret += qcc::String("EnergyUsageMilliwatts=") + U32ToString(energyUsageMilliwatts) + qcc::String("\n");
+    ret += qcc::String("Lumens=") + U32ToString(lumens) + qcc::String("\n");
     return ret.c_str();
 }
 
@@ -299,44 +290,26 @@ const char* LampDetails::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("\nmake=");
-    ret.append(qcc::U32ToString(make));
-    ret.append("\nmodel=");
-    ret.append(qcc::U32ToString(model));
-    ret.append("\ntype=");
-    ret.append(qcc::U32ToString(type));
-    ret.append("\nlampType=");
-    ret.append(qcc::U32ToString(lampType));
-    ret.append("\nlampBaseType=");
-    ret.append(qcc::U32ToString(lampBaseType));
-    ret.append("\nlampBeamAngle=");
-    ret.append(qcc::U32ToString(lampBeamAngle));
-    ret.append("\ndimmable=");
-    ret.append(qcc::U32ToString(dimmable));
-    ret.append("\ncolor=");
-    ret.append(qcc::U32ToString(color));
-    ret.append("\nvariableColorTemp=");
-    ret.append(qcc::U32ToString(variableColorTemp));
-    ret.append("\nhasEffects=");
-    ret.append(qcc::U32ToString(hasEffects));
-    ret.append("\nmaxVoltage=");
-    ret.append(qcc::U32ToString(maxVoltage));
-    ret.append("\nminVoltage=");
-    ret.append(qcc::U32ToString(minVoltage));
-    ret.append("\nwattage=");
-    ret.append(qcc::U32ToString(wattage));
-    ret.append("\nincandescentEquivalent=");
-    ret.append(qcc::U32ToString(incandescentEquivalent));
-    ret.append("\nmaxLumens=");
-    ret.append(qcc::U32ToString(maxLumens));
-    ret.append("\nminTemperature=");
-    ret.append(qcc::U32ToString(minTemperature));
-    ret.append("\nmaxTemperature=");
-    ret.append(qcc::U32ToString(maxTemperature));
-    ret.append("\ncolorRenderingIndex=");
-    ret.append(qcc::U32ToString(colorRenderingIndex));
-    ret.append("\nlampID=");
-    ret.append(lampID.c_str());
+    ret = qcc::String("LampDetails") + qcc::String("\n");
+    ret += qcc::String("make=") + U32ToString(make) + qcc::String("\n");
+    ret += qcc::String("model=") + U32ToString(model) + qcc::String("\n");
+    ret += qcc::String("type=") + U32ToString(type) + qcc::String("\n");
+    ret += qcc::String("lampType=") + U32ToString(lampType) + qcc::String("\n");
+    ret += qcc::String("lampBaseType=") + U32ToString(lampBaseType) + qcc::String("\n");
+    ret += qcc::String("lampBeamAngle=") + U32ToString(lampBeamAngle) + qcc::String("\n");
+    ret += qcc::String("dimmable=") + U32ToString(dimmable) + qcc::String("\n");
+    ret += qcc::String("color=") + U32ToString(color) + qcc::String("\n");
+    ret += qcc::String("variableColorTemp=") + U32ToString(variableColorTemp) + qcc::String("\n");
+    ret += qcc::String("hasEffects=") + U32ToString(hasEffects) + qcc::String("\n");
+    ret += qcc::String("maxVoltage=") + U32ToString(maxVoltage) + qcc::String("\n");
+    ret += qcc::String("minVoltage=") + U32ToString(minVoltage) + qcc::String("\n");
+    ret += qcc::String("wattage=") + U32ToString(wattage) + qcc::String("\n");
+    ret += qcc::String("incandescentEquivalent=") + U32ToString(incandescentEquivalent) + qcc::String("\n");
+    ret += qcc::String("maxLumens=") + U32ToString(maxLumens) + qcc::String("\n");
+    ret += qcc::String("minTemperature=") + U32ToString(minTemperature) + qcc::String("\n");
+    ret += qcc::String("maxTemperature=") + U32ToString(maxTemperature) + qcc::String("\n");
+    ret += qcc::String("colorRenderingIndex=") + U32ToString(colorRenderingIndex) + qcc::String("\n");
+    ret += qcc::String("lampID=") + qcc::String(lampID.c_str()) + qcc::String("\n");
     return ret.c_str();
 }
 
@@ -535,17 +508,13 @@ const char* LampGroup::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-
-    ret.append("Lamps: \n");
-    LSFStringList::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret = qcc::String("LampGroup::Lamps:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lamps.begin(); it != lamps.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret += qcc::String("LampGroup::Lamp Groups:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
 
     return ret.c_str();
@@ -652,21 +621,18 @@ const char* TransitionLampsLampGroupsToState::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("Lamps: \n");
-    LSFStringList::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret = qcc::String("TransitionLampsLampGroupsToState::Lamps:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lamps.begin(); it != lamps.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret += qcc::String("TransitionLampsLampGroupsToState::Lamp Groups:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("State: ");
-    ret.append(state.c_str());
-    ret.append("\nTransition Period: \n");
-    ret.append(qcc::U32ToString(transitionPeriod));
+
+    ret += qcc::String("TransitionLampsLampGroupsToState::State:") + qcc::String(state.c_str()) + qcc::String("\n");
+    ret += qcc::String("TransitionLampsLampGroupsToState::TransitionPeriod:") + U32ToString(transitionPeriod) + qcc::String("\n");
+
     return ret.c_str();
 }
 
@@ -688,9 +654,9 @@ TransitionLampsLampGroupsToState& TransitionLampsLampGroupsToState::operator=(co
 
 void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
 {
-    const char** lampList;
+    MsgArg* lampList;
     size_t numLamps;
-    const char** lampGroupList;
+    MsgArg* lampGroupList;
     size_t numLampGroups;
     MsgArg* stateArgs;
     size_t stateArgsSize;
@@ -698,13 +664,15 @@ void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
     component.Get("(asasa{sv}u)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &stateArgsSize, &stateArgs, &transitionPeriod);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString uniqueId(lampList[j]);
-        lamps.push_back(uniqueId);
+        char* lampID;
+        lampList[j].Get("s", &lampID);
+        lamps.push_back(LSFString(lampID));
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString uniqueId(lampGroupList[k]);
-        lampGroups.push_back(uniqueId);
+        char* lampGroupID;
+        lampGroupList[k].Get("s", &lampGroupID);
+        lampGroups.push_back(LSFString(lampGroupID));
     }
 
     MsgArg arg;
@@ -770,21 +738,18 @@ const char* TransitionLampsLampGroupsToPreset::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("Lamps: \n");
-    LSFStringList::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret = qcc::String("TransitionLampsLampGroupsToPreset::Lamps:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lamps.begin(); it != lamps.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret += qcc::String("TransitionLampsLampGroupsToPreset::Lamp Groups:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("Preset ID: \n");
-    ret.append(presetID.c_str());
-    ret.append("\nTransition Period: \n");
-    ret.append(qcc::U32ToString(transitionPeriod));
+
+    ret += qcc::String("TransitionLampsLampGroupsToPreset::Preset:") + qcc::String(presetID.c_str()) + qcc::String("\n");
+    ret += qcc::String("TransitionLampsLampGroupsToPreset::TransitionPeriod:") + U32ToString(transitionPeriod) + qcc::String("\n");
+
     return ret.c_str();
 }
 
@@ -806,22 +771,24 @@ TransitionLampsLampGroupsToPreset& TransitionLampsLampGroupsToPreset::operator=(
 
 void TransitionLampsLampGroupsToPreset::Set(const ajn::MsgArg& component)
 {
-    const char** lampList;
+    MsgArg* lampList;
     size_t numLamps;
-    const char** lampGroupList;
+    MsgArg* lampGroupList;
     size_t numLampGroups;
     const char* presetId;
 
     component.Get("(asassu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &presetId, &transitionPeriod);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString uniqueId(lampList[j]);
-        lamps.push_back(uniqueId);
+        char* lampID;
+        lampList[j].Get("s", &lampID);
+        lamps.push_back(LSFString(lampID));
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString uniqueId(lampGroupList[k]);
-        lampGroups.push_back(uniqueId);
+        char* lampGroupID;
+        lampGroupList[k].Get("s", &lampGroupID);
+        lampGroups.push_back(LSFString(lampGroupID));
     }
 
     presetID = LSFString(presetId);
@@ -878,27 +845,21 @@ const char* PulseLampsLampGroupsWithState::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("Lamps: \n");
-    LSFStringList::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret = qcc::String("PulseLampsLampGroupsWithState::Lamps:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lamps.begin(); it != lamps.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithState::Lamp Groups:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("From State: ");
-    ret.append(fromState.c_str());
-    ret.append("To State: ");
-    ret.append(toState.c_str());
-    ret.append("\nPulse Period: \n");
-    ret.append(qcc::U32ToString(pulsePeriod));
-    ret.append("\nPulse Duration: \n");
-    ret.append(qcc::U32ToString(pulseDuration));
-    ret.append("\nNumber Of Pulses: \n");
-    ret.append(qcc::U32ToString(numPulses));
+
+    ret += qcc::String("PulseLampsLampGroupsWithState::FromState:") + qcc::String(fromState.c_str()) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithState::ToState:") + qcc::String(toState.c_str()) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithState::PulsePeriod:") + U32ToString(pulsePeriod) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithState::PulseDuration:") + U32ToString(pulseDuration) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithState::NumPulses:") + U32ToString(numPulses) + qcc::String("\n");
+
     return ret.c_str();
 }
 
@@ -923,9 +884,9 @@ PulseLampsLampGroupsWithState& PulseLampsLampGroupsWithState::operator=(const Pu
 
 void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
 {
-    const char** lampList;
+    MsgArg* lampList;
     size_t numLamps;
-    const char** lampGroupList;
+    MsgArg* lampGroupList;
     size_t numLampGroups;
     MsgArg* fromStateArgs;
     size_t fromStateArgsSize;
@@ -935,13 +896,15 @@ void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
     component.Get("(asasa{sv}a{sv}uuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromStateArgsSize, &fromStateArgs, &toStateArgsSize, &toStateArgs, &pulsePeriod, &pulseDuration, &numPulses);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString uniqueId(lampList[j]);
-        lamps.push_back(uniqueId);
+        char* lampID;
+        lampList[j].Get("s", &lampID);
+        lamps.push_back(LSFString(lampID));
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString uniqueId(lampGroupList[k]);
-        lampGroups.push_back(uniqueId);
+        char* lampGroupID;
+        lampGroupList[k].Get("s", &lampGroupID);
+        lampGroups.push_back(LSFString(lampGroupID));
     }
 
     MsgArg fromArg;
@@ -1019,27 +982,21 @@ const char* PulseLampsLampGroupsWithPreset::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret.append("Lamps: \n");
-    LSFStringList::const_iterator it;
-    for (it = lamps.begin(); it != lamps.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret = qcc::String("PulseLampsLampGroupsWithPreset::Lamps:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lamps.begin(); it != lamps.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("Lamp Groups: \n");
-    for (it = lampGroups.begin(); it != lampGroups.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithPreset::Lamp Groups:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = lampGroups.begin(); it != lampGroups.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-    ret.append("From Preset: ");
-    ret.append(fromPreset.c_str());
-    ret.append("To Preset: ");
-    ret.append(toPreset.c_str());
-    ret.append("\nPulse Period: \n");
-    ret.append(qcc::U32ToString(pulsePeriod));
-    ret.append("\nPulse Duration: \n");
-    ret.append(qcc::U32ToString(pulseDuration));
-    ret.append("\nNumber Of Pulses: \n");
-    ret.append(qcc::U32ToString(numPulses));
+
+    ret += qcc::String("PulseLampsLampGroupsWithPreset::FromPreset:") + qcc::String(fromPreset.c_str()) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithPreset::ToPreset:") + qcc::String(toPreset.c_str()) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithPreset::PulsePeriod:") + U32ToString(pulsePeriod) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithPreset::PulseDuration:") + U32ToString(pulseDuration) + qcc::String("\n");
+    ret += qcc::String("PulseLampsLampGroupsWithPreset::NumPulses:") + U32ToString(numPulses) + qcc::String("\n");
+
     return ret.c_str();
 }
 
@@ -1064,9 +1021,9 @@ PulseLampsLampGroupsWithPreset& PulseLampsLampGroupsWithPreset::operator=(const 
 
 void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
 {
-    const char** lampList;
+    MsgArg* lampList;
     size_t numLamps;
-    const char** lampGroupList;
+    MsgArg* lampGroupList;
     size_t numLampGroups;
     const char* fromPresetId;
     const char* toPresetId;
@@ -1074,13 +1031,15 @@ void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
     component.Get("(asasssuuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromPresetId, &toPresetId, &pulsePeriod, &pulseDuration, &numPulses);
 
     for (size_t j = 0; j < numLamps; j++) {
-        LSFString uniqueId(lampList[j]);
-        lamps.push_back(uniqueId);
+        char* lampID;
+        lampList[j].Get("s", &lampID);
+        lamps.push_back(LSFString(lampID));
     }
 
     for (size_t k = 0; k < numLampGroups; k++) {
-        LSFString uniqueId(lampGroupList[k]);
-        lampGroups.push_back(uniqueId);
+        char* lampGroupID;
+        lampGroupList[k].Get("s", &lampGroupID);
+        lampGroups.push_back(LSFString(lampGroupID));
     }
 
     fromPreset = LSFString(fromPresetId);
@@ -1122,14 +1081,14 @@ Scene::Scene()
     transitionToPresetComponent.clear();
     pulseWithStateComponent.clear();
     pulseWithPresetComponent.clear();
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList,
              const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList)
 {
     Set(transitionToStateComponentList, transitionToPresetComponentList, pulseWithStateComponentList, pulseWithPresetComponentList);
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(TransitionLampsLampGroupsToStateList& transitionToStateComponentList, TransitionLampsLampGroupsToPresetList& transitionToPresetComponentList,
@@ -1143,7 +1102,7 @@ Scene::Scene(TransitionLampsLampGroupsToStateList& transitionToStateComponentLis
     transitionToPresetComponent = transitionToPresetComponentList;
     pulseWithStateComponent = pulseWithStateComponentList;
     pulseWithPresetComponent = pulseWithPresetComponentList;
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(const Scene& other)
@@ -1156,7 +1115,7 @@ Scene::Scene(const Scene& other)
     transitionToPresetComponent = other.transitionToPresetComponent;
     pulseWithStateComponent = other.pulseWithStateComponent;
     pulseWithPresetComponent = other.pulseWithPresetComponent;
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene& Scene::operator=(const Scene& other)
@@ -1169,7 +1128,7 @@ Scene& Scene::operator=(const Scene& other)
     transitionToPresetComponent = other.transitionToPresetComponent;
     pulseWithStateComponent = other.pulseWithStateComponent;
     pulseWithPresetComponent = other.pulseWithPresetComponent;
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
+    //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
 
@@ -1178,33 +1137,21 @@ const char* Scene::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-
-    ret.append("TransitionToState Components: \n");
-    TransitionLampsLampGroupsToStateList::const_iterator it;
-    for (it = transitionToStateComponent.begin(); it != transitionToStateComponent.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n***\n");
+    ret = qcc::String("Scene::TransitionToState Components:") + qcc::String("\n");
+    for (TransitionLampsLampGroupsToStateList::const_iterator it = transitionToStateComponent.begin(); it != transitionToStateComponent.end(); it++) {
+        ret += qcc::String(it->c_str()) + qcc::String("\n");
     }
-    ret.append("\n------------------------------------------------------------\n");
-    ret.append("TransitionToPreset Components: \n");
-    TransitionLampsLampGroupsToPresetList::const_iterator ite;
-    for (ite = transitionToPresetComponent.begin(); ite != transitionToPresetComponent.end(); ite++) {
-        ret.append(ite->c_str());
-        ret.append("\n***\n");
+    ret += qcc::String("Scene::TransitionToPreset Components:") + qcc::String("\n");
+    for (TransitionLampsLampGroupsToPresetList::const_iterator it = transitionToPresetComponent.begin(); it != transitionToPresetComponent.end(); it++) {
+        ret += qcc::String(it->c_str()) + qcc::String("\n");
     }
-    ret.append("\n------------------------------------------------------------\n");
-    ret.append("PulseWithState Components: \n");
-    PulseLampsLampGroupsWithStateList::const_iterator pte;
-    for (pte = pulseWithStateComponent.begin(); pte != pulseWithStateComponent.end(); pte++) {
-        ret.append(pte->c_str());
-        ret.append("\n***\n");
+    ret += qcc::String("Scene::PulseWithState Components:") + qcc::String("\n");
+    for (PulseLampsLampGroupsWithStateList::const_iterator it = pulseWithStateComponent.begin(); it != pulseWithStateComponent.end(); it++) {
+        ret += qcc::String(it->c_str()) + qcc::String("\n");
     }
-    ret.append("\n------------------------------------------------------------\n");
-    ret.append("PulseWithPreset Components: \n");
-    PulseLampsLampGroupsWithPresetList::const_iterator prte;
-    for (prte = pulseWithPresetComponent.begin(); prte != pulseWithPresetComponent.end(); prte++) {
-        ret.append(prte->c_str());
-        ret.append("\n***\n");
+    ret += qcc::String("Scene::PulseWithPreset Components:") + qcc::String("\n");
+    for (PulseLampsLampGroupsWithPresetList::const_iterator it = pulseWithPresetComponent.begin(); it != pulseWithPresetComponent.end(); it++) {
+        ret += qcc::String(it->c_str()) + qcc::String("\n");
     }
     return ret.c_str();
 }
@@ -1216,6 +1163,11 @@ void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::Ms
     transitionToPresetComponent.clear();
     pulseWithStateComponent.clear();
     pulseWithPresetComponent.clear();
+
+    QCC_DbgPrintf(("%s", transitionToStateComponentList.ToString().c_str()));
+    QCC_DbgPrintf(("%s", transitionToPresetComponentList.ToString().c_str()));
+    QCC_DbgPrintf(("%s", pulseWithStateComponentList.ToString().c_str()));
+    QCC_DbgPrintf(("%s", pulseWithPresetComponentList.ToString().c_str()));
 
     MsgArg* transitionToStateComponentArray;
     size_t transitionToStateComponentSize;
@@ -1406,14 +1358,10 @@ const char* MasterScene::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-
-    ret.assign("Scenes: \n");
-    LSFStringList::const_iterator it;
-    for (it = scenes.begin(); it != scenes.end(); it++) {
-        ret.append(it->c_str());
-        ret.append("\n");
+    ret = qcc::String("MasterScene::Scenes:") + qcc::String("\n");
+    for (LSFStringList::const_iterator it = scenes.begin(); it != scenes.end(); it++) {
+        ret += qcc::String((*it).c_str()) + qcc::String("\n");
     }
-
     return ret.c_str();
 }
 

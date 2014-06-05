@@ -30,6 +30,8 @@ class SceneManager;
 
 class LampGroupManager : public Manager {
 
+    friend class SceneManager;
+
   public:
 
     LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& lampGroupFile);
@@ -73,7 +75,14 @@ class LampGroupManager : public Manager {
 
   protected:
 
-    LSFResponseCode GetAllGroupLamps(LSFString& lampGroupId, LSFStringList& lamps);
+    LSFResponseCode GetAllGroupLamps(LSFStringList& lampGroupList, LSFStringList& lamps);
+
+    LSFResponseCode ChangeLampGroupStateAndField(ajn::Message& message,
+                                                 TransitionLampsLampGroupsToStateList& transitionToStateComponent,
+                                                 TransitionLampsLampGroupsToPresetList& transitionToPresetComponent,
+                                                 PulseLampsLampGroupsWithStateList& pulseWithStateComponent,
+                                                 PulseLampsLampGroupsWithPresetList& pulseWithPresetComponent,
+                                                 bool groupOperation = false);
 
     LampGroupMap lampGroups;
     Mutex lampGroupsLock;

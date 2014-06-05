@@ -39,8 +39,11 @@ bool gotReply = false;
 bool gotSignal = false;
 
 LSFStringList lampList;
-LSFString lampgroupID("");
-bool firstCall = true;
+LSFStringList lampGroupList;
+LSFStringList presetList;
+LSFStringList sceneList;
+uint8_t lampIndex = 0;
+uint8_t lampGroupIndex = 0;
 
 char* get_line(char* str, size_t num, FILE* fp)
 {
@@ -522,9 +525,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
         printf("\n%s: responseCode=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
         if (LSF_OK == responseCode) {
             printf("lampGroupID=%s\n", lampGroupID.c_str());
-            if (0 == strcmp(lampgroupID.c_str(), "")) {
-                lampgroupID = lampGroupID;
-            }
+            lampGroupList.push_back(lampGroupID);
         } else {
             gotSignal = true;
         }
@@ -765,6 +766,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
         printf("\n%s: responseCode=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
         if (LSF_OK == responseCode) {
             printf("presetID=%s\n", presetID.c_str());
+            presetList.push_back(presetID);
         } else {
             gotSignal = true;
         }
@@ -844,6 +846,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
         printf("\n%s(): responseCode = %s, sceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), sceneID.c_str());
         if (responseCode == LSF_OK) {
             printf("\nscene=%s", scene.c_str());
+            sleep(5);
         }
         gotReply = true;
     }
@@ -896,6 +899,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
         printf("\n%s: responseCode=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
         if (LSF_OK == responseCode) {
             printf("sceneID=%s\n", sceneID.c_str());
+            sceneList.push_back(sceneID);
         } else {
             gotSignal = true;
         }
@@ -939,6 +943,24 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void ScenesDeletedCB(const LSFStringList& sceneIDs) {
+        printf("\n%s", __FUNCTION__);
+        LSFStringList::const_iterator it = sceneIDs.begin();
+        for (; it != sceneIDs.end(); ++it) {
+            printf("\n%s", (*it).c_str());
+        }
+        printf("\n");
+        gotSignal = true;
+    }
+
+    void ApplySceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) {
+        printf("\n%s(): responseCode = %s, sceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), sceneID.c_str());
+        gotReply = true;
+        if (LSF_OK != responseCode) {
+            gotSignal = true;
+        }
+    }
+
+    void ScenesAppliedCB(const LSFStringList& sceneIDs) {
         printf("\n%s", __FUNCTION__);
         LSFStringList::const_iterator it = sceneIDs.begin();
         for (; it != sceneIDs.end(); ++it) {
@@ -1049,6 +1071,24 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void MasterScenesDeletedCB(const LSFStringList& masterSceneIDs) {
+        printf("\n%s", __FUNCTION__);
+        LSFStringList::const_iterator it = masterSceneIDs.begin();
+        for (; it != masterSceneIDs.end(); ++it) {
+            printf("\n%s", (*it).c_str());
+        }
+        printf("\n");
+        gotSignal = true;
+    }
+
+    void ApplyMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID) {
+        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
+        gotReply = true;
+        if (LSF_OK != responseCode) {
+            gotSignal = true;
+        }
+    }
+
+    void MasterScenesAppliedCB(const LSFStringList& masterSceneIDs) {
         printf("\n%s", __FUNCTION__);
         LSFStringList::const_iterator it = masterSceneIDs.begin();
         for (; it != masterSceneIDs.end(); ++it) {
@@ -1408,25 +1448,47 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "39") {
-                if (firstCall) {
+                for (uint8_t i = 0; i < 4; i++) {
                     LSFStringList lamps;
                     lamps.clear();
-                    LampGroup group(lampList, lamps);
+                    LSFStringList lampGroups;
+                    lampGroups.clear();
+                    if (lampList.empty()) {
+                        printf("\nYou need to have 20 Lamp Services running for invoking this call. Also call GetAllLampIDs once before invoking this call.\n");
+                        return 0;
+                    }
+                    lamps.push_back(lampList.front());
+                    lampList.pop_front();
+                    LampGroup group(lamps, lampGroups);
                     printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
                     status = lampGroupManager.CreateLampGroup(group);
-                    firstCall = false;
-                } else {
-                    LSFStringList tempLamps;
-                    tempLamps.clear();
-                    LSFStringList lamps;
-                    lamps.clear();
-                    lamps.push_back(lampgroupID);
-                    LampGroup group(tempLamps, lamps);
-                    printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
-                    status = lampGroupManager.CreateLampGroup(group);
+                    waitForReply = true;
+                    waitForSignal = true;
                 }
-                waitForReply = true;
-                waitForSignal = true;
+                for (uint8_t i = 0; i < 4; i++) {
+                    LSFStringList lamps;
+                    lamps.clear();
+                    LSFStringList lampGroups;
+                    lampGroups.clear();
+                    if (lampList.empty()) {
+                        printf("\nYou need to have 20 Lamp Services running for invoking this call. Also call GetAllLampIDs once before invoking this call.\n");
+                        return 0;
+                    }
+                    lamps.push_back(lampList.front());
+                    lampList.pop_front();
+                    if (lampGroupList.size()) {
+                        lampGroups.push_back(lampGroupList.front());
+                        lampGroupList.pop_front();
+                    } else {
+                        printf("\nError");
+                        return 0;
+                    }
+                    LampGroup group(lamps, lampGroups);
+                    printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
+                    status = lampGroupManager.CreateLampGroup(group);
+                    waitForReply = true;
+                    waitForSignal = true;
+                }
             } else if (cmd == "40") {
                 String uniqueId = NextTok(line);
                 LSFStringList lamps;
@@ -1608,22 +1670,98 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "70") {
-                LSFStringList lampList1, lampList2;
-                lampList1.push_back("abc");
-                lampList2.push_back("abc");
-                LSFStringList lampGroupList1, lampGroupList2;
-                lampGroupList1.push_back("xyz");
-                lampGroupList2.push_back("xyz");
-                LampState state(false, 6, 6, 6, 6);
-                LSFString presetID = LSFString("123");
+                LSFStringList lamps1;
+                LSFStringList lampGroups1;
+                lamps1.clear();
+                lampGroups1.clear();
+                if (lampList.empty()) {
+                    printf("\nYou need to have 20 Lamp Services running for invoking this call. Also call GetAllLampIDs once before invoking this call.\n");
+                    return 0;
+                }
+                lamps1.push_back(lampList.front());
+                lampList.pop_front();
+
+                if (lampGroupList.size()) {
+                    lampGroups1.push_back(lampGroupList.front());
+                    lampGroupList.pop_front();
+                } else {
+                    printf("\nError");
+                    return 0;
+                }
+                LampState state(true, 3, 3, 3, 3);
                 uint32_t transPeriod = 35;
-                TransitionLampsLampGroupsToState transitionToStateComponent(lampList1, lampGroupList1, state, transPeriod);
-                TransitionLampsLampGroupsToPreset transitionToPresetComponent(lampList2, lampGroupList2, presetID, transPeriod);
+                TransitionLampsLampGroupsToState transitionToStateComponent(lamps1, lampGroups1, state, transPeriod);
+
+                LSFStringList lamps2;
+                LSFStringList lampGroups2;
+                lamps2.clear();
+                lampGroups2.clear();
+                if (lampList.empty()) {
+                    printf("\nYou need to have 20 Lamp Services running for invoking this call. Also call GetAllLampIDs once before invoking this call.\n");
+                    return 0;
+                }
+                lamps2.push_back(lampList.front());
+                lampList.pop_front();
+                if (lampGroupList.size()) {
+                    lampGroups2.push_back(lampGroupList.front());
+                    lampGroupList.pop_front();
+                } else {
+                    printf("\nError");
+                    return 0;
+                }
+                if (presetList.empty()) {
+                    printf("\nYou need to have 2 Presets created for invoking this call\n");
+                    return 0;
+                }
+                TransitionLampsLampGroupsToPreset transitionToPresetComponent(lamps2, lampGroups2, presetList.front(), transPeriod);
+                presetList.pop_front();
+
                 uint32_t period = 100;
                 uint32_t duration = 20;
                 uint32_t numPulses = 25;
-                PulseLampsLampGroupsWithState pulseWithStateComponent(lampList2, lampGroupList2, state, period, duration, numPulses);
-                PulseLampsLampGroupsWithPreset pulseWithPresetComponent(lampList2, lampGroupList2, presetID, period, duration, numPulses);
+                LSFStringList lamps3;
+                LSFStringList lampGroups3;
+                lamps3.clear();
+                lampGroups3.clear();
+                if (lampList.empty()) {
+                    printf("\nYou need to have 20 Lamp Services running for invoking this call. Also call GetAllLampIDs once before invoking this call.\n");
+                    return 0;
+                }
+                lamps3.push_back(lampList.front());
+                lampList.pop_front();
+                if (lampGroupList.size()) {
+                    lampGroups3.push_back(lampGroupList.front());
+                    lampGroupList.pop_front();
+                } else {
+                    printf("\nError");
+                    return 0;
+                }
+                PulseLampsLampGroupsWithState pulseWithStateComponent(lamps3, lampGroups3, state, period, duration, numPulses);
+
+                LSFStringList lamps4;
+                LSFStringList lampGroups4;
+                lamps4.clear();
+                lampGroups4.clear();
+                if (lampList.empty()) {
+                    printf("\nYou need to have 20 Lamp Services running for invoking this call. Also call GetAllLampIDs once before invoking this call.\n");
+                    return 0;
+                }
+                lamps4.push_back(lampList.front());
+                lampList.pop_front();
+                if (lampGroupList.size()) {
+                    lampGroups4.push_back(lampGroupList.front());
+                    lampGroupList.pop_front();
+                } else {
+                    printf("\nError");
+                    return 0;
+                }
+
+                if (presetList.empty()) {
+                    printf("\nYou need to have 2 Presets created for invoking this call\n");
+                    return 0;
+                }
+                PulseLampsLampGroupsWithPreset pulseWithPresetComponent(lamps4, lampGroups4, presetList.front(), period, duration, numPulses);
+                presetList.pop_front();
 
                 TransitionLampsLampGroupsToStateList transitionToStateList;
                 transitionToStateList.push_back(transitionToStateComponent);
@@ -1691,10 +1829,12 @@ int main()
                 printf("\nInvoking GetScene(%s)\n", uniqueId.c_str());
                 status = sceneManager.GetScene(uniqueId.c_str());
                 waitForReply = true;
-#if 0
             } else if (cmd == "74") {
-                ApplyScene;
-#endif
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ApplyScene(%s)\n", uniqueId.c_str());
+                status = sceneManager.ApplyScene(uniqueId.c_str());
+                waitForReply = true;
+                waitForSignal = true;
             } else if (cmd == "75") {
                 printf("\nInvoking GetAllMasterSceneIDs()\n");
                 status = masterSceneManager.GetAllMasterSceneIDs();
@@ -1712,10 +1852,11 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "78") {
-                LSFStringList scenes;
-                scenes.push_back("abc");
-                scenes.push_back("xyz");
-                MasterScene group(scenes);
+                if (sceneList.empty()) {
+                    printf("\nYou need to have a Scene Created for invoking this call\n");
+                    return 0;
+                }
+                MasterScene group(sceneList);
                 printf("\nInvoking CreateMasterScene(%s)\n", group.c_str());
                 status = masterSceneManager.CreateMasterScene(group);
                 waitForReply = true;
@@ -1741,10 +1882,12 @@ int main()
                 printf("\nInvoking GetMasterScene(%s)\n", uniqueId.c_str());
                 status = masterSceneManager.GetMasterScene(uniqueId.c_str());
                 waitForReply = true;
-#if 0
             } else if (cmd == "82") {
-                ApplyMasterScene;
-#endif
+                String uniqueId = NextTok(line);
+                printf("\nInvoking ApplyMasterScene(%s)\n", uniqueId.c_str());
+                status = masterSceneManager.ApplyMasterScene(uniqueId.c_str());
+                waitForReply = true;
+                waitForSignal = true;
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {

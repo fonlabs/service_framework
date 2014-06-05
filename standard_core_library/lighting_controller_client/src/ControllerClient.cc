@@ -566,6 +566,12 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
 {
     QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s\n", __FUNCTION__, port, busName, deviceID, deviceName));
 
+    // if the name of the current CS has changed...
+    if (deviceID == this->deviceID && deviceName != this->deviceName) {
+        controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
+        return;
+    }
+
     ActiveService* svc = new ActiveService();
     svc->busName = busName;
     svc->port = port;

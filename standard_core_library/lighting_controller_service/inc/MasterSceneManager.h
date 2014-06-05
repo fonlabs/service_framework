@@ -35,14 +35,14 @@ class MasterSceneManager : public Manager {
     LSFResponseCode Reset(void);
     LSFResponseCode IsDependentOnScene(LSFString& sceneID);
 
-    void GetAllMasterSceneIDs(ajn::Message& msg);
-    void GetMasterSceneName(ajn::Message& msg);
-    void SetMasterSceneName(ajn::Message& msg);
-    void DeleteMasterScene(ajn::Message& msg);
-    void CreateMasterScene(ajn::Message& msg);
-    void UpdateMasterScene(ajn::Message& msg);
-    void GetMasterScene(ajn::Message& msg);
-    void ApplyMasterScene(ajn::Message& msg);
+    void GetAllMasterSceneIDs(ajn::Message& message);
+    void GetMasterSceneName(ajn::Message& message);
+    void SetMasterSceneName(ajn::Message& message);
+    void DeleteMasterScene(ajn::Message& message);
+    void CreateMasterScene(ajn::Message& message);
+    void UpdateMasterScene(ajn::Message& message);
+    void GetMasterScene(ajn::Message& message);
+    void ApplyMasterScene(ajn::Message& message);
 
     LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
 
