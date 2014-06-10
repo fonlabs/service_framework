@@ -17,23 +17,13 @@
 #include <LSFResponseCodes.h>
 #include <qcc/StringUtil.h>
 #include <qcc/Debug.h>
+#include <LSFTypes.h>
 
 #include <ControllerService.h>
 #include <ServiceDescription.h>
 
 #include <alljoyn/notification/NotificationService.h>
 #include <string>
-
-static const uint32_t controllerInterfaceVersion = 1;
-
-static const char* const ControllerServicePath = "/org/allseen/LSF/ControllerService";
-static const char* const ControllerInterface = "org.allseen.LSF.ControllerService";
-static const char* const ControllerLampInterface = "org.allseen.LSF.ControllerService.Lamp";
-static const char* const ControllerLampGroupInterface = "org.allseen.LSF.ControllerService.LampGroup";
-static const char* const ControllerPresetInterface = "org.allseen.LSF.ControllerService.Preset";
-static const char* const ControllerSceneInterface = "org.allseen.LSF.ControllerService.Scene";
-static const char* const ControllerMasterSceneInterface = "org.allseen.LSF.ControllerService.MasterScene";
-static ajn::SessionPort ControllerServiceSessionPort = 43;
 
 using namespace lsf;
 using namespace ajn;
@@ -70,15 +60,15 @@ ControllerService::ControllerService(
     const std::string& presetFile,
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
-    BusObject(ControllerServicePath),
+    BusObject(ControllerServiceObjectPath),
     bus("LightingServiceController", true),
     serviceSession(0),
     listener(new ControllerListener(*this)),
-    lampManager(*this, presetManager, ControllerLampInterface),
-    lampGroupManager(*this, lampManager, ControllerLampGroupInterface, &sceneManager, lampGroupFile),
-    presetManager(*this, ControllerPresetInterface, &sceneManager, sceneFile),
-    sceneManager(*this, lampGroupManager, ControllerSceneInterface, &masterSceneManager, presetFile),
-    masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface, masterSceneFile),
+    lampManager(*this, presetManager),
+    lampGroupManager(*this, lampManager, &sceneManager, lampGroupFile),
+    presetManager(*this, &sceneManager, sceneFile),
+    sceneManager(*this, lampGroupManager, &masterSceneManager, presetFile),
+    masterSceneManager(*this, sceneManager, masterSceneFile),
     internalPropertyStore(factoryConfigFile, configFile), // we don't use this!
     propertyStore(propStore),
     aboutService(NULL),
@@ -96,15 +86,15 @@ ControllerService::ControllerService(
     const std::string& presetFile,
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
-    BusObject(ControllerServicePath),
+    BusObject(ControllerServiceObjectPath),
     bus("LightingServiceController", true),
     serviceSession(0),
     listener(new ControllerListener(*this)),
-    lampManager(*this, presetManager, ControllerLampInterface),
-    lampGroupManager(*this, lampManager, ControllerLampGroupInterface, &sceneManager, lampGroupFile),
-    presetManager(*this, ControllerPresetInterface, &sceneManager, sceneFile),
-    sceneManager(*this, lampGroupManager, ControllerSceneInterface, &masterSceneManager, presetFile),
-    masterSceneManager(*this, sceneManager, ControllerMasterSceneInterface, masterSceneFile),
+    lampManager(*this, presetManager),
+    lampGroupManager(*this, lampManager, &sceneManager, lampGroupFile),
+    presetManager(*this, &sceneManager, sceneFile),
+    sceneManager(*this, lampGroupManager, &masterSceneManager, presetFile),
+    masterSceneManager(*this, sceneManager, masterSceneFile),
     internalPropertyStore(factoryConfigFile, configFile),
     propertyStore(internalPropertyStore),
     aboutService(NULL),
@@ -257,12 +247,12 @@ QStatus ControllerService::Start(void)
      * Create and Add the Controller Service Interfaces to the AllJoyn Bus
      */
     const InterfaceEntry interfaceEntries[] = {
-        { ControllerServiceDescription, ControllerInterface },
-        { ControllerServiceLampDescription, ControllerLampInterface },
-        { ControllerServiceLampGroupDescription, ControllerLampGroupInterface },
-        { ControllerServicePresetDescription, ControllerPresetInterface },
-        { ControllerServiceSceneDescription, ControllerSceneInterface },
-        { ControllerServiceMasterSceneDescription, ControllerMasterSceneInterface }
+        { ControllerServiceDescription, ControllerServiceInterfaceName },
+        { ControllerServiceLampDescription, ControllerServiceLampInterfaceName },
+        { ControllerServiceLampGroupDescription, ControllerServiceLampGroupInterfaceName },
+        { ControllerServicePresetDescription, ControllerServicePresetInterfaceName },
+        { ControllerServiceSceneDescription, ControllerServiceSceneInterfaceName },
+        { ControllerServiceMasterSceneDescription, ControllerServiceMasterSceneInterfaceName }
     };
 
     status = CreateAndAddInterfaces(interfaceEntries, sizeof(interfaceEntries) / sizeof(InterfaceEntry));
@@ -271,12 +261,12 @@ QStatus ControllerService::Start(void)
         return status;
     }
 
-    const InterfaceDescription* controllerServiceInterface = bus.GetInterface(ControllerInterface);
-    const InterfaceDescription* controllerServiceLampInterface = bus.GetInterface(ControllerLampInterface);
-    const InterfaceDescription* controllerServiceLampGroupInterface = bus.GetInterface(ControllerLampGroupInterface);
-    const InterfaceDescription* controllerServicePresetInterface = bus.GetInterface(ControllerPresetInterface);
-    const InterfaceDescription* controllerServiceSceneInterface = bus.GetInterface(ControllerSceneInterface);
-    const InterfaceDescription* controllerServiceMasterSceneInterface = bus.GetInterface(ControllerMasterSceneInterface);
+    const InterfaceDescription* controllerServiceInterface = bus.GetInterface(ControllerServiceInterfaceName);
+    const InterfaceDescription* controllerServiceLampInterface = bus.GetInterface(ControllerServiceLampInterfaceName);
+    const InterfaceDescription* controllerServiceLampGroupInterface = bus.GetInterface(ControllerServiceLampGroupInterfaceName);
+    const InterfaceDescription* controllerServicePresetInterface = bus.GetInterface(ControllerServicePresetInterfaceName);
+    const InterfaceDescription* controllerServiceSceneInterface = bus.GetInterface(ControllerServiceSceneInterfaceName);
+    const InterfaceDescription* controllerServiceMasterSceneInterface = bus.GetInterface(ControllerServiceMasterSceneInterfaceName);
 
     /*
      * Add method handlers for the various Controller Service interface methods
@@ -363,13 +353,13 @@ QStatus ControllerService::Start(void)
     aboutService = services::AboutServiceApi::getInstance();
     if (aboutService) {
         std::vector<qcc::String> ifaces;
-        ifaces.push_back(qcc::String(ControllerInterface));
-        ifaces.push_back(qcc::String(ControllerLampInterface));
-        ifaces.push_back(qcc::String(ControllerLampGroupInterface));
-        ifaces.push_back(qcc::String(ControllerPresetInterface));
-        ifaces.push_back(qcc::String(ControllerSceneInterface));
-        ifaces.push_back(qcc::String(ControllerMasterSceneInterface));
-        aboutService->AddObjectDescription(ControllerServicePath, ifaces);
+        ifaces.push_back(qcc::String(ControllerServiceInterfaceName));
+        ifaces.push_back(qcc::String(ControllerServiceLampInterfaceName));
+        ifaces.push_back(qcc::String(ControllerServiceLampGroupInterfaceName));
+        ifaces.push_back(qcc::String(ControllerServicePresetInterfaceName));
+        ifaces.push_back(qcc::String(ControllerServiceSceneInterfaceName));
+        ifaces.push_back(qcc::String(ControllerServiceMasterSceneInterfaceName));
+        aboutService->AddObjectDescription(ControllerServiceObjectPath, ifaces);
 
         status = aboutService->Register(ControllerServiceSessionPort);
         if (status != ER_OK) {
@@ -591,7 +581,7 @@ void ControllerService::LightingResetControllerService(Message& msg)
     SendMethodReplyWithUint32Value(msg, (uint32_t &)responseCode);
 
     if (responseCode != LSF_ERR_FAILURE) {
-        SendSignalWithoutArg(ControllerInterface, "ControllerServiceLightingReset");
+        SendSignalWithoutArg(ControllerServiceInterfaceName, "ControllerServiceLightingReset");
     }
 }
 
@@ -739,10 +729,10 @@ int ControllerService::HandleItem(Manager* manager)
     return 0;
 }
 
-uint32_t ControllerService::GetControllerInterfaceVersion(void)
+uint32_t ControllerService::GetControllerServiceInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerInterfaceVersion=%d", __FUNCTION__, controllerInterfaceVersion));
-    return controllerInterfaceVersion;
+    QCC_DbgPrintf(("%s: controllerInterfaceVersion=%d", __FUNCTION__, ControllerServiceInterfaceVersion));
+    return ControllerServiceInterfaceVersion;
 }
 
 QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& val)
@@ -751,18 +741,20 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
     QStatus status = ER_OK;
     // Check the requested property and return the value if it exists
     if (0 == strcmp("Version", propName)) {
-        if (0 == strcmp(ifcName, ControllerInterface)) {
-            status = val.Set("u", GetControllerInterfaceVersion());
-        } else if (0 == strcmp(ifcName, ControllerLampInterface)) {
-            status = val.Set("u", lampManager.GetControllerLampInterfaceVersion());
-        } else if (0 == strcmp(ifcName, ControllerLampGroupInterface)) {
-            status = val.Set("u", lampGroupManager.GetControllerLampGroupInterfaceVersion());
-        } else if (0 == strcmp(ifcName, ControllerPresetInterface)) {
-            status = val.Set("u", presetManager.GetControllerPresetInterfaceVersion());
-        } else if (0 == strcmp(ifcName, ControllerSceneInterface)) {
-            status = val.Set("u", sceneManager.GetControllerSceneInterfaceVersion());
-        } else if (0 == strcmp(ifcName, ControllerMasterSceneInterface)) {
-            status = val.Set("u", masterSceneManager.GetControllerMasterSceneInterfaceVersion());
+        if (0 == strcmp(ifcName, ControllerServiceInterfaceName)) {
+            status = val.Set("u", GetControllerServiceInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerServiceLampInterfaceName)) {
+            status = val.Set("u", lampManager.GetControllerServiceLampInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerServiceLampGroupInterfaceName)) {
+            status = val.Set("u", lampGroupManager.GetControllerServiceLampGroupInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerServicePresetInterfaceName)) {
+            status = val.Set("u", presetManager.GetControllerServicePresetInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerServiceSceneInterfaceName)) {
+            status = val.Set("u", sceneManager.GetControllerServiceSceneInterfaceVersion());
+        } else if (0 == strcmp(ifcName, ControllerServiceMasterSceneInterfaceName)) {
+            status = val.Set("u", masterSceneManager.GetControllerServiceMasterSceneInterfaceVersion());
+        } else if (0 == strcmp(ifcName, LeaderElectionAndStateSyncInterfaceName)) {
+            //TODO: Add support to return LSFTypes::LeaderElectionAndStateSyncInterfaceVersion
         } else {
             status = ER_BUS_OBJECT_NO_SUCH_INTERFACE;
         }

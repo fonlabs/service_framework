@@ -98,41 +98,6 @@ class ControllerClient : public ajn::MessageReceiver {
   public:
 
     /**
-     * Controller Service Object Path
-     */
-    static const std::string ControllerServiceObjectPath;
-
-    /**
-     * Controller Service Interface Name
-     */
-    static const std::string ControllerServiceInterfaceName;
-
-    /**
-     * Controller Service Lamp Interface Name
-     */
-    static const std::string ControllerServiceLampInterfaceName;
-
-    /**
-     * Controller Service Lamp Group Interface Name
-     */
-    static const std::string ControllerServiceLampGroupInterfaceName;
-
-    /**
-     * Controller Service Preset Interface Name
-     */
-    static const std::string ControllerServicePresetInterfaceName;
-
-    /**
-     * Controller Service Scene Interface Name
-     */
-    static const std::string ControllerServiceSceneInterfaceName;
-
-    /**
-     * Controller Service Master Scene Interface Name
-     */
-    static const std::string ControllerServiceMasterSceneInterfaceName;
-
-    /**
      * Constructor
      */
     ControllerClient(

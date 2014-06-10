@@ -2,7 +2,7 @@
 #define _OEM_CODE_H_
 /**
  * @file OEMCode.h
- * @defgroup oem_code OEM-specific code
+ * @defgroup oem_code The OEM APIs used by the Lamp Service
  * @{
  */
 /******************************************************************************
@@ -39,18 +39,19 @@
 void OEM_Initialize(void);
 
 /**
- * Return a string that describes the current fault state
- * ASSUME: return non-null IFF LAMP_SetFaults has been called recently
+ * Return a string that describes the current active faults
  *
+ * @param  None
+ * @return String describing the current active faults or NULL if there are no active faults
  */
-const char* OEM_GetFaultsText();
+const char* OEM_GetFaultsText(void);
 
 /**
  * OEM-defined default state
  * This function is called when the lamp boots from the factory state.
  * It will set the initial LampState values
  *
- * @param state The state to set
+ * @param  state The lamp state to set
  * @return None
  */
 void OEM_InitialState(LampState* state);
@@ -74,29 +75,31 @@ void OEM_FactoryReset(void);
 /**
  * Serialize the Lamp's current real-time parameters
  *
- * @param msg   The msg to serialize data into
- * @return      AJ_OK if no errors occured
+ * @param   msg   The msg to serialize data into
+ * @return  Status of the operation
  */
 AJ_Status OEM_GetLampParameters(AJ_Message* msg);
 
 /**
- * Return the current power draw, in milliamps
+ * Return the Lamp's current energy usage in milliwatts
  *
- * @return  The power draw
+ * @param   None
+ * @return  The Lamp's current energy usage in milliwatts
  */
-uint32_t OEM_GetEnergyUsageMilliwatts();
+uint32_t OEM_GetEnergyUsageMilliwatts(void);
 
 /**
- * Get the current light output
+ * Get the Lamp's current Brightness in Lumens
  *
- * @return the current light output
+ * @param   None
+ * @return  The Lamp's current Brightness in Lumens
  */
-uint32_t OEM_GetBrightnessLumens();
+uint32_t OEM_GetBrightnessLumens(void);
 
 #ifdef ONBOARDING_SERVICE
 
 /**
- * The default settings for the onboarding service
+ * The default settings for the Onboarding service
  */
 extern AJOBS_Settings OEM_OnboardingSettings;
 
@@ -106,72 +109,72 @@ extern AJOBS_Settings OEM_OnboardingSettings;
 /**
  * Change the lamp's on/off state
  *
- * @param onoff On or off
- * @return      LSF_OK if the state was successfully changed
+ * @param  onoff On or off
+ * @return Status of the operation
  */
 LampResponseCode OEM_SetLampOnOff(uint8_t onoff);
 
 /**
  * Change the lamp's hue
  *
- * @param hue   The hue
- * @return      LSF_OK if the state was successfully changed
+ * @param  hue   The hue
+ * @return Status of the operation
  */
 LampResponseCode OEM_SetLampHue(uint32_t hue);
 
 /**
  * Change the lamp's brightness
  *
- * @param brightness    The brightness
- * @return      LSF_OK if the state was successfully changed
+ * @param  brightness  The brightness
+ * @return Status of the operation
  */
 LampResponseCode OEM_SetLampBrightness(uint32_t brightness);
 
 /**
  * Change the lamp's saturation
  *
- * @param saturation    The saturation
- * @return      LSF_OK if the state was successfully changed
+ * @param  saturation The saturation
+ * @return Status of the operation
  */
 LampResponseCode OEM_SetLampSaturation(uint32_t saturation);
 
 /**
  * Change the lamp's color temperature
  *
- * @param colorTemp     The color temperature
- * @return      LSF_OK if the state was successfully changed
+ * @param   colorTemp     The color temperature
+ * @return  Status of the operation
  */
 LampResponseCode OEM_SetLampColorTemp(uint32_t colorTemp);
 
 /**
- * Change the lamp state
+ * This function needs to implemented by the OEM to support the Transition Effect
  *
- * @param newState  New state of the Lamp
- * @param timestamp Timestamp of when to transition.
- * @param transition_period The time to transition over
- * @return          LAMP_OK if no errors occured
+ * @param  newState          New state of the Lamp to transition to
+ * @param  timestamp         Timestamp of when to start the transition.
+ * @param  transitionPeriod  The time period to transition over
+ * @return Status of the operation
  */
-LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transition_period);
+LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod);
 
 /*
  * This function needs to implemented by the OEM to support the Pulse Effect
- * @param  fromState        Specifies the LampState(onOff, hue, saturation, colorTemp) that the Lamp needs to be in when transitioning the brightness as a part of pulse effect
- * @param  toState          End state when all pulses are finished
- * @param  period           Period of the pulse (in ms)
- * @param  duration         Ratio of the pulse (% of period during which the brightness should be increased from 0% to 100%)
+ * @param  fromState        Specifies the LampState that the Lamp needs to be in when starting a pulse
+ * @param  toState          End state of a pulse
+ * @param  period           Period of the pulse (in ms). Period refers to the time duration between the start of two pulses
+ * @param  duration         The duration of a single pulse (in ms). This must be less than the period
  * @param  numPulses        Number of pulses
- * @param  startTimeStamp   Start time stamp of the pulse effect
+ * @param  timestamp        Time stamp of when to start applying the pulse effect from
  *
  * @return Status of the operation
  */
-LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimeStamp);
+LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp);
 
 
 /**
  * Serialize all active fault codes into a message.
  *
  * @param msg   The message to serialize into
- * @return      The LampResponseCode; LAMP_OK if no errors occured
+ * @return      Status of the operation
  */
 LampResponseCode OEM_GetLampFaults(AJ_Message* msg);
 
@@ -179,7 +182,7 @@ LampResponseCode OEM_GetLampFaults(AJ_Message* msg);
  * Clear the lamp fault with the given code
  *
  * @param fault The fault code to clear
- * @return      LAMP_OK if the fault is valid and successfully cleared
+ * @return      Status of the operation
  */
 LampResponseCode OEM_ClearLampFault(LampFaultCode fault);
 
@@ -187,7 +190,7 @@ LampResponseCode OEM_ClearLampFault(LampFaultCode fault);
  * Serialize the Lamp's details
  *
  * @param msg   The msg to serialize data into
- * @return      LAMP_OK if no errors occured
+ * @return      Status of the operation
  */
 LampResponseCode LAMP_MarshalDetails(AJ_Message* msg);
 
@@ -195,35 +198,31 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg);
  * This struct holds all fields of the Lamp's Details.
  */
 typedef struct {
-    LampMake lampMake;        /**< The make of the lamp */
-    LampModel lampModel;      /**< The model of the lamp */
-
-    DeviceType deviceType;    /**< The type of device */
-    LampType lampType;        /**< The type of lamp */
-    BaseType baseType;        /**< The make of the lamp base */
-
-
-    uint32_t deviceLampBeamAngle; /**< The beam angle */
-    uint8_t deviceDimmable;       /**< Dimmable? */
-    uint8_t deviceColor;          /**< color? */
-    uint8_t variableColorTemp;    /**< variable color temperature? */
-    uint8_t deviceHasEffects;     /**< Are effects available? */
-
-    uint32_t deviceMinVoltage;    /**< Min voltage */
-    uint32_t deviceMaxVoltage;    /**< Max voltage */
-    uint32_t deviceWattage;       /**< wattage */
+    LampMake lampMake;                     /**< The make of the lamp */
+    LampModel lampModel;                   /**< The model of the lamp */
+    DeviceType deviceType;                 /**< The type of device */
+    LampType lampType;                     /**< The type of lamp */
+    BaseType baseType;                     /**< The make of the lamp base */
+    uint32_t deviceLampBeamAngle;          /**< The beam angle */
+    uint8_t deviceDimmable;                /**< Is the Lamp dimmable */
+    uint8_t deviceColor;                   /**< Does the lamp support color */
+    uint8_t variableColorTemp;             /**< variable color temperature? */
+    uint8_t deviceHasEffects;              /**< Are effects available? */
+    uint32_t deviceMinVoltage;             /**< Minimum voltage */
+    uint32_t deviceMaxVoltage;             /**< Maximum voltage */
+    uint32_t deviceWattage;                /**< Lamp Wattage */
     uint32_t deviceIncandescentEquivalent; /**< Incandescent equivalent */
-    uint32_t deviceMaxLumens;     /**< maximum output */
-    uint32_t deviceMinTemperature;    /**< lowest possible color temperature */
-    uint32_t deviceMaxTemperature;    /**< highest possible color temperature */
-    uint32_t deviceColorRenderingIndex; /**< rendering index */
-} LampDetails_t;
+    uint32_t deviceMaxLumens;              /**< Maximum light output in Lumens */
+    uint32_t deviceMinTemperature;         /**< Minimum supported color temperature */
+    uint32_t deviceMaxTemperature;         /**< Maximum supported color temperature */
+    uint32_t deviceColorRenderingIndex;    /**< Lamp's Color Rendering Index */
+} LampDetailsStruct;
 
 
 /**
  * A global struct to hold this Lamp's details.
  */
-extern LampDetails_t LampDetails;
+extern LampDetailsStruct LampDetails;
 
 /**
  * The about icon MIME type

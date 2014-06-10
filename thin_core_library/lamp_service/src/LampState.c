@@ -73,7 +73,6 @@ LampResponseCode LAMP_MarshalState(LampState* state, AJ_Message* msg)
     return LAMP_OK;
 }
 
-
 LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
 {
     AJ_Arg array1, struct1;
@@ -133,11 +132,9 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
     return responseCode;
 }
 
-
 #define LAMP_STATE_FD AJ_NVRAM_ID_FOR_APPS + 1
 
-
-void LAMP_InitializeState()
+void LAMP_InitializeState(void)
 {
     AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "r", 0);
     if (id != NULL) {
@@ -153,7 +150,6 @@ void LAMP_InitializeState()
         }
     }
 }
-
 
 void LAMP_GetState(LampState* state)
 {

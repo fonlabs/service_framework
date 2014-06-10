@@ -32,7 +32,7 @@ class PresetManager : public Manager {
     friend class LampManager;
   public:
 
-    PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& presetFile);
+    PresetManager(ControllerService& controllerSvc, SceneManager* sceneMgrPtr, const std::string& presetFile);
 
     LSFResponseCode Reset(void);
     LSFResponseCode ResetDefaultState(void);
@@ -57,7 +57,7 @@ class PresetManager : public Manager {
     void ReadSavedData();
     virtual void WriteFile();
 
-    uint32_t GetControllerPresetInterfaceVersion(void);
+    uint32_t GetControllerServicePresetInterfaceVersion(void);
 
   private:
 
@@ -67,7 +67,6 @@ class PresetManager : public Manager {
     Mutex presetsLock;
     Mutex defaultLampStateLock;
     LampState defaultLampState;
-    const char* interfaceName;
     SceneManager* sceneManagerPtr;
 };
 

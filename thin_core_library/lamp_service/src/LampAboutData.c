@@ -49,8 +49,6 @@
 uint8_t dbgLAMP_ABOUT_DATA = 1;
 #endif
 
-
-
 const char* LAMP_GetID(void)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
@@ -69,8 +67,6 @@ void LAMP_SetName(const char* name)
     AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME, name);
     AJSVC_PropertyStore_SaveAll();
 }
-
-void SavePersistentDeviceId();
 
 static AJ_Status FactoryReset(void)
 {

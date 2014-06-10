@@ -24,12 +24,14 @@
 #include <set>
 
 #include <alljoyn/MsgArg.h>
+#include <alljoyn/Session.h>
 #include <qcc/StringUtil.h>
 
 #include <LampValues.h>
 #include <LSFResponseCodes.h>
 
 using namespace qcc;
+using namespace ajn;
 
 #define LSF_CASE(_case) case _case: return # _case
 
@@ -40,6 +42,47 @@ typedef std::list<LSFString> LSFStringList;
 typedef std::list<LampFaultCode> LampFaultCodeList;
 
 typedef std::map<LSFString, LSFString> LampNameMap;
+
+extern const char* ControllerServiceObjectPath;
+extern const char* ControllerServiceInterfaceName;
+extern const char* ControllerServiceLampInterfaceName;
+extern const char* ControllerServiceLampGroupInterfaceName;
+extern const char* ControllerServicePresetInterfaceName;
+extern const char* ControllerServiceSceneInterfaceName;
+extern const char* ControllerServiceMasterSceneInterfaceName;
+extern ajn::SessionPort ControllerServiceSessionPort;
+
+extern const uint32_t ControllerServiceInterfaceVersion;
+extern const uint32_t ControllerServiceLampInterfaceVersion;
+extern const uint32_t ControllerServiceLampGroupInterfaceVersion;
+extern const uint32_t ControllerServicePresetInterfaceVersion;
+extern const uint32_t ControllerServiceSceneInterfaceVersion;
+extern const uint32_t ControllerServiceMasterSceneInterfaceVersion;
+extern const uint32_t ControllerServiceLeaderElectionAndStateSyncInterfaceVersion;
+
+extern const char* LampServiceObjectPath;
+extern const char* LampServiceInterfaceName;
+extern const char* LampServiceStateInterfaceName;
+extern const char* LampServiceParametersInterfaceName;
+extern const char* LampServiceDetailsInterfaceName;
+extern ajn::SessionPort LampServiceSessionPort;
+
+extern const char* ConfigServiceObjectPath;
+extern const char* ConfigServiceInterfaceName;
+
+extern const char* AboutObjectPath;
+extern const char* AboutInterfaceName;
+
+extern const char* LeaderElectionAndStateSyncObjectPath;
+extern const char* LeaderElectionAndStateSyncInterfaceName;
+extern ajn::SessionPort LeaderElectionAndStateSyncSessionPort;
+
+typedef enum _LSFBlobType {
+    LSF_PRESET,
+    LSF_LAMP_GROUP,
+    LSF_SCENE,
+    LSF_MASTER_SCENE
+} LSFBlobType;
 
 class LampState {
 

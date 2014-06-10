@@ -1,5 +1,10 @@
 #ifndef _LAMP_VALUES_H_
 #define _LAMP_VALUES_H_
+/**
+ * @file LampValues.h
+ * @defgroup lampValues Lamp specific type definitions
+ * @{
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -16,18 +21,33 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+/**
+ * Typedef for Lamp Fault Code
+ */
 typedef uint32_t LampFaultCode;
 
+/**
+ * Maximum length of any LSF entity (Lamp, Lamp Group, Scene, Preset, Master Scene) Name
+ */
 #define LSF_MAX_NAME_LENGTH 254
 
+/**
+ * Enum describing the make of a Lamp
+ */
 typedef enum {
     MAKE_LIFX
 } LampMake;
 
+/**
+ * Enum describing the model of a Lamp
+ */
 typedef enum {
     MODEL_LED
 } LampModel;
 
+/**
+ * Enum describing the type of a LSF Device
+ */
 typedef enum {
     TYPE_LAMP,
     TYPE_OUTLET,
@@ -35,6 +55,9 @@ typedef enum {
     TYPE_SWITCH
 } DeviceType;
 
+/**
+ * Enum describing the type of a Lamp
+ */
 typedef enum {
     LAMPTYPE_A15,
     LAMPTYPE_A17,
@@ -129,6 +152,9 @@ typedef enum {
     LAMPTYPE_ST18,
 } LampType;
 
+/**
+ * Enum describing the type of the Lamp Base
+ */
 typedef enum {
     BASETYPE_E5,
     BASETYPE_E10,
@@ -142,4 +168,7 @@ typedef enum {
     BASETYPE_E39
 } BaseType;
 
+/**
+ * @}
+ */
 #endif

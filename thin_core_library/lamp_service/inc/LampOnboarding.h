@@ -2,7 +2,7 @@
 #define _LAMP_ONBOARDING_H_
 /**
  * @file LampOnboarding.h
- * @defgroup lamp_onb Code used by Onboarding service
+ * @defgroup lamp_onb On-boarding service APIs used by the Lamp Service
  * @{
  */
 /******************************************************************************
@@ -28,23 +28,26 @@
 // these are not explicitly declared in the onboarding manager header
 
 /**
- * Are we currently connected to a WIFI network?
+ * Check if the device is connected to a WIFI network
  *
+ * @param  None
  * @return TRUE if connected to wifi
  */
-int8_t AJOBS_ControllerAPI_IsWiFiClient();
+int8_t AJOBS_ControllerAPI_IsWiFiClient(void);
 
 /**
- * Are we acting as a Soft AP?
+ * Check if the device is acting as a Soft AP
  *
+ * @param  None
  * @return TRUE if a soft AP
  */
-int8_t AJOBS_ControllerAPI_IsWiFiSoftAP();
+int8_t AJOBS_ControllerAPI_IsWiFiSoftAP(void);
 
 /**
- * Initialize the onboarding service
+ * Initialize the Onboarding service
  *
- * @return  AJ_OK if no error occured
+ * @param  None
+ * @return Status of the operation
  */
 AJ_Status LAMP_InitOnboarding(void);
 

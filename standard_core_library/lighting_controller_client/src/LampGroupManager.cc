@@ -37,7 +37,7 @@ ControllerClientStatus LampGroupManager::GetAllLampGroupIDs(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "GetAllLampGroupIDs");
 }
 
@@ -48,7 +48,7 @@ ControllerClientStatus LampGroupManager::GetLampGroupName(const LSFString& lampG
     args[0].Set("s", lampGroupID.c_str());
     args[1].Set("s", language.c_str());
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "GetLampGroupName",
                args,
                2);
@@ -64,7 +64,7 @@ ControllerClientStatus LampGroupManager::SetLampGroupName(const LSFString& lampG
     args[2].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "SetLampGroupName",
                args,
                3);
@@ -77,7 +77,7 @@ ControllerClientStatus LampGroupManager::CreateLampGroup(const LampGroup& lampGr
     lampGroup.Get(&args[0], &args[1]);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "CreateLampGroup",
                args,
                2);
@@ -91,7 +91,7 @@ ControllerClientStatus LampGroupManager::UpdateLampGroup(const LSFString& lampGr
     lampGroup.Get(&args[1], &args[2]);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "UpdateLampGroup",
                args,
                3);
@@ -104,7 +104,7 @@ ControllerClientStatus LampGroupManager::GetLampGroup(const LSFString& lampGroup
     arg.Set("s", lampGroupID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "GetLampGroup",
                this,
                &LampGroupManager::GetLampGroupReply,
@@ -133,7 +133,7 @@ ControllerClientStatus LampGroupManager::DeleteLampGroup(const LSFString& lampGr
     arg.Set("s", lampGroupID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "DeleteLampGroup",
                &arg,
                1);
@@ -145,7 +145,7 @@ ControllerClientStatus LampGroupManager::ResetLampGroupState(const LSFString& la
     MsgArg arg("s", lampGroupID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "ResetLampGroupState",
                &arg,
                1);
@@ -160,7 +160,7 @@ ControllerClientStatus LampGroupManager::ResetLampGroupStateField(const LSFStrin
     args[1].Set("s", stateFieldName.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "ResetLampGroupStateField",
                args,
                2);
@@ -175,7 +175,7 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupState(const LSFStrin
     args[2].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "TransitionLampGroupState",
                args,
                3);
@@ -200,7 +200,7 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithState(
     args[5].Set("u", numPulses);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "PulseLampGroupWithState",
                args,
                6);
@@ -225,7 +225,7 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithPreset(
     args[5].Set("u", numPulses);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "PulseLampGroupWithPreset",
                args,
                6);
@@ -244,7 +244,7 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupStateIntegerField(co
     args[3].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "TransitionLampGroupStateField",
                args,
                4);
@@ -262,7 +262,7 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupStateBooleanField(co
     args[3].Set("u", 0);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "TransitionLampGroupStateField",
                args,
                4);
@@ -278,7 +278,7 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupStateToPreset(const 
     args[2].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampGroupInterfaceName.c_str(),
+               ControllerServiceLampGroupInterfaceName,
                "TransitionLampGroupStateToPreset",
                args,
                3);

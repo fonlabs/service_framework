@@ -37,7 +37,7 @@ ControllerClientStatus SceneManager::GetAllSceneIDs(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "GetAllSceneIDs");
 }
 
@@ -48,7 +48,7 @@ ControllerClientStatus SceneManager::GetSceneName(const LSFString& sceneID, cons
     args[0].Set("s", sceneID.c_str());
     args[1].Set("s", language.c_str());
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "GetSceneName",
                args,
                2);
@@ -64,7 +64,7 @@ ControllerClientStatus SceneManager::SetSceneName(const LSFString& sceneID, cons
     args[2].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "SetSceneName",
                args,
                3);
@@ -77,7 +77,7 @@ ControllerClientStatus SceneManager::CreateScene(const Scene& scene)
     scene.Get(&args[0], &args[1], &args[2], &args[3]);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "CreateScene",
                args,
                4);
@@ -91,7 +91,7 @@ ControllerClientStatus SceneManager::UpdateScene(const LSFString& sceneID, const
     scene.Get(&args[1], &args[2], &args[3], &args[4]);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "UpdateScene",
                args,
                5);
@@ -104,7 +104,7 @@ ControllerClientStatus SceneManager::GetScene(const LSFString& sceneID)
     arg.Set("s", sceneID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "GetScene",
                this,
                &SceneManager::GetSceneReply,
@@ -119,7 +119,7 @@ ControllerClientStatus SceneManager::ApplyScene(const LSFString& sceneID)
     arg.Set("s", sceneID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "ApplyScene",
                &arg,
                1);
@@ -146,7 +146,7 @@ ControllerClientStatus SceneManager::DeleteScene(const LSFString& sceneID)
     arg.Set("s", sceneID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceSceneInterfaceName.c_str(),
+               ControllerServiceSceneInterfaceName,
                "DeleteScene",
                &arg,
                1);

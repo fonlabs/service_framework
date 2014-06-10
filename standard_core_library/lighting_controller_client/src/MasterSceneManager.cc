@@ -37,7 +37,7 @@ ControllerClientStatus MasterSceneManager::GetAllMasterSceneIDs(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "GetAllMasterSceneIDs");
 }
 
@@ -48,7 +48,7 @@ ControllerClientStatus MasterSceneManager::GetMasterSceneName(const LSFString& m
     args[0].Set("s", masterSceneID.c_str());
     args[1].Set("s", language.c_str());
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "GetMasterSceneName",
                args,
                2);
@@ -64,7 +64,7 @@ ControllerClientStatus MasterSceneManager::SetMasterSceneName(const LSFString& m
     args[2].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "SetMasterSceneName",
                args,
                3);
@@ -77,7 +77,7 @@ ControllerClientStatus MasterSceneManager::CreateMasterScene(const MasterScene& 
     masterScene.Get(&arg);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "CreateMasterScene",
                &arg,
                1);
@@ -91,7 +91,7 @@ ControllerClientStatus MasterSceneManager::UpdateMasterScene(const LSFString& ma
     masterScene.Get(&args[1]);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "UpdateMasterScene",
                args,
                2);
@@ -104,7 +104,7 @@ ControllerClientStatus MasterSceneManager::GetMasterScene(const LSFString& maste
     arg.Set("s", masterSceneID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "GetMasterScene",
                this,
                &MasterSceneManager::GetMasterSceneReply,
@@ -133,7 +133,7 @@ ControllerClientStatus MasterSceneManager::DeleteMasterScene(const LSFString& ma
     arg.Set("s", masterSceneID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "DeleteMasterScene",
                &arg,
                1);
@@ -146,7 +146,7 @@ ControllerClientStatus MasterSceneManager::ApplyMasterScene(const LSFString& mas
     arg.Set("s", masterSceneID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceMasterSceneInterfaceName.c_str(),
+               ControllerServiceMasterSceneInterfaceName,
                "ApplyMasterScene",
                &arg,
                1);

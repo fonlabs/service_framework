@@ -29,10 +29,8 @@ using namespace ajn;
 
 #define QCC_MODULE "LAMP_GROUP_MANAGER"
 
-static const uint32_t controllerLampGroupInterfaceVersion = 1;
-
-LampGroupManager::LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& lampGroupFile) :
-    Manager(controllerSvc, lampGroupFile), lampManager(lampMgr), interfaceName(ifaceName), sceneManagerPtr(sceneMgrPtr)
+LampGroupManager::LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, SceneManager* sceneMgrPtr, const std::string& lampGroupFile) :
+    Manager(controllerSvc, lampGroupFile), lampManager(lampMgr), sceneManagerPtr(sceneMgrPtr)
 {
 }
 
@@ -82,7 +80,7 @@ LSFResponseCode LampGroupManager::Reset(void)
          * Send the LampGroups deleted signal
          */
         if (lampGroupsList.size()) {
-            tempStatus = controllerService.SendSignal(interfaceName, "LampGroupsDeleted", lampGroupsList);
+            tempStatus = controllerService.SendSignal(ControllerServiceLampGroupInterfaceName, "LampGroupsDeleted", lampGroupsList);
             if (ER_OK != tempStatus) {
                 QCC_LogError(tempStatus, ("%s: Unable to send LampGroupsDeleted signal", __FUNCTION__));
             }
@@ -239,7 +237,7 @@ void LampGroupManager::SetLampGroupName(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
-        controllerService.SendSignal(interfaceName, "LampGroupsNameChanged", idList);
+        controllerService.SendSignal(ControllerServiceLampGroupInterfaceName, "LampGroupsNameChanged", idList);
     }
 }
 
@@ -283,7 +281,7 @@ void LampGroupManager::CreateLampGroup(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
-        controllerService.SendSignal(interfaceName, "LampGroupsCreated", idList);
+        controllerService.SendSignal(ControllerServiceLampGroupInterfaceName, "LampGroupsCreated", idList);
     }
 }
 
@@ -327,7 +325,7 @@ void LampGroupManager::UpdateLampGroup(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
-        controllerService.SendSignal(interfaceName, "LampGroupsUpdated", idList);
+        controllerService.SendSignal(ControllerServiceLampGroupInterfaceName, "LampGroupsUpdated", idList);
     }
 }
 
@@ -375,7 +373,7 @@ void LampGroupManager::DeleteLampGroup(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(lampGroupID);
-        controllerService.SendSignal(interfaceName, "LampGroupsDeleted", idList);
+        controllerService.SendSignal(ControllerServiceLampGroupInterfaceName, "LampGroupsDeleted", idList);
     }
 }
 
@@ -871,8 +869,8 @@ void LampGroupManager::WriteFile()
     stream.close();
 }
 
-uint32_t LampGroupManager::GetControllerLampGroupInterfaceVersion(void)
+uint32_t LampGroupManager::GetControllerServiceLampGroupInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerLampGroupInterfaceVersion=%d", __FUNCTION__, controllerLampGroupInterfaceVersion));
-    return controllerLampGroupInterfaceVersion;
+    QCC_DbgPrintf(("%s: controllerLampGroupInterfaceVersion=%d", __FUNCTION__, ControllerServiceLampGroupInterfaceVersion));
+    return ControllerServiceLampGroupInterfaceVersion;
 }

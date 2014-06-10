@@ -88,32 +88,30 @@ LampResponseCode OEM_SetLampColorTemp(uint32_t colorTemp)
     return LAMP_OK;
 }
 
-LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t startTimeStamp)
+LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp)
 {
     AJ_InfoPrintf(("%s: fromState(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), toState(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), period=%u, ratio=%u, numPulses=%u, start=%u/%u\n", __FUNCTION__,
                    fromState->hue, fromState->saturation, fromState->colorTemp, fromState->brightness, fromState->onOff,
                    toState->hue, toState->saturation, toState->colorTemp, toState->brightness, toState->onOff,
-                   period, duration, numPulses, (uint32_t) (startTimeStamp), (uint32_t) (startTimeStamp >> 32)));
+                   period, duration, numPulses, (uint32_t) (timestamp), (uint32_t) (timestamp >> 32)));
     return LAMP_OK;
 }
 
-LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transition_period)
+LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod)
 {
-    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), transition_period=%u\n", __FUNCTION__,
-                   newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff, transition_period));
+    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), transitionPeriod=%u\n", __FUNCTION__,
+                   newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff, transitionPeriod));
 
     LAMP_SetState(newState);
     return LAMP_OK;
 }
-
-
 
 void OEM_Initialize(void)
 {
     // TODO: vendor-specific initialization goes here
 }
 
-const char* OEM_GetFaultsText()
+const char* OEM_GetFaultsText(void)
 {
     return "Some notification";
 }
@@ -154,16 +152,14 @@ void OEM_FactoryReset(void)
     // TODO: anything related to the factory reset
 }
 
-
-uint32_t OEM_GetEnergyUsageMilliwatts()
+uint32_t OEM_GetEnergyUsageMilliwatts(void)
 {
     uint32_t energyUsageMilliwatts = 15;
     AJ_InfoPrintf(("%s: energy usage %u mW\n", __FUNCTION__, energyUsageMilliwatts));
     return energyUsageMilliwatts;
 }
 
-
-uint32_t OEM_GetBrightnessLumens()
+uint32_t OEM_GetBrightnessLumens(void)
 {
     uint32_t brightnessLumens = 100;
     AJ_InfoPrintf(("%s: brightness %u lumens\n", __FUNCTION__, brightnessLumens));
@@ -191,7 +187,6 @@ LampResponseCode OEM_ClearLampFault(LampFaultCode fault)
     return LAMP_OK;
 }
 
-
 AJ_Status OEM_GetLampParameters(AJ_Message* msg)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
@@ -203,8 +198,7 @@ AJ_Status OEM_GetLampParameters(AJ_Message* msg)
     return AJ_OK;
 }
 
-
-LampDetails_t LampDetails = {
+LampDetailsStruct LampDetails = {
     .lampMake = MAKE_LIFX,
     .lampModel = MODEL_LED,
     .deviceType = TYPE_LAMP,
@@ -224,7 +218,6 @@ LampDetails_t LampDetails = {
     .deviceMaxTemperature = 5000,
     .deviceColorRenderingIndex = 0
 };
-
 
 LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
 {
@@ -290,7 +283,6 @@ LampResponseCode LAMP_MarshalDetails(AJ_Message* msg)
     AJ_MarshalArgs(msg, "{sv}", "LampID", "s", AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID));
     return LAMP_OK;
 }
-
 
 const char* aboutIconMimetype = "image/png";
 

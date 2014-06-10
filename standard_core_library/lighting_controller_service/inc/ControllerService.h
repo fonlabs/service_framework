@@ -133,7 +133,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void Initialize();
 
-    uint32_t GetControllerInterfaceVersion(void);
+    uint32_t GetControllerServiceInterfaceVersion(void);
 
     /**
      * Handles the GetPropery request

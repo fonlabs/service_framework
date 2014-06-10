@@ -94,7 +94,7 @@ class LampManager : public Manager {
   public:
     friend class LampGroupManager;
 
-    LampManager(ControllerService& controllerSvc, PresetManager& presetMgr, const char* ifaceName);
+    LampManager(ControllerService& controllerSvc, PresetManager& presetMgr);
 
     ~LampManager();
 
@@ -258,7 +258,7 @@ class LampManager : public Manager {
      */
     void ResetLampStateField(ajn::Message& message);
 
-    uint32_t GetControllerLampInterfaceVersion(void);
+    uint32_t GetControllerServiceLampInterfaceVersion(void);
 
   private:
 
@@ -277,7 +277,6 @@ class LampManager : public Manager {
 
     LampClients lampClients;
     PresetManager& presetManager;
-    const char* interfaceName;
 
 };
 

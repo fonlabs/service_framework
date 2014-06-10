@@ -26,6 +26,7 @@ extern const std::string ControllerServiceLampGroupDescription;
 extern const std::string ControllerServicePresetDescription;
 extern const std::string ControllerServiceSceneDescription;
 extern const std::string ControllerServiceMasterSceneDescription;
+extern const std::string LeaderElectionAndStateSyncDescription;
 
 }
 

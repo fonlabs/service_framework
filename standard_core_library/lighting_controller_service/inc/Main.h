@@ -1,10 +1,5 @@
-#ifndef _LAMP_OEM_PROPERTIES_H_
-#define _LAMP_OEM_PROPERTIES_H_
-/**
- * @file OEMProvisioning.h
- * @defgroup property_store The OEM-defined properties used by About/Config Service
- * @{
- */
+#ifndef MAIN_H_
+#define MAIN_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -20,46 +15,8 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+#include <ControllerService.h>
 
-/**
- * Initialize the property store
- *
- * @param  None
- * @return Status of the operation
- */
-AJ_Status PropertyStore_Init(void);
+extern lsf::ControllerServiceManager* controllerSvcManagerPtr;
 
-/**
- * Persist device ID
- *
- * @param  None
- * @return None
- */
-void SavePersistentDeviceId(void);
-
-/**
- * The max length of the default language name
- */
-#define LANG_VALUE_LENGTH 7
-
-/**
- * The max length of the realm name
- */
-#define KEY_VALUE_LENGTH 10
-
-/**
- * The max length of the machine ID
- */
-#define MACHINE_ID_LENGTH (UUID_LENGTH * 2)
-
-/**
- * The max length of the device name
- */
-#define DEVICE_NAME_VALUE_LENGTH LSF_MAX_NAME_LENGTH
-
-/**
- * The max length of the password
- */
-#define PASSWORD_VALUE_LENGTH (AJ_ADHOC_LEN * 2)
-
-#endif
+#endif /* MAIN_H_ */

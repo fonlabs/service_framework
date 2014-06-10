@@ -31,10 +31,8 @@ using namespace ajn;
 
 #define QCC_MODULE "LAMP_MANAGER"
 
-static const uint32_t controllerLampInterfaceVersion = 1;
-
-LampManager::LampManager(ControllerService& controllerSvc, PresetManager& presetMgr, const char* ifaceName)
-    : Manager(controllerSvc), lampClients(controllerSvc), presetManager(presetMgr), interfaceName(ifaceName)
+LampManager::LampManager(ControllerService& controllerSvc, PresetManager& presetMgr)
+    : Manager(controllerSvc), lampClients(controllerSvc), presetManager(presetMgr)
 {
 
 }
@@ -590,8 +588,8 @@ void LampManager::PulseLampWithPreset(ajn::Message& message)
     ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
 }
 
-uint32_t LampManager::GetControllerLampInterfaceVersion(void)
+uint32_t LampManager::GetControllerServiceLampInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerLampInterfaceVersion=%d", __FUNCTION__, controllerLampInterfaceVersion));
-    return controllerLampInterfaceVersion;
+    QCC_DbgPrintf(("%s: controllerLampInterfaceVersion=%d", __FUNCTION__, ControllerServiceLampInterfaceVersion));
+    return ControllerServiceLampInterfaceVersion;
 }

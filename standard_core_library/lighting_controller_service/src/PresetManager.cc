@@ -26,10 +26,8 @@ using namespace ajn;
 
 #define QCC_MODULE "PRESET_MANAGER"
 
-static const uint32_t controllerPresetInterfaceVersion = 1;
-
-PresetManager::PresetManager(ControllerService& controllerSvc, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& presetFile) :
-    Manager(controllerSvc, presetFile), interfaceName(ifaceName), sceneManagerPtr(sceneMgrPtr)
+PresetManager::PresetManager(ControllerService& controllerSvc, SceneManager* sceneMgrPtr, const std::string& presetFile) :
+    Manager(controllerSvc, presetFile), sceneManagerPtr(sceneMgrPtr)
 {
     GetFactorySetDefaultLampState(defaultLampState);
 }
@@ -80,7 +78,7 @@ LSFResponseCode PresetManager::Reset(void)
          * Send the Presets deleted signal
          */
         if (presetsList.size()) {
-            tempStatus = controllerService.SendSignal(interfaceName, "PresetsDeleted", presetsList);
+            tempStatus = controllerService.SendSignal(ControllerServicePresetInterfaceName, "PresetsDeleted", presetsList);
             if (ER_OK != tempStatus) {
                 QCC_LogError(tempStatus, ("%s: Unable to send PresetsDeleted signal", __FUNCTION__));
             }
@@ -246,7 +244,7 @@ void PresetManager::SetPresetName(Message& msg)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
-        controllerService.SendSignal(interfaceName, "PresetsNameChanged", idList);
+        controllerService.SendSignal(ControllerServicePresetInterfaceName, "PresetsNameChanged", idList);
     }
 }
 
@@ -290,7 +288,7 @@ void PresetManager::CreatePreset(Message& msg)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
-        controllerService.SendSignal(interfaceName, "PresetsCreated", idList);
+        controllerService.SendSignal(ControllerServicePresetInterfaceName, "PresetsCreated", idList);
     }
 }
 
@@ -334,7 +332,7 @@ void PresetManager::UpdatePreset(Message& msg)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
-        controllerService.SendSignal(interfaceName, "PresetsUpdated", idList);
+        controllerService.SendSignal(ControllerServicePresetInterfaceName, "PresetsUpdated", idList);
     }
 }
 
@@ -382,7 +380,7 @@ void PresetManager::DeletePreset(Message& msg)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(presetID);
-        controllerService.SendSignal(interfaceName, "PresetsDeleted", idList);
+        controllerService.SendSignal(ControllerServicePresetInterfaceName, "PresetsDeleted", idList);
     }
 }
 
@@ -497,7 +495,7 @@ LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset)
          * Send the DefaultLampStateChangedSignal
          */
         QCC_DbgPrintf(("%s: Sending the DefaultLampStateChangedSignal", __FUNCTION__));
-        tempStatus = controllerService.SendSignalWithoutArg(interfaceName, "DefaultLampStateChanged");
+        tempStatus = controllerService.SendSignalWithoutArg(ControllerServicePresetInterfaceName, "DefaultLampStateChanged");
         if (ER_OK != tempStatus) {
             QCC_LogError(tempStatus, ("%s: Unable to send DefaultLampStateChanged signal", __FUNCTION__));
         }
@@ -585,8 +583,8 @@ void PresetManager::WriteFile()
     stream.close();
 }
 
-uint32_t PresetManager::GetControllerPresetInterfaceVersion(void)
+uint32_t PresetManager::GetControllerServicePresetInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerPresetInterfaceVersion=%d", __FUNCTION__, controllerPresetInterfaceVersion));
-    return controllerPresetInterfaceVersion;
+    QCC_DbgPrintf(("%s: controllerPresetInterfaceVersion=%d", __FUNCTION__, ControllerServicePresetInterfaceVersion));
+    return ControllerServicePresetInterfaceVersion;
 }

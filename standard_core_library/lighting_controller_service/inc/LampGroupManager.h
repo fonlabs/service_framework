@@ -34,7 +34,7 @@ class LampGroupManager : public Manager {
 
   public:
 
-    LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, const char* ifaceName, SceneManager* sceneMgrPtr, const std::string& lampGroupFile);
+    LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, SceneManager* sceneMgrPtr, const std::string& lampGroupFile);
 
     LSFResponseCode Reset(void);
     LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
@@ -71,7 +71,7 @@ class LampGroupManager : public Manager {
     virtual void WriteFile();
     void ReadSavedData();
 
-    uint32_t GetControllerLampGroupInterfaceVersion(void);
+    uint32_t GetControllerServiceLampGroupInterfaceVersion(void);
 
   protected:
 
@@ -87,7 +87,6 @@ class LampGroupManager : public Manager {
     LampGroupMap lampGroups;
     Mutex lampGroupsLock;
     LampManager& lampManager;
-    const char* interfaceName;
     SceneManager* sceneManagerPtr;
 };
 

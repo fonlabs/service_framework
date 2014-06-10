@@ -19,10 +19,45 @@
 #include <qcc/Debug.h>
 #include <algorithm>
 
-using namespace lsf;
 using namespace ajn;
 
 #define QCC_MODULE "LSF_TYPES"
+
+namespace lsf {
+
+const char* ControllerServiceObjectPath = "/org/allseen/LSF/ControllerService";
+const char* ControllerServiceInterfaceName = "org.allseen.LSF.ControllerService";
+const char* ControllerServiceLampInterfaceName = "org.allseen.LSF.ControllerService.Lamp";
+const char* ControllerServiceLampGroupInterfaceName = "org.allseen.LSF.ControllerService.LampGroup";
+const char* ControllerServicePresetInterfaceName = "org.allseen.LSF.ControllerService.Preset";
+const char* ControllerServiceSceneInterfaceName = "org.allseen.LSF.ControllerService.Scene";
+const char* ControllerServiceMasterSceneInterfaceName = "org.allseen.LSF.ControllerService.MasterScene";
+ajn::SessionPort ControllerServiceSessionPort = 43;
+
+const uint32_t ControllerServiceInterfaceVersion = 1;
+const uint32_t ControllerServiceLampInterfaceVersion = 1;
+const uint32_t ControllerServiceLampGroupInterfaceVersion = 1;
+const uint32_t ControllerServicePresetInterfaceVersion = 1;
+const uint32_t ControllerServiceSceneInterfaceVersion = 1;
+const uint32_t ControllerServiceMasterSceneInterfaceVersion = 1;
+const uint32_t LeaderElectionAndStateSyncInterfaceVersion = 1;
+
+const char* LampServiceObjectPath = "/org/allseen/LSF/Lamp";
+const char* LampServiceInterfaceName = "org.allseen.LSF.LampService";
+const char* LampServiceStateInterfaceName = "org.allseen.LSF.LampState";
+const char* LampServiceParametersInterfaceName = "org.allseen.LSF.LampParameters";
+const char* LampServiceDetailsInterfaceName = "org.allseen.LSF.LampDetails";
+ajn::SessionPort LampServiceSessionPort = 42;
+
+const char* ConfigServiceObjectPath = "/Config";
+const char* ConfigServiceInterfaceName = "org.alljoyn.Config";
+
+const char* AboutObjectPath = "/About";
+const char* AboutInterfaceName = "org.alljoyn.About";
+
+const char* LeaderElectionAndStateSyncObjectPath = "/org/allseen/LeaderElectionAndStateSync";
+const char* LeaderElectionAndStateSyncInterfaceName = "org.allseen.LeaderElectionAndStateSync";
+ajn::SessionPort LeaderElectionAndStateSyncSessionPort = 44;
 
 LampState::LampState() :
     onOff(false),
@@ -1416,4 +1451,6 @@ LSFResponseCode MasterScene::IsDependentOnScene(LSFString& sceneID)
     }
 
     return responseCode;
+}
+
 }

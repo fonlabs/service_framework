@@ -2,7 +2,7 @@
 #define _LAMP_SERVICE_H_
 /**
  * @file LampService.h
- * @defgroup lamp_service The Lamp AllJoyn service
+ * @defgroup lamp_service The AllJoyn Lamp Service APIs
  * @{
  */
 /******************************************************************************
@@ -35,15 +35,15 @@ void LAMP_RunService(void);
 /**
  * Typedef for the LSF callback
  *
- * @param None
+ * @param  None
  * @return None
  */
-typedef void (*LampServiceCallback)();
+typedef void (*LampServiceCallback)(void);
 
 /**
  * Get the LSF version
  *
- * @param None
+ * @param   None
  * @return  The version
  */
 uint32_t LAMP_GetServiceVersion(void);
@@ -61,14 +61,18 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
 /**
  * Schedule the signal org.allseen.LSF.LampService.LampStateChanged to be sent ASAP.
- * We call this every time the status is changed and written to NVRAM.
+ * We call this every time the Lamp State is changed and written to NVRAM.
+ *
+ * @param  None
+ * @return None
  */
 void LAMP_SendStateChangedSignal(void);
 
 /**
- * Call this method to indicate that some fault has occured
+ * Call this method to indicate that some fault has occurred
+ * in the Lamp
  *
- * @param None
+ * @param  None
  * @return None
  */
 void LAMP_SetFaults(void);
@@ -77,7 +81,7 @@ void LAMP_SetFaults(void);
  * This function must be called when all faults are cleared
  * in order to clear the Faults notification.
  *
- * @param None
+ * @param  None
  * @return None
  */
 void LAMP_ClearFaults(void);

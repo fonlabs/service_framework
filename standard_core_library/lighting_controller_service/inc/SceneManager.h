@@ -32,7 +32,7 @@ class MasterSceneManager;
 class SceneManager : public Manager {
     friend class MasterSceneManager;
   public:
-    SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName, MasterSceneManager* masterSceneMgr, const std::string& sceneFile);
+    SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, MasterSceneManager* masterSceneMgr, const std::string& sceneFile);
 
     LSFResponseCode Reset(void);
     LSFResponseCode IsDependentOnPreset(LSFString& presetID);
@@ -52,7 +52,7 @@ class SceneManager : public Manager {
     virtual void WriteFile();
     void ReadSavedData();
 
-    uint32_t GetControllerSceneInterfaceVersion(void);
+    uint32_t GetControllerServiceSceneInterfaceVersion(void);
 
   private:
 
@@ -61,7 +61,6 @@ class SceneManager : public Manager {
     SceneMap scenes;
     Mutex scenesLock;
     LampGroupManager& lampGroupManager;
-    const char* interfaceName;
     MasterSceneManager* masterSceneManager;
 };
 

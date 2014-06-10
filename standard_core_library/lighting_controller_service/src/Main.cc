@@ -13,18 +13,16 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-
-#include <ControllerService.h>
-
 #include <climits>
 #include <signal.h>
 #include <unistd.h>
+#include <Main.h>
 
 #define QCC_MODULE "MAIN"
 
 static volatile sig_atomic_t g_interrupt = false;
 
-static lsf::ControllerServiceManager* controllerSvcManagerPtr = NULL;
+lsf::ControllerServiceManager* controllerSvcManagerPtr = NULL;
 
 static void SigIntHandler(int sig)
 {

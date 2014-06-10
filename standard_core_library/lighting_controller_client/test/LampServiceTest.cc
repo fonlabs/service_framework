@@ -72,11 +72,6 @@ static qcc::String NextTok(qcc::String& inStr)
     return qcc::Trim(ret);
 }
 
-
-
-static const char* LSF_Object = "/org/allseen/LSF/Lamp";
-static const char* LSF_Iface = "org.allseen.LSF.LampService";
-
 class MyTestHandler : public services::AnnounceHandler, public SessionListener, services::NotificationReceiver {
   public:
 
@@ -148,11 +143,11 @@ void MyTestHandler::Announce(uint16_t version, uint16_t port, const char* busNam
         QCC_DbgPrintf(("\t%s: [%s]\n", it->first.c_str(), it->second.ToString().c_str()));
     }
 
-    ObjectDescriptions::const_iterator oit = objectDescs.find(LSF_Object);
+    ObjectDescriptions::const_iterator oit = objectDescs.find(LampServiceObjectPath);
     if (oit != objectDescs.end()) {
-        QCC_DbgPrintf(("%s found\n", LSF_Object));
-        if (std::find(oit->second.begin(), oit->second.end(), LSF_Iface) != oit->second.end()) {
-            QCC_DbgPrintf(("%s found\n", LSF_Iface));
+        QCC_DbgPrintf(("%s found\n", LampServiceObjectPath));
+        if (std::find(oit->second.begin(), oit->second.end(), LampServiceInterfaceName) != oit->second.end()) {
+            QCC_DbgPrintf(("%s found\n", LampServiceInterfaceName));
             is_lamp = true;
         }
     }
@@ -180,14 +175,14 @@ void MyTestHandler::Announce(uint16_t version, uint16_t port, const char* busNam
         SessionId sessionID;
         QStatus status = bus.JoinSession(busName, port, this, sessionID, opts);
         QCC_DbgPrintf(("BusAttachment::JoinSession(%u): %s\n", sessionID, QCC_StatusText(status)));
-        _object = new ProxyBusObject(bus, busName, LSF_Object, sessionID);
+        _object = new ProxyBusObject(bus, busName, LampServiceObjectPath, sessionID);
         _object->IntrospectRemoteObject();
 
         _config = new ProxyBusObject(bus, busName, "/Config", sessionID);
         status = _config->IntrospectRemoteObject();
         printf("Config::IntrospectRemoteObject(): %s\n", QCC_StatusText(status));
 
-        const InterfaceDescription* uniqueId = bus.GetInterface("org.allseen.LSF.LampService");
+        const InterfaceDescription* uniqueId = bus.GetInterface(LampServiceInterfaceName);
         const InterfaceDescription::Member* sig = uniqueId->GetMember("LampStateChanged");
         bus.RegisterSignalHandler(this, static_cast<MessageReceiver::SignalHandler>(&MyTestHandler::LampsStateChangedSignalHandler), sig, "/org/allseen/LSF/Lamp");
     }
@@ -270,7 +265,7 @@ int main()
             printf("UpdateConfigurations: %s\n", QCC_StatusText(status));
         } else if (cmd == "GetLampState") {
             MsgArg stateValues;
-            QStatus status = handler._object->GetAllProperties("org.allseen.LSF.LampState", stateValues);
+            QStatus status = handler._object->GetAllProperties(LampServiceStateInterfaceName, stateValues);
             printf("ProxyBusObject::GetAllProperties(org.allseen.LSF.LampState): %s\n", QCC_StatusText(status));
             if (status == ER_OK) {
                 size_t numStateEntries;
@@ -288,7 +283,7 @@ int main()
             String field = NextTok(line);
             MsgArg value;
 
-            QStatus status = handler._object->GetProperty("org.allseen.LSF.LampState", field.c_str(), value);
+            QStatus status = handler._object->GetProperty(LampServiceStateInterfaceName, field.c_str(), value);
             printf("ProxyBusObject::GetProperty(org.allseen.LSF.LampState, %s): %s\n", field.c_str(), QCC_StatusText(status));
 
             if (status == ER_OK) {
@@ -296,7 +291,7 @@ int main()
             }
         } else if (cmd == "GetLampDetails") {
             MsgArg stateValues;
-            QStatus status = handler._object->GetAllProperties("org.allseen.LSF.LampDetails", stateValues);
+            QStatus status = handler._object->GetAllProperties(LampServiceDetailsInterfaceName, stateValues);
             printf("ProxyBusObject::GetAllProperties(org.allseen.LSF.LampDetails): %s\n", QCC_StatusText(status));
             if (status == ER_OK) {
                 size_t numStateEntries;
@@ -312,7 +307,7 @@ int main()
             }
         } else if (cmd == "GetLampParameters") {
             MsgArg stateValues;
-            QStatus status = handler._object->GetAllProperties("org.allseen.LSF.LampParameters", stateValues);
+            QStatus status = handler._object->GetAllProperties(LampServiceParametersInterfaceName, stateValues);
             printf("ProxyBusObject::GetAllProperties(org.allseen.LSF.LampParameters): %s\n", QCC_StatusText(status));
             if (status == ER_OK) {
                 size_t numStateEntries;
@@ -330,7 +325,7 @@ int main()
             String field = NextTok(line);
             MsgArg value;
 
-            QStatus status = handler._object->GetProperty("org.allseen.LSF.LampParameters", field.c_str(), value);
+            QStatus status = handler._object->GetProperty(LampServiceParametersInterfaceName, field.c_str(), value);
             printf("ProxyBusObject::GetProperty(org.allseen.LSF.LampParameters, %s): %s\n", field.c_str(), QCC_StatusText(status));
 
             if (status == ER_OK) {
@@ -350,7 +345,7 @@ int main()
             state.SetField("ColorTemp", (uint32_t) 4);
             state.Get(methodArgs[1]);
 
-            QStatus status = handler._object->MethodCall("org.allseen.LSF.LampState", "TransitionLampState", methodArgs, 2, replyMsg);
+            QStatus status = handler._object->MethodCall(LampServiceStateInterfaceName, "TransitionLampState", methodArgs, 2, replyMsg);
             printf("ProxyBusObject::MethodCall(): %s\n", QCC_StatusText(status));
 
             if (status == ER_OK) {
@@ -384,7 +379,7 @@ int main()
             state.SetField("ColorTemp", (uint32_t) COLOR);
             state.Get(methodArgs[1]);
 
-            QStatus status = handler._object->MethodCall("org.allseen.LSF.LampState", "TransitionLampState", methodArgs, 2, replyMsg);
+            QStatus status = handler._object->MethodCall(LampServiceStateInterfaceName, "TransitionLampState", methodArgs, 2, replyMsg);
             printf("ProxyBusObject::MethodCall(): %s\n", QCC_StatusText(status));
             if (status == ER_OK) {
                 const MsgArg* args;
@@ -397,7 +392,7 @@ int main()
             }
 
             MsgArg stateValues;
-            status = handler._object->GetAllProperties("org.allseen.LSF.LampState", stateValues);
+            status = handler._object->GetAllProperties(LampServiceStateInterfaceName, stateValues);
             printf("ProxyBusObject::GetAllProperties(org.allseen.LSF.LampState): %s\n", QCC_StatusText(status));
             if (status == ER_OK) {
                 lsf::LampState newState(stateValues);
@@ -416,7 +411,7 @@ int main()
             String field = NextTok(line);
             MsgArg value;
 
-            QStatus status = handler._object->GetProperty("org.allseen.LSF.LampService", "LampFaults", value);
+            QStatus status = handler._object->GetProperty(LampServiceInterfaceName, "LampFaults", value);
             printf("ProxyBusObject::GetProperty(org.allseen.LSF.LampParameters, %s): %s\n", field.c_str(), QCC_StatusText(status));
 
             if (status == ER_OK) {

@@ -526,4 +526,23 @@ const std::string ControllerServiceMasterSceneDescription =
     "    </signal>"
     "  </interface>"
     "</node>";
+
+const std::string LeaderElectionAndStateSyncDescription =
+    "<node>"
+    "  <interface name='org.allseen.LeaderElectionAndStateSync'>"
+    "  <property name='Version' type='u' access='read'/>"
+    "    <method name='GetChecksumAndModificationTimestamp'>"
+    "      <arg name='checksumAndModificationTimestamp' type='a(uut)' direction='out'/>"
+    "    </method>"
+    "    <method name='GetBlob'>"
+    "      <arg name='blobType' type='u' direction='in'/>"
+    "      <arg name='blob' type='s' direction='out'/>"
+    "      <arg name='checksum' type='u' direction='out'/>"
+    "      <arg name='modificationTimestamp' type='t' direction='out'/>"
+    "    </method>"
+    "    <signal name='BlobChanged'>"
+    "      <arg name='checksumAndModificationTimestamp' type='a(uut)' direction='out'/>"
+    "    </signal>"
+    "  </interface>"
+    "</node>";
 }

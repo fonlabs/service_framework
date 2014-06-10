@@ -33,37 +33,6 @@ namespace lsf {
 /**
  * Controller Service Object Path
  */
-const std::string ControllerClient::ControllerServiceObjectPath = "/org/allseen/LSF/ControllerService";
-
-/**
- * Controller Service Interface Name
- */
-const std::string ControllerClient::ControllerServiceInterfaceName = "org.allseen.LSF.ControllerService";
-
-/**
- * Controller Service Lamp Interface Name
- */
-const std::string ControllerClient::ControllerServiceLampInterfaceName = "org.allseen.LSF.ControllerService.Lamp";
-
-/**
- * Controller Service Lamp Group Interface Name
- */
-const std::string ControllerClient::ControllerServiceLampGroupInterfaceName = "org.allseen.LSF.ControllerService.LampGroup";
-
-/**
- * Controller Service Preset Interface Name
- */
-const std::string ControllerClient::ControllerServicePresetInterfaceName = "org.allseen.LSF.ControllerService.Preset";
-
-/**
- * Controller Service Scene Interface Name
- */
-const std::string ControllerClient::ControllerServiceSceneInterfaceName = "org.allseen.LSF.ControllerService.Scene";
-
-/**
- * Controller Service Master Scene Interface Name
- */
-const std::string ControllerClient::ControllerServiceMasterSceneInterfaceName = "org.allseen.LSF.ControllerService.MasterScene";
 
 /**
  * Handler class for some standard AllJoyn signals and callbacks
@@ -134,9 +103,9 @@ void ControllerClient::ControllerClientBusHandler::Announce(
 
     controllerClient.bus.EnableConcurrentCallbacks();
 
-    ObjectDescriptions::const_iterator oit = objectDescs.find(ControllerServiceObjectPath.c_str());
+    ObjectDescriptions::const_iterator oit = objectDescs.find(ControllerServiceObjectPath);
     if (oit != objectDescs.end()) {
-        if (std::find(oit->second.begin(), oit->second.end(), ControllerServiceInterfaceName.c_str()) != oit->second.end()) {
+        if (std::find(oit->second.begin(), oit->second.end(), ControllerServiceInterfaceName) != oit->second.end()) {
             ait = aboutData.find("DeviceId");
             if (ait == aboutData.end()) {
                 QCC_LogError(ER_FAIL, ("%s: DeviceId missing in About Announcement", __FUNCTION__));
@@ -299,7 +268,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
         isJoining = false;
 
         //ActiveService& svc = activeServices[service];
-        proxyObject = new ProxyBusObject(bus, service->busName.c_str(), ControllerServiceObjectPath.c_str(), sessionId);
+        proxyObject = new ProxyBusObject(bus, service->busName.c_str(), ControllerServiceObjectPath, sessionId);
         // map the session id back to the service id
         activeSessions[sessionId] = service->deviceID;
 
@@ -415,12 +384,12 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
             AddMethodReplyWithResponseCodeAndIDHandler("ApplyMasterScene", masterSceneManagerPtr, &MasterSceneManager::ApplyMasterSceneReply);
         }
 
-        const InterfaceDescription* controllerServiceInterface = proxyObject->GetInterface(ControllerServiceInterfaceName.c_str());
-        const InterfaceDescription* controllerServiceLampInterface = proxyObject->GetInterface(ControllerServiceLampInterfaceName.c_str());
-        const InterfaceDescription* controllerServiceLampGroupInterface = proxyObject->GetInterface(ControllerServiceLampGroupInterfaceName.c_str());
-        const InterfaceDescription* controllerServicePresetInterface = proxyObject->GetInterface(ControllerServicePresetInterfaceName.c_str());
-        const InterfaceDescription* controllerServiceSceneInterface = proxyObject->GetInterface(ControllerServiceSceneInterfaceName.c_str());
-        const InterfaceDescription* controllerServiceMasterSceneInterface = proxyObject->GetInterface(ControllerServiceMasterSceneInterfaceName.c_str());
+        const InterfaceDescription* controllerServiceInterface = proxyObject->GetInterface(ControllerServiceInterfaceName);
+        const InterfaceDescription* controllerServiceLampInterface = proxyObject->GetInterface(ControllerServiceLampInterfaceName);
+        const InterfaceDescription* controllerServiceLampGroupInterface = proxyObject->GetInterface(ControllerServiceLampGroupInterfaceName);
+        const InterfaceDescription* controllerServicePresetInterface = proxyObject->GetInterface(ControllerServicePresetInterfaceName);
+        const InterfaceDescription* controllerServiceSceneInterface = proxyObject->GetInterface(ControllerServiceSceneInterfaceName);
+        const InterfaceDescription* controllerServiceMasterSceneInterface = proxyObject->GetInterface(ControllerServiceMasterSceneInterfaceName);
 
         const SignalEntry signalEntries[] = {
             { controllerServiceInterface->GetMember("ControllerServiceLightingReset"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
@@ -454,7 +423,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                 this,
                 signalEntries[i].handler,
                 signalEntries[i].member,
-                ControllerClient::ControllerServiceObjectPath.c_str());
+                ControllerServiceObjectPath);
 
             if (status != ER_OK) {
                 QCC_LogError(status, ("RegisterSignalHandler failed for %s", signalEntries[i].member->name.c_str()));
@@ -472,58 +441,58 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
          */
         QCC_DbgPrintf(("%s: Trying to read the versions of all the Controller Service interfaces", __FUNCTION__));
         MsgArg val;
-        status = proxyObject->GetProperty(ControllerServiceInterfaceName.c_str(), "Version", val);
+        status = proxyObject->GetProperty(ControllerServiceInterfaceName, "Version", val);
         if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceInterfaceVersion = %d", __FUNCTION__, iVal));
         } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceInterfaceName.c_str()));
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceInterfaceName));
         }
         val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceLampInterfaceName.c_str(), "Version", val);
+        status = proxyObject->GetProperty(ControllerServiceLampInterfaceName, "Version", val);
         if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceLampInterfaceVersion = %d", __FUNCTION__, iVal));
         } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampInterfaceName.c_str()));
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampInterfaceName));
         }
         val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceLampGroupInterfaceName.c_str(), "Version", val);
+        status = proxyObject->GetProperty(ControllerServiceLampGroupInterfaceName, "Version", val);
         if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceLampGroupInterfaceVersion = %d", __FUNCTION__, iVal));
         } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampGroupInterfaceName.c_str()));
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampGroupInterfaceName));
         }
         val.Clear();
-        status = proxyObject->GetProperty(ControllerServicePresetInterfaceName.c_str(), "Version", val);
+        status = proxyObject->GetProperty(ControllerServicePresetInterfaceName, "Version", val);
         if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServicePresetInterfaceVersion = %d", __FUNCTION__, iVal));
         } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServicePresetInterfaceName.c_str()));
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServicePresetInterfaceName));
         }
         val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceSceneInterfaceName.c_str(), "Version", val);
+        status = proxyObject->GetProperty(ControllerServiceSceneInterfaceName, "Version", val);
         if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceSceneInterfaceVersion = %d", __FUNCTION__, iVal));
         } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceSceneInterfaceName.c_str()));
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceSceneInterfaceName));
         }
         val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceMasterSceneInterfaceName.c_str(), "Version", val);
+        status = proxyObject->GetProperty(ControllerServiceMasterSceneInterfaceName, "Version", val);
         if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceMasterSceneInterfaceVersion = %d", __FUNCTION__, iVal));
         } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceMasterSceneInterfaceName.c_str()));
+            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceMasterSceneInterfaceName));
         }
         callback.ConnectedToControllerServiceCB(deviceID, deviceName);
 /*

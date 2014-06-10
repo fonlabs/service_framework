@@ -37,7 +37,7 @@ ControllerClientStatus LampManager::GetAllLampIDs(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetAllLampIDs");
 }
 
@@ -48,7 +48,7 @@ ControllerClientStatus LampManager::GetLampManufacturer(const LSFString& lampID,
     args[0].Set("s", lampID.c_str());
     args[1].Set("s", language.c_str());
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampManufacturer",
                args,
                2);
@@ -61,7 +61,7 @@ ControllerClientStatus LampManager::GetLampName(const LSFString& lampID, const L
     args[0].Set("s", lampID.c_str());
     args[1].Set("s", language.c_str());
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampName",
                args,
                2);
@@ -77,7 +77,7 @@ ControllerClientStatus LampManager::SetLampName(const LSFString& lampID, const L
     args[2].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "SetLampName",
                args,
                3);
@@ -91,7 +91,7 @@ ControllerClientStatus LampManager::GetLampDetails(const LSFString& lampID)
     arg.Set("s", lampID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampDetails",
                this,
                &LampManager::GetLampDetailsReply,
@@ -122,7 +122,7 @@ ControllerClientStatus LampManager::GetLampParameters(const LSFString& lampID)
     arg.Set("s", lampID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampParameters",
                this,
                &LampManager::GetLampParametersReply,
@@ -153,7 +153,7 @@ ControllerClientStatus LampManager::GetLampState(const LSFString& lampID)
     arg.Set("s", lampID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampState",
                this,
                &LampManager::GetLampStateReply,
@@ -184,7 +184,7 @@ ControllerClientStatus LampManager::ResetLampState(const LSFString& lampID)
     arg.Set("s", lampID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "ResetLampState",
                &arg,
                1);
@@ -203,7 +203,7 @@ ControllerClientStatus LampManager::TransitionLampState(
     args[2].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "TransitionLampState",
                args,
                3);
@@ -228,7 +228,7 @@ ControllerClientStatus LampManager::PulseLampWithState(
     args[5].Set("u", numPulses);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "PulseLampWithState",
                args,
                6);
@@ -253,7 +253,7 @@ ControllerClientStatus LampManager::PulseLampWithPreset(
     args[5].Set("u", numPulses);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "PulseLampWithPreset",
                args,
                6);
@@ -269,7 +269,7 @@ ControllerClientStatus LampManager::TransitionLampStateToPreset(const LSFString&
     args[2].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "TransitionLampStateToPreset",
                args,
                3);
@@ -282,7 +282,7 @@ ControllerClientStatus LampManager::GetLampFaults(const LSFString& lampID)
     MsgArg arg("s", lampID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampFaults",
                this,
                &LampManager::GetLampFaultsReply,
@@ -321,7 +321,7 @@ ControllerClientStatus LampManager::GetLampServiceVersion(const LSFString& lampI
     MsgArg arg("s", lampID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampServiceVersion",
                this,
                &LampManager::GetLampServiceVersionReply,
@@ -353,7 +353,7 @@ ControllerClientStatus LampManager::ClearLampFault(const LSFString& lampID, cons
     args[1].Set("u", faultCode);
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "ClearLampFault",
                this,
                &LampManager::ClearLampFaultReply,
@@ -385,7 +385,7 @@ ControllerClientStatus LampManager::GetLampStateField(const LSFString& lampID, c
     args[1].Set("s", stateFieldName.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampStateField",
                this,
                &LampManager::GetLampStateFieldReply,
@@ -435,7 +435,7 @@ ControllerClientStatus LampManager::ResetLampStateField(const LSFString& lampID,
     args[1].Set("s", stateFieldName.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "ResetLampStateField",
                args,
                2);
@@ -477,7 +477,7 @@ ControllerClientStatus LampManager::TransitionLampStateIntegerField(
     args[3].Set("u", transitionPeriod);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "TransitionLampStateField",
                args,
                4);
@@ -498,7 +498,7 @@ ControllerClientStatus LampManager::TransitionLampStateBooleanField(
     args[3].Set("u", 0);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "TransitionLampStateField",
                args,
                4);
@@ -532,7 +532,7 @@ ControllerClientStatus LampManager::GetLampParametersField(const LSFString& lamp
     args[1].Set("s", fieldName.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampParametersField",
                this,
                &LampManager::GetLampParametersFieldReply,
@@ -570,7 +570,7 @@ ControllerClientStatus LampManager::GetLampSupportedLanguages(const LSFString& l
     MsgArg arg("s", lampID.c_str());
 
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServiceLampInterfaceName.c_str(),
+               ControllerServiceLampInterfaceName,
                "GetLampSupportedLanguages",
                this,
                &LampManager::GetLampSupportedLanguagesReply,

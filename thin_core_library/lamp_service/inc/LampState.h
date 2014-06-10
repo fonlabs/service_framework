@@ -2,7 +2,7 @@
 #define _LAMP_STATE_H_
 /**
  * @file LampState.h
- * @defgroup lamp_state The Lamp State
+ * @defgroup lamp_state The Lamp State related APIs used by the Lamp Service
  * @{
  */
 /******************************************************************************
@@ -26,22 +26,23 @@
 #include <LampResponseCodes.h>
 
 /**
- * Struct _LampState.  This is used to store the various state fields.
+ * Struct LampState.
+ * This is used to store the various lamp state fields.
  */
 typedef struct _LampState {
     uint32_t hue;           /**< The lamp hue */
-    uint32_t saturation;    /**< The lamp color saturation */
+    uint32_t saturation;    /**< The lamp saturation */
     uint32_t colorTemp;     /**< The lamp color temperature */
     uint32_t brightness;    /**< The lamp brightness */
     uint8_t onOff;          /**< Is the lamp on or off */
 } LampState;
 
 /**
- * Unmarshal the LampState params from a message
+ * Unmarshal the LampState fields from a message
  *
- * @param state[out] The state to read into
- * @param msg[in]    The message to read from
- * @return           LAMP_OK if all fields valid
+ * @param[out] state The lamp state container to read into
+ * @param[in]  msg   The message to read from
+ * @return Status of the operation
  */
 LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg);
 
@@ -50,14 +51,17 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg);
  *
  * @param state The state to marshal
  * @param msg   The msg to serialize data into
- * @return      LAMP_OK if no errors occured
+ * @return Status of the operation
  */
 LampResponseCode LAMP_MarshalState(LampState* state, AJ_Message* msg);
 
 /**
- * Initialize the LampState.  Read it from NVRAM
+ * Initialize the LampState by reading it from NVRAM
+ *
+ * @param None
+ * @param None
  */
-void LAMP_InitializeState();
+void LAMP_InitializeState(void);
 
 /**
  * Get the current LampState
@@ -67,14 +71,17 @@ void LAMP_InitializeState();
 void LAMP_GetState(LampState* state);
 
 /**
- * Set the new lamp state and save it in NVRAM.
+ * Set the lamp state and save it in NVRAM.
  *
  * @param[in] state The new state
  */
 void LAMP_SetState(const LampState* state);
 
 /**
- * Clear the state
+ * Clear the lamp state
+ *
+ * @param None
+ * @param None
  */
 void LAMP_ClearState(void);
 

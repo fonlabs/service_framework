@@ -27,10 +27,8 @@ using namespace ajn;
 
 #define QCC_MODULE "SCENE_MANAGER"
 
-static const uint32_t controllerSceneInterfaceVersion = 1;
-
-SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, const char* ifaceName, MasterSceneManager* masterSceneMgr, const std::string& sceneFile) :
-    Manager(controllerSvc, sceneFile), lampGroupManager(lampGroupMgr), interfaceName(ifaceName), masterSceneManager(masterSceneMgr)
+SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, MasterSceneManager* masterSceneMgr, const std::string& sceneFile) :
+    Manager(controllerSvc, sceneFile), lampGroupManager(lampGroupMgr), masterSceneManager(masterSceneMgr)
 {
 }
 
@@ -80,7 +78,7 @@ LSFResponseCode SceneManager::Reset(void)
          * Send the Scenes deleted signal
          */
         if (scenesList.size()) {
-            tempStatus = controllerService.SendSignal(interfaceName, "ScenesDeleted", scenesList);
+            tempStatus = controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesDeleted", scenesList);
             if (ER_OK != tempStatus) {
                 QCC_LogError(tempStatus, ("%s: Unable to send ScenesDeleted signal", __FUNCTION__));
             }
@@ -257,7 +255,7 @@ void SceneManager::SetSceneName(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
-        controllerService.SendSignal(interfaceName, "ScenesNameChanged", idList);
+        controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesNameChanged", idList);
     }
 }
 
@@ -301,7 +299,7 @@ void SceneManager::CreateScene(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
-        controllerService.SendSignal(interfaceName, "ScenesCreated", idList);
+        controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesCreated", idList);
     }
 }
 
@@ -345,7 +343,7 @@ void SceneManager::UpdateScene(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
-        controllerService.SendSignal(interfaceName, "ScenesUpdated", idList);
+        controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesUpdated", idList);
     }
 }
 
@@ -393,7 +391,7 @@ void SceneManager::DeleteScene(Message& message)
         ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(sceneID);
-        controllerService.SendSignal(interfaceName, "ScenesDeleted", idList);
+        controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesDeleted", idList);
     }
 }
 
@@ -461,7 +459,7 @@ void SceneManager::ApplyScene(ajn::Message& message)
     responseCode = ApplySceneInternal(message, scenes);
 
     if (LSF_OK == responseCode) {
-        controllerService.SendSignal(interfaceName, "ScenesApplied", scenes);
+        controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesApplied", scenes);
     } else {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, sceneID);
     }
@@ -786,8 +784,8 @@ void SceneManager::WriteFile()
     stream.close();
 }
 
-uint32_t SceneManager::GetControllerSceneInterfaceVersion(void)
+uint32_t SceneManager::GetControllerServiceSceneInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerSceneInterfaceVersion=%d", __FUNCTION__, controllerSceneInterfaceVersion));
-    return controllerSceneInterfaceVersion;
+    QCC_DbgPrintf(("%s: controllerSceneInterfaceVersion=%d", __FUNCTION__, ControllerServiceSceneInterfaceVersion));
+    return ControllerServiceSceneInterfaceVersion;
 }

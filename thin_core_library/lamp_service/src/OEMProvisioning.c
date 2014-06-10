@@ -111,8 +111,6 @@ static const char DEFAULT_SUPPORT_URL_LANG2[] = "www.company_a.com/de-AT";
 static const char* DEFAULT_SUPPORT_URLS[] = { DEFAULT_SUPPORT_URL_LANG1, DEFAULT_SUPPORT_URL_LANG2 };
 
 
-
-
 const char** propertyStoreDefaultValues[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS] =
 {
 // "Default Values per language",                    "Key Name"
@@ -393,7 +391,7 @@ static const char* GetPersistentDeviceId()
     return DeviceId;
 }
 
-void SavePersistentDeviceId()
+void SavePersistentDeviceId(void)
 {
     AJ_NV_DATASET* file = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(DeviceId));
     AJ_NVRAM_Write(DeviceId, sizeof(DeviceId), file);

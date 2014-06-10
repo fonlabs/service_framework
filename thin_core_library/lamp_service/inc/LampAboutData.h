@@ -2,7 +2,7 @@
 #define _LAMP_ABOUT_DATA_H_
 /**
  * @file LampAboutData.h
- * @defgroup lamp_about Implementation of About/Config PropertyStore
+ * @defgroup lamp_about About/Config PropertyStore used by the Lamp Service
  * @{
  */
 /******************************************************************************

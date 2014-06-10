@@ -36,7 +36,7 @@ ControllerClientStatus ControllerServiceManager::GetControllerServiceVersion(voi
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsyncForReplyWithUint32Value(
-               ControllerClient::ControllerServiceInterfaceName.c_str(),
+               ControllerServiceInterfaceName,
                "GetControllerServiceVersion");
 }
 
@@ -44,7 +44,7 @@ ControllerClientStatus ControllerServiceManager::LightingResetControllerService(
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsyncForReplyWithUint32Value(
-               ControllerClient::ControllerServiceInterfaceName.c_str(),
+               ControllerServiceInterfaceName,
                "LightingResetControllerService");
 }
 

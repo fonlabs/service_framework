@@ -212,12 +212,13 @@ static uint32_t MyBusAuthPwdCB(uint8_t* buf, uint32_t bufLen)
 static AJ_BusAttachment Bus;
 
 static uint8_t PendingFaultNotification = FALSE;
-void LAMP_SetFaults()
+
+void LAMP_SetFaults(void)
 {
     PendingFaultNotification = TRUE;
 }
 
-void LAMP_ClearFaults()
+void LAMP_ClearFaults(void)
 {
     PendingFaultNotification = FALSE;
 }
@@ -849,7 +850,6 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
         return AJ_ERR_UNEXPECTED;
     }
 }
-
 
 static AJ_Status GetAllProps(AJ_Message* msg)
 {

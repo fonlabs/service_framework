@@ -34,7 +34,7 @@ ControllerClientStatus PresetManager::GetAllPresetIDs(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "GetAllPresetIDs");
 }
 
@@ -45,7 +45,7 @@ ControllerClientStatus PresetManager::GetPreset(const LSFString& presetID)
     arg.Set("s", presetID.c_str());
 
     ControllerClientStatus status = controllerClient.MethodCallAsync(
-        ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+        ControllerServicePresetInterfaceName,
         "GetPreset",
         this,
         &PresetManager::GetPresetReply,
@@ -75,7 +75,7 @@ ControllerClientStatus PresetManager::GetPresetName(const LSFString& presetID, c
     args[0].Set("s", presetID.c_str());
     args[1].Set("s", language.c_str());
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "GetPresetName",
                args,
                2);
@@ -91,7 +91,7 @@ ControllerClientStatus PresetManager::SetPresetName(const LSFString& presetID, c
     args[2].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeIDAndName(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "SetPresetName",
                args,
                3);
@@ -105,7 +105,7 @@ ControllerClientStatus PresetManager::CreatePreset(const LampState& preset)
     preset.Get(&arg);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "CreatePreset",
                &arg,
                1);
@@ -119,7 +119,7 @@ ControllerClientStatus PresetManager::UpdatePreset(const LSFString& presetID, co
     preset.Get(&args[1]);
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "UpdatePreset",
                args,
                2);
@@ -132,7 +132,7 @@ ControllerClientStatus PresetManager::DeletePreset(const LSFString& presetID)
     arg.Set("s", presetID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "DeletePreset",
                &arg,
                1);
@@ -142,7 +142,7 @@ ControllerClientStatus PresetManager::GetDefaultLampState(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     return controllerClient.MethodCallAsync(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "GetDefaultLampState",
                this,
                &PresetManager::GetDefaultLampStateReply);
@@ -170,7 +170,7 @@ ControllerClientStatus PresetManager::SetDefaultLampState(const LampState& defau
     defaultLampState.Get(&arg);
 
     return controllerClient.MethodCallAsyncForReplyWithUint32Value(
-               ControllerClient::ControllerServicePresetInterfaceName.c_str(),
+               ControllerServicePresetInterfaceName,
                "SetDefaultLampState",
                &arg,
                1);
