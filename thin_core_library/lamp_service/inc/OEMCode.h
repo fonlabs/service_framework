@@ -249,6 +249,12 @@ extern const size_t aboutIconSize;
 extern const char* aboutIconUrl;
 
 /**
+ * The routing node prefix to discover. If this is set to NULL, the Lamp Service will
+ * discover the default prefix org.alljoyn.BusNode
+ */
+extern const char* routingNodePrefix;
+
+/**
  * @}
  */
 #endif

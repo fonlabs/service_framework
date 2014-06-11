@@ -36,10 +36,10 @@ namespace lsf {
 
 typedef struct _TransitionStateFieldParams {
     _TransitionStateFieldParams(LSFStringList& lampList, uint64_t& timeStamp, const char* fieldName, ajn::MsgArg& fieldValue, uint32_t& transPeriod) :
-        lamps(lampList), startTimestamp(timeStamp), field(fieldName), value(fieldValue), period(transPeriod) { }
+        lamps(lampList), timestamp(timeStamp), field(fieldName), value(fieldValue), period(transPeriod) { }
 
     LSFStringList lamps;
-    uint64_t startTimestamp;
+    uint64_t timestamp;
     const char* field;
     ajn::MsgArg value;
     uint32_t period;
@@ -47,17 +47,17 @@ typedef struct _TransitionStateFieldParams {
 
 typedef struct _TransitionStateParams {
     _TransitionStateParams(LSFStringList& lampList, uint64_t& timeStamp, ajn::MsgArg& lampState, uint32_t& transPeriod) :
-        lamps(lampList), startTimestamp(timeStamp), state(lampState), period(transPeriod) { }
+        lamps(lampList), timestamp(timeStamp), state(lampState), period(transPeriod) { }
 
     LSFStringList lamps;
-    uint64_t startTimestamp;
+    uint64_t timestamp;
     ajn::MsgArg state;
     uint32_t period;
 } TransitionStateParams;
 
 typedef struct _PulseStateParams {
     _PulseStateParams(LSFStringList& lampList, ajn::MsgArg& oldLampState, ajn::MsgArg& newLampState, uint32_t& pulsePeriod, uint32_t& pulseDuration, uint32_t& numPul, uint64_t& timeStamp) :
-        lamps(lampList), oldState(oldLampState), newState(newLampState), period(pulsePeriod), duration(pulseDuration), numPulses(numPul), startTimestamp(timeStamp) { }
+        lamps(lampList), oldState(oldLampState), newState(newLampState), period(pulsePeriod), duration(pulseDuration), numPulses(numPul), timestamp(timeStamp) { }
 
     LSFStringList lamps;
     ajn::MsgArg oldState;
@@ -65,14 +65,15 @@ typedef struct _PulseStateParams {
     uint32_t period;
     uint32_t duration;
     uint32_t numPulses;
-    uint64_t startTimestamp;
+    uint64_t timestamp;
 } PulseStateParams;
 
 typedef std::list<TransitionStateFieldParams> TransitionStateFieldParamsList;
 typedef std::list<TransitionStateParams> TransitionStateParamsList;
 typedef std::list<PulseStateParams> PulseStateParamsList;
 
-class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener, public ajn::ProxyBusObject::Listener, public lsf::Thread {
+class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener,
+    public ajn::ProxyBusObject::Listener, public lsf::Thread, public BusAttachment::PingAsyncCB {
   public:
 
     LampClients(ControllerService& controllerSvc);
@@ -337,12 +338,14 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
 
+    void PingCB(QStatus status, void* context);
+
     struct LampConnection {
-        LSFString uniqueId;
+        LSFString lampId;
         ajn::ProxyBusObject object;
         ajn::ProxyBusObject configObject;
         ajn::ProxyBusObject aboutObject;
-        LSFString wkn;
+        LSFString busName;
         LSFString name;
         uint16_t port;
         ajn::SessionId sessionID;
@@ -379,6 +382,11 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     Mutex getAllLampIDsLock;
 
     LSFSemaphore wakeUp;
+
+    uint8_t sentPings;
+    uint8_t receivedPingResponses;
+    LSFStringList lostLamps;
+    Mutex pingResponseLock;
 };
 
 }

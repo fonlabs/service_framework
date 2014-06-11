@@ -72,12 +72,21 @@ static qcc::String NextTok(qcc::String& inStr)
     return qcc::Trim(ret);
 }
 
+static const char* interfaces[] =
+{
+    LampServiceInterfaceName,
+    LampServiceStateInterfaceName,
+    LampServiceParametersInterfaceName,
+    LampServiceDetailsInterfaceName,
+    ConfigServiceInterfaceName
+};
+
 class MyTestHandler : public services::AnnounceHandler, public SessionListener, services::NotificationReceiver {
   public:
 
     MyTestHandler(BusAttachment& bus) : services::AnnounceHandler(), bus(bus), _object(NULL)
     {
-        ajn::services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *this);
+        ajn::services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *this, sizeof(interfaces) / sizeof(interfaces[0]));
         bus.AddMatch("sessionless='t',type='error'");
 
         // to receive notifications:

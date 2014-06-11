@@ -25,11 +25,14 @@
 #include <aj_bus.h>
 #include <aj_msg.h>
 #include <aj_version.h>
-
 #include <aj_about.h>
-#include <alljoyn/config/ConfigService.h>
-#include <alljoyn/notification/NotificationProducer.h>
 
+#ifdef ONBOARDING_SERVICE
+#include <alljoyn/onboarding/OnboardingService.h>
+#endif
+
+#include <alljoyn/notification/NotificationProducer.h>
+#include <alljoyn/config/ConfigService.h>
 #include <alljoyn/services_common/ServicesCommon.h>
 #include <alljoyn/services_common/PropertyStore.h>
 #include <alljoyn/services_common/ServicesHandlers.h>
@@ -112,7 +115,7 @@ static const char* const LSF_State_Interface[] = {
     LSF_State_Interface_Name,
     "@Version>u",
     "?TransitionLampState Timestamp<t NewState<a{sv} TransitionPeriod<u LampResponseCode>u",
-    "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u duration<u numPulses<u startTimeStamp<t LampResponseCode>u",
+    "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u duration<u numPulses<u timestamp<t LampResponseCode>u",
     "!LampStateChanged LampID>s",
     "@OnOff=b",
     "@Hue=u",
@@ -132,7 +135,6 @@ static const AJ_InterfaceDescription LSF_Interfaces[] = {
 };
 
 static AJ_Object LSF_AllJoynObjects[] = {
-    IOE_SERVICES_APPOBJECTS
     { "/org/allseen/LSF/Lamp", LSF_Interfaces, AJ_OBJ_FLAG_ANNOUNCED },
     { NULL }
 };
@@ -153,54 +155,54 @@ uint32_t LAMP_GetServiceVersion(void)
 #define LSF_IFACE_DETAILS 3
 #define LSF_IFACE_STATE 4
 
-#define APP_SET_PROP        AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_SET)
-#define APP_GET_PROP        AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_GET)
-#define APP_GET_PROP_ALL    AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_PROP_IFACE, AJ_PROP_GET_ALL)
+#define APP_SET_PROP        AJ_APP_MESSAGE_ID(0, LSF_PROP_IFACE, AJ_PROP_SET)
+#define APP_GET_PROP        AJ_APP_MESSAGE_ID(0, LSF_PROP_IFACE, AJ_PROP_GET)
+#define APP_GET_PROP_ALL    AJ_APP_MESSAGE_ID(0, LSF_PROP_IFACE, AJ_PROP_GET_ALL)
 
-#define LSF_PROP_VERSION            AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 0)
-#define LSF_PROP_LSF_VERSION        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 1)
-#define LSF_METHOD_CLEARLAMPFAULTS  AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 2)
-#define LSF_PROP_FAULTS             AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE, 3)
+#define LSF_PROP_VERSION            AJ_APP_PROPERTY_ID(0, LSF_IFACE, 0)
+#define LSF_PROP_LSF_VERSION        AJ_APP_PROPERTY_ID(0, LSF_IFACE, 1)
+#define LSF_METHOD_CLEARLAMPFAULTS  AJ_APP_MESSAGE_ID(0, LSF_IFACE, 2)
+#define LSF_PROP_FAULTS             AJ_APP_PROPERTY_ID(0, LSF_IFACE, 3)
 
 
 // Run-time Parameters
-#define LSF_PROP_PARAMS_VERSION    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 0)
-#define LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 1)
-#define LSF_PROP_PARAMS_BRIGHTNESS_LUMENS     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_PARAMS, 2)
+#define LSF_PROP_PARAMS_VERSION    AJ_APP_PROPERTY_ID(0, LSF_IFACE_PARAMS, 0)
+#define LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS AJ_APP_PROPERTY_ID(0, LSF_IFACE_PARAMS, 1)
+#define LSF_PROP_PARAMS_BRIGHTNESS_LUMENS     AJ_APP_PROPERTY_ID(0, LSF_IFACE_PARAMS, 2)
 
 
 // Compile-time Details
-#define LSF_PROP_DETAILS_VERSION        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 0)
-#define LSF_PROP_DETAILS_MAKE           AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 1)
-#define LSF_PROP_DETAILS_MODEL          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 2)
-#define LSF_PROP_DETAILS_DEV_TYPE       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 3)
-#define LSF_PROP_DETAILS_LAMP_TYPE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 4)
-#define LSF_PROP_DETAILS_BASETYPE       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 5)
-#define LSF_PROP_DETAILS_BEAMANGLE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 6)
-#define LSF_PROP_DETAILS_DIMMABLE       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 7)
-#define LSF_PROP_DETAILS_COLOR          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 8)
-#define LSF_PROP_DETAILS_VARCOLORTEMP   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 9)
-#define LSF_PROP_DETAILS_HASEFFECTS     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 10)
-#define LSF_PROP_DETAILS_MINVOLTAGE     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 11)
-#define LSF_PROP_DETAILS_MAXVOLTAGE     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 12)
-#define LSF_PROP_DETAILS_WATTAGE        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 13)
-#define LSF_PROP_DETAILS_INCANEQV       AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 14)
-#define LSF_PROP_DETAILS_MAXLUMENS      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 15)
-#define LSF_PROP_DETAILS_MINTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 16)
-#define LSF_PROP_DETAILS_MAXTEMP        AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 17)
-#define LSF_PROP_DETAILS_CRI            AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 18)
-#define LSF_PROP_DETAILS_LAMPID         AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_DETAILS, 19)
+#define LSF_PROP_DETAILS_VERSION        AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 0)
+#define LSF_PROP_DETAILS_MAKE           AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 1)
+#define LSF_PROP_DETAILS_MODEL          AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 2)
+#define LSF_PROP_DETAILS_DEV_TYPE       AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 3)
+#define LSF_PROP_DETAILS_LAMP_TYPE      AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 4)
+#define LSF_PROP_DETAILS_BASETYPE       AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 5)
+#define LSF_PROP_DETAILS_BEAMANGLE      AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 6)
+#define LSF_PROP_DETAILS_DIMMABLE       AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 7)
+#define LSF_PROP_DETAILS_COLOR          AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 8)
+#define LSF_PROP_DETAILS_VARCOLORTEMP   AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 9)
+#define LSF_PROP_DETAILS_HASEFFECTS     AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 10)
+#define LSF_PROP_DETAILS_MINVOLTAGE     AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 11)
+#define LSF_PROP_DETAILS_MAXVOLTAGE     AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 12)
+#define LSF_PROP_DETAILS_WATTAGE        AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 13)
+#define LSF_PROP_DETAILS_INCANEQV       AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 14)
+#define LSF_PROP_DETAILS_MAXLUMENS      AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 15)
+#define LSF_PROP_DETAILS_MINTEMP        AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 16)
+#define LSF_PROP_DETAILS_MAXTEMP        AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 17)
+#define LSF_PROP_DETAILS_CRI            AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 18)
+#define LSF_PROP_DETAILS_LAMPID         AJ_APP_PROPERTY_ID(0, LSF_IFACE_DETAILS, 19)
 
 // Run-time Lamp State
-#define LSF_PROP_STATE_VERSION          AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 0)
-#define LSF_METHOD_STATE_SETSTATE       AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 1)
-#define LSF_METHOD_APPLY_PULSE          AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 2)
-#define LSF_SIGNAL_STATE_STATECHANGED   AJ_APP_MESSAGE_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 3)
-#define LSF_PROP_STATE_ONOFF    AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 4)
-#define LSF_PROP_STATE_HUE      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 5)
-#define LSF_PROP_STATE_SAT      AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 6)
-#define LSF_PROP_STATE_TEMP     AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 7)
-#define LSF_PROP_STATE_BRIGHT   AJ_APP_PROPERTY_ID(NUM_PRE_APPLICATION_OBJECTS, LSF_IFACE_STATE, 8)
+#define LSF_PROP_STATE_VERSION          AJ_APP_PROPERTY_ID(0, LSF_IFACE_STATE, 0)
+#define LSF_METHOD_STATE_SETSTATE       AJ_APP_MESSAGE_ID(0, LSF_IFACE_STATE, 1)
+#define LSF_METHOD_APPLY_PULSE          AJ_APP_MESSAGE_ID(0, LSF_IFACE_STATE, 2)
+#define LSF_SIGNAL_STATE_STATECHANGED   AJ_APP_MESSAGE_ID(0, LSF_IFACE_STATE, 3)
+#define LSF_PROP_STATE_ONOFF    AJ_APP_PROPERTY_ID(0, LSF_IFACE_STATE, 4)
+#define LSF_PROP_STATE_HUE      AJ_APP_PROPERTY_ID(0, LSF_IFACE_STATE, 5)
+#define LSF_PROP_STATE_SAT      AJ_APP_PROPERTY_ID(0, LSF_IFACE_STATE, 6)
+#define LSF_PROP_STATE_TEMP     AJ_APP_PROPERTY_ID(0, LSF_IFACE_STATE, 7)
+#define LSF_PROP_STATE_BRIGHT   AJ_APP_PROPERTY_ID(0, LSF_IFACE_STATE, 8)
 
 static uint32_t MyBusAuthPwdCB(uint8_t* buf, uint32_t bufLen)
 {
@@ -305,11 +307,12 @@ static AJ_Status ConnectToRouter(void)
         if (AJ_GetElapsedTime(&timer, TRUE) > CONNECT_TIMEOUT) {
             return AJ_ERR_TIMEOUT;
         }
+
 #ifdef ONBOARDING_SERVICE
         if (AJOBS_ControllerAPI_IsWiFiClient()) {
 #endif
         AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __FUNCTION__));
-        status = AJ_FindBusAndConnect(&Bus, NULL, AJ_CONNECT_TIMEOUT);
+        status = AJ_FindBusAndConnect(&Bus, routingNodePrefix, AJ_CONNECT_TIMEOUT);
 #ifdef ONBOARDING_SERVICE
     } else if (AJOBS_ControllerAPI_IsWiFiSoftAP()) {
         // we are in soft-AP mode so use the BusNode router
@@ -352,11 +355,9 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
     LAMP_SetupAboutConfigData();
 
-    LAMP_InitializeState();
+    AJNS_Producer_Start();
 
-    // announce all of our IOE objects;
-    // this call might not be necessary
-    AJ_AboutSetAnnounceObjects(LSF_AllJoynObjects);
+    LAMP_InitializeState();
 
     OEM_Initialize();
 
@@ -364,6 +365,10 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
     // initialize onboarding!
     LAMP_InitOnboarding();
 #endif
+
+    // announce all of our IOE objects;
+    // this call might not be necessary
+    AJ_AboutSetAnnounceObjects(LSF_AllJoynObjects);
 
     while (TRUE) {
         AJ_Message msg;
@@ -394,6 +399,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
             connected = TRUE;
 
             AJ_BusSetPasswordCallback(&Bus, LAMP_PasswordCallback);
+
             /* Configure timeout for the link to the daemon bus */
             AJ_SetBusLinkTimeout(&Bus, 60); // 60 seconds
 
@@ -586,7 +592,7 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
     return AJ_OK;
 }
 
-// "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u ratio<y numPulses<u startTimeStamp<t LampResponseCode>u"
+// "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u ratio<y numPulses<u timestamp<t LampResponseCode>u"
 static AJ_Status ApplyPulseEffect(AJ_Message* msg)
 {
     LampResponseCode responseCode = LAMP_OK;
@@ -594,17 +600,17 @@ static AJ_Status ApplyPulseEffect(AJ_Message* msg)
     uint32_t period;
     uint32_t duration;
     uint32_t numPulses;
-    uint64_t startTimeStamp;
+    uint64_t timestamp;
 
     AJ_Message reply;
     AJ_MarshalReplyMsg(msg, &reply);
 
     LAMP_UnmarshalState(&FromState, msg);
     LAMP_UnmarshalState(&ToState, msg);
-    AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numPulses, &startTimeStamp);
+    AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numPulses, &timestamp);
 
     // apply the new state
-    responseCode = OEM_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, startTimeStamp);
+    responseCode = OEM_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, timestamp);
 
     AJ_MarshalArgs(&reply, "u", (uint32_t) responseCode);
     AJ_DeliverMsg(&reply);

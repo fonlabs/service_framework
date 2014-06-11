@@ -400,8 +400,8 @@ void LampManager::ChangeLampStateAndField(Message& message,
 
     QCC_DbgPrintf(("%s", __FUNCTION__));
 
-    uint64_t startTimeStamp = 0;
-    GetSyncTimeStamp(startTimeStamp);
+    uint64_t timestamp = 0;
+    GetSyncTimeStamp(timestamp);
 
     TransitionStateParamsList stateParamsList;
     TransitionStateFieldParamsList stateFieldParamsList;
@@ -416,7 +416,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
         MsgArg state;
         transitionToStateComp.state.Get(&state);
         QCC_DbgPrintf(("%s: Applying transitionToStateComponent", __FUNCTION__));
-        TransitionStateParams params(transitionToStateComp.lamps, startTimeStamp, state, transitionToStateComp.transitionPeriod);
+        TransitionStateParams params(transitionToStateComp.lamps, timestamp, state, transitionToStateComp.transitionPeriod);
         stateParamsList.push_back(params);
         transitionToStateComponent.pop_front();
     }
@@ -429,7 +429,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
             MsgArg state;
             preset.Get(&state);
             QCC_DbgPrintf(("%s: Applying transitionToPresetComponent", __FUNCTION__));
-            TransitionStateParams params(transitionToPresetComp.lamps, startTimeStamp, state, transitionToPresetComp.transitionPeriod);
+            TransitionStateParams params(transitionToPresetComp.lamps, timestamp, state, transitionToPresetComp.transitionPeriod);
             stateParamsList.push_back(params);
         } else {
             if (groupOperation || sceneOperation) {
@@ -449,7 +449,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
     while (stateFieldComponent.size()) {
         LampsAndStateField stateFieldComp = stateFieldComponent.front();
         QCC_DbgPrintf(("%s: Applying stateFieldComponent", __FUNCTION__));
-        TransitionStateFieldParams params(stateFieldComp.lamps, startTimeStamp, stateFieldComp.stateFieldName.c_str(),
+        TransitionStateFieldParams params(stateFieldComp.lamps, timestamp, stateFieldComp.stateFieldName.c_str(),
                                           stateFieldComp.stateFieldValue, stateFieldComp.transitionPeriod);
         stateFieldParamsList.push_back(params);
         stateFieldComponent.pop_front();
@@ -463,7 +463,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
         pulseWithStateComp.fromState.Get(&fromState);
         pulseWithStateComp.toState.Get(&toState);
         PulseStateParams params(pulseWithStateComp.lamps, fromState, toState, pulseWithStateComp.period, pulseWithStateComp.duration,
-                                pulseWithStateComp.numPulses, startTimeStamp);
+                                pulseWithStateComp.numPulses, timestamp);
         pulseParamsList.push_back(params);
         pulseWithStateComponent.pop_front();
     }
@@ -482,7 +482,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
                 toPreset.Get(&toState);
                 QCC_DbgPrintf(("%s: Applying pulseWithPresetComponent", __FUNCTION__));
                 PulseStateParams params(pulseWithPresetComp.lamps, fromState, toState, pulseWithPresetComp.period, pulseWithPresetComp.duration,
-                                        pulseWithPresetComp.numPulses, startTimeStamp);
+                                        pulseWithPresetComp.numPulses, timestamp);
                 pulseParamsList.push_back(params);
             }
         } else {

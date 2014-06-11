@@ -40,7 +40,7 @@ void LSFKeyListener::SetGetPassCodeFunc(const char* (*GetPassCodeFunc)())
 bool LSFKeyListener::RequestCredentials(const char* authMechanism, const char* authPeer,
                                         uint16_t authCount, const char* userId, uint16_t credMask, Credentials& creds)
 {
-    if (/*strcmp(authMechanism, "ALLJOYN_SRP_KEYX") == 0 ||*/ strcmp(authMechanism, "ALLJOYN_PIN_KEYX") == 0) {
+    if (strcmp(authMechanism, "ALLJOYN_ECDHE_PSK") == 0 || strcmp(authMechanism, "ALLJOYN_PIN_KEYX") == 0) {
         if (credMask & AuthListener::CRED_PASSWORD) {
             if (authCount <= 3) {
                 const char* passCodeFromGet = 0;

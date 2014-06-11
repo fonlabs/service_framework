@@ -32,6 +32,7 @@
     #include <alljoyn/onboarding/OnboardingManager.h>
 #endif
 
+#include <alljoyn/config/ConfigService.h>
 #include <alljoyn/services_common/PropertyStore.h>
 #include <alljoyn/services_common/ServicesCommon.h>
 

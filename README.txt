@@ -11,13 +11,13 @@ core/
 
 	service_framework/   (https://git.allseenalliance.org/cgit/lighting/service_framework.git)
 
-	ajtcl/   (https://git.allseenalliance.org/cgit/core/ajtcl.git Commit ID:cad2cb5f7e066485bbe828e25be7063df2587ae2)
+	ajtcl/   (https://git.allseenalliance.org/cgit/core/ajtcl.git Commit ID:b3afbac1ce299bcc75b648e9d1d61caeccb21f28)
 
-	alljoyn/ (https://git.allseenalliance.org/cgit/core/alljoyn.git Commit ID:96088edcd68faef2350500d773e72c7c8aa8f582)
+	alljoyn/ (https://git.allseenalliance.org/cgit/core/alljoyn.git Commit ID:afff7fd76d430fd5f4a8898de1dbcdce9283386a)
 
-base_tcl/ (https://git.allseenalliance.org/cgit/services/base_tcl.git Commit ID:a189555ea286cb6daf06600d97450082b70eb516)
+base_tcl/ (https://git.allseenalliance.org/cgit/services/base_tcl.git Commit ID:eaaf35b6d7efcc0c27ad3f46e1edf503b437a6b4)
 
-base/ (https://git.allseenalliance.org/cgit/services/base.git Commit ID:87ab8e80f47c2f4630384155fa9e281582a06d69)
+base/ (https://git.allseenalliance.org/cgit/services/base.git Commit ID:293396660c338a57e36233966d08c2fed4126025)
 
 Checkout the appropriate Commit IDs on all of the above GIT projects except service_framework.git by navigating in to the appropriate project directory and running the following command
 
@@ -59,8 +59,28 @@ In a fourth terminal, from under the directory core/service_framework/build/linu
 
 	./lighting_controller_client_sample
 
-The Lighting Controller Client Test App should provide a drop down menu of commands that you can exercise to run the end to end test. You should also see the replies and the signals received back from the Controller Service 
-on the terminal running the Lighting Controller Client Test App. 
+The Lighting Controller Client Test App should provide a drop down menu of commands that you can exercise to run the end to end test. You should also see the replies and the signals received back from the Controller Service on the terminal running the Lighting Controller Client Test App.
+
+NOTE: In order to verify ApplyScene and ApplyMasterScene,
+
+        Bring up 20 lamp services using the LaunchLampServices.sh script
+        Run the commands in the following order in the Lighting Controller Client Sample
+
+(3):   GetAllLampIDs
+
+(39):  CreateLampGroup (This will automatically create 8 sample Lamp Groups)
+
+(63):  CreatePreset (Run Create Preset twice to create 2 presets as this is required by Create Scene)
+
+(63):  CreatePreset
+
+(70):  CreateScene (This will Create a sample Scene with the existent Lamp IDs and already created Lamp Groups and Presets)
+
+(74):  ApplyScene
+
+(78):  CreateMasterScene (This will Create a sample Master Scene with the already created Scene)
+
+(82):  ApplyMasterScene
 
 ===============================================================================
 Enabling Logging in Lighting Controller Service and Lighting Controller Client

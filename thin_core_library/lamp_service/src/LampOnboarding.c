@@ -84,68 +84,15 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
 
 #define AJ_OBS_OBINFO_NV_ID (AJ_NVRAM_ID_FOR_APPS - 2)
 
-AJ_Status OnboardingReadInfo(AJOBS_Info* info)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    AJ_Status status = AJ_OK;
-    size_t size = sizeof(AJOBS_Info);
-    AJ_NV_DATASET* nvramHandle;
-
-    if (NULL == info) {
-        return AJ_ERR_NULL;
-    }
-    memset(info, 0, size);
-
-    nvramHandle = AJ_NVRAM_Open(AJ_OBS_OBINFO_NV_ID, "r", 0);
-    if (nvramHandle != NULL) {
-        size_t sizeRead = AJ_NVRAM_Read(info, size, nvramHandle);
-        status = AJ_NVRAM_Close(nvramHandle);
-        if (sizeRead != sizeRead) {
-            status = AJ_ERR_READ;
-        } else {
-            AJ_AlwaysPrintf(("Read Info values: state=%d, ssid=%s authType=%d pc=%s\n", info->state, info->ssid, info->authType, info->pc));
-        }
-    } else {
-        status = AJ_ERR_INVALID;
-    }
-
-    return status;
-}
-
-AJ_Status OnboardingWriteInfo(AJOBS_Info* info)
-{
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    AJ_Status status = AJ_OK;
-    size_t size = sizeof(AJOBS_Info);
-    AJ_NV_DATASET* nvramHandle;
-
-    if (NULL == info) {
-        return AJ_ERR_NULL;
-    }
-
-    AJ_AlwaysPrintf(("Going to write Info values: state=%d, ssid=%s authType=%d pc=%s\n", info->state, info->ssid, info->authType, info->pc));
-
-    nvramHandle = AJ_NVRAM_Open(AJ_OBS_OBINFO_NV_ID, "w", size);
-    if (nvramHandle != NULL) {
-        size_t sizeWritten = AJ_NVRAM_Write(info, size, nvramHandle);
-        status = AJ_NVRAM_Close(nvramHandle);
-        if (sizeWritten != size) {
-            status = AJ_ERR_WRITE;
-        }
-    } else {
-        status = AJ_ERR_WRITE;
-    }
-
-    return status;
-}
-
 AJ_Status LAMP_InitOnboarding(void)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     AJ_Status status = AJ_OK;
 
+    AJOBS_RegisterObjectList();
+
     GenerateSoftAPSSID(OEM_OnboardingSettings.AJOBS_SoftAPSSID);
-    status = AJOBS_Start(&OEM_OnboardingSettings, &OnboardingReadInfo, &OnboardingWriteInfo);
+    status = AJOBS_Start(&OEM_OnboardingSettings);
     return status;
 }
 

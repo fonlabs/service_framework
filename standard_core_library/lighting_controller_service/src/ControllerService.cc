@@ -361,6 +361,10 @@ QStatus ControllerService::Start(void)
         ifaces.push_back(qcc::String(ControllerServiceMasterSceneInterfaceName));
         aboutService->AddObjectDescription(ControllerServiceObjectPath, ifaces);
 
+        ifaces.clear();
+        ifaces.push_back(ConfigServiceInterfaceName);
+        aboutService->AddObjectDescription("/Config", ifaces);
+
         status = aboutService->Register(ControllerServiceSessionPort);
         if (status != ER_OK) {
             QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __FUNCTION__));

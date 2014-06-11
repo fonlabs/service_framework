@@ -105,26 +105,39 @@ void ControllerClient::ControllerClientBusHandler::Announce(
 
     ObjectDescriptions::const_iterator oit = objectDescs.find(ControllerServiceObjectPath);
     if (oit != objectDescs.end()) {
-        if (std::find(oit->second.begin(), oit->second.end(), ControllerServiceInterfaceName) != oit->second.end()) {
-            ait = aboutData.find("DeviceId");
-            if (ait == aboutData.end()) {
-                QCC_LogError(ER_FAIL, ("%s: DeviceId missing in About Announcement", __FUNCTION__));
-                return;
-            }
-            ait->second.Get("s", &deviceID);
-
-            ait = aboutData.find("DeviceName");
-            if (ait == aboutData.end()) {
-                QCC_LogError(ER_FAIL, ("%s: DeviceName missing in About Announcement", __FUNCTION__));
-                return;
-            }
-            ait->second.Get("s", &deviceName);
-
-            QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s", __FUNCTION__, busName, port, deviceID, deviceName));
-            controllerClient.OnAnnounced(port, busName, deviceID, deviceName);
+        QCC_DbgPrintf(("%s: About Data Dump", __FUNCTION__));
+        for (ait = aboutData.begin(); ait != aboutData.end(); ait++) {
+            QCC_DbgPrintf(("%s: %s", ait->first.c_str(), ait->second.ToString().c_str()));
         }
+
+        ait = aboutData.find("DeviceId");
+        if (ait == aboutData.end()) {
+            QCC_LogError(ER_FAIL, ("%s: DeviceId missing in About Announcement", __FUNCTION__));
+            return;
+        }
+        ait->second.Get("s", &deviceID);
+
+        ait = aboutData.find("DeviceName");
+        if (ait == aboutData.end()) {
+            QCC_LogError(ER_FAIL, ("%s: DeviceName missing in About Announcement", __FUNCTION__));
+            return;
+        }
+        ait->second.Get("s", &deviceName);
+
+        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s", __FUNCTION__, busName, port, deviceID, deviceName));
+        controllerClient.OnAnnounced(port, busName, deviceID, deviceName);
     }
 }
+
+static const char* interfaces[] =
+{
+    ControllerServiceInterfaceName,
+    ControllerServiceLampInterfaceName,
+    ControllerServiceLampGroupInterfaceName,
+    ControllerServicePresetInterfaceName,
+    ControllerServiceSceneInterfaceName,
+    ControllerServiceMasterSceneInterfaceName
+};
 
 ControllerClient::ControllerClient(
     ajn::BusAttachment& bus,
@@ -141,7 +154,7 @@ ControllerClient::ControllerClient(
     sceneManagerPtr(NULL),
     masterSceneManagerPtr(NULL)
 {
-    QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler);
+    QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("services::AnnouncementRegistrar::RegisterAnnounceHandler: %s\n", QCC_StatusText(status)));
     status = bus.AddMatch("sessionless='t',type='error'");
     QCC_DbgPrintf(("AddMatch: %s\n", QCC_StatusText(status)));
@@ -149,7 +162,7 @@ ControllerClient::ControllerClient(
 
 ControllerClient::~ControllerClient()
 {
-    services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler);
+    services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     bus.RemoveMatch("sessionless='t',type='error'");
     delete busHandler;
 }
@@ -537,6 +550,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
 
     // if the name of the current CS has changed...
     if (deviceID == this->deviceID && deviceName != this->deviceName) {
+        this->deviceName = deviceName;
         controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
         return;
     }

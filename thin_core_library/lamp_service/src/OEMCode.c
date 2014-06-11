@@ -548,3 +548,5 @@ const uint8_t aboutIconContent[] = {
 const size_t aboutIconSize = sizeof(aboutIconContent);
 
 const char* aboutIconUrl = "";
+
+const char* routingNodePrefix = "org.alljoyn.BusNode.LSF";
