@@ -87,7 +87,6 @@ class MyTestHandler : public services::AnnounceHandler, public SessionListener, 
     MyTestHandler(BusAttachment& bus) : services::AnnounceHandler(), bus(bus), _object(NULL)
     {
         ajn::services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *this, sizeof(interfaces) / sizeof(interfaces[0]));
-        bus.AddMatch("sessionless='t',type='error'");
 
         // to receive notifications:
         services::NotificationService::getInstance()->initReceive(&bus, this);

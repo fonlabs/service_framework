@@ -136,7 +136,9 @@ static const char* interfaces[] =
     ControllerServiceLampGroupInterfaceName,
     ControllerServicePresetInterfaceName,
     ControllerServiceSceneInterfaceName,
-    ControllerServiceMasterSceneInterfaceName
+    ControllerServiceMasterSceneInterfaceName,
+    ConfigServiceInterfaceName,
+    AboutInterfaceName
 };
 
 ControllerClient::ControllerClient(
@@ -156,14 +158,11 @@ ControllerClient::ControllerClient(
 {
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("services::AnnouncementRegistrar::RegisterAnnounceHandler: %s\n", QCC_StatusText(status)));
-    status = bus.AddMatch("sessionless='t',type='error'");
-    QCC_DbgPrintf(("AddMatch: %s\n", QCC_StatusText(status)));
 }
 
 ControllerClient::~ControllerClient()
 {
     services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-    bus.RemoveMatch("sessionless='t',type='error'");
     delete busHandler;
 }
 

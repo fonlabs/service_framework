@@ -22,6 +22,8 @@
 #include <OEMConfig.h>
 #include <FileParser.h>
 
+#include <sstream>
+#include <streambuf>
 #include <algorithm>
 
 using namespace lsf;
@@ -782,14 +784,8 @@ LSFResponseCode LampGroupManager::GetAllGroupLamps(LSFStringList& lampGroupList,
 
 void LampGroupManager::ReadSavedData()
 {
-    if (filePath.empty()) {
-        return;
-    }
-
-    std::ifstream stream(filePath.c_str());
-
-    if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+    std::istringstream stream;
+    if (!ValidateFileAndRead(stream)) {
         return;
     }
 
@@ -825,12 +821,11 @@ void LampGroupManager::WriteFile()
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     if (!updated) {
-        printf("Not updated\n");
+        printf("%s: Not updated\n", __FUNCTION__);
         return;
     }
 
     if (filePath.empty()) {
-        printf("No path\n");
         return;
     }
 
@@ -840,15 +835,8 @@ void LampGroupManager::WriteFile()
     updated = false;
     lampGroupsLock.Unlock();
 
-    std::ofstream stream(filePath.c_str(), std::ios_base::out);
-    if (!stream.is_open()) {
-        printf("File not found: %s\n", filePath.c_str());
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
-        return;
-    }
-
     // (LampGroup id "name" (Lamp id)* (SubGroup id)* EndLampGroup)*
-
+    std::ostringstream stream;
     for (LampGroupMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
         const LSFString& id = it->first;
         const LSFString& name = it->second.first;
@@ -866,7 +854,7 @@ void LampGroupManager::WriteFile()
         stream << " EndLampGroup" << std::endl;
     }
 
-    stream.close();
+    WriteFileWithChecksum(stream.str());
 }
 
 uint32_t LampGroupManager::GetControllerServiceLampGroupInterfaceVersion(void)

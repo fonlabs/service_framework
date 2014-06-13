@@ -542,14 +542,10 @@ LSFResponseCode SceneManager::ApplySceneInternal(ajn::Message message, LSFString
 
 void SceneManager::ReadSavedData()
 {
-    if (filePath.empty()) {
-        return;
-    }
+    printf("SM: [%s]\n", filePath.c_str());
 
-    std::ifstream stream(filePath.c_str());
-
-    if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+    std::istringstream stream;
+    if (!ValidateFileAndRead(stream)) {
         return;
     }
 
@@ -680,14 +676,14 @@ void SceneManager::ReadSavedData()
     }
 }
 
-static void OutputLamps(std::ofstream& stream, const std::string& name, const LSFStringList& list)
+static void OutputLamps(std::ostream& stream, const std::string& name, const LSFStringList& list)
 {
     for (LSFStringList::const_iterator it = list.begin(); it != list.end(); ++it) {
         stream << name << ' ' << *it << ' ';
     }
 }
 
-static void OutputState(std::ofstream& stream, const std::string& name, const LampState& state)
+static void OutputState(std::ostream& stream, const std::string& name, const LampState& state)
 {
     stream << name << ' '
            << (state.onOff ? 1 : 0) << ' '
@@ -712,13 +708,7 @@ void SceneManager::WriteFile()
     updated = false;
     scenesLock.Unlock();
 
-
-    std::ofstream stream(filePath.c_str(), std::ios_base::out);
-    if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
-        return;
-    }
-
+    std::ostringstream stream;
     for (SceneMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
         const LSFString& id = it->first;
         const LSFString& name = it->second.first;
@@ -781,7 +771,7 @@ void SceneManager::WriteFile()
         }
     }
 
-    stream.close();
+    WriteFileWithChecksum(stream.str());
 }
 
 uint32_t SceneManager::GetControllerServiceSceneInterfaceVersion(void)

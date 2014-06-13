@@ -117,6 +117,7 @@ LampClients::LampClients(ControllerService& controllerSvc)
     lostSessionList.clear();
     getAllLampIDsRequests.clear();
     lostLamps.clear();
+    joinSessionInProgressList.clear();
 }
 
 LampClients::~LampClients()
@@ -148,28 +149,25 @@ static const char* interfaces[] =
     LampServiceStateInterfaceName,
     LampServiceParametersInterfaceName,
     LampServiceDetailsInterfaceName,
-    ConfigServiceInterfaceName
+    ConfigServiceInterfaceName,
+    AboutInterfaceName
 };
 
-QStatus LampClients::Start(void)
+QStatus LampClients::Start(const char* keyStoreFileLocation)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     // to receive About data
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("RegisterAnnounceHandler(): %s\n", QCC_StatusText(status)));
     if (ER_OK == status) {
-        status = controllerService.GetBusAttachment().AddMatch("sessionless='t',type='error'");
-        QCC_DbgPrintf(("AddMatch(): %s\n", QCC_StatusText(status)));
+        QCC_DbgPrintf(("%s: KeyStore location = %s", __FUNCTION__, keyStoreFileLocation));
+        status = controllerService.GetBusAttachment().EnablePeerSecurity("ALLJOYN_PIN_KEYX ALLJOYN_ECDHE_PSK", &keyListener, keyStoreFileLocation);
+        QCC_DbgPrintf(("EnablePeerSecurity(): %s\n", QCC_StatusText(status)));
 
         if (ER_OK == status) {
-            status = controllerService.GetBusAttachment().EnablePeerSecurity("ALLJOYN_PIN_KEYX ALLJOYN_ECDHE_PSK", &keyListener);
-            QCC_DbgPrintf(("EnablePeerSecurity(): %s\n", QCC_StatusText(status)));
-
-            if (ER_OK == status) {
-                isRunning = true;
-                status = Thread::Start();
-                QCC_DbgPrintf(("%s: Thread::Start(): %s\n", __FUNCTION__, QCC_StatusText(status)));
-            }
+            isRunning = true;
+            status = Thread::Start();
+            QCC_DbgPrintf(("%s: Thread::Start(): %s\n", __FUNCTION__, QCC_StatusText(status)));
         }
     }
 
@@ -185,7 +183,6 @@ QStatus LampClients::Join(void)
     Thread::Join();
 
     services::AnnouncementRegistrar::UnRegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-    controllerService.GetBusAttachment().RemoveMatch("sessionless='t',type='error'");
 
     for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); ++it) {
         LampConnection* conn = it->second;
@@ -879,6 +876,7 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
 void LampClients::PingCB(QStatus status, void* context)
 {
     QCC_DbgPrintf(("%s: status=%s", __FUNCTION__, QCC_StatusText(status)));
+    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
     bool wakeUpRun = false;
     if (context) {
         pingResponseLock.Lock();
@@ -954,11 +952,12 @@ void LampClients::Run(void)
                  * We should only support a maximum of MAX_SUPPORTED_LAMPS lamps at
                  * any given point in time
                  */
-                if (activeLamps.size() < MAX_SUPPORTED_LAMPS) {
+                if ((joinSessionInProgressList.find(newConn->lampId) == joinSessionInProgressList.end()) && (activeLamps.size() < MAX_SUPPORTED_LAMPS)) {
+                    joinSessionInProgressList.insert(newConn->lampId);
                     joinSessionList.push_back(newConn);
                     QCC_DbgPrintf(("%s: Added %s to JoinSession List", __FUNCTION__, newConn->lampId.c_str()));
                 } else {
-                    QCC_DbgPrintf(("%s: No slot for connection with a new lamp", __FUNCTION__));
+                    QCC_DbgPrintf(("%s: No slot for connection with a new lamp or connect attempt to Lamp already in progress", __FUNCTION__));
                     delete newConn;
                 }
             }
@@ -982,6 +981,7 @@ void LampClients::Run(void)
             status = controllerService.GetBusAttachment().JoinSessionAsync(newConn->busName.c_str(), newConn->port, this, opts, this, newConn);
             QCC_DbgPrintf(("JoinSessionAsync(%s,%u): %s\n", newConn->busName.c_str(), newConn->port, QCC_StatusText(status)));
             if (status != ER_OK) {
+                joinSessionInProgressList.erase(newConn->lampId);
                 delete newConn;
             }
             joinSessionList.pop_front();
@@ -1017,6 +1017,7 @@ void LampClients::Run(void)
              */
             if (activeLamps.size() < MAX_SUPPORTED_LAMPS) {
                 activeLamps.insert(std::make_pair(newConn->lampId, newConn));
+                joinSessionInProgressList.erase(newConn->lampId);
                 QCC_DbgPrintf(("%s: Added new connection for %s to activeLamps", __FUNCTION__, newConn->lampId.c_str()));
             } else {
                 QCC_DbgPrintf(("%s: No slot for connection with a new lamp", __FUNCTION__));
@@ -1034,6 +1035,7 @@ void LampClients::Run(void)
             status = controllerService.GetBusAttachment().LeaveSession(connection->sessionID);
             QCC_DbgPrintf(("%s: controllerService.GetBusAttachment().LeaveSession for %s returns %s\n",
                            __FUNCTION__, connection->lampId.c_str(), QCC_StatusText(status)));
+            joinSessionInProgressList.erase(connection->lampId);
             delete connection;
             leaveSessionList.pop_front();
         }

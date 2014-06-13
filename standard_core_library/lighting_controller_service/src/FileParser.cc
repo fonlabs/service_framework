@@ -19,7 +19,7 @@
 
 namespace lsf {
 
-void ParseLampState(std::ifstream& stream, LampState& state)
+void ParseLampState(std::istream& stream, LampState& state)
 {
     state.onOff = (bool) ParseValue<uint32_t>(stream);
     state.hue = ParseValue<uint32_t>(stream);
@@ -28,7 +28,7 @@ void ParseLampState(std::ifstream& stream, LampState& state)
     state.brightness =  ParseValue<uint32_t>(stream);
 }
 
-std::string ParseString(std::ifstream& stream)
+std::string ParseString(std::istream& stream)
 {
     std::string name;
     stream >> name;
@@ -50,13 +50,13 @@ std::string ParseString(std::ifstream& stream)
     return name;
 }
 
-std::ofstream& WriteValue(std::ofstream& stream, const std::string& name)
+std::ostream& WriteValue(std::ostream& stream, const std::string& name)
 {
     stream << name;
     return stream;
 }
 
-std::ofstream& WriteString(std::ofstream& stream, const std::string& name)
+std::ostream& WriteString(std::ostream& stream, const std::string& name)
 {
     stream << '"' << name << '"';
     return stream;

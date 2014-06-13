@@ -19,6 +19,12 @@
 #include <qcc/StringUtil.h>
 #include <qcc/Debug.h>
 
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <streambuf>
+#include <zlib.h>
+
 #include <ControllerService.h>
 
 using namespace lsf;
@@ -31,6 +37,53 @@ Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
     filePath(filePath)
 {
 
+}
+
+void Manager::WriteFileWithChecksum(const std::string& str)
+{
+    std::ofstream fstream(filePath.c_str(), std::ios_base::out);
+    if (!fstream.is_open()) {
+        printf("File not found: %s\n", filePath.c_str());
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return;
+    }
+
+    // calculate the adler checksum and write it before the file contents
+    uint64_t adler = adler32(1, (uint8_t*) str.c_str(), str.length());
+    fstream << adler << std::endl;
+    fstream << str;
+
+    fstream.close();
+}
+
+bool Manager::ValidateFileAndRead(std::istringstream& filestream)
+{
+    if (filePath.empty()) {
+        return false;
+    }
+
+    std::ifstream stream(filePath.c_str());
+
+    if (!stream.is_open()) {
+        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        return false;
+    }
+
+
+    uint64_t checksum;
+    stream >> checksum;
+
+    // put the rest of the file into the filestream
+    std::stringbuf rest;
+    stream >> &rest;
+    std::string data = rest.str();
+    filestream.str(data);
+
+    // check the adler checksum
+    uint64_t adler = adler32(1, (uint8_t*) data.c_str(), data.length());
+
+    stream.close();
+    return adler == checksum;
 }
 
 void Manager::MethodReplyPassthrough(ajn::Message& msg, void* context)
@@ -54,8 +107,6 @@ LSFString Manager::GenerateUniqueID(const LSFString& prefix) const
 
 void Manager::ScheduleFileUpdate()
 {
-#if 0
     updated = true;
     controllerService.ScheduleFileWrite(this);
-#endif
 }

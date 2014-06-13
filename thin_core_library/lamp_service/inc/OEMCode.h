@@ -105,9 +105,11 @@ extern AJOBS_Settings OEM_OnboardingSettings;
 
 #endif
 
-
 /**
- * Change the lamp's on/off state
+ * Change the lamp's on/off state in response
+ * to the setting of Lamp State Interface onOff property.
+ * The current state should be retrieved from the NVRAM,
+ * updated and the new state should be saved back in the NVRAM.
  *
  * @param  onoff On or off
  * @return Status of the operation
@@ -115,7 +117,10 @@ extern AJOBS_Settings OEM_OnboardingSettings;
 LampResponseCode OEM_SetLampOnOff(uint8_t onoff);
 
 /**
- * Change the lamp's hue
+ * Change the lamp's hue in response
+ * to the setting of Lamp State Interface hue property.
+ * The current state should be retrieved from the NVRAM,
+ * updated and the new state should be saved back in the NVRAM.
  *
  * @param  hue   The hue
  * @return Status of the operation
@@ -123,7 +128,10 @@ LampResponseCode OEM_SetLampOnOff(uint8_t onoff);
 LampResponseCode OEM_SetLampHue(uint32_t hue);
 
 /**
- * Change the lamp's brightness
+ * Change the lamp's brightness in response
+ * to the setting of Lamp State Interface brightness property.
+ * The current state should be retrieved from the NVRAM,
+ * updated and the new state should be saved back in the NVRAM.
  *
  * @param  brightness  The brightness
  * @return Status of the operation
@@ -131,7 +139,10 @@ LampResponseCode OEM_SetLampHue(uint32_t hue);
 LampResponseCode OEM_SetLampBrightness(uint32_t brightness);
 
 /**
- * Change the lamp's saturation
+ * Change the lamp's saturation in response
+ * to the setting of Lamp State Interface saturation property.
+ * The current state should be retrieved from the NVRAM,
+ * updated and the new state should be saved back in the NVRAM.
  *
  * @param  saturation The saturation
  * @return Status of the operation
@@ -139,7 +150,10 @@ LampResponseCode OEM_SetLampBrightness(uint32_t brightness);
 LampResponseCode OEM_SetLampSaturation(uint32_t saturation);
 
 /**
- * Change the lamp's color temperature
+ * Change the lamp's color temperature in response
+ * to the setting of Lamp State Interface colorTemp property.
+ * The current state should be retrieved from the NVRAM,
+ * updated and the new state should be saved back in the NVRAM.
  *
  * @param   colorTemp     The color temperature
  * @return  Status of the operation
@@ -172,6 +186,8 @@ LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, 
 
 /**
  * Serialize all active fault codes into a message.
+ * Fault codes are unsigned 32-bit values that are
+ * defined by the OEM.
  *
  * @param msg   The message to serialize into
  * @return      Status of the operation
@@ -179,7 +195,10 @@ LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, 
 LampResponseCode OEM_GetLampFaults(AJ_Message* msg);
 
 /**
- * Clear the lamp fault with the given code
+ * Clear the lamp fault with the given code. Fault codes are unsigned
+ * 32-bit values that are defined by the OEM.
+ * This will be invoked when the ClearLampFault interface method is
+ * invoked. The response code is defined by the OEM.
  *
  * @param fault The fault code to clear
  * @return      Status of the operation

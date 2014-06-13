@@ -30,6 +30,7 @@ typedef enum {
     LSF_ERR_REJECTED        = LAMP_ERR_REJECTED,              /**< The connection was rejected */
     LSF_ERR_RANGE           = LAMP_ERR_RANGE,                 /**< Value provided was out of range */
     LSF_ERR_INVALID_FIELD   = LAMP_ERR_INVALID_FIELD,         /**< Invalid param/state field */
+    LSF_ERR_MESSAGE         = LAMP_ERR_MESSAGE,               /**< Invalid message */
     LSF_ERR_INVALID_ARGS    = LAMP_ERR_INVALID_ARGS,          /**< The arguments were invalid */
     LSF_ERR_PARTIAL         = LAMP_RESPONSE_CODE_LAST,        /**< The requested operation was only partially successful */
     LSF_ERR_NOT_FOUND       = LAMP_RESPONSE_CODE_LAST + 1,    /**< The entity of interest was not found */
@@ -41,6 +42,5 @@ typedef enum {
 const char* LSFResponseCodeText(LSFResponseCode responseCode);
 
 }
-
 
 #endif

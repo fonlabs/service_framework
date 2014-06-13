@@ -42,13 +42,13 @@ LampManager::~LampManager()
 
 }
 
-QStatus LampManager::Start(void)
+QStatus LampManager::Start(const char* keyStoreFileLocation)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     /*
      * Start the Lamp Clients
      */
-    QStatus status = lampClients.Start();
+    QStatus status = lampClients.Start(keyStoreFileLocation);
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to start the Lamp Clients", __FUNCTION__));
     }

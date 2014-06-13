@@ -17,13 +17,14 @@
  ******************************************************************************/
 
 #include <string>
+#include <iostream>
 #include <fstream>
 
 namespace lsf {
 
 class LampState;
 
-void ParseLampState(std::ifstream& stream, LampState& state);
+void ParseLampState(std::istream& stream, LampState& state);
 
 /**
  * Read a string from the stream.  Spaces will be included between double-quotes
@@ -31,19 +32,19 @@ void ParseLampState(std::ifstream& stream, LampState& state);
  * @param stream    The stream
  * @return          The next token in the stream
  */
-std::string ParseString(std::ifstream& stream);
+std::string ParseString(std::istream& stream);
 
 template <typename T>
-T ParseValue(std::ifstream& stream)
+T ParseValue(std::istream& stream)
 {
     T t;
     stream >> t;
     return t;
 }
 
-std::ofstream& WriteValue(std::ofstream& stream, const std::string& name);
+std::ostream& WriteValue(std::ostream& stream, const std::string& name);
 
-std::ofstream& WriteString(std::ofstream& stream, const std::string& name);
+std::ostream& WriteString(std::ostream& stream, const std::string& name);
 
 
 }

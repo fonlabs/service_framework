@@ -87,7 +87,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * @param  None
      * @return ER_OK if successful, error otherwise
      */
-    QStatus Start(void);
+    QStatus Start(const char* keyStoreFileLocation);
 
     /**
      * Stops the ControllerService
@@ -266,11 +266,13 @@ class ControllerServiceManager {
     /**
      * Starts the ControllerService
      *
-     * @param  None
+     * @param  keyStoreFileLocation Absolute path of the location to put the AllJoyn keystore file in. If this is not specified, the
+     *                              default location will be used. Android applications running the Controller Service should pass in the
+     *                              location returned by Context.getFileStreamPath("alljoyn_keystore").getAbsolutePath()
      * @return ER_OK if successful, error otherwise
      */
-    QStatus Start(void) {
-        return controllerService.Start();
+    QStatus Start(const char* keyStoreFileLocation) {
+        return controllerService.Start(keyStoreFileLocation);
     }
 
     /**

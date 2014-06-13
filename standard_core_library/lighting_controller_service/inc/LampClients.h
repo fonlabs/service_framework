@@ -88,7 +88,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @param   None
      * @return  ER_OK if successful, error otherwise
      */
-    QStatus Start(void);
+    QStatus Start(const char* keyStoreFileLocation);
 
     QStatus Join(void);
 
@@ -380,6 +380,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     std::list<ajn::Message> getAllLampIDsRequests;
     Mutex getAllLampIDsLock;
+
+    std::set<LSFString> joinSessionInProgressList;
 
     LSFSemaphore wakeUp;
 

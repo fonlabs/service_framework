@@ -512,21 +512,16 @@ LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset)
 // (Preset id "name" on/off hue saturation colortemp brightness)*
 void PresetManager::ReadSavedData()
 {
-    if (filePath.empty()) {
-        return;
-    }
-
-    std::ifstream stream(filePath.c_str());
-    if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+    std::istringstream stream;
+    if (!ValidateFileAndRead(stream)) {
         return;
     }
 
     while (!stream.eof()) {
-        std::string type = ParseString(stream);
+        std::string token = ParseString(stream);
 
         // keep searching for "Preset", which indicates the beginning of a saved Preset state
-        if (type == "Preset") {
+        if (token == "Preset") {
             std::string presetId = ParseString(stream);
             std::string presetName = ParseString(stream);
 
@@ -538,8 +533,6 @@ void PresetManager::ReadSavedData()
             presets[presetId] = thePair;
         }
     }
-
-    stream.close();
 }
 
 void PresetManager::WriteFile()
@@ -560,14 +553,7 @@ void PresetManager::WriteFile()
     updated = false;
     presetsLock.Unlock();
 
-
-
-    std::ofstream stream(filePath.c_str(), std::ios_base::out);
-    if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
-        return;
-    }
-
+    std::ostringstream stream;
     // // (Preset id "name" on/off hue saturation colortemp brightness)*
     for (PresetMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
         const LSFString& id = it->first;
@@ -580,7 +566,7 @@ void PresetManager::WriteFile()
                << state.colorTemp << ' ' << state.brightness << '\n';
     }
 
-    stream.close();
+    WriteFileWithChecksum(stream.str());
 }
 
 uint32_t PresetManager::GetControllerServicePresetInterfaceVersion(void)

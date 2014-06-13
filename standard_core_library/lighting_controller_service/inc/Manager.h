@@ -23,6 +23,8 @@
 #include <LSFResponseCodes.h>
 #include <LSFTypes.h>
 
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -51,6 +53,10 @@ class Manager : public ajn::MessageReceiver {
     bool updated;
 
     const std::string filePath;
+
+    bool ValidateFileAndRead(std::istringstream& filestream);
+
+    void WriteFileWithChecksum(const std::string& str);
 
     void MethodReplyPassthrough(ajn::Message& msg, void* context);
 };

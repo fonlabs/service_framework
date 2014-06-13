@@ -32,6 +32,7 @@ const char* LSFResponseCodeText(LSFResponseCode responseCode)
         LSF_CASE(LSF_ERR_REJECTED);
         LSF_CASE(LSF_ERR_RANGE);
         LSF_CASE(LSF_ERR_INVALID_FIELD);
+        LSF_CASE(LSF_ERR_MESSAGE);
         LSF_CASE(LSF_ERR_INVALID_ARGS);
         LSF_CASE(LSF_ERR_PARTIAL);
         LSF_CASE(LSF_ERR_NOT_FOUND);

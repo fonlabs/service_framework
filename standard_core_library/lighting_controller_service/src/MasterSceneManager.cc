@@ -454,13 +454,8 @@ void MasterSceneManager::ApplyMasterScene(ajn::Message& message)
 // (MasterScene id "name" (Scene id)* EndMasterScene)*
 void MasterSceneManager::ReadSavedData()
 {
-    if (filePath.empty()) {
-        return;
-    }
-
-    std::ifstream stream(filePath.c_str());
-    if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+    std::istringstream stream;
+    if (!ValidateFileAndRead(stream)) {
         return;
     }
 
@@ -505,12 +500,7 @@ void MasterSceneManager::WriteFile()
     updated = false;
     masterScenesLock.Unlock();
 
-    std::ofstream stream(filePath.c_str(), std::ios_base::out);
-    if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
-        return;
-    }
-
+    std::ostringstream stream;
     // (MasterScene id "name" (Scene id)* EndMasterScene)*
     for (MasterSceneMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
         const LSFString& id = it->first;
@@ -526,7 +516,7 @@ void MasterSceneManager::WriteFile()
         stream << " EndMasterScene" << std::endl;
     }
 
-    stream.close();
+    WriteFileWithChecksum(stream.str());
 }
 
 uint32_t MasterSceneManager::GetControllerServiceMasterSceneInterfaceVersion(void)

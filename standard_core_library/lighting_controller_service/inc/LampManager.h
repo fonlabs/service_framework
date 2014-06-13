@@ -104,7 +104,7 @@ class LampManager : public Manager {
      * @param   None
      * @return  ER_OK if successful, error otherwise
      */
-    QStatus Start(void);
+    QStatus Start(const char* keyStoreFileLocation);
 
     /*
      * Stop the Lamp Manager

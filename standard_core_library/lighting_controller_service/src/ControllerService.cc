@@ -66,8 +66,8 @@ ControllerService::ControllerService(
     listener(new ControllerListener(*this)),
     lampManager(*this, presetManager),
     lampGroupManager(*this, lampManager, &sceneManager, lampGroupFile),
-    presetManager(*this, &sceneManager, sceneFile),
-    sceneManager(*this, lampGroupManager, &masterSceneManager, presetFile),
+    presetManager(*this, &sceneManager, presetFile),
+    sceneManager(*this, lampGroupManager, &masterSceneManager, sceneFile),
     masterSceneManager(*this, sceneManager, masterSceneFile),
     internalPropertyStore(factoryConfigFile, configFile), // we don't use this!
     propertyStore(propStore),
@@ -92,8 +92,8 @@ ControllerService::ControllerService(
     listener(new ControllerListener(*this)),
     lampManager(*this, presetManager),
     lampGroupManager(*this, lampManager, &sceneManager, lampGroupFile),
-    presetManager(*this, &sceneManager, sceneFile),
-    sceneManager(*this, lampGroupManager, &masterSceneManager, presetFile),
+    presetManager(*this, &sceneManager, presetFile),
+    sceneManager(*this, lampGroupManager, &masterSceneManager, sceneFile),
     masterSceneManager(*this, sceneManager, masterSceneFile),
     internalPropertyStore(factoryConfigFile, configFile),
     propertyStore(internalPropertyStore),
@@ -108,12 +108,10 @@ ControllerService::ControllerService(
 
 void ControllerService::Initialize()
 {
-#if 0
     lampGroupManager.ReadSavedData();
     presetManager.ReadSavedData();
-    sceneManager.ReadSavedData();
-    masterSceneManager.ReadSavedData();
-#endif
+    //sceneManager.ReadSavedData();
+    //masterSceneManager.ReadSavedData();
 
     AddMethodHandler("LightingResetControllerService", this, &ControllerService::LightingResetControllerService);
     AddMethodHandler("GetControllerServiceVersion", this, &ControllerService::GetControllerServiceVersion);
@@ -220,7 +218,7 @@ QStatus ControllerService::CreateAndAddInterfaces(const InterfaceEntry* entries,
     return status;
 }
 
-QStatus ControllerService::Start(void)
+QStatus ControllerService::Start(const char* keyStoreFileLocation)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     QStatus status = ER_OK;
@@ -415,7 +413,7 @@ QStatus ControllerService::Start(void)
     /*
      * Start the Lamp Manager
      */
-    status = lampManager.Start();
+    status = lampManager.Start(keyStoreFileLocation);
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to start the LampManager", __FUNCTION__));
     }
