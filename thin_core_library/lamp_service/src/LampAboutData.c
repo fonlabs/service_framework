@@ -73,7 +73,6 @@ static AJ_Status FactoryReset(void)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
     AJSVC_PropertyStore_ResetAll();
-    OEM_FactoryReset();
 
     // this will clear onboarding data, state, and credentials
     AJ_NVRAM_Clear();
@@ -83,6 +82,8 @@ static AJ_Status FactoryReset(void)
 
     // reinitialize!
     PropertyStore_Init();
+
+    OEM_FactoryReset();
 
     // Force disconnect of AJ and services and reconnection of WiFi on restart of app
     return AJ_ERR_RESTART_APP;

@@ -479,6 +479,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void GetAllLampGroupIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& lampGroupIDs) {
         printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), lampGroupIDs.size());
+        lampGroupList = lampGroupIDs;
         if (responseCode == LSF_OK) {
             LSFStringList::const_iterator it = lampGroupIDs.begin();
             uint8_t count = 1;
@@ -721,6 +722,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     void GetAllPresetIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& presetIDs) {
         printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), presetIDs.size());
         if (responseCode == LSF_OK) {
+            presetList = presetIDs;
             LSFStringList::const_iterator it = presetIDs.begin();
             uint8_t count = 1;
             for (; it != presetIDs.end(); ++it) {
@@ -854,6 +856,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     void GetAllSceneIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& sceneIDs) {
         printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), sceneIDs.size());
         if (responseCode == LSF_OK) {
+            sceneList = sceneIDs;
             LSFStringList::const_iterator it = sceneIDs.begin();
             uint8_t count = 1;
             for (; it != sceneIDs.end(); ++it) {

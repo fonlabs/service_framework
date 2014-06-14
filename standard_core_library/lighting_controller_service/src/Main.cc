@@ -16,14 +16,13 @@
 #include <climits>
 #include <signal.h>
 #include <unistd.h>
-#include <Main.h>
 #include <qcc/Debug.h>
+#include <string>
+#include <ControllerService.h>
 
 #define QCC_MODULE "MAIN"
 
 static volatile sig_atomic_t g_interrupt = false;
-
-lsf::ControllerServiceManager* controllerSvcManagerPtr = NULL;
 
 static void SigIntHandler(int sig)
 {
@@ -106,12 +105,10 @@ static void parseCommandLine(int argc, char** argv)
     }
 }
 
-
 void lsf_Sleep(uint32_t msec)
 {
     usleep(1000 * msec);
 }
-
 
 int main(int argc, char** argv)
 {
@@ -120,8 +117,6 @@ int main(int argc, char** argv)
     parseCommandLine(argc, argv);
 
     lsf::ControllerServiceManager controllerSvcManager(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile);
-
-    controllerSvcManagerPtr = &controllerSvcManager;
 
     if (keyStoreLocationSpecified) {
         controllerSvcManager.Start(keyStoreLocation.c_str());
@@ -134,6 +129,4 @@ int main(int argc, char** argv)
     }
 
     controllerSvcManager.Stop();
-
-    controllerSvcManagerPtr = NULL;
 }

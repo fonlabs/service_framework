@@ -198,7 +198,7 @@ AJ_Status OEM_GetLampParameters(AJ_Message* msg)
     return AJ_OK;
 }
 
-LampDetailsStruct LampDetails = {
+const LampDetailsStruct LampDetails = {
     .lampMake = MAKE_LIFX,
     .lampModel = MODEL_LED,
     .deviceType = TYPE_LAMP,

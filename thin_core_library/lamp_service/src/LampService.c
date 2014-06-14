@@ -29,6 +29,7 @@
 
 #ifdef ONBOARDING_SERVICE
 #include <alljoyn/onboarding/OnboardingService.h>
+#include <aj_wifi_ctrl.h>
 #endif
 
 #include <alljoyn/notification/NotificationProducer.h>
@@ -309,15 +310,19 @@ static AJ_Status ConnectToRouter(void)
         }
 
 #ifdef ONBOARDING_SERVICE
-        if (AJOBS_ControllerAPI_IsWiFiClient()) {
+        AJ_WiFiConnectState wifi_state = AJ_GetWifiConnectState();
+        if (AJ_GetWifiConnectState() == AJ_WIFI_CONNECT_OK) {
 #endif
         AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __FUNCTION__));
         status = AJ_FindBusAndConnect(&Bus, routingNodePrefix, AJ_CONNECT_TIMEOUT);
 #ifdef ONBOARDING_SERVICE
-    } else if (AJOBS_ControllerAPI_IsWiFiSoftAP()) {
+    } else if (AJ_GetWifiConnectState() == AJ_WIFI_STATION_OK) {
         // we are in soft-AP mode so use the BusNode router
         AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __FUNCTION__));
         status = AJ_FindBusAndConnect(&Bus, NULL, AJ_CONNECT_TIMEOUT);
+    } else {
+        // can't connect because we aren't connected to the network
+        return AJ_ERR_DISALLOWED;
     }
 #endif
 
@@ -376,8 +381,13 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 #ifdef ONBOARDING_SERVICE
         // if not connected to wifi, attempt to connect or start
         // a soft AP for onboarding
-        while (!AJOBS_IsWiFiConnected()) {
+        AJ_WiFiConnectState wifi_state = AJ_GetWifiConnectState();
+        // we need to keep trying until either:
+        // a) we are connected to the user's network or
+        // b) a device has connected to us and might try to onboard this device
+        while (wifi_state != AJ_WIFI_CONNECT_OK && wifi_state != AJ_WIFI_STATION_OK) {
             status = AJOBS_EstablishWiFi();
+            wifi_state = AJ_GetWifiConnectState();
         }
 #endif
 
@@ -387,6 +397,8 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
             if (status == AJ_OK) {
                 // inform all services we are connected to the bus
                 status = AJSVC_ConnectedHandler(&Bus);
+            } else {
+                continue;
             }
 
             if (status == AJ_OK) {

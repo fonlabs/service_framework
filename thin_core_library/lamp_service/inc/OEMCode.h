@@ -241,7 +241,7 @@ typedef struct {
 /**
  * A global struct to hold this Lamp's details.
  */
-extern LampDetailsStruct LampDetails;
+extern const LampDetailsStruct LampDetails;
 
 /**
  * The about icon MIME type

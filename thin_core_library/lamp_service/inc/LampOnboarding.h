@@ -25,24 +25,6 @@
 
 #include <alljoyn/onboarding/OnboardingManager.h>
 
-// these are not explicitly declared in the onboarding manager header
-
-/**
- * Check if the device is connected to a WIFI network
- *
- * @param  None
- * @return TRUE if connected to wifi
- */
-int8_t AJOBS_ControllerAPI_IsWiFiClient(void);
-
-/**
- * Check if the device is acting as a Soft AP
- *
- * @param  None
- * @return TRUE if a soft AP
- */
-int8_t AJOBS_ControllerAPI_IsWiFiSoftAP(void);
-
 /**
  * Initialize the Onboarding service
  *

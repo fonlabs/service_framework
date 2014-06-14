@@ -542,8 +542,6 @@ LSFResponseCode SceneManager::ApplySceneInternal(ajn::Message message, LSFString
 
 void SceneManager::ReadSavedData()
 {
-    printf("SM: [%s]\n", filePath.c_str());
-
     std::istringstream stream;
     if (!ValidateFileAndRead(stream)) {
         return;
@@ -554,141 +552,134 @@ void SceneManager::ReadSavedData()
         std::string id;
         std::string name;
         LSFStringList subScenes;
-        bool in_scene = false;
-
         Scene scene;
-        do {
-            token = ParseString(stream);
 
-            if (token == "Scene") {
-                in_scene = true;
-                id = ParseString(stream);
-                name = ParseString(stream);
-            } else if (token == "EndScene") {
-                in_scene = false;
-            }
+        token = ParseString(stream);
+        if (token == "Scene") {
+            id = ParseString(stream);
+            name = ParseString(stream);
 
-            if (in_scene) {
-                std::string type = ParseString(stream);
-
-                if (type == "TransitionLampsLampGroupsToState") {
+            do {
+                token = ParseString(stream);
+                if (token == "TransitionLampsLampGroupsToState") {
                     LSFStringList lampList;
                     LSFStringList lampGroupList;
                     LampState lampState;
                     uint32_t period = 0;
 
                     do {
-                        type = ParseString(stream);
-
-                        if (type == "Lamp") {
+                        token = ParseString(stream);
+                        if (token == "Lamp") {
                             std::string id = ParseString(stream);
                             lampList.push_back(id);
-                        } else if (type == "LampGroup") {
+                        } else if (token == "LampGroup") {
                             std::string id = ParseString(stream);
                             lampGroupList.push_back(id);
-                        } else if (type == "LampState") {
+                        } else if (token == "LampState") {
                             ParseLampState(stream, lampState);
-                        } else if (type == "Period") {
+                        } else if (token == "Period") {
                             period = ParseValue<uint32_t>(stream);
                         }
-                    } while (type != "EndTransitionLampsLampGroupsToState");
+                    } while (token != "EndTransitionLampsLampGroupsToState");
                     scene.transitionToStateComponent.push_back(TransitionLampsLampGroupsToState(lampList, lampGroupList, lampState, period));
-                } else if (type == "TransitionLampsLampGroupsToPreset") {
+                } else if (token == "TransitionLampsLampGroupsToPreset") {
                     LSFStringList lampList;
                     LSFStringList lampGroupList;
                     LSFString preset;
                     uint32_t period = 0;
 
                     do {
-                        type = ParseString(stream);
+                        token = ParseString(stream);
 
-                        if (type == "Lamp") {
+                        if (token == "Lamp") {
                             std::string id = ParseString(stream);
                             lampList.push_back(id);
-                        } else if (type == "LampGroup") {
+                        } else if (token == "LampGroup") {
                             std::string id = ParseString(stream);
                             lampGroupList.push_back(id);
-                        } else if (type == "LampState") {
+                        } else if (token == "LampState") {
                             preset = ParseString(stream);
-                        } else if (type == "Period") {
+                        } else if (token == "Period") {
                             period = ParseValue<uint32_t>(stream);
                         }
-                    } while (type != "EndTransitionLampsLampGroupsToPreset");
+                    } while (token != "EndTransitionLampsLampGroupsToPreset");
                     scene.transitionToPresetComponent.push_back(TransitionLampsLampGroupsToPreset(lampList, lampGroupList, preset, period));
-                } else if (type == "PulseLampsLampGroupsWithState") {
+                } else if (token == "PulseLampsLampGroupsWithState") {
                     LSFStringList lampList;
                     LSFStringList lampGroupList;
                     LampState fromState, toState;
                     uint32_t period = 0, duration = 0, pulses = 0;
 
                     do {
-                        if (type == "Lamp") {
+                        token = ParseString(stream);
+                        if (token == "Lamp") {
                             std::string id = ParseString(stream);
                             lampList.push_back(id);
-                        } else if (type == "LampGroup") {
+                        } else if (token == "LampGroup") {
                             std::string id = ParseString(stream);
                             lampGroupList.push_back(id);
-                        } else if (type == "FromState") {
+                        } else if (token == "FromState") {
                             ParseLampState(stream, fromState);
-                        } else if (type == "ToState") {
+                        } else if (token == "ToState") {
                             ParseLampState(stream, toState);
-                        } else if (type == "Period") {
+                        } else if (token == "Period") {
                             period = ParseValue<uint32_t>(stream);
-                        } else if (type == "Duration") {
+                        } else if (token == "Duration") {
                             duration = ParseValue<uint32_t>(stream);
-                        } else if (type == "Pulses") {
+                        } else if (token == "Pulses") {
                             pulses = ParseValue<uint32_t>(stream);
                         }
-                    } while (type != "EndPulseLampsLampGroupsWithState");
+                    } while (token != "EndPulseLampsLampGroupsWithState");
                     scene.pulseWithStateComponent.push_back(PulseLampsLampGroupsWithState(lampList, lampGroupList, fromState, toState, period, duration, pulses));
-                } else if (type == "PulseLampsLampGroupsWithPreset") {
+                } else if (token == "PulseLampsLampGroupsWithPreset") {
                     LSFStringList lampList;
                     LSFStringList lampGroupList;
                     LSFString fromState, toState;
                     uint32_t period = 0, duration = 0, pulses = 0;
 
                     do {
-                        if (type == "Lamp") {
+                        token = ParseString(stream);
+                        if (token == "Lamp") {
                             std::string id = ParseString(stream);
                             lampList.push_back(id);
-                        } else if (type == "LampGroup") {
+                        } else if (token == "LampGroup") {
                             std::string id = ParseString(stream);
                             lampGroupList.push_back(id);
-                        } else if (type == "FromState") {
+                        } else if (token == "FromState") {
                             fromState = ParseString(stream);
-                        } else if (type == "ToState") {
+                        } else if (token == "ToState") {
                             toState = ParseString(stream);
-                        } else if (type == "Period") {
+                        } else if (token == "Period") {
                             period = ParseValue<uint32_t>(stream);
-                        } else if (type == "Duration") {
+                        } else if (token == "Duration") {
                             duration = ParseValue<uint32_t>(stream);
-                        } else if (type == "Pulses") {
+                        } else if (token == "Pulses") {
                             pulses = ParseValue<uint32_t>(stream);
                         }
-                    } while (type != "EndPulseLampsLampGroupsWithPreset");
+                    } while (token != "EndPulseLampsLampGroupsWithPreset");
                     scene.pulseWithPresetComponent.push_back(PulseLampsLampGroupsWithPreset(lampList, lampGroupList, fromState, toState, period, duration, pulses));
                 }
-            }
-        } while (token != "EndScene");
+            } while (token != "EndScene");
 
-        std::pair<LSFString, Scene> thePair(name, scene);
-        scenes[id] = thePair;
+            std::pair<LSFString, Scene> thePair(name, scene);
+            scenes[id] = thePair;
+        }
     }
 }
 
 static void OutputLamps(std::ostream& stream, const std::string& name, const LSFStringList& list)
 {
     for (LSFStringList::const_iterator it = list.begin(); it != list.end(); ++it) {
-        stream << name << ' ' << *it << ' ';
+        stream << "\t\t" << name << ' ' << *it << '\n';
     }
 }
 
 static void OutputState(std::ostream& stream, const std::string& name, const LampState& state)
 {
-    stream << name << ' '
+    stream << "\t\t" << name << ' '
            << (state.onOff ? 1 : 0) << ' '
            << state.hue << ' ' << state.saturation << ' '
-           << state.colorTemp << ' ' << state.brightness << ' ';
+           << state.colorTemp << ' ' << state.brightness << '\n';
 }
 
 void SceneManager::WriteFile()
@@ -722,54 +713,60 @@ void SceneManager::WriteFile()
             for (TransitionLampsLampGroupsToStateList::const_iterator cit = scene.transitionToStateComponent.begin(); cit != scene.transitionToStateComponent.end(); ++cit) {
                 const TransitionLampsLampGroupsToState& comp = *cit;
 
-                stream << "\t\t";
                 OutputLamps(stream, "Lamp", comp.lamps);
                 OutputLamps(stream, "LampGroup", comp.lampGroups);
                 OutputState(stream, "LampState", comp.state);
-                stream << "Period " << comp.transitionPeriod << '\n';
+                stream << "\t\tPeriod " << comp.transitionPeriod << '\n';
             }
+
+            stream << "\tEndTransitionLampsLampGroupsToState\n";
         }
 
         if (!scene.transitionToPresetComponent.empty()) {
-            stream << "\tTransitionLampsLampGroupsToPreset ";
+            stream << "\tTransitionLampsLampGroupsToPreset\n";
             for (TransitionLampsLampGroupsToPresetList::const_iterator cit = scene.transitionToPresetComponent.begin(); cit != scene.transitionToPresetComponent.end(); ++cit) {
                 const TransitionLampsLampGroupsToPreset& comp = *cit;
 
-                stream << "\t\t";
                 OutputLamps(stream, "Lamp", comp.lamps);
                 OutputLamps(stream, "LampGroup", comp.lampGroups);
-                stream << " LampState " << comp.presetID << " Period " << comp.transitionPeriod << '\n';
+                stream << "\t\tLampState " << comp.presetID << "\n\t\tPeriod " << comp.transitionPeriod << '\n';
             }
+
+            stream << "\tEndTransitionLampsLampGroupsToPreset\n";
         }
 
 
         if (!scene.pulseWithStateComponent.empty()) {
-            stream << "\tPulseLampsLampGroupsWithState ";
+            stream << "\tPulseLampsLampGroupsWithState\n";
             for (PulseLampsLampGroupsWithStateList::const_iterator cit = scene.pulseWithStateComponent.begin(); cit != scene.pulseWithStateComponent.end(); ++cit) {
                 const PulseLampsLampGroupsWithState& comp = *cit;
 
-                stream << "\t\t";
                 OutputLamps(stream, "Lamp", comp.lamps);
                 OutputLamps(stream, "LampGroup", comp.lampGroups);
                 OutputState(stream, "FromState", comp.fromState);
                 OutputState(stream, "ToState", comp.toState);
-                stream << " Period " << comp.pulsePeriod << " Duration " << comp.pulseDuration << " Pulses " << comp.numPulses << '\n';
+                stream << "\t\tPeriod " << comp.pulsePeriod << "\n\t\tDuration " << comp.pulseDuration << "\n\t\tPulses " << comp.numPulses << '\n';
             }
+
+            stream << "\tEndPulseLampsLampGroupsWithState\n";
         }
 
         if (!scene.pulseWithPresetComponent.empty()) {
-            stream << "\tPulseLampsLampGroupsWithPreset ";
+            stream << "\tPulseLampsLampGroupsWithPreset\n";
             for (PulseLampsLampGroupsWithPresetList::const_iterator cit = scene.pulseWithPresetComponent.begin(); cit != scene.pulseWithPresetComponent.end(); ++cit) {
                 const PulseLampsLampGroupsWithPreset& comp = *cit;
 
-                stream << "\t\t";
                 OutputLamps(stream, "Lamp", comp.lamps);
                 OutputLamps(stream, "LampGroup", comp.lampGroups);
-                stream << " FromState " << comp.fromPreset << " ToState " << comp.toPreset
-                       << " Period " << comp.pulsePeriod << " Duration " << comp.pulseDuration << " Pulses " << comp.numPulses << '\n';
+                stream << "\t\tFromState " << comp.fromPreset << "\n\t\tToState " << comp.toPreset
+                       << "\n\t\tPeriod " << comp.pulsePeriod << "\n\t\tDuration " << comp.pulseDuration << "\n\t\tPulses " << comp.numPulses << '\n';
             }
+
+            stream << "\tEndPulseLampsLampGroupsWithPreset\n";
         }
     }
+
+    stream << "EndScene\n";
 
     WriteFileWithChecksum(stream.str());
 }
