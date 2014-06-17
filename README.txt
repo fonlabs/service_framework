@@ -11,13 +11,13 @@ core/
 
 	service_framework/   (https://git.allseenalliance.org/cgit/lighting/service_framework.git)
 
-	ajtcl/   (https://git.allseenalliance.org/cgit/core/ajtcl.git Commit ID:b3afbac1ce299bcc75b648e9d1d61caeccb21f28)
+	ajtcl/   (https://git.allseenalliance.org/cgit/core/ajtcl.git Commit ID:6a5c6bd841bc65c87fb238ea6699ec2c3be10372)
 
-	alljoyn/ (https://git.allseenalliance.org/cgit/core/alljoyn.git Commit ID:afff7fd76d430fd5f4a8898de1dbcdce9283386a)
+	alljoyn/ (https://git.allseenalliance.org/cgit/core/alljoyn.git Commit ID:1914ce0387237b0c05dad597f54027ecd8fd2f57)
 
-base_tcl/ (https://git.allseenalliance.org/cgit/services/base_tcl.git Commit ID:eaaf35b6d7efcc0c27ad3f46e1edf503b437a6b4)
+base_tcl/ (https://git.allseenalliance.org/cgit/services/base_tcl.git Commit ID:3127ef6fb7be7ea42e6bd639e84864225f840006)
 
-base/ (https://git.allseenalliance.org/cgit/services/base.git Commit ID:293396660c338a57e36233966d08c2fed4126025)
+base/ (https://git.allseenalliance.org/cgit/services/base.git Commit ID:56f3653e0a4e62d1f107c3a27019e7ee45dd2b52)
 
 Checkout the appropriate Commit IDs on all of the above GIT projects except service_framework.git by navigating in to the appropriate project directory and running the following command
 
@@ -31,6 +31,12 @@ Running the End-To-End Test on Ubuntu
 
 From under the directory core/service_framework/build/linux/x86/debug/dist/cpp/bin, run the alljoyn daemon using the following command:
 
+	./alljoyn-daemon
+	
+	This will start a daemon that will support a max of 32 Lamp Services
+	
+	You could run the following command instead to specify a custom config file that will allow up to 100 Lamp Services
+	
 	./alljoyn-daemon --config-file=./routerconfig.xml
 
 	This will start the Routing Node

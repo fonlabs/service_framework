@@ -84,6 +84,10 @@ typedef enum _LSFBlobType {
     LSF_MASTER_SCENE
 } LSFBlobType;
 
+void CreateUniqueList(LSFStringList& uniqueList, LSFStringList& fromList);
+
+void CreateUniqueList(LSFStringList& uniqueList, ajn::MsgArg* idsArray, size_t idsSize);
+
 class LampState {
 
   public:

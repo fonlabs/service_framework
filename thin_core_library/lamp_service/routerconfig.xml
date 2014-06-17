@@ -13,16 +13,14 @@
 	OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.-->
 
 <busconfig>
+  <type>alljoyn</type>
   <listen>unix:abstract=alljoyn</listen>
   <listen>tcp:r4addr=0.0.0.0,r4port=9955</listen>
+  <listen>udp:u4addr=0.0.0.0,u4port=9955</listen>
   <limit name="auth_timeout">5000</limit>
   <limit name="max_incomplete_connections">120</limit>
   <limit name="max_completed_connections">120</limit>
   <limit name="max_untrusted_clients">120</limit>
   <flag name="restrict_untrusted_clients">false</flag>
   <property name="ns_interfaces">*</property>
-  <property name="disable_directed_broadcast">false</property>
-  <property name="disable_ipv4">false</property>
-  <property name="enable_ipv6">true</property>
-  <property name="router_advertisement_prefix">org.alljoyn.BusNode.LSF</property>
 </busconfig>

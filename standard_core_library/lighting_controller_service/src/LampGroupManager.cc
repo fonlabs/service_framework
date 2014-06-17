@@ -738,37 +738,39 @@ void LampGroupManager::ResetLampGroupStateField(Message& message)
     }
 }
 
-LSFResponseCode LampGroupManager::GetAllGroupLamps(LSFStringList& lampGroupList, LSFStringList& lamps)
+LSFResponseCode LampGroupManager::GetAllGroupLampsInternal(LSFStringList& lampGroupList, LSFStringList& lamps, LSFStringList& refList)
 {
     QCC_DbgPrintf(("%s: lampGroupList.size()(%d)", __FUNCTION__, lampGroupList.size()));
     LSFResponseCode responseCode = LSF_OK;
 
     QStatus status = lampGroupsLock.Lock();
     if (ER_OK == status) {
-        while (lampGroupList.size()) {
-            LSFString lampGroupId = lampGroupList.front();
-            LampGroupMap::iterator it = lampGroups.find(lampGroupId);
-            if (it != lampGroups.end()) {
-                QCC_DbgPrintf(("%s: Lamp list size = %d", __FUNCTION__, it->second.second.lamps.size()));
-                for (LSFStringList::iterator lampIt = it->second.second.lamps.begin(); lampIt != it->second.second.lamps.end(); lampIt++) {
-                    lamps.push_back(*lampIt);
-                    QCC_DbgPrintf(("%s: lampId = %s", __FUNCTION__, (*lampIt).c_str()));
-                }
-                QCC_DbgPrintf(("%s: Lamp Groups list size = %d", __FUNCTION__, it->second.second.lampGroups.size()));
-                if (it->second.second.lampGroups.size()) {
-                    LSFStringList groupList = it->second.second.lampGroups;
-                    LSFResponseCode tempResponseCode = GetAllGroupLamps(groupList, lamps);
-                    if (LSF_ERR_NOT_FOUND == tempResponseCode) {
-                        responseCode = LSF_ERR_PARTIAL;
-                    } else {
-                        responseCode = tempResponseCode;
+        for (LSFStringList::iterator git = lampGroupList.begin(); git != lampGroupList.end(); git++) {
+            LSFString lampGroupId = *git;
+            if (std::find(refList.begin(), refList.end(), lampGroupId) == refList.end()) {
+                LampGroupMap::iterator it = lampGroups.find(lampGroupId);
+                if (it != lampGroups.end()) {
+                    refList.push_back(lampGroupId);
+                    QCC_DbgPrintf(("%s: Lamp list size = %d", __FUNCTION__, it->second.second.lamps.size()));
+                    CreateUniqueList(lamps, it->second.second.lamps);
+
+                    QCC_DbgPrintf(("%s: Lamp Groups list size = %d", __FUNCTION__, it->second.second.lampGroups.size()));
+                    if (it->second.second.lampGroups.size()) {
+                        LSFStringList groupList = it->second.second.lampGroups;
+                        LSFResponseCode tempResponseCode = GetAllGroupLampsInternal(groupList, lamps, refList);
+                        if (LSF_ERR_NOT_FOUND == tempResponseCode) {
+                            responseCode = LSF_ERR_PARTIAL;
+                        } else {
+                            responseCode = tempResponseCode;
+                        }
                     }
+                } else {
+                    QCC_DbgPrintf(("%s: Lamp Group %s not found", __FUNCTION__, lampGroupId.c_str()));
+                    responseCode = LSF_ERR_NOT_FOUND;
                 }
             } else {
-                QCC_DbgPrintf(("%s: Lamp Group %s not found", __FUNCTION__, lampGroupId.c_str()));
-                responseCode = LSF_ERR_NOT_FOUND;
+                QCC_DbgPrintf(("%s: Lamp Group %s already processed", __FUNCTION__, lampGroupId.c_str()));
             }
-            lampGroupList.pop_front();
         }
         status = lampGroupsLock.Unlock();
         if (ER_OK != status) {

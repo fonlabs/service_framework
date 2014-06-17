@@ -23,6 +23,8 @@
 #include <vector>
 #include <map>
 
+#include <qcc/String.h>
+
 namespace lsf {
 
 /**
@@ -37,7 +39,7 @@ class PropertyParser {
      * @param data - relevant data
      * @return boolean
      */
-    static bool ParseFile(const std::string& fileName, std::map<std::string, std::string>& data);
+    static bool ParseFile(const std::string& fileName, std::map<qcc::String, qcc::String>& data);
 
     /**
      * UpdateFile
@@ -45,9 +47,9 @@ class PropertyParser {
      * @param data - relevant data
      * @return boolean
      */
-    static bool WriteFile(const std::string& fileName, const std::map<std::string, std::string>& data);
+    static bool WriteFile(const std::string& fileName, const std::map<qcc::String, qcc::String>& data);
 
-    static void Tokenize(const std::string& inStr, std::vector<std::string>& strings, char sep = ' ');
+    static void Tokenize(const qcc::String& inStr, std::vector<qcc::String>& strings, char sep = ' ');
 
   private:
 
@@ -57,7 +59,10 @@ class PropertyParser {
     PropertyParser();
 
     static std::string trim(const std::string& str,
-                            const std::string& whitespace = " \t");
+                            const char* whitespace = " \t");
+
+    static qcc::String trim(const qcc::String& str,
+                            const char* whitespace = " \t");
 };
 
 }

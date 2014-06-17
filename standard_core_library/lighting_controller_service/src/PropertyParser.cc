@@ -23,19 +23,31 @@
 
 using namespace lsf;
 
-std::string PropertyParser::trim(const std::string& str, const std::string& whitespace)
+qcc::String PropertyParser::trim(const qcc::String& str, const char* whitespace)
 {
-    const std::string::size_type strBegin = str.find_first_not_of(whitespace);
+    size_t strBegin = str.find_first_not_of(whitespace);
+    if (strBegin == qcc::String::npos) {
+        return "";  // no content
+
+    }
+    size_t strEnd = str.find_last_not_of(whitespace);
+    size_t strRange = strEnd - strBegin + 1;
+    return str.substr(strBegin, strRange);
+}
+
+std::string PropertyParser::trim(const std::string& str, const char* whitespace)
+{
+    size_t strBegin = str.find_first_not_of(whitespace);
     if (strBegin == std::string::npos) {
         return "";  // no content
 
     }
-    const std::string::size_type strEnd = str.find_last_not_of(whitespace);
-    const std::string::size_type strRange = strEnd - strBegin + 1;
+    size_t strEnd = str.find_last_not_of(whitespace);
+    size_t strRange = strEnd - strBegin + 1;
     return str.substr(strBegin, strRange);
 }
 
-bool PropertyParser::ParseFile(const std::string& fileName, std::map<std::string, std::string>& data)
+bool PropertyParser::ParseFile(const std::string& fileName, std::map<qcc::String, qcc::String>& data)
 {
     std::ifstream iniFile(fileName.c_str(), std::ifstream::in);
     if (!iniFile.is_open()) {
@@ -60,7 +72,7 @@ bool PropertyParser::ParseFile(const std::string& fileName, std::map<std::string
         }
 
         std::size_t found = line.find('=');
-        if (found == std::string::npos) {
+        if (found == qcc::String::npos) {
             QCC_DbgPrintf(("Line %u invalid: [%s]\n", lineNum, line.c_str()));
             continue;
         }
@@ -71,38 +83,38 @@ bool PropertyParser::ParseFile(const std::string& fileName, std::map<std::string
         std::string value = line.substr(found + 1);
         value = trim(value);
 
-        data[name] = value;
+        data[name.c_str()] = value.c_str();
     }
 
     iniFile.close();
     return true;
 }
 
-void PropertyParser::Tokenize(const std::string& inStr, std::vector<std::string>& strings, char sep)
+void PropertyParser::Tokenize(const qcc::String& inStr, std::vector<qcc::String>& strings, char sep)
 {
     const std::string ws(1, sep);
 
     std::string token;
-    std::stringstream stream(inStr);
+    std::stringstream stream(inStr.c_str());
     while (std::getline(stream, token, sep)) {
-        token = trim(token, ws);
+        token = trim(token, ws.c_str());
 
         if (!token.empty()) {
-            strings.push_back(token);
+            strings.push_back(token.c_str());
         }
     }
 }
 
-bool PropertyParser::WriteFile(const std::string& fileName, const std::map<std::string, std::string>& data)
+bool PropertyParser::WriteFile(const std::string& fileName, const std::map<qcc::String, qcc::String>& data)
 {
     std::ofstream iniFileWrite(fileName.c_str(), std::ofstream::out | std::ofstream::trunc);
     if (!iniFileWrite.is_open()) {
         return false;
     }
 
-    std::map<std::string, std::string>::const_iterator it;
+    std::map<qcc::String, qcc::String>::const_iterator it;
     for (it = data.begin(); it != data.end(); ++it) {
-        iniFileWrite << it->first << " = " << it->second << '\n';
+        iniFileWrite << it->first.c_str() << " = " << it->second.c_str() << '\n';
     }
 
     iniFileWrite.close();

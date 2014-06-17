@@ -59,6 +59,34 @@ const char* LeaderElectionAndStateSyncObjectPath = "/org/allseen/LeaderElectionA
 const char* LeaderElectionAndStateSyncInterfaceName = "org.allseen.LeaderElectionAndStateSync";
 ajn::SessionPort LeaderElectionAndStateSyncSessionPort = 44;
 
+void CreateUniqueList(LSFStringList& uniqueList, LSFStringList& fromList)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    for (LSFStringList::iterator lampIt = fromList.begin(); lampIt != fromList.end(); lampIt++) {
+        if (std::find(uniqueList.begin(), uniqueList.end(), *lampIt) == uniqueList.end()) {
+            uniqueList.push_back(*lampIt);
+            QCC_DbgPrintf(("%s: lampId = %s", __FUNCTION__, (*lampIt).c_str()));
+        } else {
+            QCC_DbgPrintf(("%s: lampId = %s already in the list", __FUNCTION__, (*lampIt).c_str()));
+        }
+    }
+}
+
+void CreateUniqueList(LSFStringList& uniqueList, ajn::MsgArg* idsArray, size_t idsSize)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    for (size_t i = 0; i < idsSize; i++) {
+        char* gid;
+        idsArray[i].Get("s", &gid);
+        if ((std::find(uniqueList.begin(), uniqueList.end(), LSFString(gid))) == uniqueList.end()) {
+            uniqueList.push_back(LSFString(gid));
+        } else {
+            QCC_DbgPrintf(("%s: lampId = %s already in the list", __FUNCTION__, gid));
+        }
+    }
+
+}
+
 LampState::LampState() :
     onOff(false),
     hue(0),
@@ -573,20 +601,13 @@ void LampGroup::Set(const ajn::MsgArg& lampList, const ajn::MsgArg& lampGroupLis
     MsgArg* idsArray;
     size_t idsSize;
     lampList.Get("as", &idsSize, &idsArray);
-    for (size_t i = 0; i < idsSize; i++) {
-        char* lampID;
-        idsArray[i].Get("s", &lampID);
-        lamps.push_back(LSFString(lampID));
-    }
+    CreateUniqueList(lamps, idsArray, idsSize);
 
     MsgArg* gidsArray;
     size_t gidsSize;
     lampGroupList.Get("as", &gidsSize, &gidsArray);
-    for (size_t i = 0; i < gidsSize; i++) {
-        char* gid;
-        gidsArray[i].Get("s", &gid);
-        lampGroups.push_back(LSFString(gid));
-    }
+    CreateUniqueList(lampGroups, gidsArray, gidsSize);
+
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
@@ -697,18 +718,8 @@ void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
     size_t stateArgsSize;
 
     component.Get("(asasa{sv}u)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &stateArgsSize, &stateArgs, &transitionPeriod);
-
-    for (size_t j = 0; j < numLamps; j++) {
-        char* lampID;
-        lampList[j].Get("s", &lampID);
-        lamps.push_back(LSFString(lampID));
-    }
-
-    for (size_t k = 0; k < numLampGroups; k++) {
-        char* lampGroupID;
-        lampGroupList[k].Get("s", &lampGroupID);
-        lampGroups.push_back(LSFString(lampGroupID));
-    }
+    CreateUniqueList(lamps, lampList, numLamps);
+    CreateUniqueList(lampGroups, lampGroupList, numLampGroups);
 
     MsgArg arg;
     arg.Set("a{sv}", stateArgsSize, stateArgs);
@@ -813,18 +824,8 @@ void TransitionLampsLampGroupsToPreset::Set(const ajn::MsgArg& component)
     const char* presetId;
 
     component.Get("(asassu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &presetId, &transitionPeriod);
-
-    for (size_t j = 0; j < numLamps; j++) {
-        char* lampID;
-        lampList[j].Get("s", &lampID);
-        lamps.push_back(LSFString(lampID));
-    }
-
-    for (size_t k = 0; k < numLampGroups; k++) {
-        char* lampGroupID;
-        lampGroupList[k].Get("s", &lampGroupID);
-        lampGroups.push_back(LSFString(lampGroupID));
-    }
+    CreateUniqueList(lamps, lampList, numLamps);
+    CreateUniqueList(lampGroups, lampGroupList, numLampGroups);
 
     presetID = LSFString(presetId);
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
@@ -929,18 +930,8 @@ void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
     size_t toStateArgsSize;
 
     component.Get("(asasa{sv}a{sv}uuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromStateArgsSize, &fromStateArgs, &toStateArgsSize, &toStateArgs, &pulsePeriod, &pulseDuration, &numPulses);
-
-    for (size_t j = 0; j < numLamps; j++) {
-        char* lampID;
-        lampList[j].Get("s", &lampID);
-        lamps.push_back(LSFString(lampID));
-    }
-
-    for (size_t k = 0; k < numLampGroups; k++) {
-        char* lampGroupID;
-        lampGroupList[k].Get("s", &lampGroupID);
-        lampGroups.push_back(LSFString(lampGroupID));
-    }
+    CreateUniqueList(lamps, lampList, numLamps);
+    CreateUniqueList(lampGroups, lampGroupList, numLampGroups);
 
     MsgArg fromArg;
     fromArg.Set("a{sv}", fromStateArgsSize, fromStateArgs);
@@ -1064,18 +1055,8 @@ void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
     const char* toPresetId;
 
     component.Get("(asasssuuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromPresetId, &toPresetId, &pulsePeriod, &pulseDuration, &numPulses);
-
-    for (size_t j = 0; j < numLamps; j++) {
-        char* lampID;
-        lampList[j].Get("s", &lampID);
-        lamps.push_back(LSFString(lampID));
-    }
-
-    for (size_t k = 0; k < numLampGroups; k++) {
-        char* lampGroupID;
-        lampGroupList[k].Get("s", &lampGroupID);
-        lampGroups.push_back(LSFString(lampGroupID));
-    }
+    CreateUniqueList(lamps, lampList, numLamps);
+    CreateUniqueList(lampGroups, lampGroupList, numLampGroups);
 
     fromPreset = LSFString(fromPresetId);
     toPreset = LSFString(toPresetId);
@@ -1415,11 +1396,8 @@ void MasterScene::Set(const ajn::MsgArg& sceneList)
     MsgArg* gidsArray;
     size_t gidsSize;
     sceneList.Get("as", &gidsSize, &gidsArray);
-    for (size_t i = 0; i < gidsSize; i++) {
-        char* gid;
-        gidsArray[i].Get("s", &gid);
-        scenes.push_back(LSFString(gid));
-    }
+    CreateUniqueList(scenes, gidsArray, gidsSize);
+
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 

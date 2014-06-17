@@ -75,7 +75,13 @@ class LampGroupManager : public Manager {
 
   protected:
 
-    LSFResponseCode GetAllGroupLamps(LSFStringList& lampGroupList, LSFStringList& lamps);
+    LSFResponseCode GetAllGroupLampsInternal(LSFStringList& lampGroupList, LSFStringList& lamps, LSFStringList& refList);
+
+    LSFResponseCode GetAllGroupLamps(LSFStringList& lampGroupList, LSFStringList& lamps) {
+        LSFStringList internalList;
+        internalList.clear();
+        return GetAllGroupLampsInternal(lampGroupList, lamps, internalList);
+    }
 
     LSFResponseCode ChangeLampGroupStateAndField(ajn::Message& message,
                                                  TransitionLampsLampGroupsToStateList& transitionToStateComponent,

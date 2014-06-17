@@ -49,20 +49,20 @@ void PopulateDefaultProperties(LSFPropertyStore& propStore)
     languages.push_back("de-AT");
     propStore.setSupportedLangs(languages);
 
-    propStore.setDefaultLang("en");
-    propStore.setAppName("LightingControllerService");
+    propStore.setProperty(LSFPropertyStore::DEFAULT_LANG, "en", true, true, true);
+    propStore.setProperty(LSFPropertyStore::APP_NAME, "LightingControllerService", true, false, true);
 
-    propStore.setProperty(ajn::services::DEVICE_NAME, "English Name", "en", true, true, true);
-    propStore.setProperty(ajn::services::DEVICE_NAME, "German Name", "de-AT", true, true, true);
+    propStore.setProperty(LSFPropertyStore::DEVICE_NAME, "English Name", "en", true, true, true);
+    propStore.setProperty(LSFPropertyStore::DEVICE_NAME, "German Name", "de-AT", true, true, true);
 
-    propStore.setProperty(ajn::services::SUPPORT_URL, "www.company_a.com/en", "en", true, false, true);
-    propStore.setProperty(ajn::services::SUPPORT_URL, "www.company_a.com/de-AT", "de-AT", true, false, true);
+    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "www.company_a.com/en", "en", true, false, true);
+    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "www.company_a.com/de-AT", "de-AT", true, false, true);
 
-    propStore.setProperty(ajn::services::MANUFACTURER, "Company A (EN)", "en", true, false, true);
-    propStore.setProperty(ajn::services::MANUFACTURER, "Firma A (DE-AT)", "de-AT", true, false, true);
+    propStore.setProperty(LSFPropertyStore::MANUFACTURER, "Company A (EN)", "en", true, false, true);
+    propStore.setProperty(LSFPropertyStore::MANUFACTURER, "Firma A (DE-AT)", "de-AT", true, false, true);
 
-    propStore.setProperty(ajn::services::DESCRIPTION, "Lamp", "en", true, false, false);
-    propStore.setProperty(ajn::services::DESCRIPTION, "Lampe", "de-AT", true, false, false);
+    propStore.setProperty(LSFPropertyStore::DESCRIPTION, "Lamp", "en", true, false, false);
+    propStore.setProperty(LSFPropertyStore::DESCRIPTION, "Lampe", "de-AT", true, false, false);
 }
 
 }

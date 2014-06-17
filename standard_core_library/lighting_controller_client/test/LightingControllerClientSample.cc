@@ -1451,6 +1451,7 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "39") {
+#if 0
                 for (uint8_t i = 0; i < 4; i++) {
                     LSFStringList lamps;
                     lamps.clear();
@@ -1492,12 +1493,26 @@ int main()
                     waitForReply = true;
                     waitForSignal = true;
                 }
-            } else if (cmd == "40") {
-                String uniqueId = NextTok(line);
+#endif
                 LSFStringList lamps;
-                lamps.push_back("123");
-                lamps.push_back("456");
-                LampGroup group(lamps, lamps);
+                LSFStringList lampGroups;
+                lamps.clear();
+                lampGroups.clear();
+                lamps.push_back(LSFString("9006470d13d65e07f286caf63b89fb03"));
+                lamps.push_back(LSFString("89c339ab8ea15eff7239ced786458f0d"));
+                lamps.push_back(LSFString("9006470d13d65e07f286caf63b89fb03"));
+                LampGroup group(lamps, lampGroups);
+                printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
+                status = lampGroupManager.CreateLampGroup(group);
+                waitForReply = true;
+                waitForSignal = true;
+            } else if (cmd == "40") {
+                String uniqueId = String("LAMP_GROUP1FE42B366FB3D943");
+                LSFStringList lamps;
+                LSFStringList lampGroups;
+                lamps.push_back(LSFString("9006470d13d65e07f286caf63b89fb03"));
+                lampGroups.push_back(LSFString("LAMP_GROUP1FE42B366FB3D943"));
+                LampGroup group(lamps, lampGroups);
                 printf("\nInvoking UpdateLampGroup(%s, %s)\n", uniqueId.c_str(), group.c_str());
                 status = lampGroupManager.UpdateLampGroup(uniqueId.c_str(), group);
                 waitForReply = true;

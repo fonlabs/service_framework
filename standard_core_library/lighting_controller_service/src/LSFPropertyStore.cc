@@ -19,92 +19,106 @@
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
+#include <algorithm>
 
+#include <qcc/Debug.h>
 #include <qcc/StringUtil.h>
 #include <alljoyn/about/AboutServiceApi.h>
+
+#define QCC_MODULE "LSF_PROPSTORE"
 
 using namespace ajn;
 using namespace services;
 using namespace lsf;
 
+qcc::String LSFPropertyStore::PropertyStoreName[NUMBER_OF_KEYS + 1] = {
+    "DeviceId", "DeviceName", "AppId",
+    "AppName", "DefaultLanguage", "SupportedLanguages", "Description", "Manufacturer",
+    "DateOfManufacture", "ModelNumber", "SoftwareVersion", "AJSoftwareVersion", "HardwareVersion",
+    "SupportUrl", ""
+};
+
+
+
 LSFPropertyStore::LSFPropertyStore(const std::string& factoryConfigFile, const std::string& configFile)
     : isInitialized(false),
     configFileName(configFile),
-    factoryConfigFileName(factoryConfigFile)
+    factoryConfigFileName(factoryConfigFile),
+    needsWrite(false),
+    running(true)
 {
+    Start();
 }
 
 
 LSFPropertyStore::~LSFPropertyStore()
 {
+    Stop();
+    Join();
 }
 
 void LSFPropertyStore::Initialize()
 {
-    isInitialized = true;
+    // nothing is locked yet but no threads are running
 
     ReadFactoryConfiguration();
 
     ReadConfiguration();
+
+    isInitialized = true;
 }
 
 
 void LSFPropertyStore::ReadFactoryConfiguration()
 {
-    StringMap data;
-    if (!PropertyParser::ParseFile(factoryConfigFileName, data)) {
-        // ini not found: fall back to hard-coded defaults
-        PopulateDefaultProperties(*this);
-        return;
+    if (factorySettings.empty()) {
+        if (!PropertyParser::ParseFile(factoryConfigFileName, factorySettings)) {
+            // ini not found: fall back to hard-coded defaults
+            PopulateDefaultProperties(*this);
+            return;
+        }
     }
-
 
     StringMap::const_iterator iter;
+    iter = factorySettings.find("SupportedLanguages");
+    if (iter != factorySettings.end()) {
+        std::vector<qcc::String> supported_langs;
+        PropertyParser::Tokenize(iter->second, supported_langs, ' ');
 
-    iter = data.find("SupportedLanguages");
-    if (iter != data.end()) {
-        PropertyParser::Tokenize(iter->second, supportedLanguages, ' ');
-
-        std::vector<qcc::String> qcc_langs;
-        std::vector<std::string>::const_iterator it;
-        for (it = supportedLanguages.begin(); it != supportedLanguages.end(); ++it) {
-            qcc_langs.push_back(it->c_str());
-        }
-
-        setSupportedLangs(qcc_langs);
+        // now add to properties
+        setSupportedLangs(supported_langs);
     }
 
-    iter = data.find("DefaultLanguage");
-    if (iter != data.end()) {
-        setDefaultLang(iter->second.c_str());
+    iter = factorySettings.find("DefaultLanguage");
+    if (iter != factorySettings.end()) {
+        setProperty(DEFAULT_LANG, iter->second, true, true, true);
     }
 
-    iter = data.find("AppName");
-    if (iter != data.end()) {
-        setAppName(iter->second.c_str());
+    iter = factorySettings.find("AppName");
+    if (iter != factorySettings.end()) {
+        setProperty(APP_NAME, iter->second, true, false, true);
     }
 
-    std::vector<std::string>::const_iterator it;
+    std::vector<qcc::String>::const_iterator it;
     for (it = supportedLanguages.begin(); it != supportedLanguages.end(); ++it) {
-
-        iter = data.find("DeviceName." + *it);
-        if (iter != data.end()) {
-            setProperty(DEVICE_NAME, iter->second.c_str(), it->c_str(), true, true, true);
+        iter = factorySettings.find("DeviceName." + *it);
+        if (iter != factorySettings.end()) {
+            setProperty(DEVICE_NAME, iter->second, *it, true, true, true);
         }
 
-        iter = data.find("SupportUrl." + *it);
-        if (iter != data.end()) {
-            setProperty(SUPPORT_URL, iter->second.c_str(), it->c_str(), true, false, true);
+        iter = factorySettings.find("SupportUrl." + *it);
+        if (iter != factorySettings.end()) {
+            setProperty(SUPPORT_URL, iter->second, *it, true, false, true);
         }
 
-        iter = data.find("Manufacturer." + *it);
-        if (iter != data.end()) {
-            setProperty(MANUFACTURER, iter->second.c_str(), it->c_str(), true, false, true);
+        iter = factorySettings.find("Manufacturer." + *it);
+        if (iter != factorySettings.end()) {
+            setProperty(MANUFACTURER, iter->second, *it, true, false, true);
         }
 
-        iter = data.find("Description." + *it);
-        if (iter != data.end()) {
-            setProperty(DESCRIPTION, iter->second.c_str(), it->c_str(), true, false, false);
+        iter = factorySettings.find("Description." + *it);
+        if (iter != factorySettings.end()) {
+            setProperty(DESCRIPTION, iter->second, *it, true, false, false);
         }
     }
 }
@@ -112,18 +126,20 @@ void LSFPropertyStore::ReadFactoryConfiguration()
 // now read user-defined values that have overridden the
 void LSFPropertyStore::ReadConfiguration()
 {
-    std::vector<std::string> languages;
-
     StringMap data;
     if (!PropertyParser::ParseFile(configFileName, data)) {
         // generate a new uniqueId!
         // a device uniqueId has not yet been generated!
         qcc::String new_id = qcc::RandHexString(16);
-        setDeviceId(new_id);
-        setAppId(new_id);
+        setProperty(DEVICE_ID, new_id, true, false, true);
+
+        uint8_t* AppId = new uint8_t[16];
+        qcc::HexStringToBytes(new_id, AppId, 16);
+        setProperty(APP_ID, AppId, 16, true, false, true);
+
         // now save the file!
-        data["DeviceId"] = new_id.c_str();
-        data["AppId"] = new_id.c_str();
+        data[PropertyStoreName[DEVICE_ID]] = new_id;
+        data[PropertyStoreName[APP_ID]] = new_id;
         PropertyParser::WriteFile(configFileName, data);
         return;
     }
@@ -132,56 +148,63 @@ void LSFPropertyStore::ReadConfiguration()
 
     iter = data.find("DeviceId");
     if (iter != data.end()) {
-        setDeviceId(iter->second.c_str());
-        setAppId(iter->second.c_str());
+        setProperty(DEVICE_ID, iter->second, true, false, true);
+
+        uint8_t* AppId = new uint8_t[16];
+        qcc::HexStringToBytes(iter->second, AppId, 16);
+        setProperty(APP_ID, AppId, 16, true, false, true);
+
     } else {
         // this should never happen!
         qcc::String new_id = qcc::RandHexString(16);
-        setDeviceId(new_id);
-        setAppId(new_id);
+        setProperty(DEVICE_ID, new_id, true, false, true);
+
+        uint8_t* AppId = new uint8_t[16];
+        qcc::HexStringToBytes(new_id, AppId, 16);
+
         // now save the file!
-        data["DeviceId"] = new_id.c_str();
-        data["AppId"] = new_id.c_str();
+        data[PropertyStoreName[DEVICE_ID]] = new_id;
+        data[PropertyStoreName[APP_ID]] = new_id;
         PropertyParser::WriteFile(configFileName, data);
     }
 
     iter = data.find("DefaultLanguage");
     if (iter != data.end()) {
-        setDefaultLang(iter->second.c_str());
+        setProperty(DEFAULT_LANG, iter->second, true, true, true);
     }
 
-    std::vector<std::string>::const_iterator it;
+    std::vector<qcc::String>::const_iterator it;
     for (it = supportedLanguages.begin(); it != supportedLanguages.end(); ++it) {
-
         iter = data.find("DeviceName." + *it);
         if (iter != data.end()) {
-            setProperty(DEVICE_NAME, iter->second.c_str(), it->c_str(), true, true, true);
+            setProperty(DEVICE_NAME, iter->second, *it, true, true, true);
         }
     }
 }
 
-void LSFPropertyStore::FactoryReset()
+QStatus LSFPropertyStore::Reset()
 {
-    // delete the user config file
-    unlink(configFileName.c_str());
-
     // save the uniqueId!
+    propsLock.Lock();
     PropertyStoreProperty* deviceId = getProperty(DEVICE_ID);
-    std::string uniqueId = deviceId->getPropertyValue().v_string.str;
-    StringMap data;
-    data["DeviceId"] = uniqueId;
-    data["AppId"] = uniqueId;
-    PropertyParser::WriteFile(configFileName, data);
+    PropertyStoreProperty* appId = getProperty(APP_ID);
 
-    m_Properties.clear();
+    properties.clear();
     supportedLanguages.clear();
 
-    // now reparse the factory config file
+    // now repopulate writeProperties from the factory config data
     ReadFactoryConfiguration();
 
-    // keep the uniqueId from before!
-    setDeviceId(uniqueId.c_str());
-    setAppId(uniqueId.c_str());
+    // keep the DeviceId and AppId from before the reset
+    properties.insert(PropertyMap::value_type(DEVICE_ID, *deviceId));
+    properties.insert(PropertyMap::value_type(APP_ID, *appId));
+
+    // signal the writer thread
+    propsLock.Unlock();
+    propsCond.Signal();
+    // the other thread will copy properties back to writeProperties and announce
+
+    return ER_OK;
 }
 
 
@@ -191,62 +214,125 @@ QStatus LSFPropertyStore::ReadAll(const char* languageTag, Filter filter, ajn::M
         return ER_FAIL;
     }
 
-    if (filter == ANNOUNCE || filter == READ) {
-        return AboutPropertyStoreImpl::ReadAll(languageTag, filter, all);
-    }
-
-    if (filter != WRITE) {
-        return ER_FAIL;
-    }
-
+    // make a local copy before reading.  this will minimize the size
+    // of the critical section
     QStatus status = ER_OK;
-    if (languageTag != NULL && languageTag[0] != 0) { // check that the language is in the supported languages;
-        status = isLanguageSupported(languageTag);
+    propsLock.Lock();
+    PropertyMap mapCopy = properties;
+    propsLock.Unlock();
+
+    if (filter == ANNOUNCE) {
+        PropertyMap::iterator defaultLang = mapCopy.find(DEFAULT_LANG);
+
+        qcc::String defaultLanguage = "";
+        if (defaultLang != mapCopy.end()) {
+            char* tempdefLang;
+            defaultLang->second.getPropertyValue().Get("s", &tempdefLang);
+            defaultLanguage = tempdefLang;
+        }
+
+        MsgArg* argsAnnounceData = new MsgArg[mapCopy.size()];
+        uint32_t announceArgCount = 0;
+
+        for (PropertyMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+            const PropertyStoreProperty& property = it->second;
+
+            if (property.getIsAnnouncable() && (property.getLanguage().empty() || property.getLanguage() == defaultLanguage)) {
+                status = argsAnnounceData[announceArgCount].Set("{sv}", property.getPropertyName().c_str(), new MsgArg(property.getPropertyValue()));
+                if (status != ER_OK) {
+                    break;
+                }
+                argsAnnounceData[announceArgCount].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+                announceArgCount++;
+            }
+        }
+
+        status = all.Set("a{sv}", announceArgCount, argsAnnounceData);
+        if (status == ER_OK) {
+            all.SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        } else {
+            delete[] argsAnnounceData;
+        }
+    } else if (filter == READ) {
+        if (languageTag != NULL && languageTag[0] != 0) {
+            status = isLanguageSupported(languageTag);
+        } else {
+            PropertyMap::iterator it = mapCopy.find(DEFAULT_LANG);
+            if (it == properties.end()) {
+                return ER_LANGUAGE_NOT_SUPPORTED;
+            }
+
+            status = it->second.getPropertyValue().Get("s", &languageTag);
+        }
+
         if (status != ER_OK) {
             return status;
         }
-    } else {
-        PropertyMap::iterator it = m_Properties.find(DEFAULT_LANG);
-        if (it == m_Properties.end()) {
-            return ER_LANGUAGE_NOT_SUPPORTED;
+
+        MsgArg* argsReadData = new MsgArg[mapCopy.size()];
+        uint32_t readArgCount = 0;
+        for (PropertyMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+            const PropertyStoreProperty& property = it->second;
+
+            // check that it is from the defaultLanguage or empty.
+            if (property.getIsPublic() && (property.getLanguage().empty() || property.getLanguage() == languageTag)) {
+                status = argsReadData[readArgCount].Set("{sv}", property.getPropertyName().c_str(), new MsgArg(property.getPropertyValue()));
+                if (status != ER_OK) {
+                    break;
+                }
+                argsReadData[readArgCount].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+                readArgCount++;
+            }
         }
 
-        status = it->second.getPropertyValue().Get("s", &languageTag);
-        if (status != ER_OK) {
-            return status;
+        status = all.Set("a{sv}", readArgCount, argsReadData);
+        if (status == ER_OK) {
+            all.SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        } else {
+            delete[] argsReadData;
         }
-    }
+    } else if (filter == WRITE) {
+        QStatus status = ER_OK;
+        if (languageTag != NULL && languageTag[0] != 0) { // check that the language is in the supported languages;
+            status = isLanguageSupported(languageTag);
+            if (status != ER_OK) {
+                return status;
+            }
+        } else {
+            PropertyMap::iterator it = mapCopy.find(DEFAULT_LANG);
+            if (it == mapCopy.end()) {
+                return ER_LANGUAGE_NOT_SUPPORTED;
+            }
 
-    MsgArg* argsWriteData = new MsgArg[m_Properties.size()];
-    uint32_t writeArgCount = 0;
-    for (PropertyMap::const_iterator it = m_Properties.begin(); it != m_Properties.end(); ++it) {
-        const PropertyStoreProperty& property = it->second;
-
-        if (!property.getIsWritable()) {
-            continue;
+            status = it->second.getPropertyValue().Get("s", &languageTag);
+            if (status != ER_OK) {
+                return status;
+            }
         }
 
-        // check that it is from the defaultLanguage or empty.
-        if (!(property.getLanguage().empty() || property.getLanguage() == languageTag)) {
-            continue;
+        MsgArg* argsWriteData = new MsgArg[mapCopy.size()];
+        uint32_t writeArgCount = 0;
+        for (PropertyMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+            const PropertyStoreProperty& property = it->second;
+
+            // check that it is from the defaultLanguage or empty.
+            if (property.getIsWritable() && (property.getLanguage().empty() || property.getLanguage() == languageTag)) {
+                status = argsWriteData[writeArgCount].Set("{sv}", property.getPropertyName().c_str(), new MsgArg(property.getPropertyValue()));
+                if (status != ER_OK) {
+                    break;
+                }
+
+                argsWriteData[writeArgCount].SetOwnershipFlags(MsgArg::OwnsArgs, true);
+                writeArgCount++;
+            }
         }
 
-        status = argsWriteData[writeArgCount].Set("{sv}", property.getPropertyName().c_str(), new MsgArg(property.getPropertyValue()));
-        if (status != ER_OK) {
-            break;
+        status = all.Set("a{sv}", writeArgCount, argsWriteData);
+        if (status == ER_OK) {
+            all.SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        } else {
+            delete[] argsWriteData;
         }
-
-        argsWriteData[writeArgCount].SetOwnershipFlags(MsgArg::OwnsArgs, true);
-        writeArgCount++;
-    }
-
-    status = all.Set("a{sv}", writeArgCount, argsWriteData);
-    if (status == ER_OK) {
-        all.SetOwnershipFlags(MsgArg::OwnsArgs, true);
-    }
-
-    if (status != ER_OK) {
-        delete[] argsWriteData;
     }
 
     return status;
@@ -268,49 +354,47 @@ QStatus LSFPropertyStore::Update(const char* name, const char* languageTag, cons
     // case languageTag == "": use the default language
     // case languageTag == string: check value, must be one of the supported languages
     QStatus status = ER_OK;
-    if (languageTag == NULL) {
-        return ER_INVALID_VALUE;
+    if (propertyKey == DEFAULT_LANG) {
+        // Special case DEFAULT_LANG is not associated with a language in the PropertyMap and
+        // its only valid languageTag = NULL
+        // By setting it here, we to let the user follow the same language rules as any other property
+        languageTag = NULL;
     } else if (languageTag[0] == 0) {
-        PropertyMap::iterator it = m_Properties.find(DEFAULT_LANG);
-        if (it == m_Properties.end()) {
-            return ER_LANGUAGE_NOT_SUPPORTED;
+        propsLock.Lock();
+        PropertyMap::iterator it = properties.find(DEFAULT_LANG);
+        if (it != properties.end()) {
+            status = it->second.getPropertyValue().Get("s", &languageTag);
+        } else {
+            status = ER_LANGUAGE_NOT_SUPPORTED;
         }
-        status = it->second.getPropertyValue().Get("s", &languageTag);
+
+        propsLock.Unlock();
     } else {
         status = isLanguageSupported(languageTag);
-        if  (status != ER_OK) {
-            return status;
-        }
     }
 
-    // Special case DEFAULT_LANG is not associated with a language in the PropertyMap and
-    // its only valid languageTag = NULL
-    // By setting it here, we to let the user follow the same language rules as any other property
-    if (propertyKey == DEFAULT_LANG) {
-        languageTag = NULL;
+    if (status != ER_OK) {
+        return status;
     }
 
     //validate that the value is acceptable
     qcc::String languageString = languageTag ? languageTag : "";
     status = validateValue(propertyKey, *value, languageString);
     if (status != ER_OK) {
-        std::cout << "New Value failed validation. Will not update" << std::endl;
         return status;
     }
 
     bool updated = false;
-    std::pair<PropertyMap::iterator, PropertyMap::iterator> propertiesIter = m_Properties.equal_range(propertyKey);
-    std::string propName = name;
 
+    propsLock.Lock();
+    std::pair<PropertyMap::iterator, PropertyMap::iterator> propertiesIter = properties.equal_range(propertyKey);
     for (PropertyMap::iterator it = propertiesIter.first; it != propertiesIter.second; ++it) {
         const PropertyStoreProperty& property = it->second;
+
         if (property.getIsWritable()) {
             if ((languageTag == NULL && property.getLanguage().empty()) || (languageTag != NULL && property.getLanguage() == languageTag)) {
-
                 PropertyStoreProperty newProperty(property.getPropertyName(), *value, property.getIsPublic(), property.getIsWritable(), property.getIsAnnouncable());
                 if (languageTag) {
-                    propName += ".";
-                    propName += languageTag;
                     newProperty.setLanguage(languageTag);
                 }
 
@@ -322,27 +406,16 @@ QStatus LSFPropertyStore::Update(const char* name, const char* languageTag, cons
     }
 
     if (!updated) {
-        return ER_INVALID_VALUE;
+        status = languageTag ? ER_LANGUAGE_NOT_SUPPORTED : ER_INVALID_VALUE;
     }
 
-    // read the existing user file and update with the new value
-    StringMap data;
-    if (!PropertyParser::ParseFile(configFileName, data)) {
-        return ER_FAIL;
+    if (status == ER_OK) {
+        needsWrite = true;
+        propsLock.Unlock();
+        propsCond.Signal();
     }
 
-    // update!
-    data[propName] = value->v_string.str;
-
-    if (PropertyParser::WriteFile(configFileName, data)) {
-        AboutService* aboutService = AboutServiceApi::getInstance();
-        if (aboutService) {
-            aboutService->Announce();
-        }
-        return ER_OK;
-    } else {
-        return ER_INVALID_VALUE;
-    }
+    return status;
 }
 
 QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
@@ -357,46 +430,58 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
     }
 
     QStatus status = ER_OK;
-    if (languageTag == NULL) {
-        return ER_INVALID_VALUE;
+    if (propertyKey == DEFAULT_LANG) {
+        // DefaultLanguage has no language tag
+        languageTag = NULL;
     } else if (languageTag[0] == 0) {
-        PropertyMap::iterator it = m_Properties.find(DEFAULT_LANG);
-        if (it == m_Properties.end()) {
-            return ER_LANGUAGE_NOT_SUPPORTED;
+        propsLock.Lock();
+        // use properties here becuase writeProperties has not yet
+        // been committed to disk and is therefore not yet valid
+        PropertyMap::iterator it = properties.find(DEFAULT_LANG);
+        if (it != properties.end()) {
+            status = it->second.getPropertyValue().Get("s", &languageTag);
+        } else {
+            status = ER_LANGUAGE_NOT_SUPPORTED;
         }
-        status = it->second.getPropertyValue().Get("s", &languageTag);
+
+        propsLock.Unlock();
     } else {
         status = isLanguageSupported(languageTag);
-        if  (status != ER_OK) {
-            return status;
-        }
     }
 
-    if (propertyKey == DEFAULT_LANG) {
-        languageTag = NULL;
+    if (status != ER_OK) {
+        return status;
     }
-
-    std::string propName = name;
-    if (languageTag) {
-        propName += ".";
-        propName += languageTag;
-    }
-
-    bool isAnnouncable;
 
     bool deleted = false;
-    std::pair<PropertyMap::iterator, PropertyMap::iterator> propertiesIter = m_Properties.equal_range(propertyKey);
-
-    for (PropertyMap::iterator it = propertiesIter.first; it != propertiesIter.second; it++) {
+    propsLock.Lock();
+    std::pair<PropertyMap::iterator, PropertyMap::iterator> propertiesIter = properties.equal_range(propertyKey);
+    for (PropertyMap::iterator it = propertiesIter.first; it != propertiesIter.second; ++it) {
         const PropertyStoreProperty& property = it->second;
         if (property.getIsWritable()) {
-            if ((languageTag == NULL && property.getLanguage().empty()) ||
-                (languageTag != NULL && property.getLanguage().compare(languageTag) == 0)) {
-                PropertyStoreProperty& prop = it->second;
-                isAnnouncable = prop.getIsAnnouncable();
+            if ((languageTag == NULL && property.getLanguage().empty()) || (languageTag != NULL && property.getLanguage() == languageTag)) {
+                // replace with the old value, or erase from the map
+                // remember, the factory settings map keys follow the format: FieldName{.LanguageTag}
+                qcc::String propName = name;
+                if (languageTag) {
+                    propName += ".";
+                    propName += languageTag;
+                }
 
-                m_Properties.erase(it);
-                // insert from backup.
+                StringMap::iterator sit = factorySettings.find(propName);
+                if (sit != factorySettings.end()) {
+                    MsgArg value("s", sit->second.c_str());
+                    PropertyStoreProperty newProperty(property.getPropertyName(), value, property.getIsPublic(), property.getIsWritable(), property.getIsAnnouncable());
+
+                    if (languageTag) {
+                        newProperty.setLanguage(languageTag);
+                    }
+
+                    it->second = newProperty;
+                } else {
+                    properties.erase(it);
+                }
+
                 deleted = true;
                 break;
             }
@@ -404,53 +489,97 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
     }
 
     if (!deleted) {
-        if (languageTag != NULL) {
-            return ER_LANGUAGE_NOT_SUPPORTED;
-        } else {
-            return ER_INVALID_VALUE;
+        status = languageTag ? ER_LANGUAGE_NOT_SUPPORTED : ER_INVALID_VALUE;
+    }
+
+    if (status == ER_OK) {
+        needsWrite = true;
+        propsLock.Unlock();
+        propsCond.Signal();
+    }
+
+    return status;
+}
+
+void LSFPropertyStore::Run()
+{
+    while (running) {
+        propsLock.Lock();
+        while (!needsWrite && running) {
+            propsCond.Wait(propsLock);
         }
-    }
 
-    // now write the file, first removing the deleted value
-    StringMap data;
-    if (!PropertyParser::ParseFile(configFileName, data)) {
-        return ER_FAIL;
-    }
-
-    StringMap::iterator sit = data.find(propName);
-    if (sit != data.end()) {
-        data.erase(sit);
-    }
-
-
-    // now we have to revert to the factory value, if there is one
-    if (!PropertyParser::ParseFile(factoryConfigFileName, data)) {
-        return ER_FAIL;
-    }
-
-    sit = data.find(propName);
-    if (sit != data.end()) {
-        // we know isPublic and isWriteable must be true or we wouldn't be here
-        if (languageTag) {
-            setProperty(propertyKey, sit->second.c_str(), languageTag, true, true, isAnnouncable);
-        } else {
-            setProperty(propertyKey, sit->second.c_str(), true, true, isAnnouncable);
+        if (!running) {
+            propsLock.Unlock();
+            break;
         }
-    }
+
+        // make a copy to minimize the critical section
+        PropertyMap toWrite = properties;
+        needsWrite = false;
+        propsLock.Unlock();
+
+        StringMap fileOutput;
+        for (PropertyMap::const_iterator it = toWrite.begin(); it != toWrite.end(); ++it) {
+            const PropertyStoreProperty& property = it->second;
+
+            if (property.getIsWritable()) {
+                qcc::String name = property.getPropertyName();
+                const qcc::String& lang = property.getLanguage();
 
 
-    if (PropertyParser::WriteFile(configFileName, data)) {
-        AboutService* aboutService = AboutServiceApi::getInstance();
-        if (aboutService) {
-            aboutService->Announce();
+                if (!lang.empty()) {
+                    name += "." + lang;
+                }
+
+                const MsgArg& val = property.getPropertyValue();
+                const char* propVal;
+                val.Get("s", &propVal);
+                fileOutput[name] = propVal;
+            }
         }
-        return ER_OK;
-    } else {
-        return ER_INVALID_VALUE;
+
+        // we need to add the DeviceId and AppId
+        std::pair<PropertyMap::iterator, PropertyMap::iterator> propertiesIter = toWrite.equal_range(DEVICE_ID);
+        PropertyStoreProperty& devId = propertiesIter.first->second;
+        const char* deviceId;
+        devId.getPropertyValue().Get("s", &deviceId);
+        fileOutput[PropertyStoreName[DEVICE_ID]] = deviceId;
+        fileOutput[PropertyStoreName[APP_ID]] = deviceId;
+
+        // these are the new Properties if and only if the data
+        // was successfully written to the user config file.
+        if (PropertyParser::WriteFile(configFileName, fileOutput)) {
+            // send the announcement!
+            AboutService* aboutService = AboutServiceApi::getInstance();
+            if (aboutService) {
+                aboutService->Announce();
+            }
+        }
+        // what to do if this fails?
     }
 }
 
-PropertyStoreKey LSFPropertyStore::getPropertyStoreKeyFromName(qcc::String const& propertyStoreName)
+void LSFPropertyStore::Stop()
+{
+    running = false;
+    propsCond.Signal();
+}
+
+QStatus LSFPropertyStore::isLanguageSupported(const char* language)
+{
+    if (!language) {
+        return ER_LANGUAGE_NOT_SUPPORTED;
+    }
+
+    if (std::find(supportedLanguages.begin(), supportedLanguages.end(), qcc::String(language)) == supportedLanguages.end()) {
+        return ER_LANGUAGE_NOT_SUPPORTED;
+    }
+
+    return ER_OK;
+}
+
+LSFPropertyStore::PropertyStoreKey LSFPropertyStore::getPropertyStoreKeyFromName(const qcc::String& propertyStoreName)
 {
     for (int indx = 0; indx < NUMBER_OF_KEYS; indx++) {
         if (PropertyStoreName[indx] == propertyStoreName) {
@@ -458,4 +587,195 @@ PropertyStoreKey LSFPropertyStore::getPropertyStoreKeyFromName(qcc::String const
         }
     }
     return NUMBER_OF_KEYS;
+}
+
+
+QStatus LSFPropertyStore::setSupportedLangs(const std::vector<qcc::String>& supportedLangs)
+{
+    QStatus status = ER_OK;
+    PropertyStoreKey propertyKey = SUPPORTED_LANGS;
+    std::vector<const char*> supportedLangsVec(supportedLangs.size());
+    for (uint32_t indx = 0; indx < supportedLangs.size(); indx++) {
+        supportedLangsVec[indx] = supportedLangs[indx].c_str();
+    }
+
+    MsgArg msgArg("as", supportedLangsVec.size(), (supportedLangsVec.empty()) ? NULL : &supportedLangsVec.front());
+
+    status = validateValue(propertyKey, msgArg);
+    if (status != ER_OK) {
+        return status;
+    }
+    removeExisting(propertyKey);
+    supportedLanguages = supportedLangs;
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, true, false, false);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+
+PropertyStoreProperty* LSFPropertyStore::getProperty(PropertyStoreKey propertyKey)
+{
+    // assume we are already locked!
+    PropertyStoreProperty* prop = NULL;
+    PropertyMap::iterator iter = properties.find(propertyKey);
+    if (iter != properties.end()) {
+        prop = &iter->second;
+    }
+
+    return prop;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const uint8_t* value, uint32_t len,
+                                      bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    MsgArg msgArg("ay", len, value);
+    msgArg.SetOwnershipFlags(MsgArg::OwnsData);
+    QStatus status = validateValue(propertyKey, msgArg);
+
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey);
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const qcc::String& value,
+                                      bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    QStatus status = ER_OK;
+    MsgArg msgArg("s", value.c_str());
+    status = validateValue(propertyKey, msgArg);
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey);
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey].c_str(), msgArg, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const qcc::String& value, const qcc::String& language,
+                                      bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    QStatus status = ER_OK;
+    MsgArg msgArg("s", value.c_str());
+    status = validateValue(propertyKey, msgArg, language);
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey, language);
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, language, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+void LSFPropertyStore::removeExisting(PropertyStoreKey propertyKey)
+{
+    PropertyMap::iterator iter = properties.find(propertyKey);
+    if (iter != properties.end()) {
+        properties.erase(iter);
+    }
+}
+
+void LSFPropertyStore::removeExisting(PropertyStoreKey propertyKey, const qcc::String& language)
+{
+    std::pair<PropertyMap::iterator, PropertyMap::iterator> iter = properties.equal_range(propertyKey);
+    for (PropertyMap::iterator it = iter.first; it != iter.second; ++it) {
+        ajn::services::PropertyStoreProperty& prop = it->second;
+
+        if (prop.getLanguage() == language) {
+            properties.erase(it);
+            break;
+        }
+    }
+}
+
+QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn::MsgArg& value, const qcc::String& languageTag)
+{
+    QStatus status = ER_OK;
+
+    switch (propertyKey) {
+    case APP_ID:
+        if (value.typeId != ALLJOYN_BYTE_ARRAY) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+        break;
+
+    case DEVICE_ID:
+    case DEVICE_NAME:
+    case APP_NAME:
+        if (value.typeId != ALLJOYN_STRING) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+        if (value.v_string.len == 0) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+        break;
+
+    case DESCRIPTION:
+    case MANUFACTURER:
+    case DATE_OF_MANUFACTURE:
+    case MODEL_NUMBER:
+    case SOFTWARE_VERSION:
+    case AJ_SOFTWARE_VERSION:
+    case HARDWARE_VERSION:
+    case SUPPORT_URL:
+        if (value.typeId != ALLJOYN_STRING) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+        break;
+
+    case DEFAULT_LANG:
+        if (value.typeId != ALLJOYN_STRING) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+        if (value.v_string.len == 0) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+
+        status = isLanguageSupported(value.v_string.str);
+        break;
+
+    case SUPPORTED_LANGS:
+        if (value.typeId != ALLJOYN_ARRAY) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+
+        if (value.v_array.GetNumElements() == 0) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+
+        if (strcmp(value.v_array.GetElemSig(), "s") != 0) {
+            status = ER_INVALID_VALUE;
+            break;
+        }
+
+        break;
+
+    case NUMBER_OF_KEYS:
+    default:
+        status = ER_INVALID_VALUE;
+        break;
+    }
+
+    if (status != ER_OK) {
+        QCC_LogError(status, ("Validation of PropertyStore value %s failed", PropertyStoreName[propertyKey].c_str()));
+    }
+    return status;
 }

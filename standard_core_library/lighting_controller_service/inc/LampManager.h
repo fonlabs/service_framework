@@ -24,13 +24,21 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <algorithm>
 
 namespace lsf {
 
 class LampsAndState {
   public:
     LampsAndState(LSFStringList lampList, LampState lampState, uint32_t period) :
-        lamps(lampList), state(lampState), transitionPeriod(period) { }
+        state(lampState), transitionPeriod(period) {
+        for (LSFStringList::iterator it = lampList.begin(); it != lampList.end(); it++) {
+            LSFString uniqueId = *it;
+            if (std::find(lamps.begin(), lamps.end(), uniqueId) == lamps.end()) {
+                lamps.push_back(uniqueId);
+            }
+        }
+    }
 
     LSFStringList lamps;
     LampState state;
