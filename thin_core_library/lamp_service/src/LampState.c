@@ -16,7 +16,7 @@
 
 #include <LampState.h>
 #include <LampService.h>
-#include <OEMCode.h>
+#include <OEM_LS_Code.h>
 
 #include <aj_nvram.h>
 #include <aj_debug.h>
@@ -142,7 +142,7 @@ void LAMP_InitializeState(void)
         AJ_NVRAM_Close(id);
     } else {
         AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(LampState));
-        OEM_InitialState(&TheLampState);
+        OEM_LS_SetFactoryState(&TheLampState);
 
         if (id != NULL) {
             AJ_NVRAM_Write(&TheLampState, sizeof(LampState), id);

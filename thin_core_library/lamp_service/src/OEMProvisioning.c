@@ -22,7 +22,7 @@
 
 #include <LampValues.h>
 #include <OEMProvisioning.h>
-#include <OEMCode.h>
+#include <OEM_LS_Code.h>
 
 #ifdef ONBOARDING_SERVICE
     #include <alljoyn/onboarding/OnboardingManager.h>
@@ -35,10 +35,10 @@
  * Per-module definition of the current module for debug logging.  Must be defined
  * prior to first inclusion of aj_debug.h
  */
-#define AJ_MODULE OEM_PROVISIONING
+#define AJ_MODULE OEM_LS_PROVISIONING
 
 #ifndef NDEBUG
-uint8_t dbgOEM_PROVISIONING = 1;
+uint8_t dbgOEM_LS_PROVISIONING = 1;
 #endif
 
 static const char DEFAULT_LANGUAGE[] = "en";

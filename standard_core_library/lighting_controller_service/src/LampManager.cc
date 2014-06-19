@@ -16,7 +16,7 @@
 
 #include <LampManager.h>
 #include <LSFResponseCodes.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 
 #include <ControllerService.h>
 

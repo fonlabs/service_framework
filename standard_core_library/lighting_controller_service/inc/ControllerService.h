@@ -42,6 +42,7 @@
 #include <PresetManager.h>
 #include <SceneManager.h>
 #include <MasterSceneManager.h>
+#include <LeaderElectionObject.h>
 
 namespace lsf {
 
@@ -129,7 +130,11 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void ScheduleFileWrite(Manager* manager);
 
+    QStatus SendBlobUpdate(LSFBlobType type, uint32_t checksum, uint64_t timestamp);
+
   private:
+
+    LeaderElectionObject elector;
 
     void Initialize();
 

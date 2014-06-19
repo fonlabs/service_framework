@@ -39,7 +39,12 @@ Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
 
 }
 
-void Manager::WriteFileWithChecksum(const std::string& str)
+uint32_t Manager::GetChecksum(const std::string& str)
+{
+    return adler32(1, (uint8_t*) str.c_str(), str.length());
+}
+
+void Manager::WriteFileWithChecksum(const std::string& str, uint32_t checksum)
 {
     std::ofstream fstream(filePath.c_str(), std::ios_base::out);
     if (!fstream.is_open()) {
@@ -48,16 +53,15 @@ void Manager::WriteFileWithChecksum(const std::string& str)
         return;
     }
 
-    // calculate the adler checksum and write it before the file contents
-    uint64_t adler = adler32(1, (uint8_t*) str.c_str(), str.length());
-    fstream << adler << std::endl;
+    fstream << checksum << std::endl;
     fstream << str;
-
     fstream.close();
 }
 
 bool Manager::ValidateFileAndRead(std::istringstream& filestream)
 {
+    QCC_DbgPrintf(("%s: filePath=%s", __FUNCTION__, filePath.c_str()));
+
     if (filePath.empty()) {
         return false;
     }
@@ -65,12 +69,11 @@ bool Manager::ValidateFileAndRead(std::istringstream& filestream)
     std::ifstream stream(filePath.c_str());
 
     if (!stream.is_open()) {
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        QCC_LogError(ER_FAIL, ("File not found: %s\n", filePath.c_str()));
         return false;
     }
 
-
-    uint64_t checksum;
+    uint32_t checksum;
     stream >> checksum;
 
     // put the rest of the file into the filestream
@@ -80,7 +83,7 @@ bool Manager::ValidateFileAndRead(std::istringstream& filestream)
     filestream.str(data);
 
     // check the adler checksum
-    uint64_t adler = adler32(1, (uint8_t*) data.c_str(), data.length());
+    uint32_t adler = GetChecksum(data);
 
     stream.close();
     return adler == checksum;
@@ -109,4 +112,21 @@ void Manager::ScheduleFileUpdate()
 {
     updated = true;
     controllerService.ScheduleFileWrite(this);
+}
+
+void Manager::GetBlobInfo(uint32_t& checksum, uint64_t& time)
+{
+    std::string output = GetString();
+    checksum = GetChecksum(output);
+    time = 0;
+}
+
+void Manager::GetBlob(ajn::MsgArg& blob, ajn::MsgArg& checksum, ajn::MsgArg& time)
+{
+    std::string output = GetString();
+
+    blob.Set("s", strdup(output.c_str()));
+    blob.SetOwnershipFlags(MsgArg::OwnsData);
+    checksum.Set("u", GetChecksum(output));
+    time.Set("t", 0);
 }

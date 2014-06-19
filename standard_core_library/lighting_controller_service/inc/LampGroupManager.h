@@ -75,6 +75,8 @@ class LampGroupManager : public Manager {
 
   protected:
 
+    virtual std::string GetString();
+
     LSFResponseCode GetAllGroupLampsInternal(LSFStringList& lampGroupList, LSFStringList& lamps, LSFStringList& refList);
 
     LSFResponseCode GetAllGroupLamps(LSFStringList& lampGroupList, LSFStringList& lamps) {

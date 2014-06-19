@@ -1,5 +1,5 @@
-#ifndef _OEM_CONFIG_H_
-#define _OEM_CONFIG_H_
+#ifndef _OEM_CS_CONFIG_H_
+#define _OEM_CS_CONFIG_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

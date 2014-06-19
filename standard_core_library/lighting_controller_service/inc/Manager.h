@@ -56,7 +56,15 @@ class Manager : public ajn::MessageReceiver {
 
     bool ValidateFileAndRead(std::istringstream& filestream);
 
-    void WriteFileWithChecksum(const std::string& str);
+    uint32_t GetChecksum(const std::string& str);
+
+    virtual std::string GetString() { return ""; }
+
+    void GetBlobInfo(uint32_t& checksum, uint64_t& time);
+
+    void GetBlob(ajn::MsgArg& blob, ajn::MsgArg& checksum, ajn::MsgArg& time);
+
+    void WriteFileWithChecksum(const std::string& str, uint32_t checksum);
 
     void MethodReplyPassthrough(ajn::Message& msg, void* context);
 };

@@ -1,10 +1,5 @@
-#ifndef _LAMP_OEM_LS_PROPERTIES_H_
-#define _LAMP_OEM_LS_PROPERTIES_H_
-/**
- * @file OEMProvisioning.h
- * @defgroup property_store The OEM-defined properties used by About/Config Service
- * @{
- */
+#ifndef LEADER_ELECTION_OBJECT_H
+#define LEADER_ELECTION_OBJECT_H
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -21,45 +16,33 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/**
- * Initialize the property store
- *
- * @param  None
- * @return Status of the operation
- */
-AJ_Status PropertyStore_Init(void);
+#include <alljoyn/BusAttachment.h>
+#include <alljoyn/BusObject.h>
 
-/**
- * Persist device ID
- *
- * @param  None
- * @return None
- */
-void SavePersistentDeviceId(void);
+#include <LSFTypes.h>
 
-/**
- * The max length of the default language name
- */
-#define LANG_VALUE_LENGTH 7
+namespace lsf {
 
-/**
- * The max length of the realm name
- */
-#define KEY_VALUE_LENGTH 10
+class ControllerService;
 
-/**
- * The max length of the machine ID
- */
-#define MACHINE_ID_LENGTH (UUID_LENGTH * 2)
+class LeaderElectionObject : public ajn::BusObject {
+  public:
 
-/**
- * The max length of the device name
- */
-#define DEVICE_NAME_VALUE_LENGTH LSF_MAX_NAME_LENGTH
+    LeaderElectionObject(ControllerService& controller);
 
-/**
- * The max length of the password
- */
-#define PASSWORD_VALUE_LENGTH (AJ_ADHOC_LEN * 2)
+    QStatus Start();
+
+    void GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    void GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+
+    QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, uint32_t checksum, uint64_t timestamp);
+
+  private:
+
+    ControllerService& controller;
+};
+
+}
+
 
 #endif

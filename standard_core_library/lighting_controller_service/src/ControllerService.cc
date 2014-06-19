@@ -61,6 +61,7 @@ ControllerService::ControllerService(
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
     BusObject(ControllerServiceObjectPath),
+    elector(*this),
     bus("LightingServiceController", true),
     serviceSession(0),
     listener(new ControllerListener(*this)),
@@ -87,6 +88,7 @@ ControllerService::ControllerService(
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
     BusObject(ControllerServiceObjectPath),
+    elector(*this),
     bus("LightingServiceController", true),
     serviceSession(0),
     listener(new ControllerListener(*this)),
@@ -335,6 +337,12 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
     status = AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(MethodEntry));
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __FUNCTION__));
+        return status;
+    }
+
+    status = elector.Start();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to start LeaderElection object", __FUNCTION__));
         return status;
     }
 
@@ -765,4 +773,9 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
     }
 
     return status;
+}
+
+QStatus ControllerService::SendBlobUpdate(LSFBlobType type, uint32_t checksum, uint64_t timestamp)
+{
+    return elector.SendBlobUpdate(serviceSession, type, checksum, timestamp);
 }

@@ -39,7 +39,7 @@
 #include <alljoyn/services_common/ServicesHandlers.h>
 
 #include <LampService.h>
-#include <OEMCode.h>
+#include <OEM_LS_Code.h>
 #include <LampState.h>
 #include <LampAboutData.h>
 #include <LampOnboarding.h>
@@ -243,7 +243,7 @@ static void CheckForFaults(void)
         AJNS_DictionaryEntry NotificationTexts;
         uint16_t messageType = AJNS_NOTIFICATION_MESSAGE_TYPE_WARNING;
         uint32_t ttl = AJNS_NOTIFICATION_TTL_MAX;
-        const char* notif_text = OEM_GetFaultsText();
+        const char* notif_text = OEM_LS_GetFaultsText();
         memset(&NotificationContent, 0, sizeof(AJNS_NotificationContent));
 
         if (notif_text != NULL) {
@@ -364,7 +364,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
     LAMP_InitializeState();
 
-    OEM_Initialize();
+    OEM_LS_Initialize();
 
 #ifdef ONBOARDING_SERVICE
     // initialize onboarding!
@@ -572,7 +572,7 @@ static AJ_Status ClearLampFault(AJ_Message* msg)
     AJ_MarshalReplyMsg(msg, &reply);
 
     AJ_UnmarshalArgs(msg, "u", &faultCode);
-    responseCode = OEM_ClearLampFault(faultCode);
+    responseCode = OEM_LS_ClearFault(faultCode);
 
     AJ_MarshalArgs(&reply, "uu", (uint32_t) responseCode, (uint32_t) faultCode);
     AJ_DeliverMsg(&reply);
@@ -596,7 +596,7 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
     AJ_UnmarshalArgs(msg, "u", &TransitionPeriod);
 
     // apply the new state
-    responseCode = OEM_TransitionLampState(&new_state, timestamp, TransitionPeriod);
+    responseCode = OEM_LS_TransitionState(&new_state, timestamp, TransitionPeriod);
 
     AJ_MarshalArgs(&reply, "u", (uint32_t) responseCode);
     AJ_DeliverMsg(&reply);
@@ -622,7 +622,7 @@ static AJ_Status ApplyPulseEffect(AJ_Message* msg)
     AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numPulses, &timestamp);
 
     // apply the new state
-    responseCode = OEM_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, timestamp);
+    responseCode = OEM_LS_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, timestamp);
 
     AJ_MarshalArgs(&reply, "u", (uint32_t) responseCode);
     AJ_DeliverMsg(&reply);
@@ -675,7 +675,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t onoff;
             status = AJ_UnmarshalArgs(msg, "b", &onoff);
             if (status == AJ_OK) {
-                responseCode = OEM_SetLampOnOff(onoff);
+                responseCode = OEM_LS_SetOnOff(onoff);
             }
             break;
         }
@@ -685,7 +685,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t hue;
             status = AJ_UnmarshalArgs(msg, "u", &hue);
             if (status == AJ_OK) {
-                responseCode = OEM_SetLampHue(hue);
+                responseCode = OEM_LS_SetHue(hue);
             }
             break;
         }
@@ -695,7 +695,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t saturation;
             status = AJ_UnmarshalArgs(msg, "u", &saturation);
             if (status == AJ_OK) {
-                responseCode = OEM_SetLampSaturation(saturation);
+                responseCode = OEM_LS_SetSaturation(saturation);
             }
             break;
         }
@@ -705,7 +705,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t colorTemp;
             status = AJ_UnmarshalArgs(msg, "u", &colorTemp);
             if (status == AJ_OK) {
-                responseCode = OEM_SetLampColorTemp(colorTemp);
+                responseCode = OEM_LS_SetColorTemp(colorTemp);
             }
             break;
         }
@@ -715,7 +715,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
             uint32_t brightness;
             status = AJ_UnmarshalArgs(msg, "u", &brightness);
             if (status == AJ_OK) {
-                responseCode = OEM_SetLampBrightness(brightness);
+                responseCode = OEM_LS_SetBrightness(brightness);
             }
             break;
         }
@@ -751,7 +751,7 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
             AJ_Arg array1;
 
             AJ_MarshalContainer(replyMsg, &array1, AJ_ARG_ARRAY);
-            OEM_GetLampFaults(replyMsg);
+            OEM_LS_PopulateFaults(replyMsg);
             AJ_MarshalCloseContainer(replyMsg, &array1);
             return AJ_OK;
         }
@@ -762,12 +762,12 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
         return AJ_MarshalArgs(replyMsg, "u", LSF_Parameters_Interface_Version);
 
     case LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS:
-        AJ_InfoPrintf(("LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS: %u\n", OEM_GetEnergyUsageMilliwatts()));
-        return AJ_MarshalArgs(replyMsg, "u", OEM_GetEnergyUsageMilliwatts());
+        AJ_InfoPrintf(("LSF_PROP_PARAMS_ENERGY_USAGE_MILLIWATTS: %u\n", OEM_LS_GetEnergyUsageMilliwatts()));
+        return AJ_MarshalArgs(replyMsg, "u", OEM_LS_GetEnergyUsageMilliwatts());
 
     case LSF_PROP_PARAMS_BRIGHTNESS_LUMENS:
-        AJ_InfoPrintf(("LSF_PROP_PARAMS_BRIGHTNESS_LUMENS: %u\n", OEM_GetBrightnessLumens()));
-        return AJ_MarshalArgs(replyMsg, "u", OEM_GetBrightnessLumens());
+        AJ_InfoPrintf(("LSF_PROP_PARAMS_BRIGHTNESS_LUMENS: %u\n", OEM_LS_GetBrightnessLumens()));
+        return AJ_MarshalArgs(replyMsg, "u", OEM_LS_GetBrightnessLumens());
 
 
     // Compile-time Details
@@ -894,16 +894,16 @@ static AJ_Status GetAllProps(AJ_Message* msg)
             AJ_MarshalVariant(&reply, "au");
 
             AJ_MarshalContainer(&reply, &array2, AJ_ARG_ARRAY);
-            OEM_GetLampFaults(&reply);
+            OEM_LS_PopulateFaults(&reply);
             AJ_MarshalCloseContainer(&reply, &array2);
             AJ_MarshalCloseContainer(&reply, &struct1);
         }
     } else if (0 == strcmp(iface, LSF_Parameters_Interface_Name)) {
         AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Parameters_Interface_Version);
-        OEM_GetLampParameters(&reply);
+        OEM_LS_PopulateParameters(&reply);
     } else if (0 == strcmp(iface, LSF_Details_Interface_Name)) {
         AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_Details_Interface_Version);
-        LAMP_MarshalDetails(&reply);
+        OEM_LS_PopulateDetails(&reply);
     } else if (0 == strcmp(iface, LSF_State_Interface_Name)) {
         AJ_MarshalArgs(&reply, "{sv}", "Version", "u", LSF_State_Interface_Version);
         LampState state;

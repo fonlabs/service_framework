@@ -19,7 +19,7 @@
 #include <qcc/atomic.h>
 #include <qcc/Debug.h>
 #include <MasterSceneManager.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 #include <FileParser.h>
 
 using namespace lsf;
@@ -682,17 +682,8 @@ static void OutputState(std::ostream& stream, const std::string& name, const Lam
            << state.colorTemp << ' ' << state.brightness << '\n';
 }
 
-void SceneManager::WriteFile()
+std::string SceneManager::GetString()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    if (!updated) {
-        return;
-    }
-
-    if (filePath.empty()) {
-        return;
-    }
-
     scenesLock.Lock();
     // we can't hold this lock for the entire time!
     SceneMap mapCopy = scenes;
@@ -767,8 +758,24 @@ void SceneManager::WriteFile()
     }
 
     stream << "EndScene\n";
+    return stream.str();
+}
 
-    WriteFileWithChecksum(stream.str());
+void SceneManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        return;
+    }
+
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::string output = GetString();
+    uint32_t checksum = GetChecksum(output);
+    WriteFileWithChecksum(output, checksum);
+    controllerService.SendBlobUpdate(LSF_SCENE, checksum, 0UL);
 }
 
 uint32_t SceneManager::GetControllerServiceSceneInterfaceVersion(void)

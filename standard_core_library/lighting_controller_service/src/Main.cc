@@ -35,72 +35,43 @@ static std::string lampGroupFile = "LampGroups.lmp";
 static std::string presetFile = "Presets.lmp";
 static std::string sceneFile = "Scenes.lmp";
 static std::string masterSceneFile = "MasterScenes.lmp";
-static std::string keyStoreLocation;
-bool keyStoreLocationSpecified = false;
+static std::string storeFileName = "LightingControllerService";
+static std::string storeLocation;
+bool storeLocationSpecified = false;
 
 static void usage(int argc, char** argv)
 {
-    printf("Usage: %s -h ? -f <OEM Config File> -c <config> -l <file_name>  -p <file_name>  -s <file_name>  -m <file_name> -k <directory_name>\n\n", argv[0]);
+    printf("Usage: %s -h ? -k <absolute_directory_path>\n\n", argv[0]);
     printf("Options:\n");
     printf("   -h                    = Print this help message\n");
     printf("   -?                    = Print this help message\n");
-    printf("   -f <OEM Config File>  = The file containing the default OEM configuration\n");
-    printf("   -c <config>           = The file where the configuration will be saved\n");
-    printf("   -l <file_name>        = The file where the Lamp Groups will be saved\n");
-    printf("   -p <file_name>        = The file where the Presets will be saved\n");
-    printf("   -s <file_name>        = The file where the Scenes will be saved\n");
-    printf("   -m <file_name>        = The file where the Master Scenes will be saved\n\n");
-    printf("   -k <directory_name>   = The location to store the AllJoyn KeyStore. On Android this should be set to the value returned by Context.getFileStreamPath(\"alljoyn_keystore\").getAbsolutePath()\n\n");
+    printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config files.\n\n");
     printf("Default:\n");
-    printf("    %s -f %s -c %s -l %s -p %s -s %s -m %s -k %s\n",
-           argv[0],
-           factoryConfigFile.c_str(), configFile.c_str(),
-           lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str(), keyStoreLocation.c_str());
+    printf("    %s\n", argv[0]);
 }
 
 
 static void parseCommandLine(int argc, char** argv)
 {
-    int c;
-    while ((c = getopt(argc, argv, "f:c:l:p:s:m:h?k:")) != -1) {
-        switch (c) {
-        case 'f':
-            factoryConfigFile = optarg;
-            break;
-
-        case 'c':
-            configFile = optarg;
-            break;
-
-        case 'l':
-            lampGroupFile = optarg;
-            break;
-
-        case 'p':
-            presetFile = optarg;
-            break;
-
-        case 's':
-            sceneFile = optarg;
-            break;
-
-        case 'm':
-            masterSceneFile = optarg;
-            break;
-
-        case 'k':
-            keyStoreLocationSpecified = true;
-            keyStoreLocation = optarg;
-            break;
-
-        default:
-            usage(argc, argv);
-            exit(-1);
-
-        case 'h':
-        case '?':
+    /* Parse command line args */
+    for (int i = 1; i < argc; ++i) {
+        if (0 == strcmp("-h", argv[i]) || 0 == strcmp("-?", argv[i])) {
             usage(argc, argv);
             exit(0);
+        } else if (0 == strcmp("-k", argv[i])) {
+            ++i;
+            if (i == argc) {
+                printf("option %s requires a parameter\n", argv[i - 1]);
+                usage(argc, argv);
+                exit(1);
+            } else {
+                storeLocationSpecified = true;
+                storeLocation = argv[i];
+            }
+        } else {
+            printf("Unknown option %s\n", argv[i]);
+            usage(argc, argv);
+            exit(1);
         }
     }
 }
@@ -116,17 +87,44 @@ int main(int argc, char** argv)
 
     parseCommandLine(argc, argv);
 
-    lsf::ControllerServiceManager controllerSvcManager(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile);
+    lsf::ControllerServiceManager* controllerSvcManagerPtr = NULL;
 
-    if (keyStoreLocationSpecified) {
-        controllerSvcManager.Start(keyStoreLocation.c_str());
+    if (storeLocationSpecified) {
+        char* dirPath = getenv("HOME");
+        if (dirPath == NULL) {
+            dirPath = const_cast<char*>("/");
+        }
+
+        static std::string absDirPath = std::string(dirPath) + "/" + storeLocation + "/";
+        static std::string factoryConfigFilePath = absDirPath + factoryConfigFile;
+        static std::string configFilePath = absDirPath + configFile;
+        static std::string lampGroupFilePath = absDirPath + lampGroupFile;
+        static std::string presetFilePath = absDirPath + presetFile;
+        static std::string sceneFilePath = absDirPath + sceneFile;
+        static std::string masterSceneFilePath = absDirPath + masterSceneFile;
+        static std::string storeFilePath = storeLocation + "/" + storeFileName;
+        controllerSvcManagerPtr = new lsf::ControllerServiceManager(factoryConfigFilePath, configFilePath, lampGroupFilePath, presetFilePath, sceneFilePath, masterSceneFilePath);
+        if (controllerSvcManagerPtr) {
+            controllerSvcManagerPtr->Start(storeFilePath.c_str());
+        }
     } else {
-        controllerSvcManager.Start(NULL);
+        controllerSvcManagerPtr = new lsf::ControllerServiceManager(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile);
+        if (controllerSvcManagerPtr) {
+            controllerSvcManagerPtr->Start(NULL);
+        }
+    }
+
+    if (controllerSvcManagerPtr == NULL) {
+        QCC_LogError(ER_OUT_OF_MEMORY, ("%s: Failed to start the Controller Service Manager", __FUNCTION__));
+        g_interrupt = true;
     }
 
     while (g_interrupt == false) {
         lsf_Sleep(1000);
     }
 
-    controllerSvcManager.Stop();
+    if (controllerSvcManagerPtr) {
+        controllerSvcManagerPtr->Stop();
+        delete controllerSvcManagerPtr;
+    }
 }

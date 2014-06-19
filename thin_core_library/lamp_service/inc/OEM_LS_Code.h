@@ -1,5 +1,5 @@
-#ifndef _OEM_CODE_H_
-#define _OEM_CODE_H_
+#ifndef _OEM_LS_CODE_H_
+#define _OEM_LS_CODE_H_
 /**
  * @file OEMCode.h
  * @defgroup oem_code The OEM APIs used by the Lamp Service
@@ -36,7 +36,7 @@
  * @param  None
  * @return None
  */
-void OEM_Initialize(void);
+void OEM_LS_Initialize(void);
 
 /**
  * Return a string that describes the current active faults
@@ -44,7 +44,7 @@ void OEM_Initialize(void);
  * @param  None
  * @return String describing the current active faults or NULL if there are no active faults
  */
-const char* OEM_GetFaultsText(void);
+const char* OEM_LS_GetFaultsText(void);
 
 /**
  * OEM-defined default state
@@ -54,7 +54,7 @@ const char* OEM_GetFaultsText(void);
  * @param  state The lamp state to set
  * @return None
  */
-void OEM_InitialState(LampState* state);
+void OEM_LS_SetFactoryState(LampState* state);
 
 /**
  * Restart the Lamp
@@ -62,7 +62,7 @@ void OEM_InitialState(LampState* state);
  * @param  None
  * @return None
  */
-void OEM_Restart(void);
+void OEM_LS_Restart(void);
 
 /**
  * Reset the Lamp to factory settings
@@ -70,7 +70,7 @@ void OEM_Restart(void);
  * @param  None
  * @return None
  */
-void OEM_FactoryReset(void);
+void OEM_LS_DoFactoryReset(void);
 
 /**
  * Serialize the Lamp's current real-time parameters
@@ -78,7 +78,7 @@ void OEM_FactoryReset(void);
  * @param   msg   The msg to serialize data into
  * @return  Status of the operation
  */
-AJ_Status OEM_GetLampParameters(AJ_Message* msg);
+AJ_Status OEM_LS_PopulateParameters(AJ_Message* msg);
 
 /**
  * Return the Lamp's current energy usage in milliwatts
@@ -86,7 +86,7 @@ AJ_Status OEM_GetLampParameters(AJ_Message* msg);
  * @param   None
  * @return  The Lamp's current energy usage in milliwatts
  */
-uint32_t OEM_GetEnergyUsageMilliwatts(void);
+uint32_t OEM_LS_GetEnergyUsageMilliwatts(void);
 
 /**
  * Get the Lamp's current Brightness in Lumens
@@ -94,14 +94,14 @@ uint32_t OEM_GetEnergyUsageMilliwatts(void);
  * @param   None
  * @return  The Lamp's current Brightness in Lumens
  */
-uint32_t OEM_GetBrightnessLumens(void);
+uint32_t OEM_LS_GetBrightnessLumens(void);
 
 #ifdef ONBOARDING_SERVICE
 
 /**
  * The default settings for the Onboarding service
  */
-extern AJOBS_Settings OEM_OnboardingSettings;
+extern AJOBS_Settings OEM_LS_OnboardingSettings;
 
 #endif
 
@@ -114,7 +114,7 @@ extern AJOBS_Settings OEM_OnboardingSettings;
  * @param  onoff On or off
  * @return Status of the operation
  */
-LampResponseCode OEM_SetLampOnOff(uint8_t onoff);
+LampResponseCode OEM_LS_SetOnOff(uint8_t onoff);
 
 /**
  * Change the lamp's hue in response
@@ -125,7 +125,7 @@ LampResponseCode OEM_SetLampOnOff(uint8_t onoff);
  * @param  hue   The hue
  * @return Status of the operation
  */
-LampResponseCode OEM_SetLampHue(uint32_t hue);
+LampResponseCode OEM_LS_SetHue(uint32_t hue);
 
 /**
  * Change the lamp's brightness in response
@@ -136,7 +136,7 @@ LampResponseCode OEM_SetLampHue(uint32_t hue);
  * @param  brightness  The brightness
  * @return Status of the operation
  */
-LampResponseCode OEM_SetLampBrightness(uint32_t brightness);
+LampResponseCode OEM_LS_SetBrightness(uint32_t brightness);
 
 /**
  * Change the lamp's saturation in response
@@ -147,7 +147,7 @@ LampResponseCode OEM_SetLampBrightness(uint32_t brightness);
  * @param  saturation The saturation
  * @return Status of the operation
  */
-LampResponseCode OEM_SetLampSaturation(uint32_t saturation);
+LampResponseCode OEM_LS_SetSaturation(uint32_t saturation);
 
 /**
  * Change the lamp's color temperature in response
@@ -158,7 +158,7 @@ LampResponseCode OEM_SetLampSaturation(uint32_t saturation);
  * @param   colorTemp     The color temperature
  * @return  Status of the operation
  */
-LampResponseCode OEM_SetLampColorTemp(uint32_t colorTemp);
+LampResponseCode OEM_LS_SetColorTemp(uint32_t colorTemp);
 
 /**
  * This function needs to implemented by the OEM to support the Transition Effect
@@ -168,7 +168,7 @@ LampResponseCode OEM_SetLampColorTemp(uint32_t colorTemp);
  * @param  transitionPeriod  The time period to transition over
  * @return Status of the operation
  */
-LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod);
+LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod);
 
 /*
  * This function needs to implemented by the OEM to support the Pulse Effect
@@ -181,7 +181,7 @@ LampResponseCode OEM_TransitionLampState(LampState* newState, uint64_t timestamp
  *
  * @return Status of the operation
  */
-LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp);
+LampResponseCode OEM_LS_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp);
 
 
 /**
@@ -192,7 +192,7 @@ LampResponseCode OEM_ApplyPulseEffect(LampState* fromState, LampState* toState, 
  * @param msg   The message to serialize into
  * @return      Status of the operation
  */
-LampResponseCode OEM_GetLampFaults(AJ_Message* msg);
+LampResponseCode OEM_LS_PopulateFaults(AJ_Message* msg);
 
 /**
  * Clear the lamp fault with the given code. Fault codes are unsigned
@@ -203,7 +203,7 @@ LampResponseCode OEM_GetLampFaults(AJ_Message* msg);
  * @param fault The fault code to clear
  * @return      Status of the operation
  */
-LampResponseCode OEM_ClearLampFault(LampFaultCode fault);
+LampResponseCode OEM_LS_ClearFault(LampFaultCode fault);
 
 /**
  * Serialize the Lamp's details
@@ -211,7 +211,7 @@ LampResponseCode OEM_ClearLampFault(LampFaultCode fault);
  * @param msg   The msg to serialize data into
  * @return      Status of the operation
  */
-LampResponseCode LAMP_MarshalDetails(AJ_Message* msg);
+LampResponseCode OEM_LS_PopulateDetails(AJ_Message* msg);
 
 /**
  * This struct holds all fields of the Lamp's Details.

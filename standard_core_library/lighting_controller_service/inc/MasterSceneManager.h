@@ -51,6 +51,8 @@ class MasterSceneManager : public Manager {
 
     uint32_t GetControllerServiceMasterSceneInterfaceVersion(void);
 
+    virtual std::string GetString();
+
   private:
 
     MasterSceneMap masterScenes;

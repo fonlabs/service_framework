@@ -15,12 +15,12 @@
  ******************************************************************************/
 
 #include <LSFPropertyStore.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 #include <qcc/Debug.h>
 
 namespace lsf {
 
-#define QCC_MODULE "OEM_CONFIG"
+#define QCC_MODULE "OEM_CS_CONFIG"
 
 static const LampState defaultLampState = LampState(true, 256, 256, 256, 256);
 

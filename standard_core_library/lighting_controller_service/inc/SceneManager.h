@@ -54,6 +54,8 @@ class SceneManager : public Manager {
 
     uint32_t GetControllerServiceSceneInterfaceVersion(void);
 
+    virtual std::string GetString();
+
   private:
 
     LSFResponseCode ApplySceneInternal(ajn::Message message, LSFStringList& sceneList);

@@ -18,7 +18,7 @@
 #include <ControllerService.h>
 #include <qcc/Debug.h>
 #include <SceneManager.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 #include <FileParser.h>
 
 using namespace lsf;
@@ -535,17 +535,8 @@ void PresetManager::ReadSavedData()
     }
 }
 
-void PresetManager::WriteFile()
+std::string PresetManager::GetString()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    if (!updated) {
-        return;
-    }
-
-    if (filePath.empty()) {
-        return;
-    }
-
     presetsLock.Lock();
 
     // we can't hold this lock for the entire time!
@@ -566,7 +557,24 @@ void PresetManager::WriteFile()
                << state.colorTemp << ' ' << state.brightness << '\n';
     }
 
-    WriteFileWithChecksum(stream.str());
+    return stream.str();
+}
+
+void PresetManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        return;
+    }
+
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::string output = GetString();
+    uint32_t checksum = GetChecksum(output);
+    WriteFileWithChecksum(output, checksum);
+    controllerService.SendBlobUpdate(LSF_PRESET, checksum, 0UL);
 }
 
 uint32_t PresetManager::GetControllerServicePresetInterfaceVersion(void)

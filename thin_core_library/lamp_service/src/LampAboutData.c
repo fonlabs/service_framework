@@ -26,7 +26,7 @@
 #include <aj_nvram.h>
 #include <aj_config.h>
 
-#include <OEMCode.h>
+#include <OEM_LS_Code.h>
 
 #ifdef ONBOARDING_SERVICE
     #include <alljoyn/onboarding/OnboardingManager.h>
@@ -83,7 +83,7 @@ static AJ_Status FactoryReset(void)
     // reinitialize!
     PropertyStore_Init();
 
-    OEM_FactoryReset();
+    OEM_LS_DoFactoryReset();
 
     // Force disconnect of AJ and services and reconnection of WiFi on restart of app
     return AJ_ERR_RESTART_APP;
@@ -92,7 +92,7 @@ static AJ_Status FactoryReset(void)
 static AJ_Status Restart(void)
 {
     AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
-    OEM_Restart();
+    OEM_LS_Restart();
     return AJ_ERR_RESTART_APP;
 }
 

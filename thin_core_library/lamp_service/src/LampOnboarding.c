@@ -26,7 +26,7 @@
 #include <aj_nvram.h>
 #include <LampOnboarding.h>
 #include <LampAboutData.h>
-#include <OEMCode.h>
+#include <OEM_LS_Code.h>
 
 #include <alljoyn/onboarding/OnboardingService.h>
 #include <alljoyn/onboarding/OnboardingManager.h>
@@ -91,8 +91,8 @@ AJ_Status LAMP_InitOnboarding(void)
 
     AJOBS_RegisterObjectList();
 
-    GenerateSoftAPSSID(OEM_OnboardingSettings.AJOBS_SoftAPSSID);
-    status = AJOBS_Start(&OEM_OnboardingSettings);
+    GenerateSoftAPSSID(OEM_LS_OnboardingSettings.AJOBS_SoftAPSSID);
+    status = AJOBS_Start(&OEM_LS_OnboardingSettings);
     return status;
 }
 

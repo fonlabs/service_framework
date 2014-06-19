@@ -59,6 +59,7 @@ class PresetManager : public Manager {
 
     uint32_t GetControllerServicePresetInterfaceVersion(void);
 
+    virtual std::string GetString();
   private:
 
     LSFResponseCode SetDefaultLampStateInternal(LampState& state);

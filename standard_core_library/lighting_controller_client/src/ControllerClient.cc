@@ -694,34 +694,40 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message
 {
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
-
         bus.EnableConcurrentCallbacks();
 
-        MethodReplyWithResponseCodeAndListOfIDsDispatcherMap::iterator it = methodReplyWithResponseCodeAndListOfIDsHandlers.find(*((LSFString*)context));
-        if (it != methodReplyWithResponseCodeAndListOfIDsHandlers.end()) {
-            MethodReplyWithResponseCodeAndListOfIDsHandlerBase* handler = it->second;
+        if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+            MethodReplyWithResponseCodeAndListOfIDsDispatcherMap::iterator it = methodReplyWithResponseCodeAndListOfIDsHandlers.find(*((LSFString*)context));
+            if (it != methodReplyWithResponseCodeAndListOfIDsHandlers.end()) {
+                MethodReplyWithResponseCodeAndListOfIDsHandlerBase* handler = it->second;
 
-            size_t numInputArgs;
-            const MsgArg* inputArgs;
-            message->GetArgs(numInputArgs, inputArgs);
+                size_t numInputArgs;
+                const MsgArg* inputArgs;
+                message->GetArgs(numInputArgs, inputArgs);
 
-            LSFStringList idList;
-            LSFResponseCode responseCode;
+                LSFStringList idList;
+                LSFResponseCode responseCode;
 
-            inputArgs[0].Get("u", &responseCode);
+                inputArgs[0].Get("u", &responseCode);
 
-            MsgArg* idArgs;
-            size_t numIds;
-            inputArgs[1].Get("as", &numIds, &idArgs);
+                MsgArg* idArgs;
+                size_t numIds;
+                inputArgs[1].Get("as", &numIds, &idArgs);
 
-            for (size_t i = 0; i < numIds; ++i) {
-                char* tempId;
-                idArgs[i].Get("s", &tempId);
-                idList.push_back(LSFString(tempId));
+                for (size_t i = 0; i < numIds; ++i) {
+                    char* tempId;
+                    idArgs[i].Get("s", &tempId);
+                    idList.push_back(LSFString(tempId));
+                }
+
+                handler->Handle(responseCode, idList);
             }
-
-            handler->Handle(responseCode, idList);
+        } else {
+            ErrorCodeList errorList;
+            errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            callback.ControllerClientErrorCB(errorList);
         }
+
         delete ((LSFString*)context);
     } else {
         QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
@@ -754,30 +760,36 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& m
 {
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
-
         bus.EnableConcurrentCallbacks();
 
-        MethodReplyWithResponseCodeIDAndNameDispatcherMap::iterator it = methodReplyWithResponseCodeIDAndNameHandlers.find(*((LSFString*)context));
-        if (it != methodReplyWithResponseCodeIDAndNameHandlers.end()) {
-            MethodReplyWithResponseCodeIDAndNameHandlerBase* handler = it->second;
+        if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+            MethodReplyWithResponseCodeIDAndNameDispatcherMap::iterator it = methodReplyWithResponseCodeIDAndNameHandlers.find(*((LSFString*)context));
+            if (it != methodReplyWithResponseCodeIDAndNameHandlers.end()) {
+                MethodReplyWithResponseCodeIDAndNameHandlerBase* handler = it->second;
 
-            size_t numInputArgs;
-            const MsgArg* inputArgs;
-            message->GetArgs(numInputArgs, inputArgs);
+                size_t numInputArgs;
+                const MsgArg* inputArgs;
+                message->GetArgs(numInputArgs, inputArgs);
 
-            char* uniqueId;
-            char* name;
-            LSFResponseCode responseCode;
+                char* uniqueId;
+                char* name;
+                LSFResponseCode responseCode;
 
-            inputArgs[0].Get("u", &responseCode);
-            inputArgs[1].Get("s", &uniqueId);
-            inputArgs[2].Get("s", &name);
+                inputArgs[0].Get("u", &responseCode);
+                inputArgs[1].Get("s", &uniqueId);
+                inputArgs[2].Get("s", &name);
 
-            LSFString lsfId = LSFString(uniqueId);
-            LSFString lsfName = LSFString(name);
+                LSFString lsfId = LSFString(uniqueId);
+                LSFString lsfName = LSFString(name);
 
-            handler->Handle(responseCode, lsfId, lsfName);
+                handler->Handle(responseCode, lsfId, lsfName);
+            }
+        } else {
+            ErrorCodeList errorList;
+            errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            callback.ControllerClientErrorCB(errorList);
         }
+
         delete ((LSFString*)context);
     } else {
         QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
@@ -810,27 +822,33 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& messa
 {
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
-
         bus.EnableConcurrentCallbacks();
 
-        MethodReplyWithResponseCodeAndIDDispatcherMap::iterator it = methodReplyWithResponseCodeAndIDHandlers.find(*((LSFString*)context));
-        if (it != methodReplyWithResponseCodeAndIDHandlers.end()) {
-            MethodReplyWithResponseCodeAndIDHandlerBase* handler = it->second;
+        if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+            MethodReplyWithResponseCodeAndIDDispatcherMap::iterator it = methodReplyWithResponseCodeAndIDHandlers.find(*((LSFString*)context));
+            if (it != methodReplyWithResponseCodeAndIDHandlers.end()) {
+                MethodReplyWithResponseCodeAndIDHandlerBase* handler = it->second;
 
-            size_t numInputArgs;
-            const MsgArg* inputArgs;
-            message->GetArgs(numInputArgs, inputArgs);
+                size_t numInputArgs;
+                const MsgArg* inputArgs;
+                message->GetArgs(numInputArgs, inputArgs);
 
-            char* id;
-            LSFResponseCode responseCode;
+                char* id;
+                LSFResponseCode responseCode;
 
-            inputArgs[0].Get("u", &responseCode);
-            inputArgs[1].Get("s", &id);
+                inputArgs[0].Get("u", &responseCode);
+                inputArgs[1].Get("s", &id);
 
-            LSFString lsfId = LSFString(id);
+                LSFString lsfId = LSFString(id);
 
-            handler->Handle(responseCode, lsfId);
+                handler->Handle(responseCode, lsfId);
+            }
+        } else {
+            ErrorCodeList errorList;
+            errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            callback.ControllerClientErrorCB(errorList);
         }
+
         delete ((LSFString*)context);
     } else {
         QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
@@ -863,23 +881,29 @@ void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, vo
 {
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
-
         bus.EnableConcurrentCallbacks();
 
-        MethodReplyWithUint32ValueDispatcherMap::iterator it = methodReplyWithUint32ValueHandlers.find(*((LSFString*)context));
-        if (it != methodReplyWithUint32ValueHandlers.end()) {
-            MethodReplyWithUint32ValueHandlerBase* handler = it->second;
+        if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+            MethodReplyWithUint32ValueDispatcherMap::iterator it = methodReplyWithUint32ValueHandlers.find(*((LSFString*)context));
+            if (it != methodReplyWithUint32ValueHandlers.end()) {
+                MethodReplyWithUint32ValueHandlerBase* handler = it->second;
 
-            size_t numInputArgs;
-            const MsgArg* inputArgs;
-            message->GetArgs(numInputArgs, inputArgs);
+                size_t numInputArgs;
+                const MsgArg* inputArgs;
+                message->GetArgs(numInputArgs, inputArgs);
 
-            uint32_t value;
-            inputArgs[0].Get("u", &value);
-            handler->Handle(value);
+                uint32_t value;
+                inputArgs[0].Get("u", &value);
+                handler->Handle(value);
+            } else {
+                QCC_LogError(ER_FAIL, ("%s: Did not find handler", __FUNCTION__));
+            }
         } else {
-            QCC_LogError(ER_FAIL, ("%s: Did not find handler", __FUNCTION__));
+            ErrorCodeList errorList;
+            errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            callback.ControllerClientErrorCB(errorList);
         }
+
         delete ((LSFString*)context);
     } else {
         QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
@@ -912,35 +936,41 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
 {
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
-
         bus.EnableConcurrentCallbacks();
 
-        MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap::iterator it = methodReplyWithResponseCodeIDLanguageAndNameHandlers.find(*((LSFString*)context));
-        if (it != methodReplyWithResponseCodeIDLanguageAndNameHandlers.end()) {
-            MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase* handler = it->second;
+        if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+            MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap::iterator it = methodReplyWithResponseCodeIDLanguageAndNameHandlers.find(*((LSFString*)context));
+            if (it != methodReplyWithResponseCodeIDLanguageAndNameHandlers.end()) {
+                MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase* handler = it->second;
 
-            size_t numInputArgs;
-            const MsgArg* inputArgs;
-            message->GetArgs(numInputArgs, inputArgs);
+                size_t numInputArgs;
+                const MsgArg* inputArgs;
+                message->GetArgs(numInputArgs, inputArgs);
 
-            LSFResponseCode responseCode;
-            char* id;
-            char* lang;
-            char* name;
+                LSFResponseCode responseCode;
+                char* id;
+                char* lang;
+                char* name;
 
-            inputArgs[0].Get("u", &responseCode);
-            inputArgs[1].Get("s", &id);
-            inputArgs[2].Get("s", &lang);
-            inputArgs[3].Get("s", &name);
+                inputArgs[0].Get("u", &responseCode);
+                inputArgs[1].Get("s", &id);
+                inputArgs[2].Get("s", &lang);
+                inputArgs[3].Get("s", &name);
 
-            LSFString lsfId = LSFString(id);
-            LSFString language = LSFString(lang);
-            LSFString lsfName = LSFString(name);
+                LSFString lsfId = LSFString(id);
+                LSFString language = LSFString(lang);
+                LSFString lsfName = LSFString(name);
 
-            handler->Handle(responseCode, lsfId, language, lsfName);
+                handler->Handle(responseCode, lsfId, language, lsfName);
+            } else {
+                QCC_LogError(ER_FAIL, ("%s: Did not find handler", __FUNCTION__));
+            }
         } else {
-            QCC_LogError(ER_FAIL, ("%s: Did not find handler", __FUNCTION__));
+            ErrorCodeList errorList;
+            errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            callback.ControllerClientErrorCB(errorList);
         }
+
         delete ((LSFString*)context);
     } else {
         QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));

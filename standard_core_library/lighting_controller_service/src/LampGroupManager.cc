@@ -19,7 +19,7 @@
 #include <qcc/atomic.h>
 #include <qcc/Debug.h>
 #include <SceneManager.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 #include <FileParser.h>
 
 #include <sstream>
@@ -819,18 +819,8 @@ void LampGroupManager::ReadSavedData()
     }
 }
 
-void LampGroupManager::WriteFile()
+std::string LampGroupManager::GetString()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    if (!updated) {
-        printf("%s: Not updated\n", __FUNCTION__);
-        return;
-    }
-
-    if (filePath.empty()) {
-        return;
-    }
-
     lampGroupsLock.Lock();
     // we can't hold this lock for the entire time!
     LampGroupMap mapCopy = lampGroups;
@@ -856,7 +846,25 @@ void LampGroupManager::WriteFile()
         stream << " EndLampGroup" << std::endl;
     }
 
-    WriteFileWithChecksum(stream.str());
+    return stream.str();
+}
+
+void LampGroupManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        printf("%s: Not updated\n", __FUNCTION__);
+        return;
+    }
+
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::string output = GetString();
+    uint32_t checksum = GetChecksum(output);
+    WriteFileWithChecksum(output, checksum);
+    controllerService.SendBlobUpdate(LSF_LAMP_GROUP, checksum, 0UL);
 }
 
 uint32_t LampGroupManager::GetControllerServiceLampGroupInterfaceVersion(void)

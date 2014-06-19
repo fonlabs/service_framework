@@ -19,7 +19,7 @@
 #include <qcc/Debug.h>
 #include <algorithm>
 #include <ControllerService.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 
 using namespace lsf;
 using namespace ajn;
@@ -1121,6 +1121,12 @@ void LampClients::Run(void)
                 sendResponse = true;
             }
             pingResponseLock.Unlock();
+        } else {
+            /*
+             * This handled a case where-in we have discovered no lamp services
+             */
+            QCC_DbgPrintf(("%s: No Lamps Found", __FUNCTION__));
+            sendResponse = true;
         }
 
         /*

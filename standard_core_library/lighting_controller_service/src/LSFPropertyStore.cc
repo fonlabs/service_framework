@@ -15,7 +15,7 @@
  ******************************************************************************/
 #include <LSFPropertyStore.h>
 #include <PropertyParser.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>

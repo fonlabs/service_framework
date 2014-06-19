@@ -17,7 +17,7 @@
 #include <MasterSceneManager.h>
 #include <ControllerService.h>
 #include <qcc/Debug.h>
-#include <OEMConfig.h>
+#include <OEM_CS_Config.h>
 #include <FileParser.h>
 
 using namespace lsf;
@@ -483,17 +483,8 @@ void MasterSceneManager::ReadSavedData()
     }
 }
 
-void MasterSceneManager::WriteFile()
+std::string MasterSceneManager::GetString()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    if (!updated) {
-        return;
-    }
-
-    if (filePath.empty()) {
-        return;
-    }
-
     masterScenesLock.Lock();
     // we can't hold this lock for the entire time!
     MasterSceneMap mapCopy = masterScenes;
@@ -516,7 +507,24 @@ void MasterSceneManager::WriteFile()
         stream << " EndMasterScene" << std::endl;
     }
 
-    WriteFileWithChecksum(stream.str());
+    return stream.str();
+}
+
+void MasterSceneManager::WriteFile()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    if (!updated) {
+        return;
+    }
+
+    if (filePath.empty()) {
+        return;
+    }
+
+    std::string output = GetString();
+    uint32_t checksum = GetChecksum(output);
+    WriteFileWithChecksum(output, checksum);
+    controllerService.SendBlobUpdate(LSF_MASTER_SCENE, checksum, 0UL);
 }
 
 uint32_t MasterSceneManager::GetControllerServiceMasterSceneInterfaceVersion(void)
