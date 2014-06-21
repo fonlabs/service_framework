@@ -18,7 +18,7 @@
 #include <LampService.h>
 #include <LampState.h>
 #include <LampValues.h>
-#include <OEMProvisioning.h>
+#include <OEM_LS_Provisioning.h>
 
 #include <aj_msg.h>
 #include <aj_debug.h>

@@ -21,7 +21,7 @@
 #include <aj_config.h>
 
 #include <LampValues.h>
-#include <OEMProvisioning.h>
+#include <OEM_LS_Provisioning.h>
 #include <OEM_LS_Code.h>
 
 #ifdef ONBOARDING_SERVICE

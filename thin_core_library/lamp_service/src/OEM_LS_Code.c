@@ -17,7 +17,7 @@
 #include <OEM_LS_Code.h>
 #include <LampState.h>
 #include <LampAboutData.h>
-#include <OEMProvisioning.h>
+#include <OEM_LS_Provisioning.h>
 #include <alljoyn/services_common/PropertyStore.h>
 #include <alljoyn/services_common/ServicesCommon.h>
 

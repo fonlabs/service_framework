@@ -1,7 +1,7 @@
-#ifndef _LAMP_OEM_LS_PROPERTIES_H_
-#define _LAMP_OEM_LS_PROPERTIES_H_
+#ifndef _OEM_LS_PROVISIONING_H_
+#define _OEM_LS_PROVISIONING_H_
 /**
- * @file OEMProvisioning.h
+ * @file OEM_LS_Provisioning.h
  * @defgroup property_store The OEM-defined properties used by About/Config Service
  * @{
  */
