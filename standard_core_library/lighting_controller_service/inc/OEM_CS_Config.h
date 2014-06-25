@@ -36,6 +36,11 @@ namespace lsf {
 #define MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
 
 /*
+ * Timeout for Pings
+ */
+#define PING_TIMEOUT_IN_MS 300
+
+/*
  * Returns the factory set value of the default lamp state. The
  * PresetManager will use this value to initialize the default
  * lamp state if it does not find a persisted value for the same

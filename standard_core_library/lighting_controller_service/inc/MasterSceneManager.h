@@ -47,7 +47,7 @@ class MasterSceneManager : public Manager {
     LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
 
     void ReadSavedData();
-    virtual void WriteFile();
+    void WriteFile();
 
     uint32_t GetControllerServiceMasterSceneInterfaceVersion(void);
 
@@ -58,6 +58,8 @@ class MasterSceneManager : public Manager {
     MasterSceneMap masterScenes;
     Mutex masterScenesLock;
     SceneManager& sceneManager;
+
+    std::string GetString(const MasterSceneMap& items);
 };
 
 }

@@ -340,6 +340,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void PingCB(QStatus status, void* context);
 
+    void SessionPingCB(Message& message, void* context);
+
     struct LampConnection {
         LSFString lampId;
         ajn::ProxyBusObject object;
@@ -385,10 +387,15 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFSemaphore wakeUp;
 
-    uint8_t sentPings;
-    uint8_t receivedPingResponses;
+    uint8_t sentNGNSPings;
+    uint8_t sentSessionPings;
+    uint8_t receivedNGNSPingResponses;
+    uint8_t receivedSessionPingResponses;
+    LSFStringList probableLostLamps;
     LSFStringList lostLamps;
-    Mutex pingResponseLock;
+    Mutex ngnsPingResponseLock;
+    Mutex sessionPingResponseLock;
+    bool pingsInProgress;
 };
 
 }

@@ -40,8 +40,6 @@ class Manager : public ajn::MessageReceiver {
 
     Manager(ControllerService& controllerSvc, const std::string& filePath = "");
 
-    virtual void WriteFile() { }
-
     void ScheduleFileUpdate();
 
     //protected:

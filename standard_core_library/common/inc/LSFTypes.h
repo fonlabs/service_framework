@@ -70,6 +70,9 @@ extern ajn::SessionPort LampServiceSessionPort;
 extern const char* ConfigServiceObjectPath;
 extern const char* ConfigServiceInterfaceName;
 
+extern const char* OnboardingServiceObjectPath;
+extern const char* OnboardingServiceInterfaceName;
+
 extern const char* AboutObjectPath;
 extern const char* AboutInterfaceName;
 

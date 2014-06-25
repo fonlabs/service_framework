@@ -44,6 +44,7 @@ LSFPropertyStore::LSFPropertyStore(const std::string& factoryConfigFile, const s
     : isInitialized(false),
     configFileName(configFile),
     factoryConfigFileName(factoryConfigFile),
+    factoryReset(false),
     needsWrite(false),
     running(true)
 {
@@ -55,6 +56,15 @@ LSFPropertyStore::~LSFPropertyStore()
 {
     Stop();
     Join();
+
+    // overwrite the file with ONLY the DeviceId
+    if (factoryReset) {
+        PropertyStoreProperty* deviceId = getProperty(DEVICE_ID);
+
+        StringMap data;
+        data["DeviceId"] = deviceId->getPropertyValue().v_string.str;
+        PropertyParser::WriteFile(configFileName, data);
+    }
 }
 
 void LSFPropertyStore::Initialize()
@@ -139,7 +149,6 @@ void LSFPropertyStore::ReadConfiguration()
 
         // now save the file!
         data[PropertyStoreName[DEVICE_ID]] = new_id;
-        data[PropertyStoreName[APP_ID]] = new_id;
         PropertyParser::WriteFile(configFileName, data);
         return;
     }
@@ -164,7 +173,6 @@ void LSFPropertyStore::ReadConfiguration()
 
         // now save the file!
         data[PropertyStoreName[DEVICE_ID]] = new_id;
-        data[PropertyStoreName[APP_ID]] = new_id;
         PropertyParser::WriteFile(configFileName, data);
     }
 
@@ -184,26 +192,7 @@ void LSFPropertyStore::ReadConfiguration()
 
 QStatus LSFPropertyStore::Reset()
 {
-    // save the uniqueId!
-    propsLock.Lock();
-    PropertyStoreProperty* deviceId = getProperty(DEVICE_ID);
-    PropertyStoreProperty* appId = getProperty(APP_ID);
-
-    properties.clear();
-    supportedLanguages.clear();
-
-    // now repopulate writeProperties from the factory config data
-    ReadFactoryConfiguration();
-
-    // keep the DeviceId and AppId from before the reset
-    properties.insert(PropertyMap::value_type(DEVICE_ID, *deviceId));
-    properties.insert(PropertyMap::value_type(APP_ID, *appId));
-
-    // signal the writer thread
-    propsLock.Unlock();
-    propsCond.Signal();
-    // the other thread will copy properties back to writeProperties and announce
-
+    factoryReset = true;
     return ER_OK;
 }
 
@@ -545,7 +534,6 @@ void LSFPropertyStore::Run()
         const char* deviceId;
         devId.getPropertyValue().Get("s", &deviceId);
         fileOutput[PropertyStoreName[DEVICE_ID]] = deviceId;
-        fileOutput[PropertyStoreName[APP_ID]] = deviceId;
 
         // these are the new Properties if and only if the data
         // was successfully written to the user config file.

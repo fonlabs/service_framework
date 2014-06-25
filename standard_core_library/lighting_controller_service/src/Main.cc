@@ -13,20 +13,36 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-#include <climits>
+
 #include <signal.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <qcc/Debug.h>
 #include <string>
 #include <ControllerService.h>
 
 #define QCC_MODULE "MAIN"
 
-static volatile sig_atomic_t g_interrupt = false;
+// if we're tracking the child process, we need to pass signals to it
+static pid_t g_child_process = 0;
 
+
+static volatile sig_atomic_t g_running = true;
 static void SigIntHandler(int sig)
 {
-    g_interrupt = true;
+    g_running = false;
+    if (g_child_process) {
+        kill(g_child_process, SIGINT);
+    }
+}
+
+static void SigTermHandler(int sig)
+{
+    g_running = false;
+    if (g_child_process) {
+        kill(g_child_process, SIGTERM);
+    }
 }
 
 static std::string factoryConfigFile = "OEMConfig.ini";
@@ -37,7 +53,7 @@ static std::string sceneFile = "Scenes.lmp";
 static std::string masterSceneFile = "MasterScenes.lmp";
 static std::string storeFileName = "LightingControllerService";
 static std::string storeLocation;
-bool storeLocationSpecified = false;
+static bool run_daemon = false;
 
 static void usage(int argc, char** argv)
 {
@@ -45,6 +61,7 @@ static void usage(int argc, char** argv)
     printf("Options:\n");
     printf("   -h                    = Print this help message\n");
     printf("   -?                    = Print this help message\n");
+    printf("   -d                    = Run the Controller Service as a background daemon\n");
     printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config files.\n\n");
     printf("Default:\n");
     printf("    %s\n", argv[0]);
@@ -53,25 +70,28 @@ static void usage(int argc, char** argv)
 
 static void parseCommandLine(int argc, char** argv)
 {
-    /* Parse command line args */
-    for (int i = 1; i < argc; ++i) {
-        if (0 == strcmp("-h", argv[i]) || 0 == strcmp("-?", argv[i])) {
+    int opt;
+
+    while ((opt = getopt(argc, argv, "h?k:d")) != -1) {
+        switch (opt) {
+        case 'h':
+        case '?':
             usage(argc, argv);
             exit(0);
-        } else if (0 == strcmp("-k", argv[i])) {
-            ++i;
-            if (i == argc) {
-                printf("option %s requires a parameter\n", argv[i - 1]);
-                usage(argc, argv);
-                exit(1);
-            } else {
-                storeLocationSpecified = true;
-                storeLocation = argv[i];
-            }
-        } else {
-            printf("Unknown option %s\n", argv[i]);
+            break;
+
+        case 'd':
+            run_daemon = true;
+            break;
+
+        case 'k':
+            storeLocation = optarg;
+            break;
+
+        default:
             usage(argc, argv);
-            exit(1);
+            exit(-1);
+            break;
         }
     }
 }
@@ -81,50 +101,76 @@ void lsf_Sleep(uint32_t msec)
     usleep(1000 * msec);
 }
 
-int main(int argc, char** argv)
+
+void RunService()
 {
-    signal(SIGINT, SigIntHandler);
-
-    parseCommandLine(argc, argv);
-
-    lsf::ControllerServiceManager* controllerSvcManagerPtr = NULL;
-
-    if (storeLocationSpecified) {
-        char* dirPath = getenv("HOME");
-        if (dirPath == NULL) {
-            dirPath = const_cast<char*>("/");
-        }
-
-        static std::string absDirPath = std::string(dirPath) + "/" + storeLocation + "/";
-        static std::string factoryConfigFilePath = absDirPath + factoryConfigFile;
-        static std::string configFilePath = absDirPath + configFile;
-        static std::string lampGroupFilePath = absDirPath + lampGroupFile;
-        static std::string presetFilePath = absDirPath + presetFile;
-        static std::string sceneFilePath = absDirPath + sceneFile;
-        static std::string masterSceneFilePath = absDirPath + masterSceneFile;
-        static std::string storeFilePath = storeLocation + "/" + storeFileName;
-        controllerSvcManagerPtr = new lsf::ControllerServiceManager(factoryConfigFilePath, configFilePath, lampGroupFilePath, presetFilePath, sceneFilePath, masterSceneFilePath);
-        if (controllerSvcManagerPtr) {
-            controllerSvcManagerPtr->Start(storeFilePath.c_str());
-        }
-    } else {
-        controllerSvcManagerPtr = new lsf::ControllerServiceManager(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile);
-        if (controllerSvcManagerPtr) {
-            controllerSvcManagerPtr->Start(NULL);
-        }
+    if (!storeLocation.empty()) {
+        chdir(storeLocation.c_str());
     }
+
+    lsf::ControllerServiceManager* controllerSvcManagerPtr =
+        new lsf::ControllerServiceManager(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile);
+    controllerSvcManagerPtr->Start(storeLocation.empty() ? NULL : storeLocation.c_str());
 
     if (controllerSvcManagerPtr == NULL) {
         QCC_LogError(ER_OUT_OF_MEMORY, ("%s: Failed to start the Controller Service Manager", __FUNCTION__));
-        g_interrupt = true;
+        exit(-1);
     }
 
-    while (g_interrupt == false) {
+    while (g_running && controllerSvcManagerPtr->IsRunning()) {
         lsf_Sleep(1000);
     }
 
     if (controllerSvcManagerPtr) {
         controllerSvcManagerPtr->Stop();
         delete controllerSvcManagerPtr;
+    }
+}
+
+
+void RunAndMonitor()
+{
+    // we are a background process!
+    fclose(stdin);
+    fclose(stdout);
+    fclose(stderr);
+
+    while (g_running) {
+        pid_t pid = fork();
+
+        if (pid == -1) {
+            exit(-1);
+        } else if (pid == 0) {
+            RunService();
+        } else {
+            g_child_process = pid;
+            int status = 0;
+            // wait for exit
+            wait(&status);
+        }
+    }
+}
+
+
+int main(int argc, char** argv)
+{
+    signal(SIGINT, SigIntHandler);
+    signal(SIGTERM, SigTermHandler);
+
+    parseCommandLine(argc, argv);
+
+    if (run_daemon) {
+        pid_t pid = fork();
+
+        if (pid == -1) {
+            return -1;
+        } else if (pid == 0) {
+            RunAndMonitor();
+        } else {
+            // Unneeded parent process, just exit.
+            exit(0);
+        }
+    } else {
+        RunService();
     }
 }

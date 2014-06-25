@@ -52,6 +52,9 @@ ajn::SessionPort LampServiceSessionPort = 42;
 const char* ConfigServiceObjectPath = "/Config";
 const char* ConfigServiceInterfaceName = "org.alljoyn.Config";
 
+const char* OnboardingServiceObjectPath = "/Onboarding";
+const char* OnboardingServiceInterfaceName = "org.alljoyn.Onboarding";
+
 const char* AboutObjectPath = "/About";
 const char* AboutInterfaceName = "org.alljoyn.About";
 

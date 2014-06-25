@@ -535,18 +535,11 @@ void PresetManager::ReadSavedData()
     }
 }
 
-std::string PresetManager::GetString()
+std::string PresetManager::GetString(const PresetMap& items)
 {
-    presetsLock.Lock();
-
-    // we can't hold this lock for the entire time!
-    PresetMap mapCopy = presets;
-    updated = false;
-    presetsLock.Unlock();
-
     std::ostringstream stream;
     // // (Preset id "name" on/off hue saturation colortemp brightness)*
-    for (PresetMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+    for (PresetMap::const_iterator it = items.begin(); it != items.end(); ++it) {
         const LSFString& id = it->first;
         const LSFString& name = it->second.first;
         const LampState& state = it->second.second;
@@ -558,6 +551,16 @@ std::string PresetManager::GetString()
     }
 
     return stream.str();
+}
+
+std::string PresetManager::GetString()
+{
+    presetsLock.Lock();
+    // we shouldn't hold this lock for the entire time!
+    PresetMap mapCopy = presets;
+    updated = false;
+    presetsLock.Unlock();
+    return GetString(mapCopy);
 }
 
 void PresetManager::WriteFile()

@@ -483,17 +483,11 @@ void MasterSceneManager::ReadSavedData()
     }
 }
 
-std::string MasterSceneManager::GetString()
+std::string MasterSceneManager::GetString(const MasterSceneMap& items)
 {
-    masterScenesLock.Lock();
-    // we can't hold this lock for the entire time!
-    MasterSceneMap mapCopy = masterScenes;
-    updated = false;
-    masterScenesLock.Unlock();
-
     std::ostringstream stream;
     // (MasterScene id "name" (Scene id)* EndMasterScene)*
-    for (MasterSceneMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+    for (MasterSceneMap::const_iterator it = items.begin(); it != items.end(); ++it) {
         const LSFString& id = it->first;
         const LSFString& name = it->second.first;
         const MasterScene& msc = it->second.second;
@@ -508,6 +502,17 @@ std::string MasterSceneManager::GetString()
     }
 
     return stream.str();
+}
+
+std::string MasterSceneManager::GetString()
+{
+    masterScenesLock.Lock();
+    // we can't hold this lock for the entire time!
+    MasterSceneMap mapCopy = masterScenes;
+    updated = false;
+    masterScenesLock.Unlock();
+
+    return GetString(mapCopy);
 }
 
 void MasterSceneManager::WriteFile()

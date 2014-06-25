@@ -819,17 +819,11 @@ void LampGroupManager::ReadSavedData()
     }
 }
 
-std::string LampGroupManager::GetString()
+std::string LampGroupManager::GetString(const LampGroupMap& items)
 {
-    lampGroupsLock.Lock();
-    // we can't hold this lock for the entire time!
-    LampGroupMap mapCopy = lampGroups;
-    updated = false;
-    lampGroupsLock.Unlock();
-
     // (LampGroup id "name" (Lamp id)* (SubGroup id)* EndLampGroup)*
     std::ostringstream stream;
-    for (LampGroupMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+    for (LampGroupMap::const_iterator it = items.begin(); it != items.end(); ++it) {
         const LSFString& id = it->first;
         const LSFString& name = it->second.first;
         const LampGroup& group = it->second.second;
@@ -849,11 +843,21 @@ std::string LampGroupManager::GetString()
     return stream.str();
 }
 
+std::string LampGroupManager::GetString()
+{
+    lampGroupsLock.Lock();
+    // we can't hold this lock for the entire time!
+    LampGroupMap mapCopy = lampGroups;
+    updated = false;
+    lampGroupsLock.Unlock();
+
+    return GetString(mapCopy);
+}
+
 void LampGroupManager::WriteFile()
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     if (!updated) {
-        printf("%s: Not updated\n", __FUNCTION__);
         return;
     }
 

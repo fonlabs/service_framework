@@ -682,16 +682,10 @@ static void OutputState(std::ostream& stream, const std::string& name, const Lam
            << state.colorTemp << ' ' << state.brightness << '\n';
 }
 
-std::string SceneManager::GetString()
+std::string SceneManager::GetString(const SceneMap& items)
 {
-    scenesLock.Lock();
-    // we can't hold this lock for the entire time!
-    SceneMap mapCopy = scenes;
-    updated = false;
-    scenesLock.Unlock();
-
     std::ostringstream stream;
-    for (SceneMap::const_iterator it = mapCopy.begin(); it != mapCopy.end(); ++it) {
+    for (SceneMap::const_iterator it = items.begin(); it != items.end(); ++it) {
         const LSFString& id = it->first;
         const LSFString& name = it->second.first;
         const Scene& scene = it->second.second;
@@ -759,6 +753,16 @@ std::string SceneManager::GetString()
 
     stream << "EndScene\n";
     return stream.str();
+}
+
+std::string SceneManager::GetString()
+{
+    scenesLock.Lock();
+    // we can't hold this lock for the entire time!
+    SceneMap mapCopy = scenes;
+    updated = false;
+    scenesLock.Unlock();
+    return GetString(mapCopy);
 }
 
 void SceneManager::WriteFile()

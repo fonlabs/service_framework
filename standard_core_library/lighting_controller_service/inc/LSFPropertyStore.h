@@ -134,6 +134,8 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     std::string factoryConfigFileName;
 
+    bool factoryReset;
+
     void ReadConfiguration();
     void ReadFactoryConfiguration();
 

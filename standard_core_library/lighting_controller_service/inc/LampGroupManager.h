@@ -68,7 +68,7 @@ class LampGroupManager : public Manager {
 
     LSFResponseCode GetAllLampGroups(LampGroupMap& lampGroupMap);
 
-    virtual void WriteFile();
+    void WriteFile();
     void ReadSavedData();
 
     uint32_t GetControllerServiceLampGroupInterfaceVersion(void);
@@ -96,6 +96,8 @@ class LampGroupManager : public Manager {
     Mutex lampGroupsLock;
     LampManager& lampManager;
     SceneManager* sceneManagerPtr;
+
+    std::string GetString(const LampGroupMap& items);
 };
 
 }

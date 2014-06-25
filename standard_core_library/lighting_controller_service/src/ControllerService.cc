@@ -30,7 +30,10 @@ using namespace ajn;
 
 #define QCC_MODULE "CONTROLLER_SERVICE"
 
-class ControllerService::ControllerListener : public SessionPortListener, public SessionListener {
+class ControllerService::ControllerListener :
+    public SessionPortListener,
+    public services::AnnounceHandler,
+    public SessionListener {
   public:
     ControllerListener(ControllerService& controller) : controller(controller) { }
 
@@ -49,8 +52,100 @@ class ControllerService::ControllerListener : public SessionPortListener, public
         controller.SessionLost(sessionId);
     }
 
+    virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData) {
+        controller.bus.EnableConcurrentCallbacks();
+        ObjectDescriptions::const_iterator it = objectDescs.find(OnboardingServiceObjectPath);
+        if (it != objectDescs.end()) {
+            // this implements an onboarding service
+            // we need to determine whether it's on the same routing node
+
+            qcc::String myName = controller.bus.GetUniqueName();
+            size_t idx = myName.find_first_of('.');
+            myName = myName.substr(0, idx);
+
+            qcc::String name = busName;
+            size_t idx2 = name.find_first_of('.');
+            name = name.substr(0, idx2);
+
+            if (name == myName) {
+                controller.FoundLocalOnboardingService(busName, port);
+            }
+        }
+    }
+
     ControllerService& controller;
 };
+
+class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, public ProxyBusObject::Listener {
+  public:
+    OBSJoiner(ControllerService& controller, const char* busName)
+        : controller(controller),
+        busName(busName)
+    {
+    }
+
+    void FinishedIntrospect(QStatus status, ProxyBusObject* obj, void* context) {
+        controller.bus.EnableConcurrentCallbacks();
+        if (status == ER_OK) {
+            // we are now valid!
+            // set valid!
+            controller.obsObjectLock.Lock();
+            controller.isObsObjectReady = true;
+            controller.obsObjectLock.Unlock();
+            QCC_DbgPrintf(("Onboarding Service proxy object ready"));
+        } else {
+            // something has gone wrong.
+            SessionId session = 0;
+            QCC_LogError(status, ("Failed to Introspect remote Onboarding Object"));
+
+            controller.obsObjectLock.Lock();
+            if (controller.obsObject != NULL) {
+                session = controller.obsObject->GetSessionId();
+                delete controller.obsObject;
+                controller.obsObject = NULL;
+            }
+            controller.obsObjectLock.Unlock();
+
+            if (session != 0) {
+                controller.bus.LeaveSession(session);
+            }
+        }
+
+        delete this;
+    }
+
+    virtual void JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context) {
+        if (status == ER_OK) {
+            controller.obsObjectLock.Lock();
+            controller.obsObject = new ProxyBusObject(controller.bus, busName.c_str(), ConfigServiceObjectPath, sessionId);
+            // ok to call when locked?
+            QCC_DbgPrintf(("Joining Onboarding Service on %s with session %u", busName.c_str(), sessionId));
+
+            status = controller.obsObject->IntrospectRemoteObjectAsync(
+                this,
+                static_cast<ProxyBusObject::Listener::IntrospectCB>(&ControllerService::OBSJoiner::FinishedIntrospect),
+                NULL);
+
+            if (status != ER_OK) {
+                delete controller.obsObject;
+                controller.obsObject = NULL;
+                QCC_LogError(status, ("Failed to join Introspect Onboarding Object on %s on session %u", busName.c_str(), sessionId));
+            }
+
+            controller.obsObjectLock.Unlock();
+        }
+
+        if (status != ER_OK) {
+            delete this;
+        }
+    }
+
+    ControllerService& controller;
+    qcc::String busName;
+};
+
+
+
 
 ControllerService::ControllerService(
     ajn::services::PropertyStore& propStore,
@@ -75,6 +170,9 @@ ControllerService::ControllerService(
     aboutService(NULL),
     configService(bus, propertyStore, *this),
     notificationSender(NULL),
+    obsObject(NULL),
+    isObsObjectReady(false),
+    isRunning(true),
     fileWriterThread(*this)
 {
     Initialize();
@@ -102,10 +200,27 @@ ControllerService::ControllerService(
     aboutService(NULL),
     configService(bus, propertyStore, *this),
     notificationSender(NULL),
+    obsObject(NULL),
+    isObsObjectReady(false),
+    isRunning(true),
     fileWriterThread(*this)
 {
     Initialize();
     internalPropertyStore.Initialize();
+}
+
+void ControllerService::FoundLocalOnboardingService(const char* busName, SessionPort port)
+{
+    QCC_DbgPrintf(("Joining Onboarding Service on %s:%u", busName, port));
+
+    SessionOpts opts;
+    OBSJoiner* joinHandler = new OBSJoiner(*this, busName);
+    QStatus status = bus.JoinSessionAsync(busName, port, NULL, opts, joinHandler);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("Failed to join Onboarding Service on %s:%u", busName, port));
+        //QCC_DbgPrintf(("Successful CreateAndAddInterface for %s", entries[i].interfaceName));
+        delete joinHandler;
+    }
 }
 
 void ControllerService::Initialize()
@@ -219,6 +334,11 @@ QStatus ControllerService::CreateAndAddInterfaces(const InterfaceEntry* entries,
     }
     return status;
 }
+
+static const char* OnboardingInterfaces[] = {
+    OnboardingServiceInterfaceName,
+    ConfigServiceInterfaceName
+};
 
 QStatus ControllerService::Start(const char* keyStoreFileLocation)
 {
@@ -426,24 +546,36 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         QCC_LogError(status, ("%s: Failed to start the LampManager", __FUNCTION__));
     }
 
+    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __FUNCTION__));
+    }
+
     return status;
 }
 
 QStatus ControllerService::Stop(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __FUNCTION__));
+    }
+
     aboutService->Unregister();
     services::AboutServiceApi::DestroyInstance();
 
     // we need to manage the notification sender's memory
     services::NotificationService::getInstance()->shutdownSender();
 
-    QStatus status = lampManager.Stop();
+    status = lampManager.Stop();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Error stopping Lamp Manager", __FUNCTION__));
     }
 
     fileWriterThread.Stop();
+    fileWriterThread.Join();
 
     status = bus.Disconnect();
     if (status != ER_OK) {
@@ -453,6 +585,11 @@ QStatus ControllerService::Stop(void)
     status = bus.Stop();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Error stopping the AllJoyn bus", __FUNCTION__));
+    }
+
+    status = bus.Join();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Error joining the AllJoyn bus", __FUNCTION__));
     }
 
     return ER_OK;
@@ -512,11 +649,37 @@ void ControllerService::ObjectRegistered(void)
 
 QStatus ControllerService::Restart()
 {
+    QCC_DbgPrintf(("Restarting\n"));
+    isRunningLock.Lock();
+    isRunning = false;
+    isRunningLock.Unlock();
     return ER_OK;
 }
 
 QStatus ControllerService::FactoryReset()
 {
+    QCC_DbgPrintf(("Factory Resetting\n"));
+
+    // TODO: call FactoryReset on the OnboardingService
+    obsObjectLock.Lock();
+    // if isObsObjectReady == false, the object hasn't yet been introspected
+    if (obsObject != NULL && isObsObjectReady) {
+        QCC_DbgPrintf(("Calling FactoryReset to Offboard device\n"));
+        // no reply; okay to call when locked
+        QStatus status = obsObject->MethodCall(ConfigServiceInterfaceName, "FactoryReset", NULL, 0);
+        if (status != ER_OK) {
+            QCC_LogError(ER_FAIL, ("%s: Could not call FactoryReset on OBS", __FUNCTION__));
+        }
+    }
+    obsObjectLock.Unlock();
+
+    // reset user data
+    internalPropertyStore.Reset();
+
+    // the main thread will shut us down soon
+    isRunningLock.Lock();
+    isRunning = false;
+    isRunningLock.Unlock();
     return ER_OK;
 }
 
@@ -606,7 +769,7 @@ void ControllerService::MethodCallDispatcher(const InterfaceDescription::Member*
 {
     bus.EnableConcurrentCallbacks();
 
-    QCC_DbgPrintf(("%s: Received Method call %s", __FUNCTION__, msg->GetMemberName()));
+    QCC_DbgPrintf(("%s: Received Method call %s from interface %s", __FUNCTION__, msg->GetMemberName(), msg->GetInterface()));
 
     DispatcherMap::iterator it = messageHandlers.find(msg->GetMemberName());
     if (it != messageHandlers.end()) {
@@ -730,13 +893,7 @@ void ControllerService::SendMethodReplyWithResponseCodeIDLanguageAndName(const a
 
 void ControllerService::ScheduleFileWrite(Manager* manager)
 {
-    fileWriterThread.AddItem(manager);
-}
-
-int ControllerService::HandleItem(Manager* manager)
-{
-    manager->WriteFile();
-    return 0;
+    fileWriterThread.SignalWrite();
 }
 
 uint32_t ControllerService::GetControllerServiceInterfaceVersion(void)
@@ -778,4 +935,12 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
 QStatus ControllerService::SendBlobUpdate(LSFBlobType type, uint32_t checksum, uint64_t timestamp)
 {
     return elector.SendBlobUpdate(serviceSession, type, checksum, timestamp);
+}
+
+bool ControllerService::IsRunning()
+{
+    isRunningLock.Lock();
+    bool b = isRunning;
+    isRunningLock.Unlock();
+    return b;
 }

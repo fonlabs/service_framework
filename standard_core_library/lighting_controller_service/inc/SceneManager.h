@@ -49,7 +49,7 @@ class SceneManager : public Manager {
 
     LSFResponseCode GetAllScenes(SceneMap& sceneMap);
 
-    virtual void WriteFile();
+    void WriteFile();
     void ReadSavedData();
 
     uint32_t GetControllerServiceSceneInterfaceVersion(void);
@@ -64,6 +64,8 @@ class SceneManager : public Manager {
     Mutex scenesLock;
     LampGroupManager& lampGroupManager;
     MasterSceneManager* masterSceneManager;
+
+    std::string GetString(const SceneMap& items);
 };
 
 }

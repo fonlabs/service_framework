@@ -35,7 +35,7 @@
 #include <LSFTypes.h>
 #include <Mutex.h>
 
-#include <WorkerQueue.h>
+#include <PersistenceThread.h>
 #include <LSFPropertyStore.h>
 #include <LampManager.h>
 #include <LampGroupManager.h>
@@ -53,7 +53,7 @@ namespace lsf {
  * and forwards it to the appropriate manager and receives a reply from a manager and
  * passes it on to AllJoyn
  */
-class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener, public WorkerQueue<Manager>::Handler {
+class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener {
     friend class ControllerServiceManager;
   public:
 
@@ -132,6 +132,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     QStatus SendBlobUpdate(LSFBlobType type, uint32_t checksum, uint64_t timestamp);
 
+    bool IsRunning();
+
   private:
 
     LeaderElectionObject elector;
@@ -166,6 +168,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     class ControllerListener;
     ControllerListener* listener;
 
+    class OBSJoiner;
+
     LampManager lampManager;
     LampGroupManager lampGroupManager;
     PresetManager presetManager;
@@ -176,11 +180,20 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void LeaveSession(ajn::SessionId sessionId);
     void SessionJoined(ajn::SessionId sessionId);
 
+    void FoundLocalOnboardingService(const char* busName, ajn::SessionPort port);
+
     LSFPropertyStore internalPropertyStore;
     ajn::services::PropertyStore& propertyStore;
     ajn::services::AboutServiceApi* aboutService;
     ajn::services::ConfigService configService;
     ajn::services::NotificationSender* notificationSender;
+
+    ajn::ProxyBusObject* obsObject;
+    bool isObsObjectReady;
+    Mutex obsObjectLock;
+
+    bool isRunning;
+    Mutex isRunningLock;
 
     // Interface for ajn::services::ConfigService::Listener
     QStatus Restart();
@@ -235,9 +248,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     DispatcherMap messageHandlers;
 
 
-    virtual int HandleItem(Manager* item);
-
-    WorkerQueue<Manager> fileWriterThread;
+    PersistenceThread fileWriterThread;
 };
 
 class ControllerServiceManager {
@@ -288,6 +299,10 @@ class ControllerServiceManager {
      */
     QStatus Stop(void) {
         return controllerService.Stop();
+    }
+
+    bool IsRunning() {
+        return controllerService.IsRunning();
     }
 
     ControllerService& GetControllerService(void) { return controllerService; };

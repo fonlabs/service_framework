@@ -55,7 +55,7 @@ class PresetManager : public Manager {
     LSFResponseCode GetDefaultLampStateInternal(LampState& state);
 
     void ReadSavedData();
-    virtual void WriteFile();
+    void WriteFile();
 
     uint32_t GetControllerServicePresetInterfaceVersion(void);
 
@@ -69,6 +69,8 @@ class PresetManager : public Manager {
     Mutex defaultLampStateLock;
     LampState defaultLampState;
     SceneManager* sceneManagerPtr;
+
+    std::string GetString(const PresetMap& items);
 };
 
 }
