@@ -45,6 +45,8 @@ LSFStringList sceneList;
 uint8_t lampIndex = 0;
 uint8_t lampGroupIndex = 0;
 
+uint8_t numRepliesToWait = 0;
+
 char* get_line(char* str, size_t num, FILE* fp)
 {
     char* p = fgets(str, num, fp);
@@ -192,6 +194,9 @@ class LampManagerCallbackHandler : public LampManagerCallback {
             printf("\nlampName = %s", lampName.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void SetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language) {
@@ -220,6 +225,9 @@ class LampManagerCallbackHandler : public LampManagerCallback {
             printf("\n%s: lampDetails = %s", __FUNCTION__, lampDetails.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void GetLampParametersReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampParameters& lampParameters) {
@@ -256,6 +264,9 @@ class LampManagerCallbackHandler : public LampManagerCallback {
             printf("\nstate=%s\n", lampState.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void GetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const bool& onOff) {
@@ -475,6 +486,9 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
             printf("\nlampGroup=%s", lampGroup.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void GetAllLampGroupIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& lampGroupIDs) {
@@ -501,6 +515,9 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
             printf("\nlampGroupName = %s", lampGroupName.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void SetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language) {
@@ -717,6 +734,9 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
             printf("\npreset=%s", preset.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void GetAllPresetIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& presetIDs) {
@@ -743,6 +763,9 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
             printf("\npresetName = %s", presetName.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void SetPresetNameReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LSFString& language) {
@@ -851,6 +874,9 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
             sleep(5);
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void GetAllSceneIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& sceneIDs) {
@@ -877,6 +903,9 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
             printf("\nsceneName = %s", sceneName.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void SetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language) {
@@ -981,6 +1010,9 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
             printf("\nmasterScene=%s", masterScene.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void GetAllMasterSceneIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& masterSceneIDs) {
@@ -1006,6 +1038,9 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
             printf("\nmasterSceneName = %s", masterSceneName.c_str());
         }
         gotReply = true;
+        if (numRepliesToWait) {
+            numRepliesToWait--;
+        }
     }
 
     void SetMasterSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const LSFString& language) {
@@ -1186,6 +1221,11 @@ void PrintHelp() {
     printf("(80):  DeleteMasterScene\n");
     printf("(81):  GetMasterScene\n");
     printf("(82):  ApplyMasterScene\n");
+    printf("(83):  GetLampDataSet\n");
+    printf("(84):  GetLampGroupDataSet\n");
+    printf("(85):  GetPresetDataSet\n");
+    printf("(86):  GetSceneDataSet\n");
+    printf("(87):  GetMasterSceneDataSet\n");
 }
 
 int main()
@@ -1451,7 +1491,6 @@ int main()
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "39") {
-#if 0
                 for (uint8_t i = 0; i < 4; i++) {
                     LSFStringList lamps;
                     lamps.clear();
@@ -1465,9 +1504,11 @@ int main()
                     lampList.pop_front();
                     LampGroup group(lamps, lampGroups);
                     printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
-                    status = lampGroupManager.CreateLampGroup(group);
+                    LSFString name = LSFString("SampleLampGroup");
+                    status = lampGroupManager.CreateLampGroup(group, name);
                     waitForReply = true;
                     waitForSignal = true;
+                    sleep(1);
                 }
                 for (uint8_t i = 0; i < 4; i++) {
                     LSFStringList lamps;
@@ -1489,11 +1530,13 @@ int main()
                     }
                     LampGroup group(lamps, lampGroups);
                     printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
-                    status = lampGroupManager.CreateLampGroup(group);
+                    LSFString name = LSFString("SampleLampGroup");
+                    status = lampGroupManager.CreateLampGroup(group, name);
                     waitForReply = true;
                     waitForSignal = true;
+                    sleep(1);
                 }
-#endif
+#if 0
                 LSFStringList lamps;
                 LSFStringList lampGroups;
                 lamps.clear();
@@ -1503,9 +1546,11 @@ int main()
                 lamps.push_back(LSFString("9006470d13d65e07f286caf63b89fb03"));
                 LampGroup group(lamps, lampGroups);
                 printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
-                status = lampGroupManager.CreateLampGroup(group);
+                LSFString name = LSFString("SampleLampGroup");
+                status = lampGroupManager.CreateLampGroup(group, name);
                 waitForReply = true;
                 waitForSignal = true;
+#endif
             } else if (cmd == "40") {
                 String uniqueId = String("LAMP_GROUP1FE42B366FB3D943");
                 LSFStringList lamps;
@@ -1650,7 +1695,8 @@ int main()
             } else if (cmd == "63") {
                 LampState state(true, 5, 5, 5, 5);
                 printf("\nInvoking CreatePreset(%s)\n", state.c_str());
-                status = presetManager.CreatePreset(state);
+                LSFString name = LSFString("SamplePreset");
+                status = presetManager.CreatePreset(state, name);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "64") {
@@ -1796,7 +1842,8 @@ int main()
                 Scene scene(transitionToStateList, transitionToPresetList, pulseWithStateList, pulseWithPresetList);
 
                 printf("\nInvoking CreateScene(%s)\n", scene.c_str());
-                status = sceneManager.CreateScene(scene);
+                LSFString name = LSFString("SampleScene");
+                status = sceneManager.CreateScene(scene, name);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "71") {
@@ -1876,7 +1923,8 @@ int main()
                 }
                 MasterScene group(sceneList);
                 printf("\nInvoking CreateMasterScene(%s)\n", group.c_str());
-                status = masterSceneManager.CreateMasterScene(group);
+                LSFString name = LSFString("SampleMasterScene");
+                status = masterSceneManager.CreateMasterScene(group, name);
                 waitForReply = true;
                 waitForSignal = true;
             } else if (cmd == "79") {
@@ -1906,6 +1954,31 @@ int main()
                 status = masterSceneManager.ApplyMasterScene(uniqueId.c_str());
                 waitForReply = true;
                 waitForSignal = true;
+            } else if (cmd == "83") {
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampDataSet(%s)\n", uniqueId.c_str());
+                status = lampManager.GetLampDataSet(uniqueId.c_str());
+                numRepliesToWait = 3;
+            } else if (cmd == "84") {
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetLampGroupDataSet(%s)\n", uniqueId.c_str());
+                status = lampGroupManager.GetLampGroupDataSet(uniqueId.c_str());
+                numRepliesToWait = 2;
+            } else if (cmd == "85") {
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetPresetDataSet(%s)\n", uniqueId.c_str());
+                status = presetManager.GetPresetDataSet(uniqueId.c_str());
+                numRepliesToWait = 2;
+            } else if (cmd == "86") {
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetSceneDataSet(%s)\n", uniqueId.c_str());
+                status = sceneManager.GetSceneDataSet(uniqueId.c_str());
+                numRepliesToWait = 2;
+            } else if (cmd == "87") {
+                String uniqueId = NextTok(line);
+                printf("\nInvoking GetMasterSceneDataSet(%s)\n", uniqueId.c_str());
+                status = masterSceneManager.GetMasterSceneDataSet(uniqueId.c_str());
+                numRepliesToWait = 2;
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {
@@ -1920,11 +1993,17 @@ int main()
             } else {
                 if (status == CONTROLLER_CLIENT_OK) {
                     printf("\nSent command successfully\n");
-                    if (waitForReply) {
-                        while (!gotReply) ;
-                    }
-                    if (waitForSignal) {
-                        while (!gotSignal) ;
+                    if (numRepliesToWait > 0) {
+                        while (numRepliesToWait > 0) {
+                            printf("\nnumRepliesToWait\n");
+                        }
+                    } else {
+                        if (waitForReply) {
+                            while (!gotReply) ;
+                        }
+                        if (waitForSignal) {
+                            while (!gotSignal) ;
+                        }
                     }
                 } else {
                     printf("\nCommand send failed\n");

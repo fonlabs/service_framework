@@ -27,18 +27,153 @@ using namespace ajn;
 
 #define QCC_MODULE "SCENE_MANAGER"
 
+const char* sceneEventActionObjId = "LightingControllerServiceObject";
+const char* sceneEventActionObjDescription[] = { "This is the LSF EventAction object" };
+const char* sceneEventActionInterfaceId = "SceneEventActionInterface";
+const char* sceneEventActionInterfaceDescription[] = { "This is the LSF EventAction interface for Scene" };
+const char* sceneAppliedId = "SceneApplied";
+const char* sceneAppliedDescription[] = { "Applied Scene " };
+const char* applySceneId = "ApplyScene";
+const char* applySceneDescription[] = { "Apply Scene " };
+
+SceneObject::SceneObject(SceneManager& sceneMgr, LSFString& sceneid, Scene& tempScene, LSFString& name) :
+    BusObject((LSFString(ApplySceneEventActionObjectPath) + sceneid).c_str()), sceneManager(sceneMgr), sceneId(sceneid), scene(tempScene), sceneName(name)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    InterfaceDescription* intf = NULL;
+    QStatus status = sceneManager.controllerService.GetBusAttachment().CreateInterface((LSFString(ApplySceneEventActionInterfaceName) + sceneid).c_str(), intf);
+    if (status == ER_OK) {
+        intf->AddSignal("SceneApplied", NULL, NULL);
+        intf->AddMethod("ApplyScene", NULL, NULL, NULL);
+
+        intf->SetDescriptionLanguage("");
+        intf->SetDescription(sceneEventActionInterfaceId);
+        intf->SetMemberDescription("SceneApplied", sceneAppliedId, true);
+        intf->SetMemberDescription("ApplyScene", applySceneId);
+
+        intf->SetDescriptionTranslator(this);
+        intf->Activate();
+    } else {
+        printf("Failed to create interface %s\n", (LSFString(ApplySceneEventActionInterfaceName) + sceneid).c_str());
+    }
+
+    status = AddInterface(*intf);
+
+    if (status == ER_OK) {
+        /* Register the signal handler 'nameChanged' with the bus*/
+        appliedSceneMember = intf->GetMember("SceneApplied");
+        AddMethodHandler(intf->GetMember("ApplyScene"), static_cast<MessageReceiver::MethodHandler>(&SceneObject::ApplySceneHandler));
+    } else {
+        printf("Failed to Add interface: %s", (LSFString(ApplySceneEventActionInterfaceName) + sceneid).c_str());
+    }
+
+    SetDescription("", sceneEventActionObjId);
+    SetDescriptionTranslator(this);
+
+    sceneManager.controllerService.GetBusAttachment().RegisterBusObject(*this);
+}
+
+SceneObject::~SceneObject() {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    qcc::String path = ApplySceneEventActionObjectPath;
+    path.append(sceneId.c_str());
+    qcc::String intf = ApplySceneEventActionInterfaceName;
+    intf.append(sceneId.c_str());
+    sceneManager.controllerService.RemoveObjDescriptionFromAnnouncement(path, intf);
+    sceneManager.controllerService.GetBusAttachment().UnregisterBusObject(*this);
+}
+
+void SceneObject::ApplySceneHandler(const InterfaceDescription::Member* member, Message& message)
+{
+    sceneManager.controllerService.GetBusAttachment().EnableConcurrentCallbacks();
+    QCC_DbgPrintf(("%s: Received Method call %s from interface %s", __FUNCTION__, message->GetMemberName(), message->GetInterface()));
+
+    LSFStringList scenes;
+    scenes.push_back(sceneId);
+
+    sceneManager.ApplySceneInternal(message, scenes);
+    MethodReply(message);
+
+    sceneManager.controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesApplied", scenes);
+    SendSceneAppliedSignal();
+}
+
+const char* SceneObject::Translate(const char* sourceLanguage, const char* targetLanguage, const char* source)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    if (0 == strcmp(targetLanguage, "en")) {
+        if (0 == strcmp(source, sceneEventActionObjId)) {
+            QCC_DbgPrintf(("%s", sceneEventActionObjDescription[0]));
+            return sceneEventActionObjDescription[0];
+        }
+        if (0 == strcmp(source, sceneEventActionInterfaceId)) {
+            qcc::String ret = sceneEventActionInterfaceDescription[0];
+            sceneNameMutex.Lock();
+            ret.append(sceneName.c_str());
+            sceneNameMutex.Unlock();
+            QCC_DbgPrintf(("%s", ret.c_str()));
+            return ret.c_str();
+        }
+        if (0 == strcmp(source, sceneAppliedId)) {
+            qcc::String ret = sceneAppliedDescription[0];
+            sceneNameMutex.Lock();
+            ret.append(sceneName.c_str());
+            sceneNameMutex.Unlock();
+            QCC_DbgPrintf(("%s", ret.c_str()));
+            return ret.c_str();
+        }
+        if (0 == strcmp(source, applySceneId)) {
+            qcc::String ret = applySceneDescription[0];
+            sceneNameMutex.Lock();
+            ret.append(sceneName.c_str());
+            sceneNameMutex.Unlock();
+            QCC_DbgPrintf(("%s", ret.c_str()));
+            return ret.c_str();
+        }
+    }
+    return NULL;
+}
+
+void SceneObject::SendSceneAppliedSignal(void)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    uint8_t flags = ALLJOYN_FLAG_GLOBAL_BROADCAST | ALLJOYN_FLAG_SESSIONLESS;
+    QStatus status = Signal(NULL, 0, *appliedSceneMember, NULL, 0, 0, flags);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("%s: Unable to send the applied scene event"));
+    }
+}
+
+void SceneObject::ObjectRegistered(void)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    qcc::String path = ApplySceneEventActionObjectPath;
+    path.append(sceneId.c_str());
+    qcc::String intf = ApplySceneEventActionInterfaceName;
+    intf.append(sceneId.c_str());
+    sceneManager.controllerService.AddObjDescriptionToAnnouncement(path, intf);
+}
+
 SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, MasterSceneManager* masterSceneMgr, const std::string& sceneFile) :
     Manager(controllerSvc, sceneFile), lampGroupManager(lampGroupMgr), masterSceneManager(masterSceneMgr)
 {
+    QCC_DbgPrintf(("%s", __FUNCTION__));
 }
 
 LSFResponseCode SceneManager::GetAllScenes(SceneMap& sceneMap)
 {
     LSFResponseCode responseCode = LSF_OK;
 
+    sceneMap.clear();
+
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        sceneMap = scenes;
+        for (SceneObjectMap::iterator it = scenes.begin(); it != scenes.end(); it++) {
+            it->second->sceneNameMutex.Lock();
+            sceneMap.insert(std::make_pair(it->first, std::make_pair(it->second->sceneName, it->second->scene)));
+            it->second->sceneNameMutex.Unlock();
+        }
         status = scenesLock.Unlock();
         if (ER_OK != status) {
             QCC_LogError(status, ("%s: scenesLock.Unlock() failed", __FUNCTION__));
@@ -61,8 +196,18 @@ LSFResponseCode SceneManager::Reset(void)
          * Record the IDs of all the Scenes that are being deleted
          */
         LSFStringList scenesList;
-        for (SceneMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
+        std::list<SceneObject*> sceneObjectList;
+        for (SceneObjectMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
             scenesList.push_back(it->first);
+            sceneObjectList.push_back(it->second);
+        }
+
+        /*
+         * Delete all SceneObjects
+         */
+        while (sceneObjectList.size()) {
+            delete sceneObjectList.front();
+            sceneObjectList.pop_front();
         }
 
         /*
@@ -97,8 +242,8 @@ LSFResponseCode SceneManager::IsDependentOnPreset(LSFString& presetID)
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        for (SceneMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
-            responseCode = it->second.second.IsDependentOnPreset(presetID);
+        for (SceneObjectMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
+            responseCode = it->second->scene.IsDependentOnPreset(presetID);
             if (LSF_OK != responseCode) {
                 break;
             }
@@ -121,8 +266,8 @@ LSFResponseCode SceneManager::IsDependentOnLampGroup(LSFString& lampGroupID)
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        for (SceneMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
-            responseCode = it->second.second.IsDependentOnLampGroup(lampGroupID);
+        for (SceneObjectMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
+            responseCode = it->second->scene.IsDependentOnLampGroup(lampGroupID);
             if (LSF_OK != responseCode) {
                 break;
             }
@@ -148,7 +293,7 @@ void SceneManager::GetAllSceneIDs(Message& message)
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        for (SceneMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
+        for (SceneObjectMap::iterator it = scenes.begin(); it != scenes.end(); ++it) {
             idList.push_back(it->first.c_str());
         }
         status = scenesLock.Unlock();
@@ -185,9 +330,11 @@ void SceneManager::GetSceneName(Message& message)
     } else {
         QStatus status = scenesLock.Lock();
         if (ER_OK == status) {
-            SceneMap::iterator it = scenes.find(uniqueId);
+            SceneObjectMap::iterator it = scenes.find(uniqueId);
             if (it != scenes.end()) {
-                name = it->second.first;
+                it->second->sceneNameMutex.Lock();
+                name = it->second->sceneName;
+                it->second->sceneNameMutex.Unlock();
                 responseCode = LSF_OK;
             }
             status = scenesLock.Unlock();
@@ -232,9 +379,11 @@ void SceneManager::SetSceneName(Message& message)
         } else {
             QStatus status = scenesLock.Lock();
             if (ER_OK == status) {
-                SceneMap::iterator it = scenes.find(uniqueId);
+                SceneObjectMap::iterator it = scenes.find(uniqueId);
                 if (it != scenes.end()) {
-                    it->second.first = LSFString(name);
+                    it->second->sceneNameMutex.Lock();
+                    it->second->sceneName = LSFString(name);
+                    it->second->sceneNameMutex.Unlock();
                     responseCode = LSF_OK;
                     nameChanged = true;
                 }
@@ -277,9 +426,17 @@ void SceneManager::CreateScene(Message& message)
         if (scenes.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
             sceneID = GenerateUniqueID("SCENE");
             Scene scene(inputArgs[0], inputArgs[1], inputArgs[2], inputArgs[3]);
-            scenes[sceneID].first = sceneID;
-            scenes[sceneID].second = scene;
-            created = true;
+
+            LSFString name = static_cast<LSFString>(inputArgs[4].v_string.str);
+            LSFString language = static_cast<LSFString>(inputArgs[5].v_string.str);
+
+            if (0 != strcmp("en", language.c_str())) {
+                QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __FUNCTION__, language.c_str()));
+                responseCode = LSF_ERR_INVALID_ARGS;
+            } else {
+                scenes.insert(std::make_pair(sceneID, new SceneObject(*this, sceneID, scene, name)));
+                created = true;
+            }
         } else {
             QCC_LogError(ER_FAIL, ("%s: No slot for new Scene", __FUNCTION__));
             responseCode = LSF_ERR_NO_SLOT;
@@ -322,9 +479,9 @@ void SceneManager::UpdateScene(Message& message)
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        SceneMap::iterator it = scenes.find(uniqueId);
+        SceneObjectMap::iterator it = scenes.find(uniqueId);
         if (it != scenes.end()) {
-            scenes[sceneID].second = scene;
+            it->second->scene = scene;
             responseCode = LSF_OK;
             updated = true;
         }
@@ -368,8 +525,9 @@ void SceneManager::DeleteScene(Message& message)
     if (LSF_OK == responseCode) {
         QStatus status = scenesLock.Lock();
         if (ER_OK == status) {
-            SceneMap::iterator it = scenes.find(sceneId);
+            SceneObjectMap::iterator it = scenes.find(sceneId);
             if (it != scenes.end()) {
+                delete it->second;
                 scenes.erase(it);
                 deleted = true;
             } else {
@@ -412,9 +570,9 @@ void SceneManager::GetScene(Message& message)
 
     QStatus status = scenesLock.Lock();
     if (ER_OK == status) {
-        SceneMap::iterator it = scenes.find(uniqueId);
+        SceneObjectMap::iterator it = scenes.find(uniqueId);
         if (it != scenes.end()) {
-            it->second.second.Get(&outArgs[2], &outArgs[3], &outArgs[4], &outArgs[5]);
+            it->second->scene.Get(&outArgs[2], &outArgs[3], &outArgs[4], &outArgs[5]);
             responseCode = LSF_OK;
         } else {
             outArgs[2].Set("a(asasa{sv}u)", 0, NULL);
@@ -453,13 +611,23 @@ void SceneManager::ApplyScene(ajn::Message& message)
 
     QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneId));
 
-    LSFStringList scenes;
-    scenes.push_back(sceneID);
+    LSFStringList scenesList;
+    scenesList.push_back(sceneID);
 
-    responseCode = ApplySceneInternal(message, scenes);
+    responseCode = ApplySceneInternal(message, scenesList);
 
     if (LSF_OK == responseCode) {
-        controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesApplied", scenes);
+        controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesApplied", scenesList);
+        SceneObject* sceneObj = NULL;
+        scenesLock.Lock();
+        SceneObjectMap::iterator it = scenes.find(sceneId);
+        if (it != scenes.end()) {
+            sceneObj = it->second;
+        }
+        scenesLock.Unlock();
+        if (sceneObj) {
+            sceneObj->SendSceneAppliedSignal();
+        }
     } else {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, sceneID);
     }
@@ -480,10 +648,10 @@ LSFResponseCode SceneManager::ApplySceneInternal(ajn::Message message, LSFString
     if (ER_OK == status) {
         while (sceneList.size()) {
             LSFString sceneId = sceneList.front();
-            SceneMap::iterator it = scenes.find(sceneId);
+            SceneObjectMap::iterator it = scenes.find(sceneId);
             if (it != scenes.end()) {
                 QCC_DbgPrintf(("%s: Found sceneID=%s", __FUNCTION__, sceneId.c_str()));
-                sceneInfoList.push_back(it->second.second);
+                sceneInfoList.push_back(it->second->scene);
             } else {
                 QCC_DbgPrintf(("%s: Scene %s not found", __FUNCTION__, sceneId.c_str()));
                 notfound++;
@@ -662,7 +830,7 @@ void SceneManager::ReadSavedData()
             } while (token != "EndScene");
 
             std::pair<LSFString, Scene> thePair(name, scene);
-            scenes[id] = thePair;
+            scenes.insert(std::make_pair(id, new SceneObject(*this, id, scene, name)));
         }
     }
 }
@@ -682,13 +850,13 @@ static void OutputState(std::ostream& stream, const std::string& name, const Lam
            << state.colorTemp << ' ' << state.brightness << '\n';
 }
 
-std::string SceneManager::GetString(const SceneMap& items)
+std::string SceneManager::GetString(const SceneObjectMap& items)
 {
     std::ostringstream stream;
-    for (SceneMap::const_iterator it = items.begin(); it != items.end(); ++it) {
+    for (SceneObjectMap::const_iterator it = items.begin(); it != items.end(); it++) {
         const LSFString& id = it->first;
-        const LSFString& name = it->second.first;
-        const Scene& scene = it->second.second;
+        const LSFString& name = it->second->sceneName;
+        const Scene& scene = it->second->scene;
 
         stream << "Scene " << id << " \"" << name << "\"\n";
 
@@ -759,7 +927,7 @@ std::string SceneManager::GetString()
 {
     scenesLock.Lock();
     // we can't hold this lock for the entire time!
-    SceneMap mapCopy = scenes;
+    SceneObjectMap mapCopy = scenes;
     updated = false;
     scenesLock.Unlock();
     return GetString(mapCopy);

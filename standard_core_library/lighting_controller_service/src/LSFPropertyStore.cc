@@ -35,7 +35,7 @@ qcc::String LSFPropertyStore::PropertyStoreName[NUMBER_OF_KEYS + 1] = {
     "DeviceId", "DeviceName", "AppId",
     "AppName", "DefaultLanguage", "SupportedLanguages", "Description", "Manufacturer",
     "DateOfManufacture", "ModelNumber", "SoftwareVersion", "AJSoftwareVersion", "HardwareVersion",
-    "SupportUrl", ""
+    "SupportUrl", "Rank", "IsLeader", ""
 };
 
 
@@ -107,6 +107,18 @@ void LSFPropertyStore::ReadFactoryConfiguration()
     iter = factorySettings.find("AppName");
     if (iter != factorySettings.end()) {
         setProperty(APP_NAME, iter->second, true, false, true);
+    }
+
+    iter = factorySettings.find("Rank");
+    if (iter != factorySettings.end()) {
+        uint64_t value = qcc::StringToU64(iter->second);
+        setProperty(RANK, value, true, false, true);
+    }
+
+    iter = factorySettings.find("IsLeader");
+    if (iter != factorySettings.end()) {
+        uint32_t value = qcc::StringToU32(iter->second);
+        setProperty(IS_LEADER, (bool)value, true, true, true);
     }
 
     std::vector<qcc::String>::const_iterator it;
@@ -614,6 +626,64 @@ PropertyStoreProperty* LSFPropertyStore::getProperty(PropertyStoreKey propertyKe
     return prop;
 }
 
+uint64_t LSFPropertyStore::GetRank()
+{
+    uint64_t rank = 0UL;
+    propsLock.Lock();
+    PropertyMap::iterator iter = properties.find(RANK);
+    if (iter != properties.end()) {
+        iter->second.getPropertyValue().Get("t", &rank);
+    }
+
+    propsLock.Unlock();
+    return rank;
+}
+
+bool LSFPropertyStore::IsLeader()
+{
+    bool leader = false;
+    propsLock.Lock();
+    PropertyMap::iterator iter = properties.find(IS_LEADER);
+    if (iter != properties.end()) {
+        iter->second.getPropertyValue().Get("b", &leader);
+    }
+
+    propsLock.Unlock();
+    return leader;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, uint64_t value, bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    QStatus status = ER_OK;
+    MsgArg msgArg("t", value);
+    status = validateValue(propertyKey, msgArg);
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey);
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, bool value, bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    QStatus status = ER_OK;
+    MsgArg msgArg("b", value);
+    status = validateValue(propertyKey, msgArg);
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey);
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
 QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const uint8_t* value, uint32_t len,
                                       bool isPublic, bool isWritable, bool isAnnouncable)
 {
@@ -643,7 +713,7 @@ QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const qcc::S
 
     removeExisting(propertyKey);
 
-    PropertyStoreProperty property(PropertyStoreName[propertyKey].c_str(), msgArg, isPublic, isWritable, isAnnouncable);
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, isPublic, isWritable, isAnnouncable);
     properties.insert(PropertyPair(propertyKey, property));
     return status;
 }
@@ -694,7 +764,6 @@ QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn:
     case APP_ID:
         if (value.typeId != ALLJOYN_BYTE_ARRAY) {
             status = ER_INVALID_VALUE;
-            break;
         }
         break;
 
@@ -703,11 +772,8 @@ QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn:
     case APP_NAME:
         if (value.typeId != ALLJOYN_STRING) {
             status = ER_INVALID_VALUE;
-            break;
-        }
-        if (value.v_string.len == 0) {
+        } else if (value.v_string.len == 0) {
             status = ER_INVALID_VALUE;
-            break;
         }
         break;
 
@@ -721,39 +787,41 @@ QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn:
     case SUPPORT_URL:
         if (value.typeId != ALLJOYN_STRING) {
             status = ER_INVALID_VALUE;
-            break;
         }
         break;
 
     case DEFAULT_LANG:
         if (value.typeId != ALLJOYN_STRING) {
             status = ER_INVALID_VALUE;
-            break;
-        }
-        if (value.v_string.len == 0) {
+        } else if (value.v_string.len == 0) {
             status = ER_INVALID_VALUE;
-            break;
+        } else {
+            status = isLanguageSupported(value.v_string.str);
         }
 
-        status = isLanguageSupported(value.v_string.str);
         break;
 
     case SUPPORTED_LANGS:
         if (value.typeId != ALLJOYN_ARRAY) {
             status = ER_INVALID_VALUE;
-            break;
-        }
-
-        if (value.v_array.GetNumElements() == 0) {
+        } else if (value.v_array.GetNumElements() == 0) {
             status = ER_INVALID_VALUE;
-            break;
-        }
-
-        if (strcmp(value.v_array.GetElemSig(), "s") != 0) {
+        } else if (strcmp(value.v_array.GetElemSig(), "s") != 0) {
             status = ER_INVALID_VALUE;
-            break;
         }
 
+        break;
+
+    case RANK:
+        if (value.typeId != ALLJOYN_UINT64) {
+            status = ER_INVALID_VALUE;
+        }
+        break;
+
+    case IS_LEADER:
+        if (value.typeId != ALLJOYN_BOOLEAN) {
+            status = ER_INVALID_VALUE;
+        }
         break;
 
     case NUMBER_OF_KEYS:

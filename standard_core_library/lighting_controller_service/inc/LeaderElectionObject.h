@@ -16,10 +16,12 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <alljoyn/about/AnnounceHandler.h>
 #include <alljoyn/BusAttachment.h>
 #include <alljoyn/BusObject.h>
 
 #include <LSFTypes.h>
+#include <Mutex.h>
 
 namespace lsf {
 
@@ -30,16 +32,68 @@ class LeaderElectionObject : public ajn::BusObject {
 
     LeaderElectionObject(ControllerService& controller);
 
+    ~LeaderElectionObject();
+
+    void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId);
+
     QStatus Start();
+
+    QStatus Stop();
 
     void GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     void GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
     QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, uint32_t checksum, uint64_t timestamp);
 
+    bool IsLeader();
+
   private:
 
+    void OnBlobChanged(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
+
     ControllerService& controller;
+    BusAttachment& bus;
+
+    class Handler;
+    Handler* handler;
+
+
+    // everything below is related to leader election
+    struct ControllerEntry {
+        ajn::SessionPort port;
+        qcc::String busName;
+        qcc::String deviceId;
+        uint64_t rank;
+        bool isLeader;
+        bool joining;
+    };
+
+
+    void JoinLeaderSession();
+    void ClearCurrentLeader();
+    void OnSessionLost(SessionId sessionId);
+    void OnSessionJoined(QStatus status, SessionId sessionId, ControllerEntry* joined);
+    void OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName);
+    void RemoveUniqueName(const qcc::String& uniqueName);
+
+    ControllerEntry* GetMaxRankedEntry();
+
+    // map deviceId -> ControllerEntry
+    typedef std::map<qcc::String, ControllerEntry> ControllerEntryMap;
+    ControllerEntryMap controllers;
+    ControllerEntry currentLeader;
+
+    typedef std::map<qcc::String, qcc::String> BusNameToDeviceId;
+    BusNameToDeviceId nameToId;
+
+    bool isLeader;
+    uint64_t myRank;
+
+    ajn::ProxyBusObject* leaderObj;
+
+    Mutex controllersLock;
+
+    const ajn::InterfaceDescription::Member* blobChangedSignal;
 };
 
 }

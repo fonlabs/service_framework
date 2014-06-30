@@ -334,7 +334,11 @@ void LampClients::QueueLampMethod(QueuedMethodCall* queuedCall)
         responseLock.Unlock();
         wakeUp.Post();
     } else {
-        SendMethodReply(responseCode, queuedCall->inMsg, queuedCall->responseCounter.standardReplyArgs, queuedCall->responseCounter.customReplyArgs);
+        if (strstr(queuedCall->inMsg->GetInterface(), ApplySceneEventActionInterfaceName)) {
+            QCC_DbgPrintf(("%s: Skipping the sending of reply because interface = %s", __FUNCTION__, queuedCall->inMsg->GetInterface()));
+        } else {
+            SendMethodReply(responseCode, queuedCall->inMsg, queuedCall->responseCounter.standardReplyArgs, queuedCall->responseCounter.customReplyArgs);
+        }
         delete queuedCall;
     }
 }
@@ -496,7 +500,7 @@ void LampClients::ChangeLampState(const ajn::Message& inMsg, bool groupOperation
 {
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
 
-    if (groupOperation || sceneOperation) {
+    if (groupOperation || (sceneOperation && (0 == strcmp(ControllerServiceSceneInterfaceName, inMsg->GetInterface())))) {
         size_t numArgs;
         const MsgArg* args;
         Message tempMsg = inMsg;
@@ -625,7 +629,11 @@ void LampClients::DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, 
     responseLock.Unlock();
 
     if (sendResponse) {
-        SendMethodReply(responseCode, queuedCall->inMsg, responseCounter.standardReplyArgs, responseCounter.customReplyArgs);
+        if (strstr(queuedCall->inMsg->GetInterface(), ApplySceneEventActionInterfaceName)) {
+            QCC_DbgPrintf(("%s: Skipping the sending of reply because interface = %s", __FUNCTION__, queuedCall->inMsg->GetInterface()));
+        } else {
+            SendMethodReply(responseCode, queuedCall->inMsg, responseCounter.standardReplyArgs, responseCounter.customReplyArgs);
+        }
         delete queuedCall;
     }
 }

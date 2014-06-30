@@ -76,9 +76,16 @@ extern const char* OnboardingServiceInterfaceName;
 extern const char* AboutObjectPath;
 extern const char* AboutInterfaceName;
 
+extern const char* AboutIconObjectPath;
+extern const char* AboutIconInterfaceName;
+
 extern const char* LeaderElectionAndStateSyncObjectPath;
 extern const char* LeaderElectionAndStateSyncInterfaceName;
 extern ajn::SessionPort LeaderElectionAndStateSyncSessionPort;
+
+extern const char* ApplySceneEventActionInterfaceName;
+
+extern const char* ApplySceneEventActionObjectPath;
 
 typedef enum _LSFBlobType {
     LSF_PRESET,

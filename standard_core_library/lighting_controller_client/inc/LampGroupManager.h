@@ -324,7 +324,7 @@ class LampGroupManager : public Manager {
      *      - An error status otherwise
      *
      */
-    ControllerClientStatus CreateLampGroup(const LampGroup& lampGroup);
+    ControllerClientStatus CreateLampGroup(const LampGroup& lampGroup, const LSFString& lampGroupName, const LSFString& language = LSFString("en"));
 
     /**
      * Modify a Lamp Group
@@ -588,6 +588,13 @@ class LampGroupManager : public Manager {
         LSFString name("ColorTemp");
         return ResetLampGroupStateField(lampGroupID, name);
     }
+
+    /**
+     * Get the Lamp Group Info and Name
+     *
+     * @param presetID    The ID of the master preset
+     */
+    ControllerClientStatus GetLampGroupDataSet(const LSFString& lampGroupID, const LSFString& language = LSFString("en"));
 
   private:
 

@@ -97,18 +97,20 @@ ControllerClientStatus PresetManager::SetPresetName(const LSFString& presetID, c
                3);
 }
 
-ControllerClientStatus PresetManager::CreatePreset(const LampState& preset)
+ControllerClientStatus PresetManager::CreatePreset(const LampState& preset, const LSFString& presetName, const LSFString& language)
 {
     QCC_DbgPrintf(("%s: preset=%s", __FUNCTION__, preset.c_str()));
 
-    MsgArg arg;
-    preset.Get(&arg);
+    MsgArg arg[3];
+    preset.Get(&arg[0]);
+    arg[1].Set("s", presetName.c_str());
+    arg[2].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerServicePresetInterfaceName,
                "CreatePreset",
-               &arg,
-               1);
+               arg,
+               3);
 }
 
 ControllerClientStatus PresetManager::UpdatePreset(const LSFString& presetID, const LampState& preset)
@@ -174,4 +176,17 @@ ControllerClientStatus PresetManager::SetDefaultLampState(const LampState& defau
                "SetDefaultLampState",
                &arg,
                1);
+}
+
+ControllerClientStatus PresetManager::GetPresetDataSet(const LSFString& presetID, const LSFString& language)
+{
+    ControllerClientStatus status = CONTROLLER_CLIENT_OK;
+
+    status = GetPreset(presetID);
+
+    if (CONTROLLER_CLIENT_OK == status) {
+        status = GetPresetName(presetID, language);
+    }
+
+    return status;
 }

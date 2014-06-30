@@ -39,6 +39,16 @@ void GetSyncTimeStamp(uint64_t& timeStamp)
     timeStamp = 0x4444444444444444;
 }
 
+uint64_t GetRank()
+{
+    return 1;
+}
+
+bool IsLeader()
+{
+    return false;
+}
+
 // NOTE: this function will only be called if no Factory Configuration ini file is found.
 // This file is specified on the command line and defaults to OEMConfig.ini in the current
 // working directory.
@@ -48,6 +58,10 @@ void PopulateDefaultProperties(LSFPropertyStore& propStore)
     languages.push_back("en");
     languages.push_back("de-AT");
     propStore.setSupportedLangs(languages);
+
+    propStore.setProperty(LSFPropertyStore::RANK, GetRank(), true, false, true);
+
+    propStore.setProperty(LSFPropertyStore::IS_LEADER, IsLeader(), true, true, true);
 
     propStore.setProperty(LSFPropertyStore::DEFAULT_LANG, "en", true, true, true);
     propStore.setProperty(LSFPropertyStore::APP_NAME, "LightingControllerService", true, false, true);

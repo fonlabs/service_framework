@@ -70,17 +70,19 @@ ControllerClientStatus LampGroupManager::SetLampGroupName(const LSFString& lampG
                3);
 }
 
-ControllerClientStatus LampGroupManager::CreateLampGroup(const LampGroup& lampGroup)
+ControllerClientStatus LampGroupManager::CreateLampGroup(const LampGroup& lampGroup, const LSFString& lampGroupName, const LSFString& language)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    MsgArg args[2];
+    MsgArg args[4];
     lampGroup.Get(&args[0], &args[1]);
+    args[2].Set("s", lampGroupName.c_str());
+    args[3].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerServiceLampGroupInterfaceName,
                "CreateLampGroup",
                args,
-               2);
+               4);
 }
 
 ControllerClientStatus LampGroupManager::UpdateLampGroup(const LSFString& lampGroupID, const LampGroup& lampGroup)
@@ -320,4 +322,17 @@ void LampGroupManager::TransitionLampGroupStateFieldReply(LSFResponseCode& respo
             callback.TransitionLampGroupStateColorTempFieldReplyCB(responseCode, lsfId);
         }
     }
+}
+
+ControllerClientStatus LampGroupManager::GetLampGroupDataSet(const LSFString& lampGroupID, const LSFString& language)
+{
+    ControllerClientStatus status = CONTROLLER_CLIENT_OK;
+
+    status = GetLampGroup(lampGroupID);
+
+    if (CONTROLLER_CLIENT_OK == status) {
+        status = GetLampGroupName(lampGroupID, language);
+    }
+
+    return status;
 }

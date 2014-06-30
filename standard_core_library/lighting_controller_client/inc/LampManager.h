@@ -672,6 +672,13 @@ class LampManager : public Manager {
 
     ControllerClientStatus GetLampSupportedLanguages(const LSFString& lampID);
 
+    /**
+     * Get the Lamp Group Info and Name
+     *
+     * @param presetID    The ID of the master preset
+     */
+    ControllerClientStatus GetLampDataSet(const LSFString& lampID, const LSFString& language = LSFString("en"));
+
   private:
 
     ControllerClientStatus GetLampStateField(const LSFString& lampID, const LSFString& stateFieldName);

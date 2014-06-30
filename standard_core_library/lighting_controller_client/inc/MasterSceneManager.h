@@ -168,7 +168,7 @@ class MasterSceneManager : public Manager {
      * Response in MasterSceneManagerCallback::CreateMasterSceneReplyCB
      *
      */
-    ControllerClientStatus CreateMasterScene(const MasterScene& masterScene);
+    ControllerClientStatus CreateMasterScene(const MasterScene& masterScene, const LSFString& masterSceneName, const LSFString& language = LSFString("en"));
 
     /**
      * Modify a masterScene id
@@ -203,6 +203,13 @@ class MasterSceneManager : public Manager {
      * @param masterSceneID    The ID of the scene to apply
      */
     ControllerClientStatus ApplyMasterScene(const LSFString& masterSceneID);
+
+    /**
+     * Get the Master Scene Info and Name
+     *
+     * @param masterSceneID    The ID of the master scene
+     */
+    ControllerClientStatus GetMasterSceneDataSet(const LSFString& masterSceneID, const LSFString& language = LSFString("en"));
 
   private:
 

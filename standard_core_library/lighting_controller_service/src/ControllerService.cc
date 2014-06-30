@@ -21,6 +21,7 @@
 
 #include <ControllerService.h>
 #include <ServiceDescription.h>
+#include <DeviceIcon.h>
 
 #include <alljoyn/notification/NotificationService.h>
 #include <string>
@@ -39,9 +40,9 @@ class ControllerService::ControllerListener :
 
     // SessionPortListener
     virtual bool AcceptSessionJoiner(SessionPort sessionPort, const char* joiner, const SessionOpts& opts) {
-        QCC_DbgPrintf(("ControllerService::ControllerListener::AcceptSessionJoiner(%s)\n", joiner));
+        QCC_DbgPrintf(("ControllerService::ControllerListener::AcceptSessionJoiner(%s) : Status=%d\n", joiner, (sessionPort == ControllerServiceSessionPort && controller.elector.IsLeader())));
         // only allow multipoint sessions
-        return (sessionPort == ControllerServiceSessionPort && opts.isMultipoint);
+        return (sessionPort == ControllerServiceSessionPort && controller.elector.IsLeader());
     }
 
     virtual void SessionJoined(SessionPort sessionPort, SessionId sessionId, const char* joiner) {
@@ -49,6 +50,7 @@ class ControllerService::ControllerListener :
     }
 
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason) {
+        QCC_DbgPrintf(("%s", __FUNCTION__));
         controller.SessionLost(sessionId);
     }
 
@@ -168,14 +170,15 @@ ControllerService::ControllerService(
     internalPropertyStore(factoryConfigFile, configFile), // we don't use this!
     propertyStore(propStore),
     aboutService(NULL),
+    aboutIconService(bus, DeviceIconMimeType, DeviceIconURL, DeviceIcon, DeviceIconSize),
     configService(bus, propertyStore, *this),
     notificationSender(NULL),
     obsObject(NULL),
     isObsObjectReady(false),
     isRunning(true),
-    fileWriterThread(*this)
+    fileWriterThread(*this),
+    firstAnnouncementSent(false)
 {
-    Initialize();
 }
 
 ControllerService::ControllerService(
@@ -198,14 +201,15 @@ ControllerService::ControllerService(
     internalPropertyStore(factoryConfigFile, configFile),
     propertyStore(internalPropertyStore),
     aboutService(NULL),
+    aboutIconService(bus, DeviceIconMimeType, DeviceIconURL, DeviceIcon, DeviceIconSize),
     configService(bus, propertyStore, *this),
     notificationSender(NULL),
     obsObject(NULL),
     isObsObjectReady(false),
     isRunning(true),
-    fileWriterThread(*this)
+    fileWriterThread(*this),
+    firstAnnouncementSent(false)
 {
-    Initialize();
     internalPropertyStore.Initialize();
 }
 
@@ -488,8 +492,12 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         aboutService->AddObjectDescription(ControllerServiceObjectPath, ifaces);
 
         ifaces.clear();
+        ifaces.push_back(AboutIconInterfaceName);
+        aboutService->AddObjectDescription(AboutIconObjectPath, ifaces);
+
+        ifaces.clear();
         ifaces.push_back(ConfigServiceInterfaceName);
-        aboutService->AddObjectDescription("/Config", ifaces);
+        aboutService->AddObjectDescription(ConfigServiceObjectPath, ifaces);
 
         status = aboutService->Register(ControllerServiceSessionPort);
         if (status != ER_OK) {
@@ -501,6 +509,8 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         QCC_LogError(status, ("%s: Failed to initialize About", __FUNCTION__));
         return status;
     }
+
+    Initialize();
 
     /*
      * Register the Config Service on the AllJoyn bus
@@ -524,6 +534,18 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
     status = bus.RegisterBusObject(*aboutService);
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to register About Service on the AllJoyn Bus", __FUNCTION__));
+        return status;
+    }
+
+    status = aboutIconService.Register();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: AboutIconService::Register() failed", __FUNCTION__));
+        return status;
+    }
+
+    status = bus.RegisterBusObject(aboutIconService);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to register About Icon Service on the AllJoyn Bus", __FUNCTION__));
         return status;
     }
 
@@ -560,7 +582,12 @@ QStatus ControllerService::Stop(void)
 
     QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __FUNCTION__));
+    }
+
+    status = elector.Stop();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to stop the Leader Elector object", __FUNCTION__));
     }
 
     aboutService->Unregister();
@@ -645,6 +672,8 @@ void ControllerService::ObjectRegistered(void)
 
     status = aboutService->Announce();
     QCC_DbgPrintf(("AboutService::Announce: %s\n", QCC_StatusText(status)));
+
+    firstAnnouncementSent = true;
 }
 
 QStatus ControllerService::Restart()
@@ -701,6 +730,7 @@ void ControllerService::SessionLost(SessionId sessionId)
 {
     // TODO: do we need to track multiple sessions?
     // Or are we ok since there is only one multipoint session?
+    QCC_DbgPrintf(("%s", __FUNCTION__));
     serviceSession = 0;
 }
 
@@ -943,4 +973,40 @@ bool ControllerService::IsRunning()
     bool b = isRunning;
     isRunningLock.Unlock();
     return b;
+}
+
+uint64_t ControllerService::GetRank()
+{
+    return internalPropertyStore.GetRank();
+}
+
+bool ControllerService::IsLeader()
+{
+    return internalPropertyStore.IsLeader();
+}
+
+void ControllerService::AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    std::vector<qcc::String> interfaces;
+    interfaces.push_back(interface);
+    announceMutex.Lock();
+    aboutService->AddObjectDescription(path, interfaces);
+    if (firstAnnouncementSent) {
+        aboutService->Announce();
+    }
+    announceMutex.Unlock();
+}
+
+void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, qcc::String interface)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    std::vector<qcc::String> interfaces;
+    interfaces.push_back(interface);
+    announceMutex.Lock();
+    aboutService->RemoveObjectDescription(path, interfaces);
+    if (firstAnnouncementSent) {
+        aboutService->Announce();
+    }
+    announceMutex.Unlock();
 }

@@ -67,6 +67,8 @@ class ControllerClient::ControllerClientBusHandler :
      */
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData);
 
+    virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName);
+
   private:
 
     /**
@@ -78,14 +80,23 @@ class ControllerClient::ControllerClientBusHandler :
 
 void ControllerClient::ControllerClientBusHandler::JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context)
 {
+    controllerClient.bus.EnableConcurrentCallbacks();
     QCC_DbgPrintf(("%s", __FUNCTION__));
     controllerClient.OnSessionJoined(status, sessionId, context);
 }
 
 void ControllerClient::ControllerClientBusHandler::SessionLost(SessionId sessionId, SessionLostReason reason)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    controllerClient.bus.EnableConcurrentCallbacks();
+    QCC_DbgPrintf(("SessionLost(%u)", sessionId));
     controllerClient.OnSessionLost(sessionId);
+}
+
+void ControllerClient::ControllerClientBusHandler::SessionMemberRemoved(SessionId sessionId, const char* uniqueName)
+{
+    controllerClient.bus.EnableConcurrentCallbacks();
+    QCC_DbgPrintf(("SessionMemberRemoved(%u,%s)", sessionId, uniqueName));
+    controllerClient.OnSessionMemberRemoved(sessionId, uniqueName);
 }
 
 void ControllerClient::ControllerClientBusHandler::Announce(
@@ -124,8 +135,25 @@ void ControllerClient::ControllerClientBusHandler::Announce(
         }
         ait->second.Get("s", &deviceName);
 
-        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s", __FUNCTION__, busName, port, deviceID, deviceName));
-        controllerClient.OnAnnounced(port, busName, deviceID, deviceName);
+        uint64_t rank;
+        ait = aboutData.find("Rank");
+        if (ait == aboutData.end()) {
+            QCC_LogError(ER_FAIL, ("%s: Rank missing in About Announcement", __FUNCTION__));
+            return;
+        }
+        ait->second.Get("t", &rank);
+
+        bool isLeader = false;
+        ait = aboutData.find("IsLeader");
+        if (ait == aboutData.end()) {
+            QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __FUNCTION__));
+            return;
+        }
+        ait->second.Get("b", &isLeader);
+
+        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%d isLeader=%d", __FUNCTION__,
+                       busName, port, deviceID, deviceName, rank, isLeader));
+        controllerClient.OnAnnounced(port, busName, deviceID, deviceName, rank, isLeader);
     }
 }
 
@@ -147,15 +175,16 @@ ControllerClient::ControllerClient(
     bus(bus),
     busHandler(new ControllerClientBusHandler(*this)),
     callback(clientCB),
-    isJoining(false),
     proxyObject(NULL),
     controllerServiceManagerPtr(NULL),
     lampManagerPtr(NULL),
     lampGroupManagerPtr(NULL),
     presetManagerPtr(NULL),
     sceneManagerPtr(NULL),
-    masterSceneManagerPtr(NULL)
+    masterSceneManagerPtr(NULL),
+    alreadyInSession(false)
 {
+    ClearCurrentLeader();
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("services::AnnouncementRegistrar::RegisterAnnounceHandler: %s\n", QCC_StatusText(status)));
 }
@@ -172,54 +201,150 @@ uint32_t ControllerClient::GetVersion(void)
     return CONTROLLER_CLIENT_VERSION;
 }
 
-/*
-   void ControllerClient::JoinNextAvailableController()
-   {
-    // NOTE: the mutex must be locked when this is called!
-    if (!activeServices.empty()) {
-        ActiveServiceMap::reverse_iterator rit = activeServices.rbegin();
-        //QCC_DbgPrintf(("Connecting to %s\n", controllerServiceID.c_str()));
+void ControllerClient::ClearCurrentLeader()
+{
+    currentLeader.busName = "";
+    currentLeader.rank = 0;
+    currentLeader.isLeader = false;
+    currentLeader.port = 0;
+    currentLeader.joining = false;
+}
 
-        SessionOpts opts;
-        opts.isMultipoint = true;
-        ActiveService& svc = rit->second;
+ControllerClient::ControllerEntry* ControllerClient::GetMaxRankedEntry()
+{
+    ControllerEntry* max_rank = NULL;
 
-        ActiveService* service = new ActiveService(svc);
-        isJoining = true;
-        bus.JoinSessionAsync(svc.busName.c_str(), svc.port, busHandler, opts, busHandler, service);
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    // now decide what to do!
+    ControllerEntryMap::iterator it = controllers.begin();
+    for (; it != controllers.end(); ++it) {
+        ControllerEntry& entry = it->second;
+        if (max_rank) {
+            if ((max_rank->isLeader && entry.isLeader) && (max_rank->rank < entry.rank)) {
+                max_rank = &entry;
+            }
+        } else {
+            max_rank = &entry;
+        }
     }
-   }
- */
+
+    return max_rank;
+}
+
+void ControllerClient::JoinLeaderSession()
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+
+    if (alreadyInSession) {
+        QCC_DbgPrintf(("%s: Already in a session with a Controller Service", __FUNCTION__));
+        return;
+    }
+
+    ErrorCodeList errorList;
+    controllersLock.Lock();
+    ControllerEntry* max_rank = GetMaxRankedEntry();
+
+    //QCC_DbgPrintf(("Max rank: %lu; currentleader=%lu", (max_rank ? max_rank->rank : 0UL), currentLeader.rank));
+
+    bool change_session = false;
+    if (max_rank != NULL && currentLeader.rank < max_rank->rank) {
+        change_session = true;
+    }
+
+    SessionId serviceSession = proxyObject ? proxyObject->GetSessionId() : 0;
+    // need to clean this up
+    delete proxyObject;
+    proxyObject = NULL;
+
+    controllersLock.Unlock();
+
+    // best to do this after releasing the lock
+    if (change_session) {
+        if (serviceSession) {
+            bus.LeaveSession(serviceSession);
+            ClearCurrentLeader();
+        }
+
+        // don't try to join the same session twice!
+        if (!max_rank->joining) {
+            SessionOpts options;
+            options.isMultipoint = true;
+            QStatus status = bus.JoinSessionAsync(max_rank->busName.c_str(), max_rank->port, busHandler, options, busHandler, max_rank);
+            if (status != ER_OK) {
+                errorList.push_back(ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND);
+                QCC_LogError(status, ("%s: JoinSessionAsync\n", __FUNCTION__));
+
+                // unable to join
+                controllersLock.Lock();
+                RemoveUniqueName(max_rank->busName);
+                controllersLock.Unlock();
+            } else {
+                max_rank->joining = true;
+            }
+        }
+        // else nothing to join
+    }
+
+    if (!errorList.empty()) {
+        callback.ControllerClientErrorCB(errorList);
+    }
+
+    alreadyInSession = true;
+}
+
+// call while locked!
+void ControllerClient::RemoveUniqueName(const qcc::String& uniqueName)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    BusNameToDeviceId::iterator bit = nameToId.find(uniqueName);
+    if (bit != nameToId.end()) {
+        ControllerEntryMap::iterator it = controllers.find(bit->second);
+        if (it != controllers.end()) {
+            QCC_DbgPrintf(("Removing mapping: %s -> %s", uniqueName.c_str(), bit->second.c_str()));
+            controllers.erase(it);
+        }
+
+        nameToId.erase(bit);
+    }
+}
+
+void ControllerClient::OnSessionMemberRemoved(ajn::SessionId sessionId, const char* uniqueName)
+{
+    controllersLock.Lock();
+
+    if (currentLeader.busName == uniqueName) {
+        controllersLock.Unlock();
+        // the leader has left its own session so treat this as a SessionLost
+        OnSessionLost(sessionId);
+    } else {
+        RemoveUniqueName(uniqueName);
+        controllersLock.Unlock();
+    }
+}
+
 
 void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
 {
     QCC_DbgPrintf(("OnSessionLost(%u)\n", sessionID));
 
-    lock.Lock();
+    QCC_DbgPrintf(("alreadyInSession set to false\n"));
+    alreadyInSession = false;
 
-    // we don't care about this session any more
-    SessionMap::iterator sit = activeSessions.find(sessionID);
-    std::string sessionId = sit->second;
-    activeSessions.erase(sit);
+    controllersLock.Lock();
+    if (proxyObject != NULL && proxyObject->GetSessionId() == sessionID) {
+        qcc::String busName = proxyObject->GetServiceName();
+        delete proxyObject;
+        proxyObject = NULL;
+        RemoveUniqueName(busName);
 
-    // this is no longer active unless it is Announced again
-    ActiveServiceMap::iterator ait = activeServices.find(sessionId);
-    activeServices.erase(ait);
-
-    delete proxyObject;
-    lock.Unlock();
-
-    callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
-/*
-    // check if there is another controller ID to try
-    if (!activeServices.empty()) {
-        JoinNextAvailableController();
-        lock.Unlock();
+        ClearCurrentLeader();
+        controllersLock.Unlock();
+        callback.DisconnectedFromControllerServiceCB(currentLeader.deviceID, currentLeader.deviceName);
+        JoinLeaderSession();
     } else {
-        controllerServiceID = "";
-        lock.Unlock();
-        callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
-    }*/
+        controllersLock.Unlock();
+    }
 }
 
 void ControllerClient::SignalWithArgDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message)
@@ -271,271 +396,120 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
 
     bus.EnableConcurrentCallbacks();
 
-    ActiveService* service = static_cast<ActiveService*>(context);
+    ControllerEntry* joined = static_cast<ControllerEntry*>(context);
+    joined->joining = false;
 
     QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __FUNCTION__, sessionId, QCC_StatusText(status)));
 
     if (status == ER_OK) {
-        lock.Lock();
-        isJoining = false;
+        controllersLock.Lock();
+        SessionId oldSession = proxyObject ? proxyObject->GetSessionId() : 0;
 
-        //ActiveService& svc = activeServices[service];
-        proxyObject = new ProxyBusObject(bus, service->busName.c_str(), ControllerServiceObjectPath, sessionId);
-        // map the session id back to the service id
-        activeSessions[sessionId] = service->deviceID;
+        LSFString device_id = joined->deviceID;
+        LSFString device_name = joined->deviceName;
+        bool make_callback = false;
 
-        deviceID = service->deviceID;
-        deviceName = service->deviceName;
-        delete service;
+        if (currentLeader.rank <= joined->rank) {
+            currentLeader = *joined;
+            make_callback = true;
 
-        proxyObject->IntrospectRemoteObject();
+            // we are connected to the new leader!
+            delete proxyObject;
+            proxyObject = new ProxyBusObject(bus, currentLeader.busName.c_str(), ControllerServiceObjectPath, sessionId);
+            // add the synchronization interface
+            //const InterfaceDescription* stateSyncInterface = bus.GetInterface(LeaderElectionAndStateSyncInterfaceName);
+            //leaderObj->AddInterface(*stateSyncInterface);
+            proxyObject->IntrospectRemoteObject();
 
-        if (controllerServiceManagerPtr) {
-            AddNoArgSignalHandler("ControllerServiceLightingReset", controllerServiceManagerPtr, &ControllerServiceManager::ControllerServiceLightingReset);
-
-            AddMethodReplyWithUint32ValueHandler("GetControllerServiceVersion", controllerServiceManagerPtr, &ControllerServiceManager::GetControllerServiceVersionReply);
-            AddMethodReplyWithUint32ValueHandler("LightingResetControllerService", controllerServiceManagerPtr, &ControllerServiceManager::LightingResetControllerServiceReply);
+            // call these with the lock
+            AddMethodHandlers();
+            AddSignalHandlers();
+        } else {
+            // we don't care about this session anymore!
+            // leave it!
+            oldSession = sessionId;
         }
 
-        if (lampManagerPtr) {
-            AddSignalHandler("LampsNameChanged", lampManagerPtr, &LampManager::LampsNameChanged);
-            AddSignalHandler("LampsStateChanged", lampManagerPtr, &LampManager::LampsStateChanged);
+        controllersLock.Unlock();
 
-            AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllLampIDs", lampManagerPtr, &LampManager::GetAllLampIDsReply);
-
-            AddMethodReplyWithResponseCodeIDAndNameHandler("TransitionLampStateField", lampManagerPtr, &LampManager::TransitionLampStateFieldReply);
-            AddMethodReplyWithResponseCodeIDAndNameHandler("ResetLampStateField", lampManagerPtr, &LampManager::ResetLampStateFieldReply);
-            AddMethodReplyWithResponseCodeIDAndNameHandler("SetLampName", lampManagerPtr, &LampManager::SetLampNameReply);
-
-            AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetLampName", lampManagerPtr, &LampManager::GetLampNameReply);
-            AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetLampManufacturer", lampManagerPtr, &LampManager::GetLampManufacturerReply);
-
-            AddMethodReplyWithResponseCodeAndIDHandler("ResetLampState", lampManagerPtr, &LampManager::ResetLampStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampState", lampManagerPtr, &LampManager::TransitionLampStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampStateToPreset", lampManagerPtr, &LampManager::TransitionLampStateToPresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("PulseLampWithState", lampManagerPtr, &LampManager::PulseLampWithStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("PulseLampWithPreset", lampManagerPtr, &LampManager::PulseLampWithPresetReply);
+        // there is an old session to leave
+        if (oldSession) {
+            bus.LeaveSession(oldSession);
         }
 
-        if (lampGroupManagerPtr) {
-            AddSignalHandler("LampGroupsNameChanged", lampGroupManagerPtr, &LampGroupManager::LampGroupsNameChanged);
-            AddSignalHandler("LampGroupsCreated", lampGroupManagerPtr, &LampGroupManager::LampGroupsCreated);
-            AddSignalHandler("LampGroupsUpdated", lampGroupManagerPtr, &LampGroupManager::LampGroupsUpdated);
-            AddSignalHandler("LampGroupsDeleted", lampGroupManagerPtr, &LampGroupManager::LampGroupsDeleted);
-
-            AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllLampGroupIDs", lampGroupManagerPtr, &LampGroupManager::GetAllLampGroupIDsReply);
-
-            AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetLampGroupName", lampGroupManagerPtr, &LampGroupManager::GetLampGroupNameReply);
-            AddMethodReplyWithResponseCodeIDAndNameHandler("TransitionLampGroupStateField", lampGroupManagerPtr, &LampGroupManager::TransitionLampGroupStateFieldReply);
-            AddMethodReplyWithResponseCodeIDAndNameHandler("ResetLampGroupStateField", lampGroupManagerPtr, &LampGroupManager::ResetLampGroupStateFieldReply);
-
-            AddMethodReplyWithResponseCodeIDAndNameHandler("SetLampGroupName", lampGroupManagerPtr, &LampGroupManager::SetLampGroupNameReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("ResetLampGroupState", lampGroupManagerPtr, &LampGroupManager::ResetLampGroupStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampGroupState", lampGroupManagerPtr, &LampGroupManager::TransitionLampGroupStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampGroupStateToPreset", lampGroupManagerPtr, &LampGroupManager::TransitionLampGroupStateToPresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CreateLampGroup", lampGroupManagerPtr, &LampGroupManager::CreateLampGroupReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("UpdateLampGroup", lampGroupManagerPtr, &LampGroupManager::UpdateLampGroupReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("DeleteLampGroup", lampGroupManagerPtr, &LampGroupManager::DeleteLampGroupReply);
-
-            AddMethodReplyWithResponseCodeAndIDHandler("PulseLampGroupWithState", lampGroupManagerPtr, &LampGroupManager::PulseLampGroupWithStateReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("PulseLampGroupWithPreset", lampGroupManagerPtr, &LampGroupManager::PulseLampGroupWithPresetReply);
+        if (make_callback) {
+            callback.ConnectedToControllerServiceCB(device_id, device_name);
         }
-
-        if (presetManagerPtr) {
-            AddNoArgSignalHandler("DefaultLampStateChanged", presetManagerPtr, &PresetManager::DefaultLampStateChanged);
-            AddSignalHandler("PresetsNameChanged", presetManagerPtr, &PresetManager::PresetsNameChanged);
-            AddSignalHandler("PresetsCreated", presetManagerPtr, &PresetManager::PresetsCreated);
-            AddSignalHandler("PresetsUpdated", presetManagerPtr, &PresetManager::PresetsUpdated);
-            AddSignalHandler("PresetsDeleted", presetManagerPtr, &PresetManager::PresetsDeleted);
-
-            AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllPresetIDs", presetManagerPtr, &PresetManager::GetAllPresetIDsReply);
-
-            AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetPresetName", presetManagerPtr, &PresetManager::GetPresetNameReply);
-
-            AddMethodReplyWithResponseCodeIDAndNameHandler("SetPresetName", presetManagerPtr, &PresetManager::SetPresetNameReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CreatePreset", presetManagerPtr, &PresetManager::CreatePresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("UpdatePreset", presetManagerPtr, &PresetManager::UpdatePresetReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("DeletePreset", presetManagerPtr, &PresetManager::DeletePresetReply);
-
-            AddMethodReplyWithUint32ValueHandler("SetDefaultLampState", presetManagerPtr, &PresetManager::SetDefaultLampStateReply);
-        }
-
-        if (sceneManagerPtr) {
-            AddSignalHandler("ScenesNameChanged", sceneManagerPtr, &SceneManager::ScenesNameChanged);
-            AddSignalHandler("ScenesCreated", sceneManagerPtr, &SceneManager::ScenesCreated);
-            AddSignalHandler("ScenesUpdated", sceneManagerPtr, &SceneManager::ScenesUpdated);
-            AddSignalHandler("ScenesDeleted", sceneManagerPtr, &SceneManager::ScenesDeleted);
-            AddSignalHandler("ScenesApplied", sceneManagerPtr, &SceneManager::ScenesApplied);
-
-            AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllSceneIDs", sceneManagerPtr, &SceneManager::GetAllSceneIDsReply);
-
-            AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetSceneName", sceneManagerPtr, &SceneManager::GetSceneNameReply);
-
-            AddMethodReplyWithResponseCodeIDAndNameHandler("SetSceneName", sceneManagerPtr, &SceneManager::SetSceneNameReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CreateScene", sceneManagerPtr, &SceneManager::CreateSceneReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("UpdateScene", sceneManagerPtr, &SceneManager::UpdateSceneReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("DeleteScene", sceneManagerPtr, &SceneManager::DeleteSceneReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("ApplyScene", sceneManagerPtr, &SceneManager::ApplySceneReply);
-        }
-
-        if (masterSceneManagerPtr) {
-            AddSignalHandler("MasterScenesNameChanged", masterSceneManagerPtr, &MasterSceneManager::MasterScenesNameChanged);
-            AddSignalHandler("MasterScenesCreated", masterSceneManagerPtr, &MasterSceneManager::MasterScenesCreated);
-            AddSignalHandler("MasterScenesUpdated", masterSceneManagerPtr, &MasterSceneManager::MasterScenesUpdated);
-            AddSignalHandler("MasterScenesDeleted", masterSceneManagerPtr, &MasterSceneManager::MasterScenesDeleted);
-            AddSignalHandler("MasterScenesApplied", masterSceneManagerPtr, &MasterSceneManager::MasterScenesApplied);
-
-            AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllMasterSceneIDs", masterSceneManagerPtr, &MasterSceneManager::GetAllMasterSceneIDsReply);
-
-            AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetMasterSceneName", masterSceneManagerPtr, &MasterSceneManager::GetMasterSceneNameReply);
-
-            AddMethodReplyWithResponseCodeIDAndNameHandler("SetMasterSceneName", masterSceneManagerPtr, &MasterSceneManager::SetMasterSceneNameReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("CreateMasterScene", masterSceneManagerPtr, &MasterSceneManager::CreateMasterSceneReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("UpdateMasterScene", masterSceneManagerPtr, &MasterSceneManager::UpdateMasterSceneReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("DeleteMasterScene", masterSceneManagerPtr, &MasterSceneManager::DeleteMasterSceneReply);
-            AddMethodReplyWithResponseCodeAndIDHandler("ApplyMasterScene", masterSceneManagerPtr, &MasterSceneManager::ApplyMasterSceneReply);
-        }
-
-        const InterfaceDescription* controllerServiceInterface = proxyObject->GetInterface(ControllerServiceInterfaceName);
-        const InterfaceDescription* controllerServiceLampInterface = proxyObject->GetInterface(ControllerServiceLampInterfaceName);
-        const InterfaceDescription* controllerServiceLampGroupInterface = proxyObject->GetInterface(ControllerServiceLampGroupInterfaceName);
-        const InterfaceDescription* controllerServicePresetInterface = proxyObject->GetInterface(ControllerServicePresetInterfaceName);
-        const InterfaceDescription* controllerServiceSceneInterface = proxyObject->GetInterface(ControllerServiceSceneInterfaceName);
-        const InterfaceDescription* controllerServiceMasterSceneInterface = proxyObject->GetInterface(ControllerServiceMasterSceneInterfaceName);
-
-        const SignalEntry signalEntries[] = {
-            { controllerServiceInterface->GetMember("ControllerServiceLightingReset"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
-            { controllerServiceLampInterface->GetMember("LampsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceLampInterface->GetMember("LampsStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceLampGroupInterface->GetMember("LampGroupsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceLampGroupInterface->GetMember("LampGroupsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceLampGroupInterface->GetMember("LampGroupsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceLampGroupInterface->GetMember("LampGroupsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServicePresetInterface->GetMember("DefaultLampStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
-            { controllerServicePresetInterface->GetMember("PresetsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServicePresetInterface->GetMember("PresetsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServicePresetInterface->GetMember("PresetsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServicePresetInterface->GetMember("PresetsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceSceneInterface->GetMember("ScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceSceneInterface->GetMember("ScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceSceneInterface->GetMember("ScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceSceneInterface->GetMember("ScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceSceneInterface->GetMember("ScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceMasterSceneInterface->GetMember("MasterScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceMasterSceneInterface->GetMember("MasterScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceMasterSceneInterface->GetMember("MasterScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceMasterSceneInterface->GetMember("MasterScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-            { controllerServiceMasterSceneInterface->GetMember("MasterScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) }
-        };
-
-        ErrorCode errorCode = ERROR_NONE;
-
-        for (size_t i = 0; i < (sizeof(signalEntries) / sizeof(SignalEntry)); ++i) {
-            status = bus.RegisterSignalHandler(
-                this,
-                signalEntries[i].handler,
-                signalEntries[i].member,
-                ControllerServiceObjectPath);
-
-            if (status != ER_OK) {
-                QCC_LogError(status, ("RegisterSignalHandler failed for %s", signalEntries[i].member->name.c_str()));
-
-                if (errorCode != ERROR_REGISTERING_SIGNAL_HANDLERS) {
-                    errorCode = ERROR_REGISTERING_SIGNAL_HANDLERS;
-                    errorList.push_back(errorCode);
-                }
-            }
-        }
-        lock.Unlock();
 
         /*
          * Get and print the versions of all the Controller Service interfaces
          */
-        QCC_DbgPrintf(("%s: Trying to read the versions of all the Controller Service interfaces", __FUNCTION__));
-        MsgArg val;
-        status = proxyObject->GetProperty(ControllerServiceInterfaceName, "Version", val);
-        if (ER_OK == status) {
+        /*
+           QCC_DbgPrintf(("%s: Trying to read the versions of all the Controller Service interfaces", __FUNCTION__));
+           MsgArg val;
+           status = proxyObject->GetProperty(ControllerServiceInterfaceName, "Version", val);
+           if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceInterfaceVersion = %d", __FUNCTION__, iVal));
-        } else {
+           } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceInterfaceName));
-        }
-        val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceLampInterfaceName, "Version", val);
-        if (ER_OK == status) {
+           }
+           val.Clear();
+           status = proxyObject->GetProperty(ControllerServiceLampInterfaceName, "Version", val);
+           if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceLampInterfaceVersion = %d", __FUNCTION__, iVal));
-        } else {
+           } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampInterfaceName));
-        }
-        val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceLampGroupInterfaceName, "Version", val);
-        if (ER_OK == status) {
+           }
+           val.Clear();
+           status = proxyObject->GetProperty(ControllerServiceLampGroupInterfaceName, "Version", val);
+           if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceLampGroupInterfaceVersion = %d", __FUNCTION__, iVal));
-        } else {
+           } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampGroupInterfaceName));
-        }
-        val.Clear();
-        status = proxyObject->GetProperty(ControllerServicePresetInterfaceName, "Version", val);
-        if (ER_OK == status) {
+           }
+           val.Clear();
+           status = proxyObject->GetProperty(ControllerServicePresetInterfaceName, "Version", val);
+           if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServicePresetInterfaceVersion = %d", __FUNCTION__, iVal));
-        } else {
+           } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServicePresetInterfaceName));
-        }
-        val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceSceneInterfaceName, "Version", val);
-        if (ER_OK == status) {
+           }
+           val.Clear();
+           status = proxyObject->GetProperty(ControllerServiceSceneInterfaceName, "Version", val);
+           if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceSceneInterfaceVersion = %d", __FUNCTION__, iVal));
-        } else {
+           } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceSceneInterfaceName));
-        }
-        val.Clear();
-        status = proxyObject->GetProperty(ControllerServiceMasterSceneInterfaceName, "Version", val);
-        if (ER_OK == status) {
+           }
+           val.Clear();
+           status = proxyObject->GetProperty(ControllerServiceMasterSceneInterfaceName, "Version", val);
+           if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
             QCC_DbgPrintf(("%s: ControllerServiceMasterSceneInterfaceVersion = %d", __FUNCTION__, iVal));
-        } else {
+           } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceMasterSceneInterfaceName));
-        }
-        callback.ConnectedToControllerServiceCB(deviceID, deviceName);
-/*
-        ActiveServiceMap::reverse_iterator rit = activeServices.rbegin();
-        if (rit->first > controllerServiceID) {
-            lock.Unlock();
-            bus.LeaveSession(sessionId);
-            lock.Lock();
-
-            // now join the session!
-            JoinNextAvailableController();
-        }
- */
+           }
+         */
     } else {
-        isJoining = false;
-        lock.Lock();
+        callback.ConnectToControllerServiceFailedCB(joined->deviceID, joined->deviceName);
+        alreadyInSession = false;
 
-        callback.ConnectToControllerServiceFailedCB(service->deviceID, service->deviceName);
-        delete service;
-
-        // failed to join controllerServiceID!
-        //ActiveServiceMap::iterator ait = activeServices.find(controllerServiceID);
-        //activeServices.erase(ait);
-/*
-        if (!activeServices.empty()) {
-            JoinNextAvailableController();
-            lock.Unlock();
-        } else {
-            lock.Unlock();
-            errorList.push_back(ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND);
-        }*/
+        // if the connection failed, assume the CS is no longer there until we see another announcement
+        controllersLock.Lock();
+        RemoveUniqueName(joined->busName);
+        controllersLock.Unlock();
+        JoinLeaderSession();
     }
 
     if (!errorList.empty()) {
@@ -543,93 +517,42 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
     }
 }
 
-void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName)
+void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, bool isLeader)
 {
-    QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s\n", __FUNCTION__, port, busName, deviceID, deviceName));
+    QCC_DbgPrintf(("ControllerClient::OnAnnounced(port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu, isLeader=%d)",
+                   port, busName, deviceID, deviceName, rank, isLeader));
+
+    controllersLock.Lock();
+    // find or insert
+    nameToId[busName] = deviceID;
+    ControllerEntry& entry = controllers[deviceID];
 
     // if the name of the current CS has changed...
-    if (deviceID == this->deviceID && deviceName != this->deviceName) {
-        this->deviceName = deviceName;
-        controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
+    if (deviceID == currentLeader.deviceID) {
+        // TODO: can the rank change?
+        bool nameChanged = false;
+        if (deviceName != currentLeader.deviceName) {
+            entry.deviceName = deviceName;
+            currentLeader.deviceName = deviceName;
+            nameChanged = true;
+        }
+        controllersLock.Unlock();
+        if (nameChanged) {
+            controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
+        }
         return;
     }
 
-    ActiveService* svc = new ActiveService();
-    svc->busName = busName;
-    svc->port = port;
-    svc->deviceID = deviceID;
-    svc->deviceName = deviceName;
+    entry.port = port;
+    entry.busName = busName;
+    entry.rank = rank;
+    entry.isLeader = isLeader;
+    entry.joining = false;
+    entry.deviceID = deviceID;
+    entry.deviceName = deviceName;
+    controllersLock.Unlock();
 
-    lock.Lock();
-
-    // we already know about this one
-    if (activeServices.find(deviceID) != activeServices.end()) {
-        lock.Unlock();
-        return;
-    }
-
-
-    activeServices[deviceID] = *svc;
-
-    ErrorCodeList errorList;
-
-    if (!isJoining) {
-        SessionOpts opts;
-        opts.isMultipoint = true;
-        isJoining = true;
-        QStatus status = bus.JoinSessionAsync(busName, port, busHandler, opts, busHandler, svc);
-        if (status != ER_OK) {
-            isJoining = false;
-            activeServices.erase(deviceID);
-            errorList.push_back(ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND);
-            delete svc;
-        }
-    }
-
-    /*
-     * activeSessions.empty() && !controllerServiceID.empty()
-     * implies that a session is currently being established
-     */
-/*
-    if (activeSessions.empty()) {
-        // no session currently active; we must establish one!
-
-
-        // no session currently being established; change that!
-        if (!isJoining) {
-            // make a copy in case the activeService is removed from
-            // the map before the join succeeds
-            ActiveService* service = new ActiveService(svc);
-
-            SessionOpts opts;
-            opts.isMultipoint = true;
-            isJoining = true;
-            bus.JoinSessionAsync(busName, port, busHandler, opts, busHandler, service);
-        }
-    } else {
-        // we are currently in an active session
-
-        // activeServices can't be empty here!
-        ActiveServiceMap::reverse_iterator it = activeServices.rbegin();
-
-        if (deviceID > it->first) {
-            // need to leave *all* active sessions (there should only be one!
-            for (SessionMap::const_iterator it = activeSessions.begin(); it != activeSessions.end(); ++it) {
-                lock.Unlock();
-                bus.LeaveSession(it->first);
-                lock.Lock();
-
-                JoinNextAvailableController();
-            }
-        }
-
-    }
- */
-    lock.Unlock();
-
-    if (!errorList.empty()) {
-        callback.ControllerClientErrorCB(errorList);
-    }
+    JoinLeaderSession();
 }
 
 ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
@@ -642,9 +565,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
     void* context)
 {
     ControllerClientStatus status = CONTROLLER_CLIENT_OK;
-
-    lock.Lock();
-    //ActiveServiceMap::iterator it = activeServices.find(controllerServiceID);
+    controllersLock.Lock();
 
     if (proxyObject != NULL) {
         QStatus ajStatus = proxyObject->MethodCallAsync(
@@ -664,7 +585,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
         status = CONTROLLER_CLIENT_ERR_NOT_CONNECTED;
     }
 
-    lock.Unlock();
+    controllersLock.Unlock();
     return status;
 }
 
@@ -979,6 +900,160 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
 
 void ControllerClient::Reset(void) {
 
+}
+
+void ControllerClient::AddMethodHandlers()
+{
+    //methodReplyWithResponseCodeAndListOfIDsHandlers.clear();
+
+    if (controllerServiceManagerPtr) {
+        AddNoArgSignalHandler("ControllerServiceLightingReset", controllerServiceManagerPtr, &ControllerServiceManager::ControllerServiceLightingReset);
+
+        AddMethodReplyWithUint32ValueHandler("GetControllerServiceVersion", controllerServiceManagerPtr, &ControllerServiceManager::GetControllerServiceVersionReply);
+        AddMethodReplyWithUint32ValueHandler("LightingResetControllerService", controllerServiceManagerPtr, &ControllerServiceManager::LightingResetControllerServiceReply);
+    }
+
+    if (lampManagerPtr) {
+        AddSignalHandler("LampsNameChanged", lampManagerPtr, &LampManager::LampsNameChanged);
+        AddSignalHandler("LampsStateChanged", lampManagerPtr, &LampManager::LampsStateChanged);
+
+        AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllLampIDs", lampManagerPtr, &LampManager::GetAllLampIDsReply);
+
+        AddMethodReplyWithResponseCodeIDAndNameHandler("TransitionLampStateField", lampManagerPtr, &LampManager::TransitionLampStateFieldReply);
+        AddMethodReplyWithResponseCodeIDAndNameHandler("ResetLampStateField", lampManagerPtr, &LampManager::ResetLampStateFieldReply);
+        AddMethodReplyWithResponseCodeIDAndNameHandler("SetLampName", lampManagerPtr, &LampManager::SetLampNameReply);
+
+        AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetLampName", lampManagerPtr, &LampManager::GetLampNameReply);
+        AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetLampManufacturer", lampManagerPtr, &LampManager::GetLampManufacturerReply);
+
+        AddMethodReplyWithResponseCodeAndIDHandler("ResetLampState", lampManagerPtr, &LampManager::ResetLampStateReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampState", lampManagerPtr, &LampManager::TransitionLampStateReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampStateToPreset", lampManagerPtr, &LampManager::TransitionLampStateToPresetReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("PulseLampWithState", lampManagerPtr, &LampManager::PulseLampWithStateReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("PulseLampWithPreset", lampManagerPtr, &LampManager::PulseLampWithPresetReply);
+    }
+
+    if (lampGroupManagerPtr) {
+        AddSignalHandler("LampGroupsNameChanged", lampGroupManagerPtr, &LampGroupManager::LampGroupsNameChanged);
+        AddSignalHandler("LampGroupsCreated", lampGroupManagerPtr, &LampGroupManager::LampGroupsCreated);
+        AddSignalHandler("LampGroupsUpdated", lampGroupManagerPtr, &LampGroupManager::LampGroupsUpdated);
+        AddSignalHandler("LampGroupsDeleted", lampGroupManagerPtr, &LampGroupManager::LampGroupsDeleted);
+
+        AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllLampGroupIDs", lampGroupManagerPtr, &LampGroupManager::GetAllLampGroupIDsReply);
+
+        AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetLampGroupName", lampGroupManagerPtr, &LampGroupManager::GetLampGroupNameReply);
+        AddMethodReplyWithResponseCodeIDAndNameHandler("TransitionLampGroupStateField", lampGroupManagerPtr, &LampGroupManager::TransitionLampGroupStateFieldReply);
+        AddMethodReplyWithResponseCodeIDAndNameHandler("ResetLampGroupStateField", lampGroupManagerPtr, &LampGroupManager::ResetLampGroupStateFieldReply);
+
+        AddMethodReplyWithResponseCodeIDAndNameHandler("SetLampGroupName", lampGroupManagerPtr, &LampGroupManager::SetLampGroupNameReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("ResetLampGroupState", lampGroupManagerPtr, &LampGroupManager::ResetLampGroupStateReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampGroupState", lampGroupManagerPtr, &LampGroupManager::TransitionLampGroupStateReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("TransitionLampGroupStateToPreset", lampGroupManagerPtr, &LampGroupManager::TransitionLampGroupStateToPresetReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("CreateLampGroup", lampGroupManagerPtr, &LampGroupManager::CreateLampGroupReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("UpdateLampGroup", lampGroupManagerPtr, &LampGroupManager::UpdateLampGroupReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("DeleteLampGroup", lampGroupManagerPtr, &LampGroupManager::DeleteLampGroupReply);
+
+        AddMethodReplyWithResponseCodeAndIDHandler("PulseLampGroupWithState", lampGroupManagerPtr, &LampGroupManager::PulseLampGroupWithStateReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("PulseLampGroupWithPreset", lampGroupManagerPtr, &LampGroupManager::PulseLampGroupWithPresetReply);
+    }
+
+    if (presetManagerPtr) {
+        AddNoArgSignalHandler("DefaultLampStateChanged", presetManagerPtr, &PresetManager::DefaultLampStateChanged);
+        AddSignalHandler("PresetsNameChanged", presetManagerPtr, &PresetManager::PresetsNameChanged);
+        AddSignalHandler("PresetsCreated", presetManagerPtr, &PresetManager::PresetsCreated);
+        AddSignalHandler("PresetsUpdated", presetManagerPtr, &PresetManager::PresetsUpdated);
+        AddSignalHandler("PresetsDeleted", presetManagerPtr, &PresetManager::PresetsDeleted);
+
+        AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllPresetIDs", presetManagerPtr, &PresetManager::GetAllPresetIDsReply);
+
+        AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetPresetName", presetManagerPtr, &PresetManager::GetPresetNameReply);
+
+        AddMethodReplyWithResponseCodeIDAndNameHandler("SetPresetName", presetManagerPtr, &PresetManager::SetPresetNameReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("CreatePreset", presetManagerPtr, &PresetManager::CreatePresetReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("UpdatePreset", presetManagerPtr, &PresetManager::UpdatePresetReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("DeletePreset", presetManagerPtr, &PresetManager::DeletePresetReply);
+
+        AddMethodReplyWithUint32ValueHandler("SetDefaultLampState", presetManagerPtr, &PresetManager::SetDefaultLampStateReply);
+    }
+
+    if (sceneManagerPtr) {
+        AddSignalHandler("ScenesNameChanged", sceneManagerPtr, &SceneManager::ScenesNameChanged);
+        AddSignalHandler("ScenesCreated", sceneManagerPtr, &SceneManager::ScenesCreated);
+        AddSignalHandler("ScenesUpdated", sceneManagerPtr, &SceneManager::ScenesUpdated);
+        AddSignalHandler("ScenesDeleted", sceneManagerPtr, &SceneManager::ScenesDeleted);
+        AddSignalHandler("ScenesApplied", sceneManagerPtr, &SceneManager::ScenesApplied);
+
+        AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllSceneIDs", sceneManagerPtr, &SceneManager::GetAllSceneIDsReply);
+
+        AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetSceneName", sceneManagerPtr, &SceneManager::GetSceneNameReply);
+
+        AddMethodReplyWithResponseCodeIDAndNameHandler("SetSceneName", sceneManagerPtr, &SceneManager::SetSceneNameReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("CreateScene", sceneManagerPtr, &SceneManager::CreateSceneReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("UpdateScene", sceneManagerPtr, &SceneManager::UpdateSceneReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("DeleteScene", sceneManagerPtr, &SceneManager::DeleteSceneReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("ApplyScene", sceneManagerPtr, &SceneManager::ApplySceneReply);
+    }
+
+    if (masterSceneManagerPtr) {
+        AddSignalHandler("MasterScenesNameChanged", masterSceneManagerPtr, &MasterSceneManager::MasterScenesNameChanged);
+        AddSignalHandler("MasterScenesCreated", masterSceneManagerPtr, &MasterSceneManager::MasterScenesCreated);
+        AddSignalHandler("MasterScenesUpdated", masterSceneManagerPtr, &MasterSceneManager::MasterScenesUpdated);
+        AddSignalHandler("MasterScenesDeleted", masterSceneManagerPtr, &MasterSceneManager::MasterScenesDeleted);
+        AddSignalHandler("MasterScenesApplied", masterSceneManagerPtr, &MasterSceneManager::MasterScenesApplied);
+
+        AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllMasterSceneIDs", masterSceneManagerPtr, &MasterSceneManager::GetAllMasterSceneIDsReply);
+
+        AddMethodReplyWithResponseCodeIDLanguageAndNameHandler("GetMasterSceneName", masterSceneManagerPtr, &MasterSceneManager::GetMasterSceneNameReply);
+
+        AddMethodReplyWithResponseCodeIDAndNameHandler("SetMasterSceneName", masterSceneManagerPtr, &MasterSceneManager::SetMasterSceneNameReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("CreateMasterScene", masterSceneManagerPtr, &MasterSceneManager::CreateMasterSceneReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("UpdateMasterScene", masterSceneManagerPtr, &MasterSceneManager::UpdateMasterSceneReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("DeleteMasterScene", masterSceneManagerPtr, &MasterSceneManager::DeleteMasterSceneReply);
+        AddMethodReplyWithResponseCodeAndIDHandler("ApplyMasterScene", masterSceneManagerPtr, &MasterSceneManager::ApplyMasterSceneReply);
+    }
+}
+
+void ControllerClient::AddSignalHandlers()
+{
+    const InterfaceDescription* controllerServiceInterface = proxyObject->GetInterface(ControllerServiceInterfaceName);
+    const InterfaceDescription* controllerServiceLampInterface = proxyObject->GetInterface(ControllerServiceLampInterfaceName);
+    const InterfaceDescription* controllerServiceLampGroupInterface = proxyObject->GetInterface(ControllerServiceLampGroupInterfaceName);
+    const InterfaceDescription* controllerServicePresetInterface = proxyObject->GetInterface(ControllerServicePresetInterfaceName);
+    const InterfaceDescription* controllerServiceSceneInterface = proxyObject->GetInterface(ControllerServiceSceneInterfaceName);
+    const InterfaceDescription* controllerServiceMasterSceneInterface = proxyObject->GetInterface(ControllerServiceMasterSceneInterfaceName);
+
+    const SignalEntry signalEntries[] = {
+        { controllerServiceInterface->GetMember("ControllerServiceLightingReset"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampsStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("DefaultLampStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) }
+    };
+
+    for (size_t i = 0; i < (sizeof(signalEntries) / sizeof(SignalEntry)); ++i) {
+        bus.RegisterSignalHandler(
+            this,
+            signalEntries[i].handler,
+            signalEntries[i].member,
+            ControllerServiceObjectPath);
+    }
 }
 
 }

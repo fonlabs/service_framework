@@ -39,20 +39,22 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     typedef enum {
         DEVICE_ID = 0,
-        DEVICE_NAME = 1,
-        APP_ID = 2,
-        APP_NAME = 3,
-        DEFAULT_LANG = 4,
-        SUPPORTED_LANGS = 5,
-        DESCRIPTION = 6,
-        MANUFACTURER = 7,
-        DATE_OF_MANUFACTURE = 8,
-        MODEL_NUMBER = 9,
-        SOFTWARE_VERSION = 10,
-        AJ_SOFTWARE_VERSION = 11,
-        HARDWARE_VERSION = 12,
-        SUPPORT_URL = 13,
-        NUMBER_OF_KEYS = 14
+        DEVICE_NAME,
+        APP_ID,
+        APP_NAME,
+        DEFAULT_LANG,
+        SUPPORTED_LANGS,
+        DESCRIPTION,
+        MANUFACTURER,
+        DATE_OF_MANUFACTURE,
+        MODEL_NUMBER,
+        SOFTWARE_VERSION,
+        AJ_SOFTWARE_VERSION,
+        HARDWARE_VERSION,
+        SUPPORT_URL,
+        RANK,
+        IS_LEADER,
+        NUMBER_OF_KEYS
     } PropertyStoreKey;
 
   private:
@@ -117,6 +119,10 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      */
     void Initialize();
 
+    uint64_t GetRank();
+
+    bool IsLeader();
+
   private:
 
     QStatus setSupportedLangs(const std::vector<qcc::String>& supportedLangs);
@@ -176,6 +182,10 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
     QStatus setProperty(PropertyStoreKey propertyKey, const qcc::String& value, bool isPublic, bool isWritable, bool isAnnouncable);
 
     QStatus setProperty(PropertyStoreKey propertyKey, const uint8_t* value, uint32_t len, bool isPublic, bool isWritable, bool isAnnouncable);
+
+    QStatus setProperty(PropertyStoreKey propertyKey, uint64_t value, bool isPublic, bool isWritable, bool isAnnouncable);
+
+    QStatus setProperty(PropertyStoreKey propertyKey, bool value, bool isPublic, bool isWritable, bool isAnnouncable);
 
     /**
      * setProperty

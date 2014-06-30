@@ -58,9 +58,16 @@ const char* OnboardingServiceInterfaceName = "org.alljoyn.Onboarding";
 const char* AboutObjectPath = "/About";
 const char* AboutInterfaceName = "org.alljoyn.About";
 
+const char* AboutIconObjectPath = "/About/DeviceIcon";
+const char* AboutIconInterfaceName = "org.alljoyn.Icon";
+
 const char* LeaderElectionAndStateSyncObjectPath = "/org/allseen/LeaderElectionAndStateSync";
 const char* LeaderElectionAndStateSyncInterfaceName = "org.allseen.LeaderElectionAndStateSync";
 ajn::SessionPort LeaderElectionAndStateSyncSessionPort = 44;
+
+const char* ApplySceneEventActionInterfaceName = "org.allseen.LSF.ControllerService.ApplySceneEventAction.";
+
+const char* ApplySceneEventActionObjectPath = "/org/allseen/LSF/ControllerService/ApplySceneEventAction/";
 
 void CreateUniqueList(LSFStringList& uniqueList, LSFStringList& fromList)
 {

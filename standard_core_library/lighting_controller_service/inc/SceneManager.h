@@ -28,9 +28,11 @@
 namespace lsf {
 
 class MasterSceneManager;
+class SceneObject;
 
 class SceneManager : public Manager {
     friend class MasterSceneManager;
+    friend class SceneObject;
   public:
     SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, MasterSceneManager* masterSceneMgr, const std::string& sceneFile);
 
@@ -60,12 +62,43 @@ class SceneManager : public Manager {
 
     LSFResponseCode ApplySceneInternal(ajn::Message message, LSFStringList& sceneList);
 
-    SceneMap scenes;
+    typedef std::map<LSFString, SceneObject*> SceneObjectMap;
+
+    SceneObjectMap scenes;
     Mutex scenesLock;
     LampGroupManager& lampGroupManager;
     MasterSceneManager* masterSceneManager;
 
-    std::string GetString(const SceneMap& items);
+    std::string GetString(const SceneObjectMap& items);
+};
+
+class SceneObject : public BusObject, public Translator {
+  public:
+    SceneObject(SceneManager& sceneMgr, LSFString& sceneid, Scene& tempScene, LSFString& name);
+    ~SceneObject();
+
+    void ApplySceneHandler(const InterfaceDescription::Member* member, Message& msg);
+
+    void SendSceneAppliedSignal(void);
+
+    size_t NumTargetLanguages() {
+        return 1;
+    }
+
+    void GetTargetLanguage(size_t index, qcc::String& ret) {
+        ret.assign("en");
+    }
+
+    const char* Translate(const char* sourceLanguage, const char* targetLanguage, const char* source);
+
+    void ObjectRegistered(void);
+
+    SceneManager& sceneManager;
+    LSFString sceneId;
+    Scene scene;
+    Mutex sceneNameMutex;
+    LSFString sceneName;
+    const InterfaceDescription::Member* appliedSceneMember;
 };
 
 }

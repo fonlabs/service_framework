@@ -252,9 +252,18 @@ void MasterSceneManager::CreateMasterScene(Message& message)
         if (masterScenes.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
             masterSceneID = GenerateUniqueID("MASTER_SCENE");
             MasterScene masterScene(inputArgs[0]);
-            masterScenes[masterSceneID].first = masterSceneID;
-            masterScenes[masterSceneID].second = masterScene;
-            created = true;
+
+            LSFString name = static_cast<LSFString>(inputArgs[1].v_string.str);
+            LSFString language = static_cast<LSFString>(inputArgs[2].v_string.str);
+
+            if (0 != strcmp("en", language.c_str())) {
+                QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __FUNCTION__, language.c_str()));
+                responseCode = LSF_ERR_INVALID_ARGS;
+            } else {
+                masterScenes[masterSceneID].first = name;
+                masterScenes[masterSceneID].second = masterScene;
+                created = true;
+            }
         } else {
             QCC_LogError(ER_FAIL, ("%s: No slot for new MasterScene", __FUNCTION__));
             responseCode = LSF_ERR_NO_SLOT;

@@ -54,28 +54,30 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
 
     const char* deviceProductName = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME);
 
-    if (obSoftAPssid[0] == '\0') {
+    if ((obSoftAPssid[0] == '\0') && (deviceProductName != NULL)) {
         deviceId = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
-        deviceIdLen = strlen(deviceId);
-        productLen = min(strlen(deviceProductName), AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN);
+        if (deviceId != NULL) {
+            deviceIdLen = strlen(deviceId);
+            productLen = min(strlen(deviceProductName), AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN);
 
-        serialIdLen = min(deviceIdLen, AJOBS_DEVICE_SERIAL_ID_LEN);
-        memcpy(product, deviceProductName, productLen);
-        product[productLen] = '\0';
+            serialIdLen = min(deviceIdLen, AJOBS_DEVICE_SERIAL_ID_LEN);
+            memcpy(product, deviceProductName, productLen);
+            product[productLen] = '\0';
 
-        // can't have spaces in SSID
-        {
-            size_t i = 0;
-            for (; i < serialIdLen; ++i) {
-                if (product[i] == ' ') {
-                    product[i] = '_';
+            // can't have spaces in SSID
+            {
+                size_t i = 0;
+                for (; i < serialIdLen; ++i) {
+                    if (product[i] == ' ') {
+                        product[i] = '_';
+                    }
                 }
             }
-        }
 
-        memcpy(serialId, deviceId + (deviceIdLen - serialIdLen), serialIdLen);
-        serialId[serialIdLen] = '\0';
-        snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_%s_%s", product, serialId);
+            memcpy(serialId, deviceId + (deviceIdLen - serialIdLen), serialIdLen);
+            serialId[serialIdLen] = '\0';
+            snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_%s_%s", product, serialId);
+        }
     }
 
     AJ_AlwaysPrintf(("%s: SoftAP: %s\n", __FUNCTION__, obSoftAPssid));

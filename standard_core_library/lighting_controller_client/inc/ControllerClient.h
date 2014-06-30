@@ -134,13 +134,15 @@ class ControllerClient : public ajn::MessageReceiver {
      * Internal callback invoked when an announcement is received from a Controller
      * Service Leader
      */
-    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName);
+    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, bool isLeader);
 
     /**
      * Internal callback invoked when a session with a Controller
      * Service Leader is lost
      */
     void OnSessionLost(ajn::SessionId sessionID);
+
+    void OnSessionMemberRemoved(ajn::SessionId sessionId, const char* uniqueName);
 
     void SignalWithArgDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message);
 
@@ -204,11 +206,6 @@ class ControllerClient : public ajn::MessageReceiver {
         size_t numArgs = 0);
 
     /**
-     * Mutex to protect accesses to the remoteObject
-     */
-    Mutex lock;
-
-    /**
      * Reference to the AllJoyn BusAttachment received from the
      * User Application
      */
@@ -233,30 +230,36 @@ class ControllerClient : public ajn::MessageReceiver {
     /*
      * The ID of the CS we are currently trying to connect to
      */
-    struct ActiveService {
-        std::string busName;
+    struct ControllerEntry {
         ajn::SessionPort port;
+        qcc::String busName;
+        uint64_t rank;
+        bool isLeader;
+        bool joining;
+
         std::string deviceID;
         std::string deviceName;
     };
 
-    /**
-     * Map DeviceID -> (name,port); object!=NULL means we have a session
-     */
-    typedef std::map<std::string, ActiveService> ActiveServiceMap;
-    ActiveServiceMap activeServices;
 
-    bool isJoining;
-    std::string deviceID;
-    std::string deviceName;
+    typedef std::map<qcc::String, qcc::String> BusNameToDeviceId;
+    BusNameToDeviceId nameToId;
+
+    /**
+     * Map DeviceID -> ControllerEntry
+     */
+    typedef std::map<qcc::String, ControllerEntry> ControllerEntryMap;
+    ControllerEntryMap controllers;
+    ControllerEntry currentLeader;
+
     ajn::ProxyBusObject* proxyObject;
+    Mutex controllersLock;
 
 
-    /**
-     * Map the sesion back to the deviceID of the CS
-     */
-    typedef std::map<ajn::SessionId, std::string> SessionMap;
-    SessionMap activeSessions;
+    ControllerEntry* GetMaxRankedEntry();
+    void JoinLeaderSession();
+    void ClearCurrentLeader();
+    void RemoveUniqueName(const qcc::String& uniqueName);
 
     /**
      * Pointer to the Controller Service Manager
@@ -321,6 +324,8 @@ class ControllerClient : public ajn::MessageReceiver {
     template <typename OBJ, typename T>
     class TypeHandler;
 
+    void AddSignalHandlers();
+
     /**
      * Template for AllJoyn MessageReceiver
      */
@@ -365,6 +370,7 @@ class ControllerClient : public ajn::MessageReceiver {
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -403,6 +409,7 @@ class ControllerClient : public ajn::MessageReceiver {
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -433,6 +440,8 @@ class ControllerClient : public ajn::MessageReceiver {
     typedef std::map<std::string, NoArgSignalHandlerBase*> NoArgSignalDispatcherMap;
     NoArgSignalDispatcherMap noArgSignalHandlers;
 
+    void AddMethodHandlers();
+
     template <typename OBJ>
     void AddMethodReplyWithResponseCodeAndListOfIDsHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodReply)(LSFResponseCode &, LSFStringList &))
     {
@@ -441,6 +450,7 @@ class ControllerClient : public ajn::MessageReceiver {
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -479,6 +489,7 @@ class ControllerClient : public ajn::MessageReceiver {
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -517,6 +528,7 @@ class ControllerClient : public ajn::MessageReceiver {
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -555,6 +567,7 @@ class ControllerClient : public ajn::MessageReceiver {
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -593,6 +606,7 @@ class ControllerClient : public ajn::MessageReceiver {
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -622,6 +636,8 @@ class ControllerClient : public ajn::MessageReceiver {
 
     typedef std::map<std::string, MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase*> MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap;
     MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap methodReplyWithResponseCodeIDLanguageAndNameHandlers;
+
+    bool alreadyInSession;
 };
 
 template <typename OBJ>

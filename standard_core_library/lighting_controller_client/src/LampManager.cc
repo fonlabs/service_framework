@@ -603,3 +603,20 @@ void LampManager::GetLampSupportedLanguagesReply(Message& message)
 
     callback.GetLampSupportedLanguagesReplyCB(responseCode, lampID, languages);
 }
+
+ControllerClientStatus LampManager::GetLampDataSet(const LSFString& lampID, const LSFString& language)
+{
+    ControllerClientStatus status = CONTROLLER_CLIENT_OK;
+
+    status = GetLampDetails(lampID);
+
+    if (CONTROLLER_CLIENT_OK == status) {
+        status = GetLampName(lampID, language);
+    }
+
+    if (CONTROLLER_CLIENT_OK == status) {
+        status = GetLampState(lampID);
+    }
+
+    return status;
+}

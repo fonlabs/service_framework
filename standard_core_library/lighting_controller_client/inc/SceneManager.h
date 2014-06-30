@@ -171,7 +171,7 @@ class SceneManager : public Manager {
      *
      * @param scene The scene data
      */
-    ControllerClientStatus CreateScene(const Scene& scene);
+    ControllerClientStatus CreateScene(const Scene& scene, const LSFString& sceneName, const LSFString& language = LSFString("en"));
 
     /**
      * Modify an existing scene
@@ -205,6 +205,13 @@ class SceneManager : public Manager {
      * @param sceneID    The ID of the scene to apply
      */
     ControllerClientStatus ApplyScene(const LSFString& sceneID);
+
+    /**
+     * Get the Scene Info and Name
+     *
+     * @param sceneID    The ID of the master scene
+     */
+    ControllerClientStatus GetSceneDataSet(const LSFString& sceneID, const LSFString& language = LSFString("en"));
 
   private:
 

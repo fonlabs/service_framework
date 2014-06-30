@@ -184,7 +184,7 @@ class PresetManager : public Manager {
      *
      * @param preset The new state information
      */
-    ControllerClientStatus CreatePreset(const LampState& preset);
+    ControllerClientStatus CreatePreset(const LampState& preset, const LSFString& presetName, const LSFString& language = LSFString("en"));
 
     /**
      * Update a Preset
@@ -224,6 +224,13 @@ class PresetManager : public Manager {
      *      - An error status otherwise
      */
     ControllerClientStatus SetDefaultLampState(const LampState& defaultLampState);
+
+    /**
+     * Get the Preset Info and Name
+     *
+     * @param presetID    The ID of the master preset
+     */
+    ControllerClientStatus GetPresetDataSet(const LSFString& presetID, const LSFString& language = LSFString("en"));
 
   private:
 

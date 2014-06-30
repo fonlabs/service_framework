@@ -70,17 +70,19 @@ ControllerClientStatus SceneManager::SetSceneName(const LSFString& sceneID, cons
                3);
 }
 
-ControllerClientStatus SceneManager::CreateScene(const Scene& scene)
+ControllerClientStatus SceneManager::CreateScene(const Scene& scene, const LSFString& sceneName, const LSFString& language)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    MsgArg args[4];
+    MsgArg args[6];
     scene.Get(&args[0], &args[1], &args[2], &args[3]);
+    args[4].Set("s", sceneName.c_str());
+    args[5].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerServiceSceneInterfaceName,
                "CreateScene",
                args,
-               4);
+               6);
 }
 
 ControllerClientStatus SceneManager::UpdateScene(const LSFString& sceneID, const Scene& scene)
@@ -150,4 +152,17 @@ ControllerClientStatus SceneManager::DeleteScene(const LSFString& sceneID)
                "DeleteScene",
                &arg,
                1);
+}
+
+ControllerClientStatus SceneManager::GetSceneDataSet(const LSFString& sceneID, const LSFString& language)
+{
+    ControllerClientStatus status = CONTROLLER_CLIENT_OK;
+
+    status = GetScene(sceneID);
+
+    if (CONTROLLER_CLIENT_OK == status) {
+        status = GetSceneName(sceneID, language);
+    }
+
+    return status;
 }

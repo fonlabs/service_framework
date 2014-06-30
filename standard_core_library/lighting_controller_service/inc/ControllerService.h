@@ -29,6 +29,7 @@
 #include <alljoyn/ProxyBusObject.h>
 #include <alljoyn/notification/NotificationSender.h>
 #include <alljoyn/about/AboutService.h>
+#include <alljoyn/about/AboutIconService.h>
 #include <alljoyn/config/ConfigService.h>
 
 
@@ -134,6 +135,14 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     bool IsRunning();
 
+    uint64_t GetRank();
+
+    bool IsLeader();
+
+    void AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface);
+
+    void RemoveObjDescriptionFromAnnouncement(qcc::String path, qcc::String interface);
+
   private:
 
     LeaderElectionObject elector;
@@ -185,6 +194,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     LSFPropertyStore internalPropertyStore;
     ajn::services::PropertyStore& propertyStore;
     ajn::services::AboutServiceApi* aboutService;
+    ajn::services::AboutIconService aboutIconService;
     ajn::services::ConfigService configService;
     ajn::services::NotificationSender* notificationSender;
 
@@ -217,6 +227,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
         if (ins.second == false) {
             // if this was already there, overwrite and delete the old handler
             delete ins.first->second;
+            ins.first->second = handler;
         }
     }
 
@@ -249,6 +260,9 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
 
     PersistenceThread fileWriterThread;
+
+    Mutex announceMutex;
+    bool firstAnnouncementSent;
 };
 
 class ControllerServiceManager {

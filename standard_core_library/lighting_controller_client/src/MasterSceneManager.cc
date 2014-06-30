@@ -70,17 +70,19 @@ ControllerClientStatus MasterSceneManager::SetMasterSceneName(const LSFString& m
                3);
 }
 
-ControllerClientStatus MasterSceneManager::CreateMasterScene(const MasterScene& masterScene)
+ControllerClientStatus MasterSceneManager::CreateMasterScene(const MasterScene& masterScene, const LSFString& masterSceneName, const LSFString& language)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    MsgArg arg;
-    masterScene.Get(&arg);
+    MsgArg arg[3];
+    masterScene.Get(&arg[0]);
+    arg[1].Set("s", masterSceneName.c_str());
+    arg[2].Set("s", language.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
                ControllerServiceMasterSceneInterfaceName,
                "CreateMasterScene",
-               &arg,
-               1);
+               arg,
+               3);
 }
 
 ControllerClientStatus MasterSceneManager::UpdateMasterScene(const LSFString& masterSceneID, const MasterScene& masterScene)
@@ -150,4 +152,17 @@ ControllerClientStatus MasterSceneManager::ApplyMasterScene(const LSFString& mas
                "ApplyMasterScene",
                &arg,
                1);
+}
+
+ControllerClientStatus MasterSceneManager::GetMasterSceneDataSet(const LSFString& masterSceneID, const LSFString& language)
+{
+    ControllerClientStatus status = CONTROLLER_CLIENT_OK;
+
+    status = GetMasterScene(masterSceneID);
+
+    if (CONTROLLER_CLIENT_OK == status) {
+        status = GetMasterSceneName(masterSceneID, language);
+    }
+
+    return status;
 }
