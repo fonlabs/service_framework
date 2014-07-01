@@ -214,7 +214,9 @@ static uint32_t MyBusAuthPwdCB(uint8_t* buf, uint32_t bufLen)
 
 static AJ_BusAttachment Bus;
 
-static uint8_t PendingFaultNotification = FALSE;
+static volatile uint8_t PendingFaultNotification = FALSE;
+static volatile uint8_t PendingRestartRequest = FALSE;
+static volatile uint8_t PendingFactoryResetRequest = FALSE;
 
 void LAMP_SetFaults(void)
 {
@@ -224,6 +226,16 @@ void LAMP_SetFaults(void)
 void LAMP_ClearFaults(void)
 {
     PendingFaultNotification = FALSE;
+}
+
+void LAMP_Restart(void)
+{
+    PendingRestartRequest = TRUE;
+}
+
+void LAMP_FactoryReset(void)
+{
+    PendingFactoryResetRequest = TRUE;
 }
 
 /*
@@ -534,6 +546,23 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
             (*callback)();
         }
 
+        if (PendingRestartRequest == TRUE) {
+            PendingRestartRequest = FALSE;
+            status = AJ_ERR_RESTART;
+        }
+
+        if (PendingFactoryResetRequest == TRUE) {
+            PendingFactoryResetRequest = FALSE;
+
+            AJSVC_PropertyStore_ResetAll();
+            AJ_NVRAM_Clear();
+            SavePersistentDeviceId();
+            PropertyStore_Init();
+
+            OEM_LS_DoFactoryReset();
+
+            status = AJ_ERR_RESTART_APP;
+        }
 
         if (status == AJ_ERR_READ || status == AJ_ERR_RESTART || status == AJ_ERR_RESTART_APP) {
             AJ_InfoPrintf(("%s: AllJoyn disconnect\n", __FUNCTION__));

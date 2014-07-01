@@ -87,6 +87,24 @@ void LAMP_SetFaults(void);
 void LAMP_ClearFaults(void);
 
 /**
+ * Restarts the lamp service at the next opportunity when running on its own
+ * thread, restarting the Wifi connection if already established.
+ *
+ * @param  None
+ * @return None
+ */
+void LAMP_Restart(void);
+
+/**
+ * Performs a factory reset at the next opportunity, clearing all internal state
+ * and restarting the service.
+ *
+ * @param  None
+ * @return None
+ */
+void LAMP_FactoryReset(void);
+
+/**
  * @}
  */
 #endif
