@@ -51,7 +51,7 @@ const char FirmwareVersion[] = "1.0";
 const char HardwareVersion[] = "1.0";
 
 static float OEM_LS_Range(uint32_t value, float min, float max) {
-  return min + ((double)value / (double)UINT32_MAX) * (max - min);
+    return min + ((double)value / (double)UINT32_MAX) * (max - min);
 }
 
 LampResponseCode OEM_LS_SetOnOff(uint8_t onoff)
@@ -67,7 +67,7 @@ LampResponseCode OEM_LS_SetOnOff(uint8_t onoff)
 LampResponseCode OEM_LS_SetHue(uint32_t hue)
 {
     LampState state;
-    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, hue, OEM_LS_Range(hue, OEM_LS_HUE_MIN, OEM_LS_HUE_MAX) ));
+    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, hue, OEM_LS_Range(hue, OEM_LS_HUE_MIN, OEM_LS_HUE_MAX)));
     LAMP_GetState(&state);
     state.hue = hue;
     LAMP_SetState(&state);
@@ -77,7 +77,7 @@ LampResponseCode OEM_LS_SetHue(uint32_t hue)
 LampResponseCode OEM_LS_SetBrightness(uint32_t brightness)
 {
     LampState state;
-    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, brightness, OEM_LS_Range(brightness, OEM_LS_BRIGHTNESS_MIN, OEM_LS_BRIGHTNESS_MAX) ));
+    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, brightness, OEM_LS_Range(brightness, OEM_LS_BRIGHTNESS_MIN, OEM_LS_BRIGHTNESS_MAX)));
     LAMP_GetState(&state);
     state.brightness = brightness;
     LAMP_SetState(&state);
@@ -87,7 +87,7 @@ LampResponseCode OEM_LS_SetBrightness(uint32_t brightness)
 LampResponseCode OEM_LS_SetSaturation(uint32_t saturation)
 {
     LampState state;
-    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, saturation, OEM_LS_Range(saturation, OEM_LS_SATURATION_MIN, OEM_LS_SATURATION_MAX) ));
+    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, saturation, OEM_LS_Range(saturation, OEM_LS_SATURATION_MIN, OEM_LS_SATURATION_MAX)));
     LAMP_GetState(&state);
     state.saturation = saturation;
     LAMP_SetState(&state);
@@ -97,7 +97,7 @@ LampResponseCode OEM_LS_SetSaturation(uint32_t saturation)
 LampResponseCode OEM_LS_SetColorTemp(uint32_t colorTemp)
 {
     LampState state;
-    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, colorTemp, OEM_LS_Range(colorTemp, OEM_LS_COLOR_TEMPERATURE_MIN, OEM_LS_COLOR_TEMPERATURE_MAX) ));
+    AJ_InfoPrintf(("%s: %u %f\n", __FUNCTION__, colorTemp, OEM_LS_Range(colorTemp, OEM_LS_COLOR_TEMPERATURE_MIN, OEM_LS_COLOR_TEMPERATURE_MAX)));
     LAMP_GetState(&state);
     state.colorTemp = colorTemp;
     LAMP_SetState(&state);

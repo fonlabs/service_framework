@@ -34,7 +34,7 @@ class LeaderElectionObject : public ajn::BusObject {
 
     ~LeaderElectionObject();
 
-    void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId);
+    void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, uint32_t isLeader, const char* deviceId);
 
     QStatus Start();
 
@@ -64,7 +64,7 @@ class LeaderElectionObject : public ajn::BusObject {
         qcc::String busName;
         qcc::String deviceId;
         uint64_t rank;
-        bool isLeader;
+        uint32_t isLeader;
         bool joining;
     };
 

@@ -36,22 +36,43 @@ class ControllerService::ControllerListener :
     public services::AnnounceHandler,
     public SessionListener {
   public:
-    ControllerListener(ControllerService& controller) : controller(controller) { }
+    ControllerListener(ControllerService& controller) : controller(controller), multipointjoiner(), multipointSessionId(0) { }
 
     // SessionPortListener
     virtual bool AcceptSessionJoiner(SessionPort sessionPort, const char* joiner, const SessionOpts& opts) {
-        QCC_DbgPrintf(("ControllerService::ControllerListener::AcceptSessionJoiner(%s) : Status=%d\n", joiner, (sessionPort == ControllerServiceSessionPort && controller.elector.IsLeader())));
         // only allow multipoint sessions
-        return (sessionPort == ControllerServiceSessionPort && controller.elector.IsLeader());
+        bool acceptStatus = (sessionPort == ControllerServiceSessionPort && controller.elector.IsLeader());
+        if (acceptStatus && opts.isMultipoint) {
+            multipointjoiner = joiner;
+            QCC_DbgPrintf(("%s: Recorded multi-point session joiner %s\n", __FUNCTION__, multipointjoiner.c_str()));
+        }
+        QCC_DbgPrintf(("%s: Joiner = %s: Status=%d\n", __FUNCTION__, joiner, acceptStatus));
+        return acceptStatus;
     }
 
     virtual void SessionJoined(SessionPort sessionPort, SessionId sessionId, const char* joiner) {
-        controller.SessionJoined(sessionId);
+        QCC_DbgPrintf(("%s: sessionPort(%d), sessionId(%d), joiner(%s)", __FUNCTION__, sessionPort, sessionId, joiner));
+        if (multipointSessionId == 0) {
+            if (0 == strcmp(multipointjoiner.c_str(), joiner)) {
+                multipointSessionId = sessionId;
+                QCC_DbgPrintf(("%s: Recorded multi-point session id %d\n", __FUNCTION__, multipointSessionId));
+                controller.SessionJoined(sessionId);
+            }
+        } else {
+            if (multipointSessionId == sessionId) {
+                QCC_DbgPrintf(("%s: Another member joined the multipoint session", __FUNCTION__));
+            }
+        }
     }
 
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason) {
-        QCC_DbgPrintf(("%s", __FUNCTION__));
-        controller.SessionLost(sessionId);
+        QCC_DbgPrintf(("%s: sessionId(%d), reason(%d)", __FUNCTION__, sessionId, reason));
+        if (multipointSessionId == sessionId) {
+            QCC_DbgPrintf(("%s: Lost multi-point session id %d\n", __FUNCTION__, multipointSessionId));
+            controller.SessionLost(sessionId);
+            multipointSessionId = 0;
+            multipointjoiner.clear();
+        }
     }
 
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData) {
@@ -76,6 +97,8 @@ class ControllerService::ControllerListener :
     }
 
     ControllerService& controller;
+    qcc::String multipointjoiner;
+    SessionId multipointSessionId;
 };
 
 class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, public ProxyBusObject::Listener {
@@ -626,21 +649,26 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
 {
     QStatus status = ER_BUS_NO_SESSION;
 
-    if (serviceSession != 0) {
-        size_t arraySize = idList.size();
-        if (arraySize) {
-            const char** ids = new const char*[arraySize];
-            size_t i = 0;
-            for (LSFStringList::const_iterator it = idList.begin(); it != idList.end(); ++it, ++i) {
-                ids[i] = it->c_str();
-            }
-
-            MsgArg arg;
-            arg.Set("as", arraySize, ids);
-            arg.SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-            QCC_DbgPrintf(("%s: Sending signal with %d entries", __FUNCTION__, arraySize));
-            status = Signal(NULL, serviceSession, *(bus.GetInterface(ifaceName)->GetMember(signalName)), &arg, 1);
+    size_t arraySize = idList.size();
+    MsgArg arg;
+    if (arraySize) {
+        const char** ids = new const char*[arraySize];
+        size_t i = 0;
+        for (LSFStringList::const_iterator it = idList.begin(); it != idList.end(); ++it, ++i) {
+            ids[i] = it->c_str();
         }
+        arg.Set("as", arraySize, ids);
+        arg.SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    }
+
+    serviceSessionMutex.Lock();
+    if (serviceSession != 0) {
+        status = Signal(NULL, serviceSession, *(bus.GetInterface(ifaceName)->GetMember(signalName)), &arg, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+    }
+    serviceSessionMutex.Unlock();
+
+    if (ER_OK == status) {
+        QCC_DbgPrintf(("%s: Successfully sent signal with %d entries", __FUNCTION__, arraySize));
     } else {
         QCC_LogError(status, ("%s: Failed to send signal", __FUNCTION__));
     }
@@ -652,8 +680,14 @@ QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const cha
 {
     QStatus status = ER_BUS_NO_SESSION;
 
+    serviceSessionMutex.Lock();
     if (serviceSession != 0) {
-        status = Signal(NULL, serviceSession, *(bus.GetInterface(ifaceName)->GetMember(signalName)));
+        status = Signal(NULL, serviceSession, *(bus.GetInterface(ifaceName)->GetMember(signalName)), NULL, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+    }
+    serviceSessionMutex.Unlock();
+
+    if (ER_OK == status) {
+        QCC_DbgPrintf(("%s: Successfully sent signal", __FUNCTION__));
     } else {
         QCC_LogError(status, ("%s: Failed to send signal", __FUNCTION__));
     }
@@ -723,7 +757,9 @@ void ControllerService::SessionJoined(SessionId sessionId)
     bus.SetSessionListener(sessionId, listener);
 
     // we are now serving up a multipoint session to the apps
+    serviceSessionMutex.Lock();
     serviceSession = sessionId;
+    serviceSessionMutex.Unlock();
 }
 
 void ControllerService::SessionLost(SessionId sessionId)
@@ -731,7 +767,9 @@ void ControllerService::SessionLost(SessionId sessionId)
     // TODO: do we need to track multiple sessions?
     // Or are we ok since there is only one multipoint session?
     QCC_DbgPrintf(("%s", __FUNCTION__));
+    serviceSessionMutex.Lock();
     serviceSession = 0;
+    serviceSessionMutex.Unlock();
 }
 
 void ControllerService::LeaveSession(ajn::SessionId sessionId)
@@ -964,7 +1002,11 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
 
 QStatus ControllerService::SendBlobUpdate(LSFBlobType type, uint32_t checksum, uint64_t timestamp)
 {
-    return elector.SendBlobUpdate(serviceSession, type, checksum, timestamp);
+    QStatus status = ER_OK;
+    serviceSessionMutex.Lock();
+    status = elector.SendBlobUpdate(serviceSession, type, checksum, timestamp);
+    serviceSessionMutex.Unlock();
+    return status;
 }
 
 bool ControllerService::IsRunning()
@@ -980,7 +1022,7 @@ uint64_t ControllerService::GetRank()
     return internalPropertyStore.GetRank();
 }
 
-bool ControllerService::IsLeader()
+uint32_t ControllerService::IsLeader()
 {
     return internalPropertyStore.IsLeader();
 }

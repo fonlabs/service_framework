@@ -121,7 +121,7 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     uint64_t GetRank();
 
-    bool IsLeader();
+    uint32_t IsLeader();
 
   private:
 
@@ -185,7 +185,7 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     QStatus setProperty(PropertyStoreKey propertyKey, uint64_t value, bool isPublic, bool isWritable, bool isAnnouncable);
 
-    QStatus setProperty(PropertyStoreKey propertyKey, bool value, bool isPublic, bool isWritable, bool isAnnouncable);
+    QStatus setProperty(PropertyStoreKey propertyKey, uint32_t value, bool isPublic, bool isWritable, bool isAnnouncable);
 
     /**
      * setProperty

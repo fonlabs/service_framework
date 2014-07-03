@@ -118,7 +118,7 @@ void LSFPropertyStore::ReadFactoryConfiguration()
     iter = factorySettings.find("IsLeader");
     if (iter != factorySettings.end()) {
         uint32_t value = qcc::StringToU32(iter->second);
-        setProperty(IS_LEADER, (bool)value, true, true, true);
+        setProperty(IS_LEADER, value, true, true, true);
     }
 
     std::vector<qcc::String>::const_iterator it;
@@ -639,13 +639,13 @@ uint64_t LSFPropertyStore::GetRank()
     return rank;
 }
 
-bool LSFPropertyStore::IsLeader()
+uint32_t LSFPropertyStore::IsLeader()
 {
-    bool leader = false;
+    uint32_t leader = 0;
     propsLock.Lock();
     PropertyMap::iterator iter = properties.find(IS_LEADER);
     if (iter != properties.end()) {
-        iter->second.getPropertyValue().Get("b", &leader);
+        iter->second.getPropertyValue().Get("u", &leader);
     }
 
     propsLock.Unlock();
@@ -668,10 +668,10 @@ QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, uint64_t val
     return status;
 }
 
-QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, bool value, bool isPublic, bool isWritable, bool isAnnouncable)
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, uint32_t value, bool isPublic, bool isWritable, bool isAnnouncable)
 {
     QStatus status = ER_OK;
-    MsgArg msgArg("b", value);
+    MsgArg msgArg("u", value);
     status = validateValue(propertyKey, msgArg);
     if (status != ER_OK) {
         return status;
@@ -819,7 +819,7 @@ QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn:
         break;
 
     case IS_LEADER:
-        if (value.typeId != ALLJOYN_BOOLEAN) {
+        if (value.typeId != ALLJOYN_UINT32) {
             status = ER_INVALID_VALUE;
         }
         break;

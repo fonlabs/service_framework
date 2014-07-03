@@ -143,13 +143,13 @@ void ControllerClient::ControllerClientBusHandler::Announce(
         }
         ait->second.Get("t", &rank);
 
-        bool isLeader = false;
+        uint32_t isLeader = 0;
         ait = aboutData.find("IsLeader");
         if (ait == aboutData.end()) {
             QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __FUNCTION__));
             return;
         }
-        ait->second.Get("b", &isLeader);
+        ait->second.Get("u", &isLeader);
 
         QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%d isLeader=%d", __FUNCTION__,
                        busName, port, deviceID, deviceName, rank, isLeader));
@@ -205,7 +205,7 @@ void ControllerClient::ClearCurrentLeader()
 {
     currentLeader.busName = "";
     currentLeader.rank = 0;
-    currentLeader.isLeader = false;
+    currentLeader.isLeader = 0;
     currentLeader.port = 0;
     currentLeader.joining = false;
 }
@@ -517,7 +517,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
     }
 }
 
-void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, bool isLeader)
+void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, uint32_t isLeader)
 {
     QCC_DbgPrintf(("ControllerClient::OnAnnounced(port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu, isLeader=%d)",
                    port, busName, deviceID, deviceName, rank, isLeader));

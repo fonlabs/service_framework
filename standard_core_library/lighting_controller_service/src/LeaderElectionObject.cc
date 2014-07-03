@@ -67,7 +67,7 @@ void LeaderElectionObject::Handler::Announce(
     if (elector.bus.GetUniqueName() != busName && oit != objectDescs.end()) {
         AboutData::const_iterator ait;
         uint64_t rank = 0;
-        bool isLeader = false;
+        uint32_t isLeader = 0;
         const char* deviceId;
 
         QCC_DbgPrintf(("%s: About Data Dump", __FUNCTION__));
@@ -94,7 +94,7 @@ void LeaderElectionObject::Handler::Announce(
             QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __FUNCTION__));
             return;
         }
-        ait->second.Get("b", &isLeader);
+        ait->second.Get("u", &isLeader);
 
         QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u", __FUNCTION__, busName, port));
         elector.OnAnnounced(port, busName, rank, isLeader, deviceId);
@@ -122,7 +122,7 @@ LeaderElectionObject::~LeaderElectionObject()
 }
 
 
-void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId)
+void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, uint32_t isLeader, const char* deviceId)
 {
     QCC_DbgPrintf(("OnAnnounced(%u, %s, %lu)", port, busName, rank));
     controllersLock.Lock();
@@ -267,7 +267,7 @@ void LeaderElectionObject::ClearCurrentLeader()
 {
     currentLeader.busName = "";
     currentLeader.rank = 0;
-    currentLeader.isLeader = false;
+    currentLeader.isLeader = 0;
     currentLeader.port = 0;
     currentLeader.joining = false;
 }

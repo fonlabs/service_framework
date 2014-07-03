@@ -44,9 +44,9 @@ uint64_t GetRank()
     return 1;
 }
 
-bool IsLeader()
+uint32_t IsLeader()
 {
-    return false;
+    return 0;
 }
 
 // NOTE: this function will only be called if no Factory Configuration ini file is found.

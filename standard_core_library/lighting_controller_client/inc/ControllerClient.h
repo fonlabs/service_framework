@@ -134,7 +134,7 @@ class ControllerClient : public ajn::MessageReceiver {
      * Internal callback invoked when an announcement is received from a Controller
      * Service Leader
      */
-    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, bool isLeader);
+    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, uint32_t isLeader);
 
     /**
      * Internal callback invoked when a session with a Controller
@@ -234,7 +234,7 @@ class ControllerClient : public ajn::MessageReceiver {
         ajn::SessionPort port;
         qcc::String busName;
         uint64_t rank;
-        bool isLeader;
+        uint32_t isLeader;
         bool joining;
 
         std::string deviceID;

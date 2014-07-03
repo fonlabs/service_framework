@@ -137,7 +137,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     uint64_t GetRank();
 
-    bool IsLeader();
+    uint32_t IsLeader();
 
     void AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface);
 
@@ -172,6 +172,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     QStatus CreateAndAddInterfaces(const InterfaceEntry* entries, size_t numEntries);
 
     ajn::BusAttachment bus;
+    lsf::Mutex serviceSessionMutex;
     ajn::SessionId serviceSession;
 
     class ControllerListener;
