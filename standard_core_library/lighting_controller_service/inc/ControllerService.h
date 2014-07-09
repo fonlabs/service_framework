@@ -131,7 +131,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void ScheduleFileWrite(Manager* manager);
 
-    QStatus SendBlobUpdate(LSFBlobType type, uint32_t checksum, uint64_t timestamp);
+    QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
     bool IsRunning();
 
@@ -261,8 +261,6 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
 
     PersistenceThread fileWriterThread;
-
-    Mutex announceMutex;
     bool firstAnnouncementSent;
 };
 

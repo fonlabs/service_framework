@@ -43,7 +43,7 @@ class LeaderElectionObject : public ajn::BusObject {
     void GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     void GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
-    QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, uint32_t checksum, uint64_t timestamp);
+    QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
     bool IsLeader();
 

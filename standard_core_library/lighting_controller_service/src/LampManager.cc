@@ -234,19 +234,25 @@ void LampManager::TransitionLampStateToPreset(Message& message)
     uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
     QCC_DbgPrintf(("lampID=%s presetID=%s transitionPeriod=%d", lampID.c_str(), presetID.c_str(), transitionPeriod));
 
-    LSFStringList lampList;
-    lampList.push_back(lampID);
+    if (0 == strcmp(presetID.c_str(), CurrentStateIdentifier.c_str())) {
+        QCC_LogError(ER_FAIL, ("%s: Preset cannot be the current state", __FUNCTION__));
+        LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    } else {
+        LSFStringList lampList;
+        lampList.push_back(lampID);
 
-    LampsAndStateList transitionToState;
-    LampsAndPresetList transitionToPreset;
-    LampsAndStateFieldList stateField;
-    PulseLampsWithStateList pulseWithState;
-    PulseLampsWithPresetList pulseWithPreset;
+        LampsAndStateList transitionToState;
+        LampsAndPresetList transitionToPreset;
+        LampsAndStateFieldList stateField;
+        PulseLampsWithStateList pulseWithState;
+        PulseLampsWithPresetList pulseWithPreset;
 
-    LampsAndPreset transitionToPresetComponent(lampList, presetID, transitionPeriod);
-    transitionToPreset.push_back(transitionToPresetComponent);
+        LampsAndPreset transitionToPresetComponent(lampList, presetID, transitionPeriod);
+        transitionToPreset.push_back(transitionToPresetComponent);
 
-    ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+        ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+    }
 }
 
 void LampManager::TransitionLampStateField(ajn::Message& message)
@@ -514,19 +520,25 @@ void LampManager::TransitionLampState(ajn::Message& message)
     uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
     QCC_DbgPrintf(("lampID=%s state=%s transitionPeriod=%d", lampID.c_str(), state.c_str(), transitionPeriod));
 
-    LSFStringList lampList;
-    lampList.push_back(lampID);
+    if (state.nullState) {
+        QCC_LogError(ER_FAIL, ("%s: State cannot be NULL", __FUNCTION__));
+        LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    } else {
+        LSFStringList lampList;
+        lampList.push_back(lampID);
 
-    LampsAndStateList transitionToState;
-    LampsAndPresetList transitionToPreset;
-    LampsAndStateFieldList stateField;
-    PulseLampsWithStateList pulseWithState;
-    PulseLampsWithPresetList pulseWithPreset;
+        LampsAndStateList transitionToState;
+        LampsAndPresetList transitionToPreset;
+        LampsAndStateFieldList stateField;
+        PulseLampsWithStateList pulseWithState;
+        PulseLampsWithPresetList pulseWithPreset;
 
-    LampsAndState transitionToStateComponent(lampList, state, transitionPeriod);
-    transitionToState.push_back(transitionToStateComponent);
+        LampsAndState transitionToStateComponent(lampList, state, transitionPeriod);
+        transitionToState.push_back(transitionToStateComponent);
 
-    ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+        ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+    }
 }
 
 void LampManager::PulseLampWithState(ajn::Message& message)
@@ -545,18 +557,24 @@ void LampManager::PulseLampWithState(ajn::Message& message)
                    __FUNCTION__, lampID.c_str(), fromLampState.c_str(), period, duration, numPulses));
     QCC_DbgPrintf(("%s: toLampState=%s", __FUNCTION__, toLampState.c_str()));
 
-    LSFStringList lampList;
-    lampList.push_back(lampID);
+    if (toLampState.nullState) {
+        QCC_LogError(ER_FAIL, ("%s: ToLampState cannot be NULL", __FUNCTION__));
+        LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    } else {
+        LSFStringList lampList;
+        lampList.push_back(lampID);
 
-    LampsAndStateList transitionToState;
-    LampsAndPresetList transitionToPreset;
-    LampsAndStateFieldList stateField;
-    PulseLampsWithStateList pulseWithState;
-    PulseLampsWithPresetList pulseWithPreset;
+        LampsAndStateList transitionToState;
+        LampsAndPresetList transitionToPreset;
+        LampsAndStateFieldList stateField;
+        PulseLampsWithStateList pulseWithState;
+        PulseLampsWithPresetList pulseWithPreset;
 
-    PulseLampsWithState pulseWithStateComponent(lampList, fromLampState, toLampState, period, duration, numPulses);
-    pulseWithState.push_back(pulseWithStateComponent);
-    ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+        PulseLampsWithState pulseWithStateComponent(lampList, fromLampState, toLampState, period, duration, numPulses);
+        pulseWithState.push_back(pulseWithStateComponent);
+        ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+    }
 }
 
 void LampManager::PulseLampWithPreset(ajn::Message& message)
@@ -574,18 +592,24 @@ void LampManager::PulseLampWithPreset(ajn::Message& message)
     QCC_DbgPrintf(("%s: lampID=%s, fromPresetID=%s, toPresetID=%s, period=%d, duration=%d, numPulses=%d",
                    __FUNCTION__, lampID.c_str(), fromPresetID.c_str(), toPresetID.c_str(), period, duration, numPulses));
 
-    LSFStringList lampList;
-    lampList.push_back(lampID);
+    if (0 == strcmp(toPresetID.c_str(), CurrentStateIdentifier.c_str())) {
+        QCC_LogError(ER_FAIL, ("%s: ToPreset cannot be the current state", __FUNCTION__));
+        LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
+    } else {
+        LSFStringList lampList;
+        lampList.push_back(lampID);
 
-    LampsAndStateList transitionToState;
-    LampsAndPresetList transitionToPreset;
-    LampsAndStateFieldList stateField;
-    PulseLampsWithStateList pulseWithState;
-    PulseLampsWithPresetList pulseWithPreset;
+        LampsAndStateList transitionToState;
+        LampsAndPresetList transitionToPreset;
+        LampsAndStateFieldList stateField;
+        PulseLampsWithStateList pulseWithState;
+        PulseLampsWithPresetList pulseWithPreset;
 
-    PulseLampsWithPreset pulseWithPresetComponent(lampList, fromPresetID, toPresetID, period, duration, numPulses);
-    pulseWithPreset.push_back(pulseWithPresetComponent);
-    ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+        PulseLampsWithPreset pulseWithPresetComponent(lampList, fromPresetID, toPresetID, period, duration, numPulses);
+        pulseWithPreset.push_back(pulseWithPresetComponent);
+        ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset);
+    }
 }
 
 uint32_t LampManager::GetControllerServiceLampInterfaceVersion(void)

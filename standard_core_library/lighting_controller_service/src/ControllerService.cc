@@ -254,6 +254,7 @@ void ControllerService::Initialize()
 {
     lampGroupManager.ReadSavedData();
     presetManager.ReadSavedData();
+    presetManager.InitializeDefaultLampState();
     sceneManager.ReadSavedData();
     masterSceneManager.ReadSavedData();
 
@@ -1000,11 +1001,11 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
     return status;
 }
 
-QStatus ControllerService::SendBlobUpdate(LSFBlobType type, uint32_t checksum, uint64_t timestamp)
+QStatus ControllerService::SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
     QStatus status = ER_OK;
     serviceSessionMutex.Lock();
-    status = elector.SendBlobUpdate(serviceSession, type, checksum, timestamp);
+    status = elector.SendBlobUpdate(serviceSession, type, blob, checksum, timestamp);
     serviceSessionMutex.Unlock();
     return status;
 }
@@ -1032,12 +1033,10 @@ void ControllerService::AddObjDescriptionToAnnouncement(qcc::String path, qcc::S
     QCC_DbgPrintf(("%s", __FUNCTION__));
     std::vector<qcc::String> interfaces;
     interfaces.push_back(interface);
-    announceMutex.Lock();
     aboutService->AddObjectDescription(path, interfaces);
     if (firstAnnouncementSent) {
         aboutService->Announce();
     }
-    announceMutex.Unlock();
 }
 
 void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, qcc::String interface)
@@ -1045,10 +1044,8 @@ void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, q
     QCC_DbgPrintf(("%s", __FUNCTION__));
     std::vector<qcc::String> interfaces;
     interfaces.push_back(interface);
-    announceMutex.Lock();
     aboutService->RemoveObjectDescription(path, interfaces);
     if (firstAnnouncementSent) {
         aboutService->Announce();
     }
-    announceMutex.Unlock();
 }

@@ -87,6 +87,8 @@ LSFResponseCode MasterSceneManager::Reset(void)
         QCC_LogError(tempStatus, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
     }
 
+    ScheduleFileUpdate();
+
     return responseCode;
 }
 
@@ -474,20 +476,24 @@ void MasterSceneManager::ReadSavedData()
         if (token == "MasterScene") {
             std::string id = ParseString(stream);
             std::string name = ParseString(stream);
-            LSFStringList subScenes;
+            if (0 == strcmp(id.c_str(), resetID.c_str())) {
+                QCC_DbgPrintf(("Skipped reading the file as id=%s, name=[%s]\n", id.c_str(), name.c_str()));
+            } else {
+                LSFStringList subScenes;
 
-            do {
-                token = ParseString(stream);
+                do {
+                    token = ParseString(stream);
 
-                if (token == "Scene") {
-                    std::string scene = ParseString(stream);
-                    subScenes.push_back(scene);
-                }
-            } while (token != "EndMasterScene");
+                    if (token == "Scene") {
+                        std::string scene = ParseString(stream);
+                        subScenes.push_back(scene);
+                    }
+                } while (token != "EndMasterScene");
 
-            MasterScene msc(subScenes);
-            std::pair<LSFString, MasterScene> thePair(name, msc);
-            masterScenes[id] = thePair;
+                MasterScene msc(subScenes);
+                std::pair<LSFString, MasterScene> thePair(name, msc);
+                masterScenes[id] = thePair;
+            }
         }
     }
 }
@@ -496,18 +502,26 @@ std::string MasterSceneManager::GetString(const MasterSceneMap& items)
 {
     std::ostringstream stream;
     // (MasterScene id "name" (Scene id)* EndMasterScene)*
-    for (MasterSceneMap::const_iterator it = items.begin(); it != items.end(); ++it) {
-        const LSFString& id = it->first;
-        const LSFString& name = it->second.first;
-        const MasterScene& msc = it->second.second;
+    if (0 == items.size()) {
+        const LSFString& id = resetID;
+        const LSFString& name = resetID;
 
         stream << "MasterScene " << id << " \"" << name << "\"";
-
-        for (LSFStringList::const_iterator sit = msc.scenes.begin(); sit != msc.scenes.end(); ++sit) {
-            stream << " Scene " << *sit;
-        }
-
         stream << " EndMasterScene" << std::endl;
+    } else {
+        for (MasterSceneMap::const_iterator it = items.begin(); it != items.end(); ++it) {
+            const LSFString& id = it->first;
+            const LSFString& name = it->second.first;
+            const MasterScene& msc = it->second.second;
+
+            stream << "MasterScene " << id << " \"" << name << "\"";
+
+            for (LSFStringList::const_iterator sit = msc.scenes.begin(); sit != msc.scenes.end(); ++sit) {
+                stream << " Scene " << *sit;
+            }
+
+            stream << " EndMasterScene" << std::endl;
+        }
     }
 
     return stream.str();
@@ -538,7 +552,7 @@ void MasterSceneManager::WriteFile()
     std::string output = GetString();
     uint32_t checksum = GetChecksum(output);
     WriteFileWithChecksum(output, checksum);
-    controllerService.SendBlobUpdate(LSF_MASTER_SCENE, checksum, 0UL);
+    controllerService.SendBlobUpdate(LSF_MASTER_SCENE, output, checksum, 0UL);
 }
 
 uint32_t MasterSceneManager::GetControllerServiceMasterSceneInterfaceVersion(void)

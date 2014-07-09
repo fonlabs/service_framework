@@ -550,6 +550,7 @@ const std::string LeaderElectionAndStateSyncDescription =
     "    </method>"
     "    <signal name='BlobChanged'>"
     "      <arg name='blobType' type='u' direction='out'/>"
+    "      <arg name='blob' type='s' direction='out'/>"
     "      <arg name='checksum' type='u' direction='out'/>"
     "      <arg name='timestamp' type='t' direction='out'/>"
     "    </signal>"

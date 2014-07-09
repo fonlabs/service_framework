@@ -24,6 +24,8 @@ namespace lsf {
 
 class LampState;
 
+extern const std::string resetID;
+
 void ParseLampState(std::istream& stream, LampState& state);
 
 /**

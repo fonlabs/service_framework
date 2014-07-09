@@ -48,8 +48,7 @@ void Manager::WriteFileWithChecksum(const std::string& str, uint32_t checksum)
 {
     std::ofstream fstream(filePath.c_str(), std::ios_base::out);
     if (!fstream.is_open()) {
-        printf("File not found: %s\n", filePath.c_str());
-        QCC_DbgPrintf(("File not found: %s\n", filePath.c_str()));
+        QCC_LogError(ER_FAIL, ("File not found: %s\n", filePath.c_str()));
         return;
     }
 

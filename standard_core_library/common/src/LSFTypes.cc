@@ -25,6 +25,8 @@ using namespace ajn;
 
 namespace lsf {
 
+const LSFString CurrentStateIdentifier = LSFString("CURRENT_STATE");
+
 const char* ControllerServiceObjectPath = "/org/allseen/LSF/ControllerService";
 const char* ControllerServiceInterfaceName = "org.allseen.LSF.ControllerService";
 const char* ControllerServiceLampInterfaceName = "org.allseen.LSF.ControllerService.Lamp";
@@ -153,12 +155,16 @@ const char* LampState::c_str(void) const
     QCC_DbgPrintf(("%s", __FUNCTION__));
     qcc::String ret;
     ret.clear();
-    ret = qcc::String("LampState") + qcc::String("\n");
-    ret += qcc::String("OnOff=") + U32ToString(onOff) + qcc::String("\n");
-    ret += qcc::String("Hue=") + U32ToString(hue) + qcc::String("\n");
-    ret += qcc::String("Saturation=") + U32ToString(saturation) + qcc::String("\n");
-    ret += qcc::String("Brightness=") + U32ToString(brightness) + qcc::String("\n");
-    ret += qcc::String("ColorTemp=") + U32ToString(colorTemp) + qcc::String("\n");
+    if (nullState) {
+        ret += qcc::String("nullState") + qcc::String("\n");
+    } else {
+        ret = qcc::String("LampState") + qcc::String("\n");
+        ret += qcc::String("OnOff=") + U32ToString(onOff) + qcc::String("\n");
+        ret += qcc::String("Hue=") + U32ToString(hue) + qcc::String("\n");
+        ret += qcc::String("Saturation=") + U32ToString(saturation) + qcc::String("\n");
+        ret += qcc::String("Brightness=") + U32ToString(brightness) + qcc::String("\n");
+        ret += qcc::String("ColorTemp=") + U32ToString(colorTemp) + qcc::String("\n");
+    }
     return ret.c_str();
 }
 
@@ -168,24 +174,31 @@ void LampState::Set(const ajn::MsgArg& arg)
     size_t numArgs;
     arg.Get("a{sv}", &numArgs, &args);
 
-    for (size_t i = 0; i < numArgs; i++) {
-        char* field;
-        MsgArg* value;
-        args[i].Get("{sv}", &field, &value);
+    QCC_DbgPrintf(("%s: numArgs=%d", __FUNCTION__, numArgs));
 
-        if (0 == strcmp(field, "OnOff")) {
-            value->Get("b", &onOff);
-        } else if (0 == strcmp(field, "Hue")) {
-            value->Get("u", &hue);
-        } else if (0 == strcmp(field, "Saturation")) {
-            value->Get("u", &saturation);
-        } else if (0 == strcmp(field, "Brightness")) {
-            value->Get("u", &brightness);
-        } else if (0 == strcmp(field, "ColorTemp")) {
-            value->Get("u", &colorTemp);
+    if (numArgs) {
+        for (size_t i = 0; i < numArgs; i++) {
+            char* field;
+            MsgArg* value;
+            args[i].Get("{sv}", &field, &value);
+
+            if (0 == strcmp(field, "OnOff")) {
+                value->Get("b", &onOff);
+            } else if (0 == strcmp(field, "Hue")) {
+                value->Get("u", &hue);
+            } else if (0 == strcmp(field, "Saturation")) {
+                value->Get("u", &saturation);
+            } else if (0 == strcmp(field, "Brightness")) {
+                value->Get("u", &brightness);
+            } else if (0 == strcmp(field, "ColorTemp")) {
+                value->Get("u", &colorTemp);
+            }
         }
+        nullState = false;
+    } else {
+        nullState = true;
     }
-    nullState = false;
+
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
@@ -665,13 +678,13 @@ LSFResponseCode LampGroup::IsDependentLampGroup(LSFString& lampGroupID)
 }
 
 TransitionLampsLampGroupsToState::TransitionLampsLampGroupsToState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState, uint32_t& transPeriod) :
-    lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(transPeriod)
+    lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(transPeriod), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 TransitionLampsLampGroupsToState::TransitionLampsLampGroupsToState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& lampState) :
-    lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(0)
+    lamps(lampList), lampGroups(lampGroupList), state(lampState), transitionPeriod(0), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -703,7 +716,7 @@ const char* TransitionLampsLampGroupsToState::c_str(void) const
 }
 
 TransitionLampsLampGroupsToState::TransitionLampsLampGroupsToState(const TransitionLampsLampGroupsToState& other) :
-    lamps(other.lamps), lampGroups(other.lampGroups), state(other.state), transitionPeriod(other.transitionPeriod)
+    lamps(other.lamps), lampGroups(other.lampGroups), state(other.state), transitionPeriod(other.transitionPeriod), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -714,6 +727,7 @@ TransitionLampsLampGroupsToState& TransitionLampsLampGroupsToState::operator=(co
     lampGroups = other.lampGroups;
     state = other.state;
     transitionPeriod = other.transitionPeriod;
+    invalidArgs = false;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -726,6 +740,7 @@ void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
     size_t numLampGroups;
     MsgArg* stateArgs;
     size_t stateArgsSize;
+    invalidArgs =  false;
 
     component.Get("(asasa{sv}u)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &stateArgsSize, &stateArgs, &transitionPeriod);
     CreateUniqueList(lamps, lampList, numLamps);
@@ -734,6 +749,10 @@ void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
     MsgArg arg;
     arg.Set("a{sv}", stateArgsSize, stateArgs);
     state.Set(arg);
+    if (state.nullState) {
+        QCC_LogError(ER_FAIL, ("%s: TransitionLampsLampGroupsToState cannot include NULL state", __FUNCTION__));
+        invalidArgs =  true;
+    }
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
@@ -772,13 +791,13 @@ void TransitionLampsLampGroupsToState::Get(ajn::MsgArg* component) const
 }
 
 TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod) :
-    lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(transPeriod)
+    lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(transPeriod), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID) :
-    lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(0)
+    lamps(lampList), lampGroups(lampGroupList), presetID(presetID), transitionPeriod(0), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -810,7 +829,7 @@ const char* TransitionLampsLampGroupsToPreset::c_str(void) const
 }
 
 TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(const TransitionLampsLampGroupsToPreset& other) :
-    lamps(other.lamps), lampGroups(other.lampGroups), presetID(other.presetID), transitionPeriod(other.transitionPeriod)
+    lamps(other.lamps), lampGroups(other.lampGroups), presetID(other.presetID), transitionPeriod(other.transitionPeriod), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -821,6 +840,7 @@ TransitionLampsLampGroupsToPreset& TransitionLampsLampGroupsToPreset::operator=(
     lampGroups = other.lampGroups;
     presetID = other.presetID;
     transitionPeriod = other.transitionPeriod;
+    invalidArgs = false;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -832,12 +852,19 @@ void TransitionLampsLampGroupsToPreset::Set(const ajn::MsgArg& component)
     MsgArg* lampGroupList;
     size_t numLampGroups;
     const char* presetId;
+    invalidArgs =  false;
 
     component.Get("(asassu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &presetId, &transitionPeriod);
     CreateUniqueList(lamps, lampList, numLamps);
     CreateUniqueList(lampGroups, lampGroupList, numLampGroups);
 
     presetID = LSFString(presetId);
+
+    if (0 == strcmp(presetID.c_str(), CurrentStateIdentifier.c_str())) {
+        QCC_LogError(ER_FAIL, ("%s: TransitionLampsLampGroupsToPreset cannot include current state", __FUNCTION__));
+        invalidArgs =  true;
+    }
+
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
@@ -869,13 +896,13 @@ void TransitionLampsLampGroupsToPreset::Get(ajn::MsgArg* component) const
 }
 
 PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& fromLampState, LampState& toLampState, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
-    lamps(lampList), lampGroups(lampGroupList), fromState(fromLampState), toState(toLampState), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+    lamps(lampList), lampGroups(lampGroupList), fromState(fromLampState), toState(toLampState), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& toLampState, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
-    lamps(lampList), lampGroups(lampGroupList), fromState(LampState()), toState(toLampState), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+    lamps(lampList), lampGroups(lampGroupList), fromState(LampState()), toState(toLampState), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -910,7 +937,7 @@ const char* PulseLampsLampGroupsWithState::c_str(void) const
 }
 
 PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(const PulseLampsLampGroupsWithState& other) :
-    lamps(other.lamps), lampGroups(other.lampGroups), fromState(other.fromState), toState(other.toState), pulsePeriod(other.pulsePeriod), pulseDuration(other.pulseDuration), numPulses(other.numPulses)
+    lamps(other.lamps), lampGroups(other.lampGroups), fromState(other.fromState), toState(other.toState), pulsePeriod(other.pulsePeriod), pulseDuration(other.pulseDuration), numPulses(other.numPulses), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -924,6 +951,7 @@ PulseLampsLampGroupsWithState& PulseLampsLampGroupsWithState::operator=(const Pu
     pulsePeriod = other.pulsePeriod;
     pulseDuration = other.pulseDuration;
     numPulses = other.numPulses;
+    invalidArgs = false;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -938,6 +966,7 @@ void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
     size_t fromStateArgsSize;
     MsgArg* toStateArgs;
     size_t toStateArgsSize;
+    invalidArgs =  false;
 
     component.Get("(asasa{sv}a{sv}uuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromStateArgsSize, &fromStateArgs, &toStateArgsSize, &toStateArgs, &pulsePeriod, &pulseDuration, &numPulses);
     CreateUniqueList(lamps, lampList, numLamps);
@@ -950,6 +979,11 @@ void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
     MsgArg toArg;
     toArg.Set("a{sv}", toStateArgsSize, toStateArgs);
     toState.Set(toArg);
+
+    if (toState.nullState) {
+        QCC_LogError(ER_FAIL, ("%s: PulseLampsLampGroupsWithState cannot include to state as NULL state", __FUNCTION__));
+        invalidArgs =  true;
+    }
 
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -996,13 +1030,13 @@ void PulseLampsLampGroupsWithState::Get(ajn::MsgArg* component) const
 }
 
 PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList,  LSFString& fromPreset, LSFString& toPreset, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
-    lamps(lampList), lampGroups(lampGroupList), fromPreset(fromPreset), toPreset(toPreset), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+    lamps(lampList), lampGroups(lampGroupList), fromPreset(fromPreset), toPreset(toPreset), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& toPreset, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
-    lamps(lampList), lampGroups(lampGroupList), fromPreset(LSFString("CURRENT_STATE")), toPreset(toPreset), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses)
+    lamps(lampList), lampGroups(lampGroupList), fromPreset(CurrentStateIdentifier), toPreset(toPreset), pulsePeriod(period), pulseDuration(duration), numPulses(numOfPulses), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -1037,7 +1071,7 @@ const char* PulseLampsLampGroupsWithPreset::c_str(void) const
 }
 
 PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(const PulseLampsLampGroupsWithPreset& other) :
-    lamps(other.lamps), lampGroups(other.lampGroups), fromPreset(other.fromPreset), toPreset(other.toPreset), pulsePeriod(other.pulsePeriod), pulseDuration(other.pulseDuration), numPulses(other.numPulses)
+    lamps(other.lamps), lampGroups(other.lampGroups), fromPreset(other.fromPreset), toPreset(other.toPreset), pulsePeriod(other.pulsePeriod), pulseDuration(other.pulseDuration), numPulses(other.numPulses), invalidArgs(false)
 {
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -1051,6 +1085,7 @@ PulseLampsLampGroupsWithPreset& PulseLampsLampGroupsWithPreset::operator=(const 
     pulsePeriod = other.pulsePeriod;
     pulseDuration = other.pulseDuration;
     numPulses = other.numPulses;
+    invalidArgs = false;
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -1063,6 +1098,7 @@ void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
     size_t numLampGroups;
     const char* fromPresetId;
     const char* toPresetId;
+    invalidArgs =  false;
 
     component.Get("(asasssuuu)", &numLamps, &lampList, &numLampGroups, &lampGroupList, &fromPresetId, &toPresetId, &pulsePeriod, &pulseDuration, &numPulses);
     CreateUniqueList(lamps, lampList, numLamps);
@@ -1070,6 +1106,11 @@ void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
 
     fromPreset = LSFString(fromPresetId);
     toPreset = LSFString(toPresetId);
+
+    if (0 == strcmp(toPreset.c_str(), CurrentStateIdentifier.c_str())) {
+        QCC_LogError(ER_FAIL, ("%s: PulseLampsLampGroupsWithPreset cannot include to state as the current state", __FUNCTION__));
+        invalidArgs =  true;
+    }
 
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
@@ -1101,7 +1142,8 @@ void PulseLampsLampGroupsWithPreset::Get(ajn::MsgArg* component) const
     component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
 }
 
-Scene::Scene()
+Scene::Scene() :
+    invalidArgs(false)
 {
     transitionToStateComponent.clear();
     transitionToPresetComponent.clear();
@@ -1111,14 +1153,16 @@ Scene::Scene()
 }
 
 Scene::Scene(const ajn::MsgArg& transitionToStateComponentList, const ajn::MsgArg& transitionToPresetComponentList,
-             const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList)
+             const ajn::MsgArg& pulseWithStateComponentList, const ajn::MsgArg& pulseWithPresetComponentList) :
+    invalidArgs(false)
 {
     Set(transitionToStateComponentList, transitionToPresetComponentList, pulseWithStateComponentList, pulseWithPresetComponentList);
     //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
 Scene::Scene(TransitionLampsLampGroupsToStateList& transitionToStateComponentList, TransitionLampsLampGroupsToPresetList& transitionToPresetComponentList,
-             PulseLampsLampGroupsWithStateList& pulseWithStateComponentList, PulseLampsLampGroupsWithPresetList& pulseWithPresetComponentList)
+             PulseLampsLampGroupsWithStateList& pulseWithStateComponentList, PulseLampsLampGroupsWithPresetList& pulseWithPresetComponentList) :
+    invalidArgs(false)
 {
     transitionToStateComponent.clear();
     transitionToPresetComponent.clear();
@@ -1141,6 +1185,7 @@ Scene::Scene(const Scene& other)
     transitionToPresetComponent = other.transitionToPresetComponent;
     pulseWithStateComponent = other.pulseWithStateComponent;
     pulseWithPresetComponent = other.pulseWithPresetComponent;
+    invalidArgs = false;
     //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
 }
 
@@ -1154,6 +1199,7 @@ Scene& Scene::operator=(const Scene& other)
     transitionToPresetComponent = other.transitionToPresetComponent;
     pulseWithStateComponent = other.pulseWithStateComponent;
     pulseWithPresetComponent = other.pulseWithPresetComponent;
+    invalidArgs = false;
     //QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));
     return *this;
 }
@@ -1201,7 +1247,13 @@ void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::Ms
 
     for (size_t i = 0; i < transitionToStateComponentSize; i++) {
         TransitionLampsLampGroupsToState tempStateComponent(transitionToStateComponentArray[i]);
-        transitionToStateComponent.push_back(tempStateComponent);
+        if (tempStateComponent.invalidArgs) {
+            QCC_LogError(ER_FAIL, ("%s: TransitionLampsLampGroupsToState invalid", __FUNCTION__));
+            invalidArgs = true;
+            return;
+        } else {
+            transitionToStateComponent.push_back(tempStateComponent);
+        }
     }
 
     MsgArg* transitionToPresetComponentArray;
@@ -1209,7 +1261,13 @@ void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::Ms
     transitionToPresetComponentList.Get("a(asassu)", &transitionToPresetComponentSize, &transitionToPresetComponentArray);
     for (size_t i = 0; i < transitionToPresetComponentSize; i++) {
         TransitionLampsLampGroupsToPreset tempPresetComponent(transitionToPresetComponentArray[i]);
-        transitionToPresetComponent.push_back(tempPresetComponent);
+        if (tempPresetComponent.invalidArgs) {
+            QCC_LogError(ER_FAIL, ("%s: TransitionLampsLampGroupsToPreset invalid", __FUNCTION__));
+            invalidArgs = true;
+            return;
+        } else {
+            transitionToPresetComponent.push_back(tempPresetComponent);
+        }
     }
 
     MsgArg* pulseWithStateComponentArray;
@@ -1217,7 +1275,13 @@ void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::Ms
     pulseWithStateComponentList.Get("a(asasa{sv}a{sv}uuu)", &pulseWithStateComponentSize, &pulseWithStateComponentArray);
     for (size_t i = 0; i < pulseWithStateComponentSize; i++) {
         PulseLampsLampGroupsWithState tempPulseComponent(pulseWithStateComponentArray[i]);
-        pulseWithStateComponent.push_back(tempPulseComponent);
+        if (tempPulseComponent.invalidArgs) {
+            QCC_LogError(ER_FAIL, ("%s: PulseLampsLampGroupsWithState invalid", __FUNCTION__));
+            invalidArgs = true;
+            return;
+        } else {
+            pulseWithStateComponent.push_back(tempPulseComponent);
+        }
     }
 
     MsgArg* pulseWithPresetComponentArray;
@@ -1225,7 +1289,13 @@ void Scene::Set(const ajn::MsgArg& transitionToStateComponentList, const ajn::Ms
     pulseWithPresetComponentList.Get("a(asasssuuu)", &pulseWithPresetComponentSize, &pulseWithPresetComponentArray);
     for (size_t i = 0; i < pulseWithPresetComponentSize; i++) {
         PulseLampsLampGroupsWithPreset tempPulseComponent(pulseWithPresetComponentArray[i]);
-        pulseWithPresetComponent.push_back(tempPulseComponent);
+        if (tempPulseComponent.invalidArgs) {
+            QCC_LogError(ER_FAIL, ("%s: PulseLampsLampGroupsWithPreset invalid", __FUNCTION__));
+            invalidArgs = true;
+            return;
+        } else {
+            pulseWithPresetComponent.push_back(tempPulseComponent);
+        }
     }
 
     QCC_DbgPrintf(("%s: %s", __FUNCTION__, this->c_str()));

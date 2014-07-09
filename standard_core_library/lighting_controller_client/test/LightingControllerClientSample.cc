@@ -871,7 +871,6 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
         printf("\n%s(): responseCode = %s, sceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), sceneID.c_str());
         if (responseCode == LSF_OK) {
             printf("\nscene=%s", scene.c_str());
-            sleep(5);
         }
         gotReply = true;
         if (numRepliesToWait) {
@@ -1552,7 +1551,7 @@ int main()
                 waitForSignal = true;
 #endif
             } else if (cmd == "40") {
-                String uniqueId = String("LAMP_GROUP1FE42B366FB3D943");
+                String uniqueId = NextTok(line);
                 LSFStringList lamps;
                 LSFStringList lampGroups;
                 lamps.push_back(LSFString("9006470d13d65e07f286caf63b89fb03"));

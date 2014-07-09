@@ -16,16 +16,25 @@
 
 #include <FileParser.h>
 #include <LSFTypes.h>
+#include <qcc/Debug.h>
+
+#define QCC_MODULE "FILE_PARSER"
 
 namespace lsf {
 
+const std::string resetID = "Reset";
+
 void ParseLampState(std::istream& stream, LampState& state)
 {
-    state.onOff = (bool) ParseValue<uint32_t>(stream);
-    state.hue = ParseValue<uint32_t>(stream);
-    state.saturation = ParseValue<uint32_t>(stream);
-    state.colorTemp = ParseValue<uint32_t>(stream);
-    state.brightness =  ParseValue<uint32_t>(stream);
+    bool nullState = (bool) ParseValue<uint32_t>(stream);
+
+    if (!nullState) {
+        state = LampState((bool) ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream));
+        QCC_DbgPrintf(("%s: Parsed State = %s", __FUNCTION__, state.c_str()));
+    } else {
+        state = LampState();
+        QCC_DbgPrintf(("%s: Parsed Null State", __FUNCTION__));
+    }
 }
 
 std::string ParseString(std::istream& stream)

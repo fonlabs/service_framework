@@ -47,13 +47,13 @@ static void SigTermHandler(int sig)
 
 static std::string factoryConfigFile = "OEMConfig.ini";
 static std::string configFile = "Config.ini";
-static std::string lampGroupFile = "LampGroups.lmp";
-static std::string presetFile = "Presets.lmp";
-static std::string sceneFile = "Scenes.lmp";
-static std::string masterSceneFile = "MasterScenes.lmp";
+static std::string lampGroupFile = "LampGroups.lsf";
+static std::string presetFile = "Presets.lsf";
+static std::string sceneFile = "Scenes.lsf";
+static std::string masterSceneFile = "MasterScenes.lsf";
 static std::string storeFileName = "LightingControllerService";
 static std::string storeLocation;
-static bool run_daemon = false;
+static bool runDaemon = false;
 
 static void usage(int argc, char** argv)
 {
@@ -81,7 +81,7 @@ static void parseCommandLine(int argc, char** argv)
             break;
 
         case 'd':
-            run_daemon = true;
+            runDaemon = true;
             break;
 
         case 'k':
@@ -159,7 +159,7 @@ int main(int argc, char** argv)
 
     parseCommandLine(argc, argv);
 
-    if (run_daemon) {
+    if (runDaemon) {
         pid_t pid = fork();
 
         if (pid == -1) {

@@ -422,14 +422,16 @@ QStatus LeaderElectionObject::Stop()
     return status;
 }
 
-QStatus LeaderElectionObject::SendBlobUpdate(SessionId session, LSFBlobType type, uint32_t checksum, uint64_t timestamp)
+QStatus LeaderElectionObject::SendBlobUpdate(SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
-    MsgArg args[3];
+    MsgArg args[4];
     args[0].Set("u", static_cast<uint32_t>(type));
-    args[1].Set("u", checksum);
-    args[2].Set("t", timestamp);
+    args[1].Set("s", strdup(blob.c_str()));
+    args[1].SetOwnershipFlags(MsgArg::OwnsData);
+    args[2].Set("u", checksum);
+    args[3].Set("t", timestamp);
 
-    return Signal(NULL, session, *blobChangedSignal, args, 3);
+    return Signal(NULL, session, *blobChangedSignal, args, 4);
 }
 
 void LeaderElectionObject::GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg)
@@ -504,8 +506,9 @@ void LeaderElectionObject::OnBlobChanged(const InterfaceDescription::Member* mem
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
-    //LSFBlobType type = static_cast<LSFBlobType>(args[0].v_uint32);
-    //uint32_t checksum = args[1].v_uint32;
-    //uint64_t timestamp = args[2].v_uint64;
+/*    LSFBlobType type = static_cast<LSFBlobType>(args[0].v_uint32);
+    std::string blob = args[0].v_string.str;
+    uint32_t checksum = args[2].v_uint32;
+    uint64_t timestamp = args[3].v_uint64;*/
     // TODO: decide what to do now
 }

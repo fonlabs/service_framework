@@ -392,7 +392,7 @@ class LampGroupManager : public Manager {
      * @param lampGroupID    The LampGroup id
      * @param lampGroupPreset The new LampGroup state
      */
-    ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = LSFString("CURRENT_STATE"));
+    ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = CurrentStateIdentifier);
 
     /**
      * Transition a Lamp Group's field to a given value

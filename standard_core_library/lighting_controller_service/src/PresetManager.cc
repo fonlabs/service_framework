@@ -26,10 +26,11 @@ using namespace ajn;
 
 #define QCC_MODULE "PRESET_MANAGER"
 
+LSFString defaultLampStateID = "DefaultLampState";
+
 PresetManager::PresetManager(ControllerService& controllerSvc, SceneManager* sceneMgrPtr, const std::string& presetFile) :
     Manager(controllerSvc, presetFile), sceneManagerPtr(sceneMgrPtr)
 {
-    GetFactorySetDefaultLampState(defaultLampState);
 }
 
 LSFResponseCode PresetManager::GetAllPresets(PresetMap& presetMap)
@@ -62,7 +63,9 @@ LSFResponseCode PresetManager::Reset(void)
          */
         LSFStringList presetsList;
         for (PresetMap::iterator it = presets.begin(); it != presets.end(); ++it) {
-            presetsList.push_back(it->first);
+            if (0 != strcmp(it->first.c_str(), defaultLampStateID.c_str())) {
+                presetsList.push_back(it->first);
+            }
         }
 
         /*
@@ -88,13 +91,16 @@ LSFResponseCode PresetManager::Reset(void)
         QCC_LogError(tempStatus, ("%s: presetsLock.Lock() failed", __FUNCTION__));
     }
 
+    ScheduleFileUpdate();
+
     return responseCode;
 }
 
-LSFResponseCode PresetManager::ResetDefaultState(void)
+LSFResponseCode PresetManager::ResetDefaultState(bool sendSignal)
 {
-    LampState state(false, 0x100, 0x100, 0x100, 0x100);
-    return SetDefaultLampStateInternal(state);
+    LampState defaultLampState;
+    GetFactorySetDefaultLampState(defaultLampState);
+    return SetDefaultLampStateInternal(defaultLampState, sendSignal);
 }
 
 LSFResponseCode PresetManager::GetPresetInternal(const LSFString& presetID, LampState& preset)
@@ -103,7 +109,7 @@ LSFResponseCode PresetManager::GetPresetInternal(const LSFString& presetID, Lamp
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
     //TODO: Change this later if required
-    if (0 == strcmp(presetID.c_str(), "CURRENT_STATE")) {
+    if (0 == strcmp(presetID.c_str(), CurrentStateIdentifier.c_str())) {
         QCC_DbgPrintf(("%s: NULL STATE", __FUNCTION__));
         preset = LampState();
         responseCode = LSF_OK;
@@ -113,6 +119,7 @@ LSFResponseCode PresetManager::GetPresetInternal(const LSFString& presetID, Lamp
             PresetMap::iterator it = presets.find(presetID);
             if (it != presets.end()) {
                 preset = it->second.second;
+                QCC_DbgPrintf(("%s: Found Preset %s", __FUNCTION__, preset.c_str()));
                 responseCode = LSF_OK;
             }
             status = presetsLock.Unlock();
@@ -138,7 +145,9 @@ void PresetManager::GetAllPresetIDs(Message& msg)
     QStatus status = presetsLock.Lock();
     if (ER_OK == status) {
         for (PresetMap::iterator it = presets.begin(); it != presets.end(); ++it) {
-            idList.push_back(it->first.c_str());
+            if (0 != strcmp(it->first.c_str(), defaultLampStateID.c_str())) {
+                idList.push_back(it->first.c_str());
+            }
         }
         status = presetsLock.Unlock();
         if (ER_OK != status) {
@@ -272,6 +281,9 @@ void PresetManager::CreatePreset(Message& msg)
 
             if (0 != strcmp("en", language.c_str())) {
                 QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __FUNCTION__, language.c_str()));
+                responseCode = LSF_ERR_INVALID_ARGS;
+            } else if (preset.nullState) {
+                QCC_LogError(ER_FAIL, ("%s: Cannot save NULL state as a Preset", __FUNCTION__, language.c_str()));
                 responseCode = LSF_ERR_INVALID_ARGS;
             } else {
                 presets[presetID].first = name;
@@ -468,49 +480,36 @@ void PresetManager::SetDefaultLampState(Message& msg)
 LSFResponseCode PresetManager::GetDefaultLampStateInternal(LampState& preset)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
-    LSFResponseCode responseCode = LSF_ERR_FAILURE;
-    QStatus status = defaultLampStateLock.Lock();
-    if (ER_OK == status) {
-        preset = defaultLampState;
-        status = defaultLampStateLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: defaultLampStateLock.Unlock() failed", __FUNCTION__));
-        }
-        responseCode = LSF_OK;
-    } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: defaultLampStateLock.Lock() failed", __FUNCTION__));
-    }
-    return responseCode;
+    return GetPresetInternal(defaultLampStateID, preset);
 }
 
-LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset)
+LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset, bool sendSignal)
 {
     QCC_DbgPrintf(("%s: preset=%s", __FUNCTION__, preset.c_str()));
     LSFResponseCode responseCode = LSF_OK;
-    QStatus tempStatus = defaultLampStateLock.Lock();
+    QStatus tempStatus = presetsLock.Lock();
     if (ER_OK == tempStatus) {
-        /*
-         * Set the defaultLampState to factory settings
-         * TODO: Provision for factory setting
-         */
-        defaultLampState = preset;
-        tempStatus = defaultLampStateLock.Unlock();
+        presets[defaultLampStateID] = std::make_pair(defaultLampStateID, preset);
+        tempStatus = presetsLock.Unlock();
         if (ER_OK != tempStatus) {
-            QCC_LogError(tempStatus, ("%s: defaultLampStateLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(tempStatus, ("%s: presetsLock.Unlock() failed", __FUNCTION__));
         }
 
-        /*
-         * Send the DefaultLampStateChangedSignal
-         */
-        QCC_DbgPrintf(("%s: Sending the DefaultLampStateChangedSignal", __FUNCTION__));
-        tempStatus = controllerService.SendSignalWithoutArg(ControllerServicePresetInterfaceName, "DefaultLampStateChanged");
-        if (ER_OK != tempStatus) {
-            QCC_LogError(tempStatus, ("%s: Unable to send DefaultLampStateChanged signal", __FUNCTION__));
+        ScheduleFileUpdate();
+
+        if (sendSignal) {
+            /*
+             * Send the DefaultLampStateChangedSignal
+             */
+            QCC_DbgPrintf(("%s: Sending the DefaultLampStateChangedSignal", __FUNCTION__));
+            tempStatus = controllerService.SendSignalWithoutArg(ControllerServicePresetInterfaceName, "DefaultLampStateChanged");
+            if (ER_OK != tempStatus) {
+                QCC_LogError(tempStatus, ("%s: Unable to send DefaultLampStateChanged signal", __FUNCTION__));
+            }
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(tempStatus, ("%s: defaultLampStateLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(tempStatus, ("%s: presetsLock.Lock() failed", __FUNCTION__));
     }
 
     return responseCode;
@@ -519,7 +518,7 @@ LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset)
 // never call this when the ControllerService is up; it isn't thread-safe!
 // Presets follow the form:
 // (Preset id "name" on/off hue saturation colortemp brightness)*
-void PresetManager::ReadSavedData()
+void PresetManager::ReadSavedData(void)
 {
     std::istringstream stream;
     if (!ValidateFileAndRead(stream)) {
@@ -534,35 +533,67 @@ void PresetManager::ReadSavedData()
             std::string presetId = ParseString(stream);
             std::string presetName = ParseString(stream);
 
-            //printf("SavedState id=%s, name=[%s]\n", id.c_str(), name.c_str());
-            LampState state;
-            ParseLampState(stream, state);
+            QCC_DbgPrintf(("Preset id=%s, name=[%s]\n", presetId.c_str(), presetName.c_str()));
 
-            std::pair<LSFString, LampState> thePair(presetName, state);
-            presets[presetId] = thePair;
+            if (0 == strcmp(presetId.c_str(), resetID.c_str())) {
+                QCC_DbgPrintf(("Skipped reading the file as Preset id=%s, name=[%s]\n", presetId.c_str(), presetName.c_str()));
+            } else {
+                LampState state;
+                ParseLampState(stream, state);
+
+                std::pair<LSFString, LampState> thePair = std::make_pair(presetName, state);
+                presets[presetId] = thePair;
+                QCC_DbgPrintf(("%s: Added ID=%s, Name=%s, State=%s", __FUNCTION__, presetId.c_str(), presets[presetId].first.c_str(), presets[presetId].second.c_str()));
+            }
         }
+    }
+}
+
+void PresetManager::InitializeDefaultLampState(void)
+{
+    QCC_DbgPrintf(("%s", __FUNCTION__));
+    PresetMap::iterator it = presets.find(defaultLampStateID);
+    if (it == presets.end()) {
+        QCC_DbgPrintf(("%s: Reading in default lamp state from OEM Config", __FUNCTION__));
+        ResetDefaultState(false);
     }
 }
 
 std::string PresetManager::GetString(const PresetMap& items)
 {
     std::ostringstream stream;
-    // // (Preset id "name" on/off hue saturation colortemp brightness)*
-    for (PresetMap::const_iterator it = items.begin(); it != items.end(); ++it) {
-        const LSFString& id = it->first;
-        const LSFString& name = it->second.first;
-        const LampState& state = it->second.second;
 
-        stream << "Preset " << id << " \"" << name << "\" "
-               << (state.onOff ? 1 : 0) << ' '
-               << state.hue << ' ' << state.saturation << ' '
-               << state.colorTemp << ' ' << state.brightness << '\n';
+    if (0 == items.size()) {
+        QCC_DbgPrintf(("%s: File is being reset", __FUNCTION__));
+        const LSFString& id = resetID;
+        const LSFString& name = resetID;
+
+        stream << "Preset " << id << " \"" << name << "\" " << '\n';
+    } else {
+        // (Preset id "name" on/off hue saturation colortemp brightness)*
+        for (PresetMap::const_iterator it = items.begin(); it != items.end(); ++it) {
+            const LSFString& id = it->first;
+            const LSFString& name = it->second.first;
+            const LampState& state = it->second.second;
+
+            if (!state.nullState) {
+                stream << "Preset " << id << " \"" << name << "\" "
+                       << (state.nullState ? 1 : 0) << ' '
+                       << (state.onOff ? 1 : 0) << ' '
+                       << state.hue << ' ' << state.saturation << ' '
+                       << state.colorTemp << ' ' << state.brightness << '\n';
+            } else {
+                QCC_DbgPrintf(("%s: Saving NULL state as preset", __FUNCTION__));
+                stream << "Preset " << id << " \"" << name << "\" "
+                       << (state.nullState ? 1 : 0) << '\n';
+            }
+        }
     }
 
     return stream.str();
 }
 
-std::string PresetManager::GetString()
+std::string PresetManager::GetString(void)
 {
     presetsLock.Lock();
     // we shouldn't hold this lock for the entire time!
@@ -572,7 +603,7 @@ std::string PresetManager::GetString()
     return GetString(mapCopy);
 }
 
-void PresetManager::WriteFile()
+void PresetManager::WriteFile(void)
 {
     QCC_DbgPrintf(("%s", __FUNCTION__));
     if (!updated) {
@@ -586,7 +617,7 @@ void PresetManager::WriteFile()
     std::string output = GetString();
     uint32_t checksum = GetChecksum(output);
     WriteFileWithChecksum(output, checksum);
-    controllerService.SendBlobUpdate(LSF_PRESET, checksum, 0UL);
+    controllerService.SendBlobUpdate(LSF_PRESET, output, checksum, 0UL);
 }
 
 uint32_t PresetManager::GetControllerServicePresetInterfaceVersion(void)

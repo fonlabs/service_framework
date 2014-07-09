@@ -43,6 +43,8 @@ typedef std::list<LampFaultCode> LampFaultCodeList;
 
 typedef std::map<LSFString, LSFString> LampNameMap;
 
+extern const LSFString CurrentStateIdentifier;
+
 extern const char* ControllerServiceObjectPath;
 extern const char* ControllerServiceInterfaceName;
 extern const char* ControllerServiceLampInterfaceName;
@@ -234,6 +236,7 @@ class TransitionLampsLampGroupsToState {
     LSFStringList lampGroups;
     LampState state;
     uint32_t transitionPeriod;
+    bool invalidArgs;
 };
 
 class TransitionLampsLampGroupsToPreset {
@@ -256,6 +259,7 @@ class TransitionLampsLampGroupsToPreset {
     LSFStringList lampGroups;
     LSFString presetID;
     uint32_t transitionPeriod;
+    bool invalidArgs;
 };
 
 class PulseLampsLampGroupsWithState {
@@ -281,6 +285,7 @@ class PulseLampsLampGroupsWithState {
     uint32_t pulsePeriod;
     uint32_t pulseDuration;
     uint32_t numPulses;
+    bool invalidArgs;
 };
 
 class PulseLampsLampGroupsWithPreset {
@@ -306,6 +311,7 @@ class PulseLampsLampGroupsWithPreset {
     uint32_t pulsePeriod;
     uint32_t pulseDuration;
     uint32_t numPulses;
+    bool invalidArgs;
 };
 
 typedef std::list<TransitionLampsLampGroupsToState> TransitionLampsLampGroupsToStateList;
@@ -338,6 +344,7 @@ class Scene {
     TransitionLampsLampGroupsToPresetList transitionToPresetComponent;
     PulseLampsLampGroupsWithStateList pulseWithStateComponent;
     PulseLampsLampGroupsWithPresetList pulseWithPresetComponent;
+    bool invalidArgs;
 };
 
 /*

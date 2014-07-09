@@ -574,7 +574,7 @@ class LampManager : public Manager {
      * @param lampID    The Lamp id
      * @param lampPreset The new Lamp state
      */
-    ControllerClientStatus PulseLampWithPreset(const LSFString& lampID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = LSFString("CURRENT_STATE"));
+    ControllerClientStatus PulseLampWithPreset(const LSFString& lampID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = CurrentStateIdentifier);
 
     /**
      * Set the Lamp's state param
