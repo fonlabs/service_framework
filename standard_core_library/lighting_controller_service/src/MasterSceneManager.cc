@@ -28,11 +28,12 @@ using namespace ajn;
 MasterSceneManager::MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const std::string& masterSceneFile) :
     Manager(controllerSvc, masterSceneFile), sceneManager(sceneMgr)
 {
-
+    QCC_DbgTrace(("%s", __func__));
 }
 
 LSFResponseCode MasterSceneManager::GetAllMasterScenes(MasterSceneMap& masterSceneMap)
 {
+    QCC_DbgTrace(("%s", __func__));
     LSFResponseCode responseCode = LSF_OK;
 
     QStatus status = masterScenesLock.Lock();
@@ -40,11 +41,11 @@ LSFResponseCode MasterSceneManager::GetAllMasterScenes(MasterSceneMap& masterSce
         masterSceneMap = masterScenes;
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     return responseCode;
@@ -52,7 +53,7 @@ LSFResponseCode MasterSceneManager::GetAllMasterScenes(MasterSceneMap& masterSce
 
 LSFResponseCode MasterSceneManager::Reset(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     LSFResponseCode responseCode = LSF_OK;
     QStatus tempStatus = masterScenesLock.Lock();
     if (ER_OK == tempStatus) {
@@ -68,9 +69,10 @@ LSFResponseCode MasterSceneManager::Reset(void)
          * Clear the MasterScenes
          */
         masterScenes.clear();
+        ScheduleFileWrite();
         tempStatus = masterScenesLock.Unlock();
         if (ER_OK != tempStatus) {
-            QCC_LogError(tempStatus, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(tempStatus, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
 
         /*
@@ -79,21 +81,20 @@ LSFResponseCode MasterSceneManager::Reset(void)
         if (masterScenesList.size()) {
             tempStatus = controllerService.SendSignal(ControllerServiceMasterSceneInterfaceName, "MasterScenesDeleted", masterScenesList);
             if (ER_OK != tempStatus) {
-                QCC_LogError(tempStatus, ("%s: Unable to send MasterScenesDeleted signal", __FUNCTION__));
+                QCC_LogError(tempStatus, ("%s: Unable to send MasterScenesDeleted signal", __func__));
             }
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(tempStatus, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(tempStatus, ("%s: masterScenesLock.Lock() failed", __func__));
     }
-
-    ScheduleFileUpdate();
 
     return responseCode;
 }
 
 LSFResponseCode MasterSceneManager::IsDependentOnScene(LSFString& sceneID)
 {
+    QCC_DbgTrace(("%s", __func__));
     LSFResponseCode responseCode = LSF_OK;
 
     QStatus status = masterScenesLock.Lock();
@@ -106,11 +107,11 @@ LSFResponseCode MasterSceneManager::IsDependentOnScene(LSFString& sceneID)
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     return responseCode;
@@ -118,7 +119,7 @@ LSFResponseCode MasterSceneManager::IsDependentOnScene(LSFString& sceneID)
 
 void MasterSceneManager::GetAllMasterSceneIDs(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
 
     LSFStringList idList;
     LSFResponseCode responseCode = LSF_OK;
@@ -130,11 +131,11 @@ void MasterSceneManager::GetAllMasterSceneIDs(Message& message)
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndListOfIDs(message, responseCode, idList);
@@ -142,7 +143,7 @@ void MasterSceneManager::GetAllMasterSceneIDs(Message& message)
 
 void MasterSceneManager::GetMasterSceneName(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     LSFString name;
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
@@ -157,7 +158,7 @@ void MasterSceneManager::GetMasterSceneName(Message& message)
 
     LSFString language = static_cast<LSFString>(args[1].v_string.str);
     if (0 != strcmp("en", language.c_str())) {
-        QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __FUNCTION__, language.c_str()));
+        QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
     } else {
         QStatus status = masterScenesLock.Lock();
@@ -169,11 +170,11 @@ void MasterSceneManager::GetMasterSceneName(Message& message)
             }
             status = masterScenesLock.Unlock();
             if (ER_OK != status) {
-                QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+                QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
             }
         } else {
             responseCode = LSF_ERR_BUSY;
-            QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
         }
     }
 
@@ -182,7 +183,7 @@ void MasterSceneManager::GetMasterSceneName(Message& message)
 
 void MasterSceneManager::SetMasterSceneName(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
     bool nameChanged = false;
@@ -200,12 +201,12 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
 
     LSFString language = static_cast<LSFString>(args[2].v_string.str);
     if (0 != strcmp("en", language.c_str())) {
-        QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __FUNCTION__, language.c_str()));
+        QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
     } else {
         if (strlen(name) > LSF_MAX_NAME_LENGTH) {
             responseCode = LSF_ERR_INVALID_ARGS;
-            QCC_LogError(ER_FAIL, ("%s: strlen(name) > LSF_MAX_NAME_LENGTH", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: strlen(name) > LSF_MAX_NAME_LENGTH", __func__));
         } else {
             QStatus status = masterScenesLock.Lock();
             if (ER_OK == status) {
@@ -214,14 +215,15 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
                     it->second.first = LSFString(name);
                     responseCode = LSF_OK;
                     nameChanged = true;
+                    ScheduleFileWrite();
                 }
                 status = masterScenesLock.Unlock();
                 if (ER_OK != status) {
-                    QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+                    QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
                 }
             } else {
                 responseCode = LSF_ERR_BUSY;
-                QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+                QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
             }
         }
     }
@@ -229,7 +231,6 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
     controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, masterSceneID, language);
 
     if (nameChanged) {
-        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(ControllerServiceMasterSceneInterfaceName, "MasterScenesNameChanged", idList);
@@ -238,7 +239,7 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
 
 void MasterSceneManager::CreateMasterScene(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
 
     LSFResponseCode responseCode = LSF_OK;
 
@@ -259,30 +260,30 @@ void MasterSceneManager::CreateMasterScene(Message& message)
             LSFString language = static_cast<LSFString>(inputArgs[2].v_string.str);
 
             if (0 != strcmp("en", language.c_str())) {
-                QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __FUNCTION__, language.c_str()));
+                QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
                 responseCode = LSF_ERR_INVALID_ARGS;
             } else {
                 masterScenes[masterSceneID].first = name;
                 masterScenes[masterSceneID].second = masterScene;
                 created = true;
+                ScheduleFileWrite();
             }
         } else {
-            QCC_LogError(ER_FAIL, ("%s: No slot for new MasterScene", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: No slot for new MasterScene", __func__));
             responseCode = LSF_ERR_NO_SLOT;
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, masterSceneID);
 
     if (created) {
-        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(ControllerServiceMasterSceneInterfaceName, "MasterScenesCreated", idList);
@@ -291,7 +292,7 @@ void MasterSceneManager::CreateMasterScene(Message& message)
 
 void MasterSceneManager::UpdateMasterScene(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
     bool updated = false;
@@ -313,20 +314,20 @@ void MasterSceneManager::UpdateMasterScene(Message& message)
             masterScenes[masterSceneID].second = masterScene;
             responseCode = LSF_OK;
             updated = true;
+            ScheduleFileWrite();
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, masterSceneID);
 
     if (updated) {
-        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(ControllerServiceMasterSceneInterfaceName, "MasterScenesUpdated", idList);
@@ -335,7 +336,7 @@ void MasterSceneManager::UpdateMasterScene(Message& message)
 
 void MasterSceneManager::DeleteMasterScene(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     LSFString name;
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
@@ -357,20 +358,20 @@ void MasterSceneManager::DeleteMasterScene(Message& message)
             masterScenes.erase(it);
             responseCode = LSF_OK;
             deleted = true;
+            ScheduleFileWrite();
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, masterSceneID);
 
     if (deleted) {
-        ScheduleFileUpdate();
         LSFStringList idList;
         idList.push_back(masterSceneID);
         controllerService.SendSignal(ControllerServiceMasterSceneInterfaceName, "MasterScenesDeleted", idList);
@@ -379,7 +380,7 @@ void MasterSceneManager::DeleteMasterScene(Message& message)
 
 void MasterSceneManager::GetMasterScene(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
 
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
@@ -403,11 +404,11 @@ void MasterSceneManager::GetMasterScene(Message& message)
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     outArgs[0].Set("u", responseCode);
@@ -418,7 +419,7 @@ void MasterSceneManager::GetMasterScene(Message& message)
 
 void MasterSceneManager::ApplyMasterScene(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
     size_t numArgs;
@@ -443,11 +444,11 @@ void MasterSceneManager::ApplyMasterScene(ajn::Message& message)
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __FUNCTION__));
+            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
         }
     } else {
         responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
     }
 
     if (LSF_OK == responseCode) {
@@ -465,11 +466,18 @@ void MasterSceneManager::ApplyMasterScene(ajn::Message& message)
 // (MasterScene id "name" (Scene id)* EndMasterScene)*
 void MasterSceneManager::ReadSavedData()
 {
+    QCC_DbgTrace(("%s", __func__));
     std::istringstream stream;
     if (!ValidateFileAndRead(stream)) {
         return;
     }
 
+    ReplaceMap(stream);
+}
+
+void MasterSceneManager::ReplaceMap(std::istringstream& stream)
+{
+    QCC_DbgTrace(("%s", __func__));
     while (!stream.eof()) {
         std::string token = ParseString(stream);
 
@@ -500,6 +508,7 @@ void MasterSceneManager::ReadSavedData()
 
 std::string MasterSceneManager::GetString(const MasterSceneMap& items)
 {
+    QCC_DbgTrace(("%s", __func__));
     std::ostringstream stream;
     // (MasterScene id "name" (Scene id)* EndMasterScene)*
     if (0 == items.size()) {
@@ -527,36 +536,109 @@ std::string MasterSceneManager::GetString(const MasterSceneMap& items)
     return stream.str();
 }
 
-std::string MasterSceneManager::GetString()
+bool MasterSceneManager::GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp)
 {
+    QCC_DbgTrace(("%s", __func__));
+    MasterSceneMap mapCopy;
+    mapCopy.clear();
+    bool ret = false;
+    output.clear();
+
     masterScenesLock.Lock();
     // we can't hold this lock for the entire time!
-    MasterSceneMap mapCopy = masterScenes;
-    updated = false;
+    if (updated) {
+        mapCopy = masterScenes;
+        updated = false;
+        ret = true;
+    }
     masterScenesLock.Unlock();
 
-    return GetString(mapCopy);
+    if (ret) {
+        output = GetString(mapCopy);
+        masterScenesLock.Lock();
+        if (!blobUpdateCycle) {
+            checkSum = checksum = GetChecksum(output);
+            timeStamp = timestamp = GetTimestamp64();
+        } else {
+            checksum = checkSum;
+            timestamp = timeStamp;
+            blobUpdateCycle = false;
+        }
+        masterScenesLock.Unlock();
+    }
+
+    return ret;
 }
 
-void MasterSceneManager::WriteFile()
+void MasterSceneManager::HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
-    if (!updated) {
-        return;
+    QCC_DbgPrintf(("%s", __func__));
+    uint64_t currentTimestamp = GetTimestamp64();
+    masterScenesLock.Lock();
+    if ((currentTimestamp - timeStamp) > timestamp) {
+        masterScenes.clear();
+        std::istringstream stream(blob.c_str());
+        ReplaceMap(stream);
+        timeStamp = timestamp;
+        checkSum = checksum;
+        ScheduleFileWrite(true);
     }
+    masterScenesLock.Unlock();
+}
+
+void MasterSceneManager::ReadWriteFile()
+{
+    QCC_DbgPrintf(("%s", __func__));
 
     if (filePath.empty()) {
         return;
     }
 
-    std::string output = GetString();
-    uint32_t checksum = GetChecksum(output);
-    WriteFileWithChecksum(output, checksum);
-    controllerService.SendBlobUpdate(LSF_MASTER_SCENE, output, checksum, 0UL);
+    std::string output;
+    uint32_t checksum;
+    uint64_t timestamp;
+    bool status = false;
+
+    status = GetString(output, checksum, timestamp);
+
+    if (status) {
+        WriteFileWithChecksumAndTimestamp(output, checksum, timestamp);
+        uint64_t currentTime = GetTimestamp64();
+        controllerService.SendBlobUpdate(LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
+    }
+
+    std::list<ajn::Message> tempMessageList;
+    tempMessageList.clear();
+
+    readMutex.Lock();
+    if (read) {
+        tempMessageList = readBlobMessages;
+        readBlobMessages.clear();
+        read = false;
+    }
+    readMutex.Unlock();
+
+    if (tempMessageList.size() && !status) {
+        std::istringstream stream;
+        status = ValidateFileAndReadInternal(checksum, timestamp, stream);
+        if (status) {
+            output = stream.str();
+        } else {
+            QCC_LogError(ER_FAIL, ("%s: MasterScene persistent store corrupted", __func__));
+        }
+    }
+
+    if (status) {
+        while (tempMessageList.size()) {
+            uint64_t currentTime = GetTimestamp64();
+            controllerService.SendGetBlobReply(tempMessageList.front(), LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
+            tempMessageList.pop_front();
+        }
+    }
 }
 
 uint32_t MasterSceneManager::GetControllerServiceMasterSceneInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerMasterSceneInterfaceVersion=%d", __FUNCTION__, ControllerServiceMasterSceneInterfaceVersion));
+    QCC_DbgPrintf(("%s: controllerMasterSceneInterfaceVersion=%d", __func__, ControllerServiceMasterSceneInterfaceVersion));
     return ControllerServiceMasterSceneInterfaceVersion;
 }

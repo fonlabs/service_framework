@@ -73,10 +73,11 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
   public:
     /**
      * PropertyStoreImpl - constructor
+     * @param obsConfigFile
      * @param factoryConfigFile
      * @param configFile
      */
-    LSFPropertyStore(const std::string& factoryConfigFile, const std::string& configFile);
+    LSFPropertyStore(const std::string& obsConfigFile, const std::string& factoryConfigFile, const std::string& configFile);
 
     /**
      * virtual Destructor
@@ -136,9 +137,11 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     bool isInitialized;
 
-    std::string configFileName;
+    const std::string obsConfigFile;
 
-    std::string factoryConfigFileName;
+    const std::string configFileName;
+
+    const std::string factoryConfigFileName;
 
     bool factoryReset;
 
@@ -213,6 +216,8 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      * Keep a backup of the factory settings ini file
      */
     StringMap factorySettings;
+
+    StringMap obsSettings;
 
     virtual void Run();
     virtual void Stop();

@@ -30,10 +30,10 @@ void ParseLampState(std::istream& stream, LampState& state)
 
     if (!nullState) {
         state = LampState((bool) ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream));
-        QCC_DbgPrintf(("%s: Parsed State = %s", __FUNCTION__, state.c_str()));
+        QCC_DbgPrintf(("%s: Parsed State = %s", __func__, state.c_str()));
     } else {
         state = LampState();
-        QCC_DbgPrintf(("%s: Parsed Null State", __FUNCTION__));
+        QCC_DbgPrintf(("%s: Parsed Null State", __func__));
     }
 }
 

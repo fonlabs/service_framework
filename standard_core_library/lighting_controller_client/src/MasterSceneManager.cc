@@ -30,12 +30,13 @@ MasterSceneManager::MasterSceneManager(ControllerClient& controllerClient, Maste
     Manager(controllerClient),
     callback(callback)
 {
+    QCC_DbgTrace(("%s", __func__));
     controllerClient.masterSceneManagerPtr = this;
 }
 
 ControllerClientStatus MasterSceneManager::GetAllMasterSceneIDs(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
                ControllerServiceMasterSceneInterfaceName,
                "GetAllMasterSceneIDs");
@@ -43,7 +44,7 @@ ControllerClientStatus MasterSceneManager::GetAllMasterSceneIDs(void)
 
 ControllerClientStatus MasterSceneManager::GetMasterSceneName(const LSFString& masterSceneID, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: masterSceneID=%s", __FUNCTION__, masterSceneID.c_str()));
+    QCC_DbgPrintf(("%s: masterSceneID=%s", __func__, masterSceneID.c_str()));
     MsgArg args[2];
     args[0].Set("s", masterSceneID.c_str());
     args[1].Set("s", language.c_str());
@@ -56,7 +57,7 @@ ControllerClientStatus MasterSceneManager::GetMasterSceneName(const LSFString& m
 
 ControllerClientStatus MasterSceneManager::SetMasterSceneName(const LSFString& masterSceneID, const LSFString& masterSceneName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: masterSceneID=%s masterSceneName=%s language=%s", __FUNCTION__, masterSceneID.c_str(), masterSceneName.c_str(), language.c_str()));
+    QCC_DbgPrintf(("%s: masterSceneID=%s masterSceneName=%s language=%s", __func__, masterSceneID.c_str(), masterSceneName.c_str(), language.c_str()));
 
     MsgArg args[3];
     args[0].Set("s", masterSceneID.c_str());
@@ -72,7 +73,7 @@ ControllerClientStatus MasterSceneManager::SetMasterSceneName(const LSFString& m
 
 ControllerClientStatus MasterSceneManager::CreateMasterScene(const MasterScene& masterScene, const LSFString& masterSceneName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     MsgArg arg[3];
     masterScene.Get(&arg[0]);
     arg[1].Set("s", masterSceneName.c_str());
@@ -87,7 +88,7 @@ ControllerClientStatus MasterSceneManager::CreateMasterScene(const MasterScene& 
 
 ControllerClientStatus MasterSceneManager::UpdateMasterScene(const LSFString& masterSceneID, const MasterScene& masterScene)
 {
-    QCC_DbgPrintf(("%s: masterSceneID=%s", __FUNCTION__, masterSceneID.c_str()));
+    QCC_DbgPrintf(("%s: masterSceneID=%s", __func__, masterSceneID.c_str()));
     MsgArg args[2];
     args[0].Set("s", masterSceneID.c_str());
     masterScene.Get(&args[1]);
@@ -101,7 +102,7 @@ ControllerClientStatus MasterSceneManager::UpdateMasterScene(const LSFString& ma
 
 ControllerClientStatus MasterSceneManager::GetMasterScene(const LSFString& masterSceneID)
 {
-    QCC_DbgPrintf(("%s: masterSceneID=%s", __FUNCTION__, masterSceneID.c_str()));
+    QCC_DbgPrintf(("%s: masterSceneID=%s", __func__, masterSceneID.c_str()));
     MsgArg arg;
     arg.Set("s", masterSceneID.c_str());
 
@@ -116,7 +117,7 @@ ControllerClientStatus MasterSceneManager::GetMasterScene(const LSFString& maste
 
 void MasterSceneManager::GetMasterSceneReply(Message& message)
 {
-    QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+    QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -130,7 +131,7 @@ void MasterSceneManager::GetMasterSceneReply(Message& message)
 
 ControllerClientStatus MasterSceneManager::DeleteMasterScene(const LSFString& masterSceneID)
 {
-    QCC_DbgPrintf(("%s: masterSceneID=%s", __FUNCTION__, masterSceneID.c_str()));
+    QCC_DbgPrintf(("%s: masterSceneID=%s", __func__, masterSceneID.c_str()));
     MsgArg arg;
     arg.Set("s", masterSceneID.c_str());
 
@@ -143,7 +144,7 @@ ControllerClientStatus MasterSceneManager::DeleteMasterScene(const LSFString& ma
 
 ControllerClientStatus MasterSceneManager::ApplyMasterScene(const LSFString& masterSceneID)
 {
-    QCC_DbgPrintf(("%s: masterSceneID=%s", __FUNCTION__, masterSceneID.c_str()));
+    QCC_DbgPrintf(("%s: masterSceneID=%s", __func__, masterSceneID.c_str()));
     MsgArg arg;
     arg.Set("s", masterSceneID.c_str());
 
@@ -156,6 +157,7 @@ ControllerClientStatus MasterSceneManager::ApplyMasterScene(const LSFString& mas
 
 ControllerClientStatus MasterSceneManager::GetMasterSceneDataSet(const LSFString& masterSceneID, const LSFString& language)
 {
+    QCC_DbgTrace(("%s", __func__));
     ControllerClientStatus status = CONTROLLER_CLIENT_OK;
 
     status = GetMasterScene(masterSceneID);

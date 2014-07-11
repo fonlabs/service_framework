@@ -23,7 +23,6 @@
 #include <fstream>
 #include <sstream>
 #include <streambuf>
-#include <zlib.h>
 
 #include <ControllerService.h>
 
@@ -34,24 +33,51 @@ using namespace lsf;
 Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
     : controllerService(controllerSvc),
     updated(false),
-    filePath(filePath)
+    read(false),
+    filePath(filePath),
+    checkSum(0),
+    timeStamp(0),
+    blobUpdateCycle(false)
 {
+    QCC_DbgTrace(("%s", __func__));
+    readBlobMessages.clear();
+}
 
+static uint32_t GetAdler32Checksum(const uint8_t* data, size_t len) {
+    QCC_DbgTrace(("%s", __func__));
+    uint32_t adler = 1;
+    uint32_t adlerPrime = 65521;
+    while (data && len) {
+        size_t l = len % 3800; // Max number of iterations before modulus must be computed
+        uint32_t a = adler & 0xFFFF;
+        uint32_t b = adler >> 16;
+        len -= l;
+        while (l--) {
+            a += *data++;
+            b += a;
+        }
+        adler = ((b % adlerPrime) << 16) | (a % adlerPrime);
+    }
+    QCC_DbgTrace(("%s: adler=0x%x", __func__, adler));
+    return adler;
 }
 
 uint32_t Manager::GetChecksum(const std::string& str)
 {
-    return adler32(1, (uint8_t*) str.c_str(), str.length());
+    QCC_DbgTrace(("%s", __func__));
+    return GetAdler32Checksum((uint8_t*) str.c_str(), str.length());
 }
 
-void Manager::WriteFileWithChecksum(const std::string& str, uint32_t checksum)
+void Manager::WriteFileWithChecksumAndTimestamp(const std::string& str, uint32_t checksum, uint64_t timestamp)
 {
+    QCC_DbgTrace(("%s", __func__));
     std::ofstream fstream(filePath.c_str(), std::ios_base::out);
     if (!fstream.is_open()) {
         QCC_LogError(ER_FAIL, ("File not found: %s\n", filePath.c_str()));
         return;
     }
 
+    fstream << timestamp << std::endl;
     fstream << checksum << std::endl;
     fstream << str;
     fstream.close();
@@ -59,7 +85,16 @@ void Manager::WriteFileWithChecksum(const std::string& str, uint32_t checksum)
 
 bool Manager::ValidateFileAndRead(std::istringstream& filestream)
 {
-    QCC_DbgPrintf(("%s: filePath=%s", __FUNCTION__, filePath.c_str()));
+    QCC_DbgTrace(("%s", __func__));
+    uint32_t checksum;
+    uint64_t timestamp;
+
+    return ValidateFileAndReadInternal(checksum, timestamp, filestream);
+}
+
+bool Manager::ValidateFileAndReadInternal(uint32_t& checksum, uint64_t& timestamp, std::istringstream& filestream)
+{
+    QCC_DbgPrintf(("%s: filePath=%s", __func__, filePath.c_str()));
 
     if (filePath.empty()) {
         return false;
@@ -72,8 +107,15 @@ bool Manager::ValidateFileAndRead(std::istringstream& filestream)
         return false;
     }
 
-    uint32_t checksum;
+    stream >> timestamp;
+
+    uint64_t currenttime = GetTimestamp64();
+    QCC_DbgPrintf(("%s: timestamp=%lld", __func__, timestamp));
+    QCC_DbgPrintf(("%s: Updated %lld ticks ago", __func__, (currenttime - timestamp)));
+
     stream >> checksum;
+
+    QCC_DbgPrintf(("%s: checksum=%d", __func__, checksum));
 
     // put the rest of the file into the filestream
     std::stringbuf rest;
@@ -90,6 +132,7 @@ bool Manager::ValidateFileAndRead(std::istringstream& filestream)
 
 void Manager::MethodReplyPassthrough(ajn::Message& msg, void* context)
 {
+    QCC_DbgTrace(("%s", __func__));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
     size_t numArgs;
     const ajn::MsgArg* args;
@@ -102,30 +145,32 @@ void Manager::MethodReplyPassthrough(ajn::Message& msg, void* context)
 
 LSFString Manager::GenerateUniqueID(const LSFString& prefix) const
 {
+    QCC_DbgTrace(("%s", __func__));
     // generate a GUID string with a given prefix
     qcc::String str = qcc::RandHexString(ID_STR_LEN);
     return prefix + str.c_str();
 }
 
-void Manager::ScheduleFileUpdate()
+void Manager::ScheduleFileWrite(bool blobUpdate)
 {
+    QCC_DbgTrace(("%s", __func__));
     updated = true;
-    controllerService.ScheduleFileWrite(this);
+    blobUpdateCycle = blobUpdate;
+    controllerService.ScheduleFileReadWrite(this);
 }
 
-void Manager::GetBlobInfo(uint32_t& checksum, uint64_t& time)
+void Manager::ScheduleFileRead(Message& message)
 {
-    std::string output = GetString();
-    checksum = GetChecksum(output);
-    time = 0;
+    QCC_DbgTrace(("%s", __func__));
+    readMutex.Lock();
+    readBlobMessages.push_back(message);
+    read = true;
+    controllerService.ScheduleFileReadWrite(this);
+    readMutex.Unlock();
 }
 
-void Manager::GetBlob(ajn::MsgArg& blob, ajn::MsgArg& checksum, ajn::MsgArg& time)
+void Manager::GetBlobInfoInternal(uint32_t& checksum, uint64_t& timestamp)
 {
-    std::string output = GetString();
-
-    blob.Set("s", strdup(output.c_str()));
-    blob.SetOwnershipFlags(MsgArg::OwnsData);
-    checksum.Set("u", GetChecksum(output));
-    time.Set("t", 0);
+    checksum = checkSum;
+    timestamp = timeStamp;
 }

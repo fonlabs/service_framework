@@ -62,6 +62,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * Constructor
      */
     ControllerService(
+        const std::string& obsConfigFile,
         const std::string& factoryConfigFile,
         const std::string& configFile,
         const std::string& lampGroupFile,
@@ -71,6 +72,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     ControllerService(
         ajn::services::PropertyStore& propStore,
+        const std::string& obsConfigFile,
         const std::string& factoryConfigFile,
         const std::string& configFile,
         const std::string& lampGroupFile,
@@ -129,9 +131,11 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     QStatus SendSignalWithoutArg(const char* ifaceName, const char* signalName);
 
-    void ScheduleFileWrite(Manager* manager);
+    void ScheduleFileReadWrite(Manager* manager);
 
     QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
+
+    void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
     bool IsRunning();
 
@@ -267,25 +271,27 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 class ControllerServiceManager {
   public:
     ControllerServiceManager(
+        const std::string& obsConfigFile,
         const std::string& factoryConfigFile,
         const std::string& configFile,
         const std::string& lampGroupFile,
         const std::string& presetFile,
         const std::string& sceneFile,
         const std::string& masterSceneFile) :
-        controllerService(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
+        controllerService(obsConfigFile, factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
 
     }
 
     ControllerServiceManager(
         ajn::services::PropertyStore& propStore,
+        const std::string& obsConfigFile,
         const std::string& factoryConfigFile,
         const std::string& configFile,
         const std::string& lampGroupFile,
         const std::string& presetFile,
         const std::string& sceneFile,
         const std::string& masterSceneFile) :
-        controllerService(propStore, factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
+        controllerService(propStore, obsConfigFile, factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
 
     }
 

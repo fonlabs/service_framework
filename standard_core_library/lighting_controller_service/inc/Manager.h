@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <Mutex.h>
 
 namespace lsf {
 
@@ -40,7 +41,9 @@ class Manager : public ajn::MessageReceiver {
 
     Manager(ControllerService& controllerSvc, const std::string& filePath = "");
 
-    void ScheduleFileUpdate();
+    void ScheduleFileRead(ajn::Message& message);
+
+    void ScheduleFileWrite(bool blobUpdate = false);
 
     //protected:
 
@@ -50,21 +53,30 @@ class Manager : public ajn::MessageReceiver {
 
     bool updated;
 
+    Mutex readMutex;
+    bool read;
+
     const std::string filePath;
 
     bool ValidateFileAndRead(std::istringstream& filestream);
 
+    bool ValidateFileAndReadInternal(uint32_t& checksum, uint64_t& timestamp, std::istringstream& filestream);
+
     uint32_t GetChecksum(const std::string& str);
 
-    virtual std::string GetString() { return ""; }
+    virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp) { return false; };
 
-    void GetBlobInfo(uint32_t& checksum, uint64_t& time);
+    void GetBlobInfoInternal(uint32_t& checksum, uint64_t& time);
 
-    void GetBlob(ajn::MsgArg& blob, ajn::MsgArg& checksum, ajn::MsgArg& time);
-
-    void WriteFileWithChecksum(const std::string& str, uint32_t checksum);
+    void WriteFileWithChecksumAndTimestamp(const std::string& str, uint32_t checksum, uint64_t timestamp);
 
     void MethodReplyPassthrough(ajn::Message& msg, void* context);
+
+    uint32_t checkSum;
+    uint64_t timeStamp;
+    bool blobUpdateCycle;
+
+    std::list<ajn::Message> readBlobMessages;
 };
 
 }

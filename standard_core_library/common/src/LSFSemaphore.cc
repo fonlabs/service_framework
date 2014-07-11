@@ -25,24 +25,24 @@ using namespace lsf;
 
 LSFSemaphore::LSFSemaphore()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     sem_init(&mutex, 1, 1);
 }
 
 LSFSemaphore::~LSFSemaphore()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     sem_destroy(&mutex);
 }
 
 void LSFSemaphore::Wait(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     sem_wait(&mutex);
 }
 
 void LSFSemaphore::Post(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     sem_post(&mutex);
 }

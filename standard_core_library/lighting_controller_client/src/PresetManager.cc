@@ -32,7 +32,7 @@ PresetManager::PresetManager(ControllerClient& controllerClient, PresetManagerCa
 
 ControllerClientStatus PresetManager::GetAllPresetIDs(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
                ControllerServicePresetInterfaceName,
                "GetAllPresetIDs");
@@ -40,7 +40,7 @@ ControllerClientStatus PresetManager::GetAllPresetIDs(void)
 
 ControllerClientStatus PresetManager::GetPreset(const LSFString& presetID)
 {
-    QCC_DbgPrintf(("%s: presetID=%s", __FUNCTION__, presetID.c_str()));
+    QCC_DbgPrintf(("%s: presetID=%s", __func__, presetID.c_str()));
     MsgArg arg;
     arg.Set("s", presetID.c_str());
 
@@ -57,7 +57,7 @@ ControllerClientStatus PresetManager::GetPreset(const LSFString& presetID)
 
 void PresetManager::GetPresetReply(Message& message)
 {
-    QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+    QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -70,7 +70,7 @@ void PresetManager::GetPresetReply(Message& message)
 
 ControllerClientStatus PresetManager::GetPresetName(const LSFString& presetID, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: presetID=%s", __FUNCTION__, presetID.c_str()));
+    QCC_DbgPrintf(("%s: presetID=%s", __func__, presetID.c_str()));
     MsgArg args[2];
     args[0].Set("s", presetID.c_str());
     args[1].Set("s", language.c_str());
@@ -83,7 +83,7 @@ ControllerClientStatus PresetManager::GetPresetName(const LSFString& presetID, c
 
 ControllerClientStatus PresetManager::SetPresetName(const LSFString& presetID, const LSFString& presetName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: presetID=%s presetName=%s language=%s", __FUNCTION__, presetID.c_str(), presetName.c_str(), language.c_str()));
+    QCC_DbgPrintf(("%s: presetID=%s presetName=%s language=%s", __func__, presetID.c_str(), presetName.c_str(), language.c_str()));
 
     MsgArg args[3];
     args[0].Set("s", presetID.c_str());
@@ -99,7 +99,7 @@ ControllerClientStatus PresetManager::SetPresetName(const LSFString& presetID, c
 
 ControllerClientStatus PresetManager::CreatePreset(const LampState& preset, const LSFString& presetName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: preset=%s", __FUNCTION__, preset.c_str()));
+    QCC_DbgPrintf(("%s: preset=%s", __func__, preset.c_str()));
 
     MsgArg arg[3];
     preset.Get(&arg[0]);
@@ -115,7 +115,7 @@ ControllerClientStatus PresetManager::CreatePreset(const LampState& preset, cons
 
 ControllerClientStatus PresetManager::UpdatePreset(const LSFString& presetID, const LampState& preset)
 {
-    QCC_DbgPrintf(("%s: presetID=%s preset=%s", __FUNCTION__, presetID.c_str(), preset.c_str()));
+    QCC_DbgPrintf(("%s: presetID=%s preset=%s", __func__, presetID.c_str(), preset.c_str()));
     MsgArg args[2];
     args[0].Set("s", presetID.c_str());
     preset.Get(&args[1]);
@@ -129,7 +129,7 @@ ControllerClientStatus PresetManager::UpdatePreset(const LSFString& presetID, co
 
 ControllerClientStatus PresetManager::DeletePreset(const LSFString& presetID)
 {
-    QCC_DbgPrintf(("%s: presetID=%s", __FUNCTION__, presetID.c_str()));
+    QCC_DbgPrintf(("%s: presetID=%s", __func__, presetID.c_str()));
     MsgArg arg;
     arg.Set("s", presetID.c_str());
 
@@ -142,7 +142,7 @@ ControllerClientStatus PresetManager::DeletePreset(const LSFString& presetID)
 
 ControllerClientStatus PresetManager::GetDefaultLampState(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     return controllerClient.MethodCallAsync(
                ControllerServicePresetInterfaceName,
                "GetDefaultLampState",
@@ -152,7 +152,7 @@ ControllerClientStatus PresetManager::GetDefaultLampState(void)
 
 void PresetManager::GetDefaultLampStateReply(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: Method Reply %s", __FUNCTION__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+    QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
 
     size_t numArgs;
     const MsgArg* args;
@@ -166,7 +166,7 @@ void PresetManager::GetDefaultLampStateReply(ajn::Message& message)
 
 ControllerClientStatus PresetManager::SetDefaultLampState(const LampState& defaultLampState)
 {
-    QCC_DbgPrintf(("%s: defaultLampState=%s", __FUNCTION__, defaultLampState.c_str()));
+    QCC_DbgPrintf(("%s: defaultLampState=%s", __func__, defaultLampState.c_str()));
 
     MsgArg arg;
     defaultLampState.Get(&arg);

@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <qcc/Debug.h>
 #include <Manager.h>
-
 #include <ControllerClient.h>
 
 #define QCC_MODULE "MANAGER"
@@ -25,5 +25,5 @@ using namespace lsf;
 Manager::Manager(ControllerClient& controllerClient) :
     controllerClient(controllerClient)
 {
-
+    QCC_DbgTrace(("%s", __func__));
 }

@@ -36,6 +36,7 @@ class LeaderElectionObject::Handler : public ajn::services::AnnounceHandler, pub
     // BusAttachment::JoinSessionAsyncCB
     // when we are the joiner...
     virtual void JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context) {
+        QCC_DbgTrace(("%s", __func__));
         elector.bus.EnableConcurrentCallbacks();
         ControllerEntry* joined = static_cast<ControllerEntry*>(context);
         elector.OnSessionJoined(status, sessionId, joined);
@@ -43,11 +44,13 @@ class LeaderElectionObject::Handler : public ajn::services::AnnounceHandler, pub
 
     // SessionListener
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason) {
+        QCC_DbgTrace(("%s", __func__));
         elector.bus.EnableConcurrentCallbacks();
         elector.OnSessionLost(sessionId);
     }
 
     virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName) {
+        QCC_DbgTrace(("%s", __func__));
         elector.bus.EnableConcurrentCallbacks();
         elector.OnSessionMemberRemoved(sessionId, uniqueName);
     }
@@ -62,6 +65,7 @@ void LeaderElectionObject::Handler::Announce(
     const ObjectDescriptions& objectDescs,
     const AboutData& aboutData)
 {
+    QCC_DbgTrace(("%s", __func__));
     elector.bus.EnableConcurrentCallbacks();
     ObjectDescriptions::const_iterator oit = objectDescs.find(ControllerServiceObjectPath);
     if (elector.bus.GetUniqueName() != busName && oit != objectDescs.end()) {
@@ -70,33 +74,33 @@ void LeaderElectionObject::Handler::Announce(
         uint32_t isLeader = 0;
         const char* deviceId;
 
-        QCC_DbgPrintf(("%s: About Data Dump", __FUNCTION__));
+        QCC_DbgPrintf(("%s: About Data Dump", __func__));
         for (ait = aboutData.begin(); ait != aboutData.end(); ait++) {
             QCC_DbgPrintf(("%s: %s", ait->first.c_str(), ait->second.ToString().c_str()));
         }
 
         ait = aboutData.find("DeviceId");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: DeviceId missing in About Announcement", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: DeviceId missing in About Announcement", __func__));
             return;
         }
         ait->second.Get("s", &deviceId);
 
         ait = aboutData.find("Rank");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: Rank missing in About Announcement", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: Rank missing in About Announcement", __func__));
             return;
         }
         ait->second.Get("t", &rank);
 
         ait = aboutData.find("IsLeader");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __func__));
             return;
         }
         ait->second.Get("u", &isLeader);
 
-        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u", __FUNCTION__, busName, port));
+        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u", __func__, busName, port));
         elector.OnAnnounced(port, busName, rank, isLeader, deviceId);
     }
 }
@@ -113,11 +117,13 @@ LeaderElectionObject::LeaderElectionObject(ControllerService& controller)
     leaderObj(NULL),
     blobChangedSignal(NULL)
 {
+    QCC_DbgTrace(("%s", __func__));
     ClearCurrentLeader();
 }
 
 LeaderElectionObject::~LeaderElectionObject()
 {
+    QCC_DbgTrace(("%s", __func__));
     delete handler;
 }
 
@@ -148,6 +154,7 @@ void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busNam
 
 void LeaderElectionObject::OnSessionLost(SessionId sessionId)
 {
+    QCC_DbgTrace(("%s", __func__));
     controllersLock.Lock();
     if (leaderObj != NULL) {
         qcc::String busName = leaderObj->GetServiceName();
@@ -166,6 +173,7 @@ void LeaderElectionObject::OnSessionLost(SessionId sessionId)
 // call while locked!
 void LeaderElectionObject::RemoveUniqueName(const qcc::String& uniqueName)
 {
+    QCC_DbgTrace(("%s", __func__));
     BusNameToDeviceId::iterator bit = nameToId.find(uniqueName);
     if (bit != nameToId.end()) {
         ControllerEntryMap::iterator it = controllers.find(bit->second);
@@ -180,6 +188,7 @@ void LeaderElectionObject::RemoveUniqueName(const qcc::String& uniqueName)
 
 void LeaderElectionObject::OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName)
 {
+    QCC_DbgTrace(("%s", __func__));
     controllersLock.Lock();
 
     // we don't care if a peer was lost; only if the leader has left
@@ -202,7 +211,7 @@ void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId, 
     if (status == ER_OK) {
         controllersLock.Lock();
         SessionId oldSession = leaderObj ? leaderObj->GetSessionId() : 0;
-        QCC_DbgPrintf(("%s: leader rank: %lu; joined rank: %lu\n", __FUNCTION__, currentLeader.rank, joined->rank));
+        QCC_DbgPrintf(("%s: leader rank: %lu; joined rank: %lu\n", __func__, currentLeader.rank, joined->rank));
 
         if ((currentLeader.rank <= joined->rank) && (currentLeader.isLeader && joined->isLeader)) {
             currentLeader = *joined;
@@ -244,6 +253,7 @@ void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId, 
 // do not call this method if controllersLock isn't locked!
 LeaderElectionObject::ControllerEntry* LeaderElectionObject::GetMaxRankedEntry()
 {
+    QCC_DbgTrace(("%s", __func__));
     ControllerEntry* max_rank = NULL;
 
     // now decide what to do!
@@ -265,6 +275,7 @@ LeaderElectionObject::ControllerEntry* LeaderElectionObject::GetMaxRankedEntry()
 // do not call this method if controllersLock isn't locked!
 void LeaderElectionObject::ClearCurrentLeader()
 {
+    QCC_DbgTrace(("%s", __func__));
     currentLeader.busName = "";
     currentLeader.rank = 0;
     currentLeader.isLeader = 0;
@@ -274,7 +285,7 @@ void LeaderElectionObject::ClearCurrentLeader()
 
 void LeaderElectionObject::JoinLeaderSession()
 {
-    QCC_DbgPrintf(("%s: Ignoring announcement as we are already in a session with a Controller Service", __FUNCTION__));
+    QCC_DbgPrintf(("%s: Ignoring announcement as we are already in a session with a Controller Service", __func__));
 #if 0
     controllersLock.Lock();
     ControllerEntry* max_rank = GetMaxRankedEntry();
@@ -324,7 +335,7 @@ void LeaderElectionObject::JoinLeaderSession()
             options.isMultipoint = true;
             QStatus status = bus.JoinSessionAsync(max_rank->busName.c_str(), max_rank->port, handler, options, handler, max_rank);
             if (status != ER_OK) {
-                QCC_LogError(status, ("%s: JoinSessionAsync\n", __FUNCTION__));
+                QCC_LogError(status, ("%s: JoinSessionAsync\n", __func__));
             } else {
                 max_rank->joining = true;
             }
@@ -349,13 +360,14 @@ static const char* ControllerServiceInterface[] = {
 
 QStatus LeaderElectionObject::Start()
 {
+    QCC_DbgTrace(("%s", __func__));
     // can't get this in c'tor because it might not be initialized yet
     myRank = controller.GetRank();
 
     QStatus status;
     status = bus.CreateInterfacesFromXml(LeaderElectionAndStateSyncDescription.c_str());
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to CreateInterfacesFromXml", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to CreateInterfacesFromXml", __func__));
         return status;
     }
 
@@ -371,7 +383,7 @@ QStatus LeaderElectionObject::Start()
 
     status = AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(MethodEntry));
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __func__));
         return status;
     }
 
@@ -382,19 +394,19 @@ QStatus LeaderElectionObject::Start()
         blobChangedSignal,
         LeaderElectionAndStateSyncObjectPath);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to register BlobChanged signal handler", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to register BlobChanged signal handler", __func__));
         return status;
     }
 
     status = bus.RegisterBusObject(*this);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to register BusObject for the Leader Object", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to register BusObject for the Leader Object", __func__));
         return status;
     }
 
     status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __func__));
         return status;
     }
 
@@ -403,6 +415,7 @@ QStatus LeaderElectionObject::Start()
 
 QStatus LeaderElectionObject::Stop()
 {
+    QCC_DbgTrace(("%s", __func__));
     QStatus status = ER_OK;
 
     status = bus.UnregisterSignalHandler(
@@ -411,12 +424,12 @@ QStatus LeaderElectionObject::Stop()
         blobChangedSignal,
         LeaderElectionAndStateSyncObjectPath);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the unregister BlobChanged Handler", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the unregister BlobChanged Handler", __func__));
     }
 
     status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __func__));
     }
 
     return status;
@@ -424,6 +437,7 @@ QStatus LeaderElectionObject::Stop()
 
 QStatus LeaderElectionObject::SendBlobUpdate(SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
+    QCC_DbgTrace(("%s", __func__));
     MsgArg args[4];
     args[0].Set("u", static_cast<uint32_t>(type));
     args[1].Set("s", strdup(blob.c_str()));
@@ -434,81 +448,118 @@ QStatus LeaderElectionObject::SendBlobUpdate(SessionId session, LSFBlobType type
     return Signal(NULL, session, *blobChangedSignal, args, 4);
 }
 
-void LeaderElectionObject::GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg)
+void LeaderElectionObject::SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
+    QCC_DbgTrace(("%s", __func__));
+    MsgArg args[4];
+    args[0].Set("u", static_cast<uint32_t>(type));
+    args[1].Set("s", strdup(blob.c_str()));
+    args[1].SetOwnershipFlags(MsgArg::OwnsData);
+    args[2].Set("u", checksum);
+    args[3].Set("t", timestamp);
+
+    controller.SendMethodReply(message, args, 4);
+}
+
+void LeaderElectionObject::GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& message)
+{
+    QCC_DbgTrace(("%s", __func__));
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
 
     MsgArg outArg;
     MsgArg* out = new MsgArg[4];
 
-    uint32_t checksum;
-    uint64_t timestamp;
+    uint32_t presetchecksum;
+    uint64_t presettimestamp;
+    controller.GetPresetManager().GetBlobInfo(presetchecksum, presettimestamp);
 
-    controller.GetPresetManager().GetBlobInfo(checksum, timestamp);
-    out[0].Set("(uut)", static_cast<uint32_t>(LSF_PRESET), checksum, timestamp);
+    uint32_t groupchecksum;
+    uint64_t grouptimestamp;
+    controller.GetLampGroupManager().GetBlobInfo(groupchecksum, grouptimestamp);
 
-    controller.GetLampGroupManager().GetBlobInfo(checksum, timestamp);
-    out[1].Set("(uut)", static_cast<uint32_t>(LSF_LAMP_GROUP), checksum, timestamp);
+    uint32_t scenechecksum;
+    uint64_t scenetimestamp;
+    controller.GetSceneManager().GetBlobInfo(scenechecksum, scenetimestamp);
 
-    controller.GetSceneManager().GetBlobInfo(checksum, timestamp);
-    out[2].Set("(uut)", static_cast<uint32_t>(LSF_SCENE), checksum, timestamp);
+    uint32_t masterscenechecksum;
+    uint64_t masterscenetimestamp;
+    controller.GetMasterSceneManager().GetBlobInfo(masterscenechecksum, masterscenetimestamp);
 
-    controller.GetMasterSceneManager().GetBlobInfo(checksum, timestamp);
-    out[3].Set("(uut)", static_cast<uint32_t>(LSF_MASTER_SCENE), checksum, timestamp);
-
+    uint64_t currentTimestamp = GetTimestamp64();
+    out[0].Set("(uut)", static_cast<uint32_t>(LSF_PRESET), presetchecksum, currentTimestamp - presettimestamp);
+    out[1].Set("(uut)", static_cast<uint32_t>(LSF_LAMP_GROUP), groupchecksum, currentTimestamp - grouptimestamp);
+    out[2].Set("(uut)", static_cast<uint32_t>(LSF_SCENE), scenechecksum, currentTimestamp - scenetimestamp);
+    out[3].Set("(uut)", static_cast<uint32_t>(LSF_MASTER_SCENE), masterscenechecksum, currentTimestamp - masterscenetimestamp);
     outArg.Set("a(uut)", 4, out);
     outArg.SetOwnershipFlags(MsgArg::OwnsArgs | MsgArg::OwnsData);
 
-    MethodReply(msg, &outArg, 1);
+    MethodReply(message, &outArg, 1);
 }
 
-void LeaderElectionObject::GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& msg)
+void LeaderElectionObject::GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& message)
 {
+    QCC_DbgTrace(("%s", __func__));
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
-
-    MsgArg outArgs[3];
+    message->GetArgs(numArgs, args);
 
     switch (static_cast<LSFBlobType>(args[0].v_uint32)) {
     case LSF_PRESET:
-        controller.GetPresetManager().GetBlob(outArgs[0], outArgs[1], outArgs[2]);
+        controller.GetPresetManager().ScheduleFileRead(message);
         break;
 
     case LSF_LAMP_GROUP:
-        controller.GetLampGroupManager().GetBlob(outArgs[0], outArgs[1], outArgs[2]);
+        controller.GetLampGroupManager().ScheduleFileRead(message);
         break;
 
     case LSF_SCENE:
-        controller.GetSceneManager().GetBlob(outArgs[0], outArgs[1], outArgs[2]);
+        controller.GetSceneManager().ScheduleFileRead(message);
         break;
 
     case LSF_MASTER_SCENE:
-        controller.GetMasterSceneManager().GetBlob(outArgs[0], outArgs[1], outArgs[2]);
+        controller.GetMasterSceneManager().ScheduleFileRead(message);
         break;
 
     default:
-        outArgs[0].Set("s", "");
-        outArgs[1].Set("t", 0UL);
-        outArgs[2].Set("t", 0UL);
+        QCC_LogError(ER_FAIL, ("%s: Unsupported blob type requested", __func__));
         break;
     }
-
-    MethodReply(msg, outArgs, 3);
 }
 
-void LeaderElectionObject::OnBlobChanged(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
+void LeaderElectionObject::OnBlobChanged(const InterfaceDescription::Member* member, const char* sourcePath, Message& message)
 {
+    QCC_DbgTrace(("%s", __func__));
     bus.EnableConcurrentCallbacks();
     size_t numArgs;
     const MsgArg* args;
-    msg->GetArgs(numArgs, args);
+    message->GetArgs(numArgs, args);
 
-/*    LSFBlobType type = static_cast<LSFBlobType>(args[0].v_uint32);
+    LSFBlobType type = static_cast<LSFBlobType>(args[0].v_uint32);
     std::string blob = args[0].v_string.str;
     uint32_t checksum = args[2].v_uint32;
-    uint64_t timestamp = args[3].v_uint64;*/
-    // TODO: decide what to do now
+    uint64_t timestamp = args[3].v_uint64;
+
+    switch (type) {
+    case LSF_PRESET:
+        controller.GetPresetManager().HandleReceivedBlob(blob, checksum, timestamp);
+        break;
+
+    case LSF_LAMP_GROUP:
+        controller.GetLampGroupManager().HandleReceivedBlob(blob, checksum, timestamp);
+        break;
+
+    case LSF_SCENE:
+        controller.GetSceneManager().HandleReceivedBlob(blob, checksum, timestamp);
+        break;
+
+    case LSF_MASTER_SCENE:
+        controller.GetMasterSceneManager().HandleReceivedBlob(blob, checksum, timestamp);
+        break;
+
+    default:
+        QCC_LogError(ER_FAIL, ("%s: Unsupported blob type requested", __func__));
+        break;
+    }
 }

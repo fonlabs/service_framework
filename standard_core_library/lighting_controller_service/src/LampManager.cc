@@ -34,23 +34,23 @@ using namespace ajn;
 LampManager::LampManager(ControllerService& controllerSvc, PresetManager& presetMgr)
     : Manager(controllerSvc), lampClients(controllerSvc), presetManager(presetMgr)
 {
-
+    QCC_DbgTrace(("%s", __func__));
 }
 
 LampManager::~LampManager()
 {
-
+    QCC_DbgTrace(("%s", __func__));
 }
 
 QStatus LampManager::Start(const char* keyStoreFileLocation)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     /*
      * Start the Lamp Clients
      */
     QStatus status = lampClients.Start(keyStoreFileLocation);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the Lamp Clients", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the Lamp Clients", __func__));
     }
 
     return status;
@@ -58,20 +58,20 @@ QStatus LampManager::Start(const char* keyStoreFileLocation)
 
 QStatus LampManager::Stop(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     return lampClients.Join();
 }
 
 void LampManager::GetAllLampIDs(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
 
     lampClients.RequestAllLampIDs(message);
 }
 
 void LampManager::GetLampFaults(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -83,7 +83,7 @@ void LampManager::GetLampFaults(ajn::Message& message)
 
 void LampManager::ClearLampFault(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -96,7 +96,7 @@ void LampManager::ClearLampFault(ajn::Message& message)
 
 void LampManager::GetLampServiceVersion(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -108,7 +108,7 @@ void LampManager::GetLampServiceVersion(ajn::Message& message)
 
 void LampManager::GetLampSupportedLanguages(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -120,7 +120,7 @@ void LampManager::GetLampSupportedLanguages(Message& message)
 
 void LampManager::GetLampManufacturer(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -133,7 +133,7 @@ void LampManager::GetLampManufacturer(Message& message)
 
 void LampManager::GetLampName(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -147,7 +147,7 @@ void LampManager::GetLampName(Message& message)
 
 void LampManager::SetLampName(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -162,7 +162,7 @@ void LampManager::SetLampName(ajn::Message& message)
 
 void LampManager::GetLampDetails(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -174,7 +174,7 @@ void LampManager::GetLampDetails(ajn::Message& message)
 
 void LampManager::GetLampParameters(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -187,7 +187,7 @@ void LampManager::GetLampParameters(ajn::Message& message)
 
 void LampManager::GetLampParametersField(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -200,7 +200,7 @@ void LampManager::GetLampParametersField(ajn::Message& message)
 
 void LampManager::GetLampState(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -212,7 +212,7 @@ void LampManager::GetLampState(ajn::Message& message)
 
 void LampManager::GetLampStateField(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -225,7 +225,7 @@ void LampManager::GetLampStateField(ajn::Message& message)
 
 void LampManager::TransitionLampStateToPreset(Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -235,7 +235,7 @@ void LampManager::TransitionLampStateToPreset(Message& message)
     QCC_DbgPrintf(("lampID=%s presetID=%s transitionPeriod=%d", lampID.c_str(), presetID.c_str(), transitionPeriod));
 
     if (0 == strcmp(presetID.c_str(), CurrentStateIdentifier.c_str())) {
-        QCC_LogError(ER_FAIL, ("%s: Preset cannot be the current state", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Preset cannot be the current state", __func__));
         LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
     } else {
@@ -257,7 +257,7 @@ void LampManager::TransitionLampStateToPreset(Message& message)
 
 void LampManager::TransitionLampStateField(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -285,7 +285,7 @@ void LampManager::TransitionLampStateField(ajn::Message& message)
 
 void LampManager::ResetLampState(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -300,13 +300,13 @@ void LampManager::ResetLampState(ajn::Message& message)
 
 void LampManager::ResetLampStateField(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
-    QCC_DbgPrintf(("%s: lampID=%s fieldName=%s", __FUNCTION__, lampID.c_str(), fieldName.c_str()));
+    QCC_DbgPrintf(("%s: lampID=%s fieldName=%s", __func__, lampID.c_str(), fieldName.c_str()));
 
     LSFStringList lampList;
     lampList.push_back(lampID);
@@ -318,7 +318,7 @@ void LampManager::ResetLampStateInternal(ajn::Message& message, LSFStringList la
 {
     LampState defaultLampState;
 
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     LSFResponseCode responseCode = presetManager.GetDefaultLampStateInternal(defaultLampState);
 
@@ -333,7 +333,7 @@ void LampManager::ResetLampStateInternal(ajn::Message& message, LSFStringList la
         transitionToState.push_back(transitionToStateComponent);
         ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset, groupOperation);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Error getting the default lamp state", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Error getting the default lamp state", __func__));
         if (groupOperation) {
             size_t numArgs;
             const MsgArg* args;
@@ -350,7 +350,7 @@ void LampManager::ResetLampStateFieldInternal(ajn::Message& message, LSFStringLi
 {
     LampState defaultLampState;
 
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     LSFResponseCode responseCode = presetManager.GetDefaultLampStateInternal(defaultLampState);
     MsgArg arg;
@@ -362,7 +362,7 @@ void LampManager::ResetLampStateFieldInternal(ajn::Message& message, LSFStringLi
     PulseLampsWithPresetList pulseWithPreset;
 
     if (LSF_OK == responseCode) {
-        QCC_DbgPrintf(("%s: defaultLampState=%s", __FUNCTION__, defaultLampState.c_str()));
+        QCC_DbgPrintf(("%s: defaultLampState=%s", __func__, defaultLampState.c_str()));
         if (0 == strcmp(stateFieldName.c_str(), "OnOff")) {
             arg.Set("b", defaultLampState.onOff);
         } else if (0 == strcmp(stateFieldName.c_str(), "Hue")) {
@@ -379,7 +379,7 @@ void LampManager::ResetLampStateFieldInternal(ajn::Message& message, LSFStringLi
         stateField.push_back(stateFieldComponent);
         ChangeLampStateAndField(message, transitionToState, transitionToPreset, stateField, pulseWithState, pulseWithPreset, groupOperation);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Error getting the default lamp state", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Error getting the default lamp state", __func__));
         controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lamps.front(), stateFieldName);
         if (groupOperation) {
             size_t numArgs;
@@ -404,7 +404,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
 {
     LSFResponseCode responseCode = LSF_ERR_FAILURE;
 
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     uint64_t timestamp = 0;
     GetSyncTimeStamp(timestamp);
@@ -421,7 +421,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
         LampsAndState transitionToStateComp = transitionToStateComponent.front();
         MsgArg state;
         transitionToStateComp.state.Get(&state);
-        QCC_DbgPrintf(("%s: Applying transitionToStateComponent", __FUNCTION__));
+        QCC_DbgPrintf(("%s: Applying transitionToStateComponent", __func__));
         TransitionStateParams params(transitionToStateComp.lamps, timestamp, state, transitionToStateComp.transitionPeriod);
         stateParamsList.push_back(params);
         transitionToStateComponent.pop_front();
@@ -434,7 +434,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
         if (LSF_OK == responseCode) {
             MsgArg state;
             preset.Get(&state);
-            QCC_DbgPrintf(("%s: Applying transitionToPresetComponent", __FUNCTION__));
+            QCC_DbgPrintf(("%s: Applying transitionToPresetComponent", __func__));
             TransitionStateParams params(transitionToPresetComp.lamps, timestamp, state, transitionToPresetComp.transitionPeriod);
             stateParamsList.push_back(params);
         } else {
@@ -454,7 +454,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
 
     while (stateFieldComponent.size()) {
         LampsAndStateField stateFieldComp = stateFieldComponent.front();
-        QCC_DbgPrintf(("%s: Applying stateFieldComponent", __FUNCTION__));
+        QCC_DbgPrintf(("%s: Applying stateFieldComponent", __func__));
         TransitionStateFieldParams params(stateFieldComp.lamps, timestamp, stateFieldComp.stateFieldName.c_str(),
                                           stateFieldComp.stateFieldValue, stateFieldComp.transitionPeriod);
         stateFieldParamsList.push_back(params);
@@ -462,7 +462,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
     }
 
     while (pulseWithStateComponent.size()) {
-        QCC_DbgPrintf(("%s: Applying pulseWithStateComponent", __FUNCTION__));
+        QCC_DbgPrintf(("%s: Applying pulseWithStateComponent", __func__));
         PulseLampsWithState pulseWithStateComp = pulseWithStateComponent.front();
         MsgArg fromState;
         MsgArg toState;
@@ -486,7 +486,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
                 MsgArg toState;
                 fromPreset.Get(&fromState);
                 toPreset.Get(&toState);
-                QCC_DbgPrintf(("%s: Applying pulseWithPresetComponent", __FUNCTION__));
+                QCC_DbgPrintf(("%s: Applying pulseWithPresetComponent", __func__));
                 PulseStateParams params(pulseWithPresetComp.lamps, fromState, toState, pulseWithPresetComp.period, pulseWithPresetComp.duration,
                                         pulseWithPresetComp.numPulses, timestamp);
                 pulseParamsList.push_back(params);
@@ -511,7 +511,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
 
 void LampManager::TransitionLampState(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -521,7 +521,7 @@ void LampManager::TransitionLampState(ajn::Message& message)
     QCC_DbgPrintf(("lampID=%s state=%s transitionPeriod=%d", lampID.c_str(), state.c_str(), transitionPeriod));
 
     if (state.nullState) {
-        QCC_LogError(ER_FAIL, ("%s: State cannot be NULL", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: State cannot be NULL", __func__));
         LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
     } else {
@@ -543,7 +543,7 @@ void LampManager::TransitionLampState(ajn::Message& message)
 
 void LampManager::PulseLampWithState(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -554,11 +554,11 @@ void LampManager::PulseLampWithState(ajn::Message& message)
     uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
     uint32_t numPulses = static_cast<uint32_t>(args[5].v_uint32);
     QCC_DbgPrintf(("%s: lampID=%s, fromLampState=%s, period=%d, duration=%d, numPulses=%d",
-                   __FUNCTION__, lampID.c_str(), fromLampState.c_str(), period, duration, numPulses));
-    QCC_DbgPrintf(("%s: toLampState=%s", __FUNCTION__, toLampState.c_str()));
+                   __func__, lampID.c_str(), fromLampState.c_str(), period, duration, numPulses));
+    QCC_DbgPrintf(("%s: toLampState=%s", __func__, toLampState.c_str()));
 
     if (toLampState.nullState) {
-        QCC_LogError(ER_FAIL, ("%s: ToLampState cannot be NULL", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: ToLampState cannot be NULL", __func__));
         LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
     } else {
@@ -579,7 +579,7 @@ void LampManager::PulseLampWithState(ajn::Message& message)
 
 void LampManager::PulseLampWithPreset(ajn::Message& message)
 {
-    QCC_DbgPrintf(("%s: %s", __FUNCTION__, message->ToString().c_str()));
+    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -590,10 +590,10 @@ void LampManager::PulseLampWithPreset(ajn::Message& message)
     uint32_t duration = static_cast<uint32_t>(args[4].v_uint32);
     uint32_t numPulses = static_cast<uint32_t>(args[5].v_uint32);
     QCC_DbgPrintf(("%s: lampID=%s, fromPresetID=%s, toPresetID=%s, period=%d, duration=%d, numPulses=%d",
-                   __FUNCTION__, lampID.c_str(), fromPresetID.c_str(), toPresetID.c_str(), period, duration, numPulses));
+                   __func__, lampID.c_str(), fromPresetID.c_str(), toPresetID.c_str(), period, duration, numPulses));
 
     if (0 == strcmp(toPresetID.c_str(), CurrentStateIdentifier.c_str())) {
-        QCC_LogError(ER_FAIL, ("%s: ToPreset cannot be the current state", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: ToPreset cannot be the current state", __func__));
         LSFResponseCode responseCode = LSF_ERR_INVALID_ARGS;
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampID);
     } else {
@@ -614,6 +614,6 @@ void LampManager::PulseLampWithPreset(ajn::Message& message)
 
 uint32_t LampManager::GetControllerServiceLampInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerLampInterfaceVersion=%d", __FUNCTION__, ControllerServiceLampInterfaceVersion));
+    QCC_DbgPrintf(("%s: controllerLampInterfaceVersion=%d", __func__, ControllerServiceLampInterfaceVersion));
     return ControllerServiceLampInterfaceVersion;
 }

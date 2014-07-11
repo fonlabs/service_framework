@@ -23,7 +23,7 @@ using namespace lsf;
 
 void* Thread::RunThread(void* data)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     Thread* thread = static_cast<Thread*>(data);
     thread->Run();
     return NULL;
@@ -31,24 +31,24 @@ void* Thread::RunThread(void* data)
 
 Thread::Thread()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 }
 
 Thread::~Thread()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 }
 
 QStatus Thread::Start()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     int ret = pthread_create(&thread, NULL, &Thread::RunThread, this);
     return ret == 0 ? ER_OK : ER_FAIL;
 }
 
 QStatus Thread::Join()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     pthread_join(thread, NULL);
     return ER_OK;
 }

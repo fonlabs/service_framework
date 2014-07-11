@@ -81,7 +81,7 @@ class ControllerClient::ControllerClientBusHandler :
 void ControllerClient::ControllerClientBusHandler::JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context)
 {
     controllerClient.bus.EnableConcurrentCallbacks();
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     controllerClient.OnSessionJoined(status, sessionId, context);
 }
 
@@ -106,7 +106,7 @@ void ControllerClient::ControllerClientBusHandler::Announce(
     const ObjectDescriptions& objectDescs,
     const AboutData& aboutData)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     AboutData::const_iterator ait;
     const char* deviceID = NULL;
@@ -116,21 +116,21 @@ void ControllerClient::ControllerClientBusHandler::Announce(
 
     ObjectDescriptions::const_iterator oit = objectDescs.find(ControllerServiceObjectPath);
     if (oit != objectDescs.end()) {
-        QCC_DbgPrintf(("%s: About Data Dump", __FUNCTION__));
+        QCC_DbgPrintf(("%s: About Data Dump", __func__));
         for (ait = aboutData.begin(); ait != aboutData.end(); ait++) {
             QCC_DbgPrintf(("%s: %s", ait->first.c_str(), ait->second.ToString().c_str()));
         }
 
         ait = aboutData.find("DeviceId");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: DeviceId missing in About Announcement", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: DeviceId missing in About Announcement", __func__));
             return;
         }
         ait->second.Get("s", &deviceID);
 
         ait = aboutData.find("DeviceName");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: DeviceName missing in About Announcement", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: DeviceName missing in About Announcement", __func__));
             return;
         }
         ait->second.Get("s", &deviceName);
@@ -138,7 +138,7 @@ void ControllerClient::ControllerClientBusHandler::Announce(
         uint64_t rank;
         ait = aboutData.find("Rank");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: Rank missing in About Announcement", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: Rank missing in About Announcement", __func__));
             return;
         }
         ait->second.Get("t", &rank);
@@ -146,12 +146,12 @@ void ControllerClient::ControllerClientBusHandler::Announce(
         uint32_t isLeader = 0;
         ait = aboutData.find("IsLeader");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __func__));
             return;
         }
         ait->second.Get("u", &isLeader);
 
-        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%d isLeader=%d", __FUNCTION__,
+        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%d isLeader=%d", __func__,
                        busName, port, deviceID, deviceName, rank, isLeader));
         controllerClient.OnAnnounced(port, busName, deviceID, deviceName, rank, isLeader);
     }
@@ -197,7 +197,7 @@ ControllerClient::~ControllerClient()
 
 uint32_t ControllerClient::GetVersion(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     return CONTROLLER_CLIENT_VERSION;
 }
 
@@ -214,7 +214,7 @@ ControllerClient::ControllerEntry* ControllerClient::GetMaxRankedEntry()
 {
     ControllerEntry* max_rank = NULL;
 
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     // now decide what to do!
     ControllerEntryMap::iterator it = controllers.begin();
@@ -234,10 +234,10 @@ ControllerClient::ControllerEntry* ControllerClient::GetMaxRankedEntry()
 
 void ControllerClient::JoinLeaderSession()
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     if (alreadyInSession) {
-        QCC_DbgPrintf(("%s: Already in a session with a Controller Service", __FUNCTION__));
+        QCC_DbgPrintf(("%s: Already in a session with a Controller Service", __func__));
         return;
     }
 
@@ -273,7 +273,7 @@ void ControllerClient::JoinLeaderSession()
             QStatus status = bus.JoinSessionAsync(max_rank->busName.c_str(), max_rank->port, busHandler, options, busHandler, max_rank);
             if (status != ER_OK) {
                 errorList.push_back(ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND);
-                QCC_LogError(status, ("%s: JoinSessionAsync\n", __FUNCTION__));
+                QCC_LogError(status, ("%s: JoinSessionAsync\n", __func__));
 
                 // unable to join
                 controllersLock.Lock();
@@ -296,7 +296,7 @@ void ControllerClient::JoinLeaderSession()
 // call while locked!
 void ControllerClient::RemoveUniqueName(const qcc::String& uniqueName)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     BusNameToDeviceId::iterator bit = nameToId.find(uniqueName);
     if (bit != nameToId.end()) {
         ControllerEntryMap::iterator it = controllers.find(bit->second);
@@ -351,7 +351,7 @@ void ControllerClient::SignalWithArgDispatcher(const ajn::InterfaceDescription::
 {
     bus.EnableConcurrentCallbacks();
 
-    QCC_DbgPrintf(("%s: Received Signal %s", __FUNCTION__, message->GetMemberName()));
+    QCC_DbgPrintf(("%s: Received Signal %s", __func__, message->GetMemberName()));
 
     SignalDispatcherMap::iterator it = signalHandlers.find(message->GetMemberName());
     if (it != signalHandlers.end()) {
@@ -381,7 +381,7 @@ void ControllerClient::SignalWithoutArgDispatcher(const ajn::InterfaceDescriptio
 {
     bus.EnableConcurrentCallbacks();
 
-    QCC_DbgPrintf(("%s: Received Signal %s", __FUNCTION__, message->GetMemberName()));
+    QCC_DbgPrintf(("%s: Received Signal %s", __func__, message->GetMemberName()));
 
     NoArgSignalDispatcherMap::iterator it = noArgSignalHandlers.find(message->GetMemberName());
     if (it != noArgSignalHandlers.end()) {
@@ -399,7 +399,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
     ControllerEntry* joined = static_cast<ControllerEntry*>(context);
     joined->joining = false;
 
-    QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __FUNCTION__, sessionId, QCC_StatusText(status)));
+    QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __func__, sessionId, QCC_StatusText(status)));
 
     if (status == ER_OK) {
         controllersLock.Lock();
@@ -445,13 +445,13 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
          * Get and print the versions of all the Controller Service interfaces
          */
         /*
-           QCC_DbgPrintf(("%s: Trying to read the versions of all the Controller Service interfaces", __FUNCTION__));
+           QCC_DbgPrintf(("%s: Trying to read the versions of all the Controller Service interfaces", __func__));
            MsgArg val;
            status = proxyObject->GetProperty(ControllerServiceInterfaceName, "Version", val);
            if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceInterfaceVersion = %d", __FUNCTION__, iVal));
+            QCC_DbgPrintf(("%s: ControllerServiceInterfaceVersion = %d", __func__, iVal));
            } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceInterfaceName));
            }
@@ -460,7 +460,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
            if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceLampInterfaceVersion = %d", __FUNCTION__, iVal));
+            QCC_DbgPrintf(("%s: ControllerServiceLampInterfaceVersion = %d", __func__, iVal));
            } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampInterfaceName));
            }
@@ -469,7 +469,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
            if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceLampGroupInterfaceVersion = %d", __FUNCTION__, iVal));
+            QCC_DbgPrintf(("%s: ControllerServiceLampGroupInterfaceVersion = %d", __func__, iVal));
            } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampGroupInterfaceName));
            }
@@ -478,7 +478,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
            if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServicePresetInterfaceVersion = %d", __FUNCTION__, iVal));
+            QCC_DbgPrintf(("%s: ControllerServicePresetInterfaceVersion = %d", __func__, iVal));
            } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServicePresetInterfaceName));
            }
@@ -487,7 +487,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
            if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceSceneInterfaceVersion = %d", __FUNCTION__, iVal));
+            QCC_DbgPrintf(("%s: ControllerServiceSceneInterfaceVersion = %d", __func__, iVal));
            } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceSceneInterfaceName));
            }
@@ -496,7 +496,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
            if (ER_OK == status) {
             uint32_t iVal = 0;
             val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceMasterSceneInterfaceVersion = %d", __FUNCTION__, iVal));
+            QCC_DbgPrintf(("%s: ControllerServiceMasterSceneInterfaceVersion = %d", __func__, iVal));
            } else {
             QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceMasterSceneInterfaceName));
            }
@@ -595,7 +595,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
     const ajn::MsgArg* args,
     size_t numArgs)
 {
-    QCC_DbgPrintf(("%s: Method Call=%s", __FUNCTION__, methodName));
+    QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
@@ -614,7 +614,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message& message, void* context)
 {
     if (context) {
-        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
 
         if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
@@ -651,7 +651,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message
 
         delete ((LSFString*)context);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __func__));
     }
 }
 
@@ -661,7 +661,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
     const ajn::MsgArg* args,
     size_t numArgs)
 {
-    QCC_DbgPrintf(("%s: Method Call=%s", __FUNCTION__, methodName));
+    QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
@@ -680,7 +680,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& message, void* context)
 {
     if (context) {
-        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
 
         if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
@@ -713,7 +713,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& m
 
         delete ((LSFString*)context);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __func__));
     }
 }
 
@@ -723,7 +723,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
     const ajn::MsgArg* args,
     size_t numArgs)
 {
-    QCC_DbgPrintf(("%s: Method Call=%s", __FUNCTION__, methodName));
+    QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
@@ -742,7 +742,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& message, void* context)
 {
     if (context) {
-        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
 
         if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
@@ -772,7 +772,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& messa
 
         delete ((LSFString*)context);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __func__));
     }
 }
 
@@ -782,7 +782,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithUint32Value(
     const ajn::MsgArg* args,
     size_t numArgs)
 {
-    QCC_DbgPrintf(("%s: Method Call=%s", __FUNCTION__, methodName));
+    QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
@@ -801,7 +801,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithUint32Value(
 void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, void* context)
 {
     if (context) {
-        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
 
         if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
@@ -817,7 +817,7 @@ void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, vo
                 inputArgs[0].Get("u", &value);
                 handler->Handle(value);
             } else {
-                QCC_LogError(ER_FAIL, ("%s: Did not find handler", __FUNCTION__));
+                QCC_LogError(ER_FAIL, ("%s: Did not find handler", __func__));
             }
         } else {
             ErrorCodeList errorList;
@@ -827,7 +827,7 @@ void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, vo
 
         delete ((LSFString*)context);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __func__));
     }
 }
 
@@ -837,7 +837,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
     const ajn::MsgArg* args,
     size_t numArgs)
 {
-    QCC_DbgPrintf(("%s: Method Call=%s", __FUNCTION__, methodName));
+    QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
@@ -856,7 +856,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Message& message, void* context)
 {
     if (context) {
-        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __FUNCTION__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+        QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
 
         if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
@@ -884,7 +884,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
 
                 handler->Handle(responseCode, lsfId, language, lsfName);
             } else {
-                QCC_LogError(ER_FAIL, ("%s: Did not find handler", __FUNCTION__));
+                QCC_LogError(ER_FAIL, ("%s: Did not find handler", __func__));
             }
         } else {
             ErrorCodeList errorList;
@@ -894,7 +894,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
 
         delete ((LSFString*)context);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Received a NULL context in method reply", __func__));
     }
 }
 

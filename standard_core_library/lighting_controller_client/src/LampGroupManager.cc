@@ -35,7 +35,7 @@ LampGroupManager::LampGroupManager(ControllerClient& controllerClient, LampGroup
 
 ControllerClientStatus LampGroupManager::GetAllLampGroupIDs(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
                ControllerServiceLampGroupInterfaceName,
                "GetAllLampGroupIDs");
@@ -43,7 +43,7 @@ ControllerClientStatus LampGroupManager::GetAllLampGroupIDs(void)
 
 ControllerClientStatus LampGroupManager::GetLampGroupName(const LSFString& lampGroupID, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s", __FUNCTION__, lampGroupID.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupID=%s", __func__, lampGroupID.c_str()));
     MsgArg args[2];
     args[0].Set("s", lampGroupID.c_str());
     args[1].Set("s", language.c_str());
@@ -56,7 +56,7 @@ ControllerClientStatus LampGroupManager::GetLampGroupName(const LSFString& lampG
 
 ControllerClientStatus LampGroupManager::SetLampGroupName(const LSFString& lampGroupID, const LSFString& lampGroupName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s lampGroupName=%s language=%s", __FUNCTION__, lampGroupID.c_str(), lampGroupName.c_str(), language.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupID=%s lampGroupName=%s language=%s", __func__, lampGroupID.c_str(), lampGroupName.c_str(), language.c_str()));
 
     MsgArg args[3];
     args[0].Set("s", lampGroupID.c_str());
@@ -72,7 +72,7 @@ ControllerClientStatus LampGroupManager::SetLampGroupName(const LSFString& lampG
 
 ControllerClientStatus LampGroupManager::CreateLampGroup(const LampGroup& lampGroup, const LSFString& lampGroupName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     MsgArg args[4];
     lampGroup.Get(&args[0], &args[1]);
     args[2].Set("s", lampGroupName.c_str());
@@ -87,7 +87,7 @@ ControllerClientStatus LampGroupManager::CreateLampGroup(const LampGroup& lampGr
 
 ControllerClientStatus LampGroupManager::UpdateLampGroup(const LSFString& lampGroupID, const LampGroup& lampGroup)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s", __FUNCTION__, lampGroupID.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupID=%s", __func__, lampGroupID.c_str()));
     MsgArg args[3];
     args[0].Set("s", lampGroupID.c_str());
     lampGroup.Get(&args[1], &args[2]);
@@ -101,7 +101,7 @@ ControllerClientStatus LampGroupManager::UpdateLampGroup(const LSFString& lampGr
 
 ControllerClientStatus LampGroupManager::GetLampGroup(const LSFString& lampGroupID)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s", __FUNCTION__, lampGroupID.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupID=%s", __func__, lampGroupID.c_str()));
     MsgArg arg;
     arg.Set("s", lampGroupID.c_str());
 
@@ -116,7 +116,7 @@ ControllerClientStatus LampGroupManager::GetLampGroup(const LSFString& lampGroup
 
 void LampGroupManager::GetLampGroupReply(Message& message)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -130,7 +130,7 @@ void LampGroupManager::GetLampGroupReply(Message& message)
 
 ControllerClientStatus LampGroupManager::DeleteLampGroup(const LSFString& lampGroupID)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s", __FUNCTION__, lampGroupID.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupID=%s", __func__, lampGroupID.c_str()));
     MsgArg arg;
     arg.Set("s", lampGroupID.c_str());
 
@@ -143,7 +143,7 @@ ControllerClientStatus LampGroupManager::DeleteLampGroup(const LSFString& lampGr
 
 ControllerClientStatus LampGroupManager::ResetLampGroupState(const LSFString& lampGroupID)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s", __FUNCTION__, lampGroupID.c_str()));
+    QCC_DbgPrintf(("%s: lampGroupID=%s", __func__, lampGroupID.c_str()));
     MsgArg arg("s", lampGroupID.c_str());
 
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
@@ -155,7 +155,7 @@ ControllerClientStatus LampGroupManager::ResetLampGroupState(const LSFString& la
 
 ControllerClientStatus LampGroupManager::ResetLampGroupStateField(const LSFString& lampGroupID, const LSFString& stateFieldName)
 {
-    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s\n", __FUNCTION__, lampGroupID.c_str(), stateFieldName.c_str()));
+    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s\n", __func__, lampGroupID.c_str(), stateFieldName.c_str()));
 
     MsgArg args[2];
     args[0].Set("s", lampGroupID.c_str());
@@ -170,7 +170,7 @@ ControllerClientStatus LampGroupManager::ResetLampGroupStateField(const LSFStrin
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupState(const LSFString& lampGroupID, const LampState& state, const uint32_t& transitionPeriod)
 {
-    QCC_DbgPrintf(("%s: lampGroupID=%s state=%s transitionPeriod=%d", __FUNCTION__, lampGroupID.c_str(), state.c_str(), transitionPeriod));
+    QCC_DbgPrintf(("%s: lampGroupID=%s state=%s transitionPeriod=%d", __func__, lampGroupID.c_str(), state.c_str(), transitionPeriod));
     MsgArg args[3];
     args[0].Set("s", lampGroupID.c_str());
     state.Get(&args[1]);
@@ -191,7 +191,7 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithState(
     const uint32_t& numPulses,
     const LampState& fromLampGroupState)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     MsgArg args[6];
     args[0].Set("s", lampGroupID.c_str());
@@ -216,7 +216,7 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithPreset(
     const uint32_t& numPulses,
     const LSFString& fromPresetID)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     MsgArg args[6];
     args[0].Set("s", lampGroupID.c_str());
@@ -235,7 +235,7 @@ ControllerClientStatus LampGroupManager::PulseLampGroupWithPreset(
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupStateIntegerField(const LSFString& lampGroupID, const LSFString& stateFieldName, const uint32_t& value, const uint32_t& transitionPeriod)
 {
-    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s value=%d transitionPeriod=%d\n", __FUNCTION__,
+    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s value=%d transitionPeriod=%d\n", __func__,
                    lampGroupID.c_str(), stateFieldName.c_str(), value, transitionPeriod));
 
     MsgArg args[4];
@@ -254,7 +254,7 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupStateIntegerField(co
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupStateBooleanField(const LSFString& lampGroupID, const LSFString& stateFieldName, const bool& value)
 {
-    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s\n", __FUNCTION__, lampGroupID.c_str(), stateFieldName.c_str()));
+    QCC_DbgPrintf(("\n%s: lampGroupID=%s stateFieldName=%s\n", __func__, lampGroupID.c_str(), stateFieldName.c_str()));
 
     MsgArg args[4];
     args[0].Set("s", lampGroupID.c_str());
@@ -272,7 +272,7 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupStateBooleanField(co
 
 ControllerClientStatus LampGroupManager::TransitionLampGroupStateToPreset(const LSFString& lampGroupID, const LSFString& presetID, const uint32_t& transitionPeriod)
 {
-    QCC_DbgPrintf(("\n%s: %s %s\n", __FUNCTION__, lampGroupID.c_str(), presetID.c_str()));
+    QCC_DbgPrintf(("\n%s: %s %s\n", __func__, lampGroupID.c_str(), presetID.c_str()));
 
     MsgArg args[3];
     args[0].Set("s", lampGroupID.c_str());
@@ -288,7 +288,7 @@ ControllerClientStatus LampGroupManager::TransitionLampGroupStateToPreset(const 
 
 void LampGroupManager::ResetLampGroupStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
-    QCC_DbgPrintf(("\n%s: %s %s %s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
+    QCC_DbgPrintf(("\n%s: %s %s %s\n", __func__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
 
     if (0 == strcmp("OnOff", lsfName.c_str())) {
         callback.ResetLampGroupStateOnOffFieldReplyCB(responseCode, lsfId);
@@ -307,7 +307,7 @@ void LampGroupManager::ResetLampGroupStateFieldReply(LSFResponseCode& responseCo
 
 void LampGroupManager::TransitionLampGroupStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
-    QCC_DbgPrintf(("\n%s: %s %s %s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
+    QCC_DbgPrintf(("\n%s: %s %s %s\n", __func__, LSFResponseCodeText(responseCode), lsfId.c_str(), lsfName.c_str()));
 
     if (0 == strcmp("OnOff", lsfName.c_str())) {
         callback.TransitionLampGroupStateOnOffFieldReplyCB(responseCode, lsfId);

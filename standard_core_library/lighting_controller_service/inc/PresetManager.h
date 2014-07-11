@@ -56,12 +56,23 @@ class PresetManager : public Manager {
 
     void ReadSavedData(void);
     void InitializeDefaultLampState(void);
-    void WriteFile(void);
+    void ReadWriteFile(void);
+
+    void HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp);
 
     uint32_t GetControllerServicePresetInterfaceVersion(void);
 
-    virtual std::string GetString();
+    virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
+
+    void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
+        presetsLock.Lock();
+        GetBlobInfoInternal(checksum, timestamp);
+        presetsLock.Unlock();
+    }
+
   private:
+
+    void ReplaceMap(std::istringstream& stream);
 
     LSFResponseCode SetDefaultLampStateInternal(LampState& state, bool sendSignal = true);
 

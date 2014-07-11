@@ -30,7 +30,7 @@ class PersistenceThread : public Thread {
 
     virtual ~PersistenceThread();
 
-    void SignalWrite();
+    void SignalReadWrite();
 
     virtual void Run();
 

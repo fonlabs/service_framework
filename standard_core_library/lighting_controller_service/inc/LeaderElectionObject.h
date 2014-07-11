@@ -45,6 +45,8 @@ class LeaderElectionObject : public ajn::BusObject {
 
     QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
+    void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
+
     bool IsLeader();
 
   private:

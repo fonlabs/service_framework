@@ -26,7 +26,7 @@ static const LampState defaultLampState = LampState(true, 256, 256, 256, 256);
 
 void GetFactorySetDefaultLampState(LampState& defaultState)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     defaultState = defaultLampState;
 }
 
@@ -35,7 +35,7 @@ void GetSyncTimeStamp(uint64_t& timeStamp)
     /* This is just a sample implementation and so it passes back a
      * hard coded value. OEMs are supposed to integrate this
      * with their Time Sync module*/
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     timeStamp = 0x4444444444444444;
 }
 
@@ -54,6 +54,7 @@ uint32_t IsLeader()
 // working directory.
 void PopulateDefaultProperties(LSFPropertyStore& propStore)
 {
+    QCC_DbgTrace(("%s", __func__));
     std::vector<qcc::String> languages;
     languages.push_back("en");
     languages.push_back("de-AT");

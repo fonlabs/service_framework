@@ -35,7 +35,7 @@ SceneManager::SceneManager(ControllerClient& controllerClient, SceneManagerCallb
 
 ControllerClientStatus SceneManager::GetAllSceneIDs(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
                ControllerServiceSceneInterfaceName,
                "GetAllSceneIDs");
@@ -43,7 +43,7 @@ ControllerClientStatus SceneManager::GetAllSceneIDs(void)
 
 ControllerClientStatus SceneManager::GetSceneName(const LSFString& sceneID, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
+    QCC_DbgPrintf(("%s: sceneID=%s", __func__, sceneID.c_str()));
     MsgArg args[2];
     args[0].Set("s", sceneID.c_str());
     args[1].Set("s", language.c_str());
@@ -56,7 +56,7 @@ ControllerClientStatus SceneManager::GetSceneName(const LSFString& sceneID, cons
 
 ControllerClientStatus SceneManager::SetSceneName(const LSFString& sceneID, const LSFString& sceneName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s: sceneID=%s sceneName=%s language=%s", __FUNCTION__, sceneID.c_str(), sceneName.c_str(), language.c_str()));
+    QCC_DbgPrintf(("%s: sceneID=%s sceneName=%s language=%s", __func__, sceneID.c_str(), sceneName.c_str(), language.c_str()));
 
     MsgArg args[3];
     args[0].Set("s", sceneID.c_str());
@@ -72,7 +72,7 @@ ControllerClientStatus SceneManager::SetSceneName(const LSFString& sceneID, cons
 
 ControllerClientStatus SceneManager::CreateScene(const Scene& scene, const LSFString& sceneName, const LSFString& language)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     MsgArg args[6];
     scene.Get(&args[0], &args[1], &args[2], &args[3]);
     args[4].Set("s", sceneName.c_str());
@@ -87,7 +87,7 @@ ControllerClientStatus SceneManager::CreateScene(const Scene& scene, const LSFSt
 
 ControllerClientStatus SceneManager::UpdateScene(const LSFString& sceneID, const Scene& scene)
 {
-    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
+    QCC_DbgPrintf(("%s: sceneID=%s", __func__, sceneID.c_str()));
     MsgArg args[5];
     args[0].Set("s", sceneID.c_str());
     scene.Get(&args[1], &args[2], &args[3], &args[4]);
@@ -101,7 +101,7 @@ ControllerClientStatus SceneManager::UpdateScene(const LSFString& sceneID, const
 
 ControllerClientStatus SceneManager::GetScene(const LSFString& sceneID)
 {
-    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
+    QCC_DbgPrintf(("%s: sceneID=%s", __func__, sceneID.c_str()));
     MsgArg arg;
     arg.Set("s", sceneID.c_str());
 
@@ -116,7 +116,7 @@ ControllerClientStatus SceneManager::GetScene(const LSFString& sceneID)
 
 ControllerClientStatus SceneManager::ApplyScene(const LSFString& sceneID)
 {
-    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
+    QCC_DbgPrintf(("%s: sceneID=%s", __func__, sceneID.c_str()));
     MsgArg arg;
     arg.Set("s", sceneID.c_str());
 
@@ -129,7 +129,7 @@ ControllerClientStatus SceneManager::ApplyScene(const LSFString& sceneID)
 
 void SceneManager::GetSceneReply(Message& message)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
@@ -143,7 +143,7 @@ void SceneManager::GetSceneReply(Message& message)
 
 ControllerClientStatus SceneManager::DeleteScene(const LSFString& sceneID)
 {
-    QCC_DbgPrintf(("%s: sceneID=%s", __FUNCTION__, sceneID.c_str()));
+    QCC_DbgPrintf(("%s: sceneID=%s", __func__, sceneID.c_str()));
     MsgArg arg;
     arg.Set("s", sceneID.c_str());
 

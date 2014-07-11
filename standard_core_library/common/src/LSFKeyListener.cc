@@ -15,31 +15,37 @@
  ******************************************************************************/
 
 #include <LSFKeyListener.h>
+#include <qcc/Debug.h>
 
+#define QCC_MODULE "LSF_KEY_LISTENER"
 using namespace lsf;
 
 LSFKeyListener::LSFKeyListener() : passCode("000000"), GetPassCode(0)
 {
+    QCC_DbgTrace(("%s", __func__));
 }
 
 LSFKeyListener::~LSFKeyListener()
 {
-
+    QCC_DbgTrace(("%s", __func__));
 }
 
 void LSFKeyListener::SetPassCode(qcc::String const& code)
 {
+    QCC_DbgTrace(("%s", __func__));
     passCode = code;
 }
 
 void LSFKeyListener::SetGetPassCodeFunc(const char* (*GetPassCodeFunc)())
 {
+    QCC_DbgTrace(("%s", __func__));
     GetPassCode = GetPassCodeFunc;
 }
 
 bool LSFKeyListener::RequestCredentials(const char* authMechanism, const char* authPeer,
                                         uint16_t authCount, const char* userId, uint16_t credMask, Credentials& creds)
 {
+    QCC_DbgTrace(("%s", __func__));
     if (strcmp(authMechanism, "ALLJOYN_ECDHE_PSK") == 0 || strcmp(authMechanism, "ALLJOYN_PIN_KEYX") == 0) {
         if (credMask & AuthListener::CRED_PASSWORD) {
             if (authCount <= 3) {
@@ -59,4 +65,5 @@ bool LSFKeyListener::RequestCredentials(const char* authMechanism, const char* a
 
 void LSFKeyListener::AuthenticationComplete(const char* authMechanism, const char* authPeer, bool success)
 {
+    QCC_DbgTrace(("%s", __func__));
 }

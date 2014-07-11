@@ -47,7 +47,7 @@ class PropertyParser {
      * @param data - relevant data
      * @return boolean
      */
-    static bool WriteFile(const std::string& fileName, const std::map<qcc::String, qcc::String>& data);
+    static bool ReadWriteFile(const std::string& fileName, const std::map<qcc::String, qcc::String>& data);
 
     static void Tokenize(const qcc::String& inStr, std::vector<qcc::String>& strings, char sep = ' ');
 

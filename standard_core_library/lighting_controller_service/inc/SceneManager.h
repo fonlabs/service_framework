@@ -51,14 +51,24 @@ class SceneManager : public Manager {
 
     LSFResponseCode GetAllScenes(SceneMap& sceneMap);
 
-    void WriteFile();
+    void ReadWriteFile();
     void ReadSavedData();
 
     uint32_t GetControllerServiceSceneInterfaceVersion(void);
 
-    virtual std::string GetString();
+    virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
+
+    void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
+        scenesLock.Lock();
+        GetBlobInfoInternal(checksum, timestamp);
+        scenesLock.Unlock();
+    }
+
+    void HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp);
 
   private:
+
+    void ReplaceMap(std::istringstream& stream);
 
     LSFResponseCode ApplySceneInternal(ajn::Message message, LSFStringList& sceneList);
 

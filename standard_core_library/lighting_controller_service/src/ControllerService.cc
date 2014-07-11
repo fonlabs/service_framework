@@ -33,6 +33,7 @@ using namespace ajn;
 
 class ControllerService::ControllerListener :
     public SessionPortListener,
+    public BusListener,
     public services::AnnounceHandler,
     public SessionListener {
   public:
@@ -40,35 +41,36 @@ class ControllerService::ControllerListener :
 
     // SessionPortListener
     virtual bool AcceptSessionJoiner(SessionPort sessionPort, const char* joiner, const SessionOpts& opts) {
+        QCC_DbgTrace(("%s:SessionPort=%d, joiner=%s", __func__, sessionPort, joiner));
         // only allow multipoint sessions
         bool acceptStatus = (sessionPort == ControllerServiceSessionPort && controller.elector.IsLeader());
         if (acceptStatus && opts.isMultipoint) {
             multipointjoiner = joiner;
-            QCC_DbgPrintf(("%s: Recorded multi-point session joiner %s\n", __FUNCTION__, multipointjoiner.c_str()));
+            QCC_DbgPrintf(("%s: Recorded multi-point session joiner %s\n", __func__, multipointjoiner.c_str()));
         }
-        QCC_DbgPrintf(("%s: Joiner = %s: Status=%d\n", __FUNCTION__, joiner, acceptStatus));
+        QCC_DbgPrintf(("%s: Joiner = %s: Status=%d\n", __func__, joiner, acceptStatus));
         return acceptStatus;
     }
 
     virtual void SessionJoined(SessionPort sessionPort, SessionId sessionId, const char* joiner) {
-        QCC_DbgPrintf(("%s: sessionPort(%d), sessionId(%d), joiner(%s)", __FUNCTION__, sessionPort, sessionId, joiner));
+        QCC_DbgPrintf(("%s: sessionPort(%d), sessionId(%d), joiner(%s)", __func__, sessionPort, sessionId, joiner));
         if (multipointSessionId == 0) {
             if (0 == strcmp(multipointjoiner.c_str(), joiner)) {
                 multipointSessionId = sessionId;
-                QCC_DbgPrintf(("%s: Recorded multi-point session id %d\n", __FUNCTION__, multipointSessionId));
+                QCC_DbgPrintf(("%s: Recorded multi-point session id %d\n", __func__, multipointSessionId));
                 controller.SessionJoined(sessionId);
             }
         } else {
             if (multipointSessionId == sessionId) {
-                QCC_DbgPrintf(("%s: Another member joined the multipoint session", __FUNCTION__));
+                QCC_DbgPrintf(("%s: Another member joined the multipoint session", __func__));
             }
         }
     }
 
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason) {
-        QCC_DbgPrintf(("%s: sessionId(%d), reason(%d)", __FUNCTION__, sessionId, reason));
+        QCC_DbgPrintf(("%s: sessionId(%d), reason(%d)", __func__, sessionId, reason));
         if (multipointSessionId == sessionId) {
-            QCC_DbgPrintf(("%s: Lost multi-point session id %d\n", __FUNCTION__, multipointSessionId));
+            QCC_DbgPrintf(("%s: Lost multi-point session id %d\n", __func__, multipointSessionId));
             controller.SessionLost(sessionId);
             multipointSessionId = 0;
             multipointjoiner.clear();
@@ -76,6 +78,7 @@ class ControllerService::ControllerListener :
     }
 
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData) {
+        QCC_DbgTrace(("%s:version=%d, port=%d, busName=%s", __func__, version, port, busName));
         controller.bus.EnableConcurrentCallbacks();
         ObjectDescriptions::const_iterator it = objectDescs.find(OnboardingServiceObjectPath);
         if (it != objectDescs.end()) {
@@ -96,6 +99,10 @@ class ControllerService::ControllerListener :
         }
     }
 
+    virtual void BusDisconnected() {
+        QCC_DbgPrintf(("BusDisconnected!"));
+    }
+
     ControllerService& controller;
     qcc::String multipointjoiner;
     SessionId multipointSessionId;
@@ -107,9 +114,11 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
         : controller(controller),
         busName(busName)
     {
+        QCC_DbgTrace(("%s:busName=%s", __func__, busName));
     }
 
     void FinishedIntrospect(QStatus status, ProxyBusObject* obj, void* context) {
+        QCC_DbgTrace(("%s:status=%s", __func__, QCC_StatusText(status)));
         controller.bus.EnableConcurrentCallbacks();
         if (status == ER_OK) {
             // we are now valid!
@@ -140,6 +149,7 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
     }
 
     virtual void JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context) {
+        QCC_DbgTrace(("%s:status=%s sessionId=%d", __func__, QCC_StatusText(status), sessionId));
         if (status == ER_OK) {
             controller.obsObjectLock.Lock();
             controller.obsObject = new ProxyBusObject(controller.bus, busName.c_str(), ConfigServiceObjectPath, sessionId);
@@ -174,6 +184,7 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
 
 ControllerService::ControllerService(
     ajn::services::PropertyStore& propStore,
+    const std::string& obsConfigFile,
     const std::string& factoryConfigFile,
     const std::string& configFile,
     const std::string& lampGroupFile,
@@ -190,7 +201,7 @@ ControllerService::ControllerService(
     presetManager(*this, &sceneManager, presetFile),
     sceneManager(*this, lampGroupManager, &masterSceneManager, sceneFile),
     masterSceneManager(*this, sceneManager, masterSceneFile),
-    internalPropertyStore(factoryConfigFile, configFile), // we don't use this!
+    internalPropertyStore(obsConfigFile, factoryConfigFile, configFile), // we don't use this!
     propertyStore(propStore),
     aboutService(NULL),
     aboutIconService(bus, DeviceIconMimeType, DeviceIconURL, DeviceIcon, DeviceIconSize),
@@ -202,9 +213,11 @@ ControllerService::ControllerService(
     fileWriterThread(*this),
     firstAnnouncementSent(false)
 {
+    QCC_DbgTrace(("%s:obsConfigFile=%s, factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, obsConfigFile.c_str(), factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
 }
 
 ControllerService::ControllerService(
+    const std::string& obsConfigFile,
     const std::string& factoryConfigFile,
     const std::string& configFile,
     const std::string& lampGroupFile,
@@ -221,7 +234,7 @@ ControllerService::ControllerService(
     presetManager(*this, &sceneManager, presetFile),
     sceneManager(*this, lampGroupManager, &masterSceneManager, sceneFile),
     masterSceneManager(*this, sceneManager, masterSceneFile),
-    internalPropertyStore(factoryConfigFile, configFile),
+    internalPropertyStore(obsConfigFile, factoryConfigFile, configFile),
     propertyStore(internalPropertyStore),
     aboutService(NULL),
     aboutIconService(bus, DeviceIconMimeType, DeviceIconURL, DeviceIcon, DeviceIconSize),
@@ -233,6 +246,7 @@ ControllerService::ControllerService(
     fileWriterThread(*this),
     firstAnnouncementSent(false)
 {
+    QCC_DbgTrace(("%s:obsConfigFile=%s, factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, obsConfigFile.c_str(), factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
     internalPropertyStore.Initialize();
 }
 
@@ -252,6 +266,7 @@ void ControllerService::FoundLocalOnboardingService(const char* busName, Session
 
 void ControllerService::Initialize()
 {
+    QCC_DbgTrace(("%s", __func__));
     lampGroupManager.ReadSavedData();
     presetManager.ReadSavedData();
     presetManager.InitializeDefaultLampState();
@@ -323,11 +338,13 @@ void ControllerService::Initialize()
 
 ControllerService::~ControllerService()
 {
+    QCC_DbgTrace(("%s", __func__));
     delete listener;
     bus.Join();
 }
 
 QStatus ControllerService::CreateAndAddInterface(std::string interfaceDescription, const char* interfaceName) {
+    QCC_DbgTrace(("%s:interfaceDescription=%s interfaceName=%s", __func__, interfaceDescription.c_str(), interfaceName));
     QStatus status = ER_OK;
 
     status = bus.CreateInterfacesFromXml(interfaceDescription.c_str());
@@ -347,6 +364,7 @@ QStatus ControllerService::CreateAndAddInterface(std::string interfaceDescriptio
 }
 
 QStatus ControllerService::CreateAndAddInterfaces(const InterfaceEntry* entries, size_t numEntries) {
+    QCC_DbgTrace(("%s:numEntries=%d", __func__, numEntries));
     if (!entries) {
         return ER_BAD_ARG_1;
     }
@@ -370,7 +388,7 @@ static const char* OnboardingInterfaces[] = {
 
 QStatus ControllerService::Start(const char* keyStoreFileLocation)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s:%s", __func__, keyStoreFileLocation));
     QStatus status = ER_OK;
 
     /*
@@ -378,7 +396,7 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
      */
     status = bus.Start();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the bus\n", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the bus\n", __func__));
         return status;
     }
 
@@ -387,7 +405,7 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
      */
     status = bus.Connect();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to connect to the bus\n", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to connect to the bus\n", __func__));
         return status;
     }
 
@@ -405,7 +423,7 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
 
     status = CreateAndAddInterfaces(interfaceEntries, sizeof(interfaceEntries) / sizeof(InterfaceEntry));
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to CreateAndAddInterfaces", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to CreateAndAddInterfaces", __func__));
         return status;
     }
 
@@ -484,19 +502,19 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
     };
     status = AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(MethodEntry));
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __func__));
         return status;
     }
 
     status = elector.Start();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start LeaderElection object", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start LeaderElection object", __func__));
         return status;
     }
 
     status = fileWriterThread.Start();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start file writer thread", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start file writer thread", __func__));
         return status;
     }
 
@@ -525,12 +543,12 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
 
         status = aboutService->Register(ControllerServiceSessionPort);
         if (status != ER_OK) {
-            QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __FUNCTION__));
+            QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __func__));
             return status;
         }
     } else {
         status = ER_FAIL;
-        QCC_LogError(status, ("%s: Failed to initialize About", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to initialize About", __func__));
         return status;
     }
 
@@ -542,13 +560,13 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
 
     status = configService.Register();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: ConfigService::Register() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: ConfigService::Register() failed", __func__));
         return status;
     }
 
     status = bus.RegisterBusObject(configService);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to register Config Service on the AllJoyn Bus", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to register Config Service on the AllJoyn Bus", __func__));
         return status;
     }
 
@@ -557,19 +575,19 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
      */
     status = bus.RegisterBusObject(*aboutService);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to register About Service on the AllJoyn Bus", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to register About Service on the AllJoyn Bus", __func__));
         return status;
     }
 
     status = aboutIconService.Register();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: AboutIconService::Register() failed", __FUNCTION__));
+        QCC_LogError(status, ("%s: AboutIconService::Register() failed", __func__));
         return status;
     }
 
     status = bus.RegisterBusObject(aboutIconService);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to register About Icon Service on the AllJoyn Bus", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to register About Icon Service on the AllJoyn Bus", __func__));
         return status;
     }
 
@@ -580,7 +598,7 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
      */
     status = bus.RegisterBusObject(*this);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to register BusObject for the Controller Service", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to register BusObject for the Controller Service", __func__));
         return status;
     }
 
@@ -589,12 +607,12 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
      */
     status = lampManager.Start(keyStoreFileLocation);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the LampManager", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the LampManager", __func__));
     }
 
     status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __func__));
     }
 
     return status;
@@ -602,16 +620,16 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
 
 QStatus ControllerService::Stop(void)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
 
     QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __func__));
     }
 
     status = elector.Stop();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to stop the Leader Elector object", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to stop the Leader Elector object", __func__));
     }
 
     aboutService->Unregister();
@@ -622,7 +640,7 @@ QStatus ControllerService::Stop(void)
 
     status = lampManager.Stop();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Error stopping Lamp Manager", __FUNCTION__));
+        QCC_LogError(status, ("%s: Error stopping Lamp Manager", __func__));
     }
 
     fileWriterThread.Stop();
@@ -630,17 +648,17 @@ QStatus ControllerService::Stop(void)
 
     status = bus.Disconnect();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Error disconnecting from the AllJoyn bus", __FUNCTION__));
+        QCC_LogError(status, ("%s: Error disconnecting from the AllJoyn bus", __func__));
     }
 
     status = bus.Stop();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Error stopping the AllJoyn bus", __FUNCTION__));
+        QCC_LogError(status, ("%s: Error stopping the AllJoyn bus", __func__));
     }
 
     status = bus.Join();
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Error joining the AllJoyn bus", __FUNCTION__));
+        QCC_LogError(status, ("%s: Error joining the AllJoyn bus", __func__));
     }
 
     return ER_OK;
@@ -648,6 +666,7 @@ QStatus ControllerService::Stop(void)
 
 QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalName, LSFStringList& idList)
 {
+    QCC_DbgTrace(("%s:ifaceName=%s signalName=%s", __func__, ifaceName, signalName));
     QStatus status = ER_BUS_NO_SESSION;
 
     size_t arraySize = idList.size();
@@ -669,9 +688,9 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
     serviceSessionMutex.Unlock();
 
     if (ER_OK == status) {
-        QCC_DbgPrintf(("%s: Successfully sent signal with %d entries", __FUNCTION__, arraySize));
+        QCC_DbgPrintf(("%s: Successfully sent signal with %d entries", __func__, arraySize));
     } else {
-        QCC_LogError(status, ("%s: Failed to send signal", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to send signal", __func__));
     }
 
     return status;
@@ -679,6 +698,7 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
 
 QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const char* signalName)
 {
+    QCC_DbgTrace(("%s:ifaceName=%s signalName=%s", __func__, ifaceName, signalName));
     QStatus status = ER_BUS_NO_SESSION;
 
     serviceSessionMutex.Lock();
@@ -688,9 +708,9 @@ QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const cha
     serviceSessionMutex.Unlock();
 
     if (ER_OK == status) {
-        QCC_DbgPrintf(("%s: Successfully sent signal", __FUNCTION__));
+        QCC_DbgPrintf(("%s: Successfully sent signal", __func__));
     } else {
-        QCC_LogError(status, ("%s: Failed to send signal", __FUNCTION__));
+        QCC_LogError(status, ("%s: Failed to send signal", __func__));
     }
 
     return status;
@@ -732,7 +752,7 @@ QStatus ControllerService::FactoryReset()
         // no reply; okay to call when locked
         QStatus status = obsObject->MethodCall(ConfigServiceInterfaceName, "FactoryReset", NULL, 0);
         if (status != ER_OK) {
-            QCC_LogError(ER_FAIL, ("%s: Could not call FactoryReset on OBS", __FUNCTION__));
+            QCC_LogError(ER_FAIL, ("%s: Could not call FactoryReset on OBS", __func__));
         }
     }
     obsObjectLock.Unlock();
@@ -749,12 +769,13 @@ QStatus ControllerService::FactoryReset()
 
 QStatus ControllerService::SetPassphrase(const char* daemonRealm, size_t passcodeSize, const char* passcode, ajn::SessionId sessionId)
 {
-    // TODO
+    QCC_DbgTrace(("%s", __func__));
     return ER_OK;
 }
 
 void ControllerService::SessionJoined(SessionId sessionId)
 {
+    QCC_DbgTrace(("%s:sessionId-%d", __func__, sessionId));
     bus.SetSessionListener(sessionId, listener);
 
     // we are now serving up a multipoint session to the apps
@@ -767,7 +788,7 @@ void ControllerService::SessionLost(SessionId sessionId)
 {
     // TODO: do we need to track multiple sessions?
     // Or are we ok since there is only one multipoint session?
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s:%u", __func__, sessionId));
     serviceSessionMutex.Lock();
     serviceSession = 0;
     serviceSessionMutex.Unlock();
@@ -775,13 +796,14 @@ void ControllerService::SessionLost(SessionId sessionId)
 
 void ControllerService::LeaveSession(ajn::SessionId sessionId)
 {
+    QCC_DbgTrace(("%s:sessionId=%u", __func__, sessionId));
     bus.EnableConcurrentCallbacks();
     bus.LeaveSession(sessionId);
 }
 
 void ControllerService::LightingResetControllerService(Message& msg)
 {
-    QCC_DbgPrintf(("%s:%s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s:%s", __func__, msg->ToString().c_str()));
 
     LSFResponseCode responseCode = LSF_OK;
     uint8_t failure = 0;
@@ -829,7 +851,7 @@ void ControllerService::LightingResetControllerService(Message& msg)
 
 void ControllerService::GetControllerServiceVersion(Message& msg)
 {
-    QCC_DbgPrintf(("%s:%s", __FUNCTION__, msg->ToString().c_str()));
+    QCC_DbgPrintf(("%s:%s", __func__, msg->ToString().c_str()));
     uint32_t version = CONTROLLER_SERVICE_VERSION;
     SendMethodReplyWithUint32Value(msg, version);
 }
@@ -838,20 +860,20 @@ void ControllerService::MethodCallDispatcher(const InterfaceDescription::Member*
 {
     bus.EnableConcurrentCallbacks();
 
-    QCC_DbgPrintf(("%s: Received Method call %s from interface %s", __FUNCTION__, msg->GetMemberName(), msg->GetInterface()));
+    QCC_DbgPrintf(("%s: Received Method call %s from interface %s", __func__, msg->GetMemberName(), msg->GetInterface()));
 
     DispatcherMap::iterator it = messageHandlers.find(msg->GetMemberName());
     if (it != messageHandlers.end()) {
         MethodHandlerBase* handler = it->second;
         handler->Handle(msg);
     } else {
-        QCC_LogError(ER_FAIL, ("%s: Could not find handler for method call", __FUNCTION__));
+        QCC_LogError(ER_FAIL, ("%s: Could not find handler for method call", __func__));
     }
 }
 
 void ControllerService::SendMethodReply(const ajn::Message& msg, const ajn::MsgArg* args, size_t numArgs)
 {
-    QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
+    QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
     QStatus status = ajn::BusObject::MethodReply(msg, args, numArgs);
     if (status == ER_OK) {
         QCC_DbgPrintf(("Successfully sent the reply"));
@@ -862,7 +884,7 @@ void ControllerService::SendMethodReply(const ajn::Message& msg, const ajn::MsgA
 
 void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode& responseCode, LSFStringList& idList)
 {
-    QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
+    QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
     MsgArg replyArgs[2];
 
@@ -878,7 +900,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::M
 
         replyArgs[1].Set("as", arraySize, ids);
         replyArgs[1].SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
-        QCC_DbgPrintf(("%s: Sending method reply with %d entries", __FUNCTION__, arraySize));
+        QCC_DbgPrintf(("%s: Sending method reply with %d entries", __func__, arraySize));
     } else {
         replyArgs[1].Set("as", 0, NULL);
     }
@@ -893,7 +915,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::M
 
 void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
 {
-    QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
+    QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
     MsgArg replyArgs[3];
 
@@ -911,7 +933,7 @@ void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Mess
 
 void ControllerService::SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId)
 {
-    QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
+    QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
     MsgArg replyArgs[2];
 
@@ -928,7 +950,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndID(const ajn::Message&
 
 void ControllerService::SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t& value)
 {
-    QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
+    QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
     MsgArg replyArg;
     replyArg.Set("u", value);
@@ -943,7 +965,7 @@ void ControllerService::SendMethodReplyWithUint32Value(const ajn::Message& msg, 
 
 void ControllerService::SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name)
 {
-    QCC_DbgPrintf(("%s: Method Reply for %s", __FUNCTION__, msg->GetMemberName()));
+    QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
     MsgArg replyArgs[4];
 
@@ -960,20 +982,21 @@ void ControllerService::SendMethodReplyWithResponseCodeIDLanguageAndName(const a
     }
 }
 
-void ControllerService::ScheduleFileWrite(Manager* manager)
+void ControllerService::ScheduleFileReadWrite(Manager* manager)
 {
-    fileWriterThread.SignalWrite();
+    QCC_DbgTrace(("%s", __func__));
+    fileWriterThread.SignalReadWrite();
 }
 
 uint32_t ControllerService::GetControllerServiceInterfaceVersion(void)
 {
-    QCC_DbgPrintf(("%s: controllerInterfaceVersion=%d", __FUNCTION__, ControllerServiceInterfaceVersion));
+    QCC_DbgPrintf(("%s: controllerInterfaceVersion=%d", __func__, ControllerServiceInterfaceVersion));
     return ControllerServiceInterfaceVersion;
 }
 
 QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& val)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     QStatus status = ER_OK;
     // Check the requested property and return the value if it exists
     if (0 == strcmp("Version", propName)) {
@@ -1003,11 +1026,20 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
 
 QStatus ControllerService::SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
+    QCC_DbgTrace(("%s:type=%d blob=%s checksum=%d timestamp=%llu", __func__, type, blob.c_str(), checksum, timestamp));
     QStatus status = ER_OK;
     serviceSessionMutex.Lock();
     status = elector.SendBlobUpdate(serviceSession, type, blob, checksum, timestamp);
     serviceSessionMutex.Unlock();
     return status;
+}
+
+void ControllerService::SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
+{
+    QCC_DbgTrace(("%s:type=%d blob=%s checksum=%d timestamp=%llu", __func__, type, blob.c_str(), checksum, timestamp));
+    serviceSessionMutex.Lock();
+    elector.SendGetBlobReply(message, type, blob, checksum, timestamp);
+    serviceSessionMutex.Unlock();
 }
 
 bool ControllerService::IsRunning()
@@ -1030,7 +1062,7 @@ uint32_t ControllerService::IsLeader()
 
 void ControllerService::AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     std::vector<qcc::String> interfaces;
     interfaces.push_back(interface);
     aboutService->AddObjectDescription(path, interfaces);
@@ -1041,7 +1073,7 @@ void ControllerService::AddObjDescriptionToAnnouncement(qcc::String path, qcc::S
 
 void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, qcc::String interface)
 {
-    QCC_DbgPrintf(("%s", __FUNCTION__));
+    QCC_DbgPrintf(("%s", __func__));
     std::vector<qcc::String> interfaces;
     interfaces.push_back(interface);
     aboutService->RemoveObjectDescription(path, interfaces);

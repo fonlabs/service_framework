@@ -84,7 +84,7 @@ class ControllerClientCallbackHandler : public ControllerClientCallback {
     void ConnectedToControllerServiceCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
         LSFString uniqueId = controllerServiceDeviceID;
         LSFString name = controllerServiceName;
-        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, uniqueId.c_str(), name.c_str());
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __func__, uniqueId.c_str(), name.c_str());
         connectedToControllerService = true;
         gotReply = true;
         gotSignal = true;
@@ -93,7 +93,7 @@ class ControllerClientCallbackHandler : public ControllerClientCallback {
     void ConnectToControllerServiceFailedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
         LSFString uniqueId = controllerServiceDeviceID;
         LSFString name = controllerServiceName;
-        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, uniqueId.c_str(), name.c_str());
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __func__, uniqueId.c_str(), name.c_str());
         gotReply = true;
         gotSignal = true;
     }
@@ -101,14 +101,14 @@ class ControllerClientCallbackHandler : public ControllerClientCallback {
     void DisconnectedFromControllerServiceCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
         LSFString uniqueId = controllerServiceDeviceID;
         LSFString name = controllerServiceName;
-        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __FUNCTION__, uniqueId.c_str(), name.c_str());
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __func__, uniqueId.c_str(), name.c_str());
         connectedToControllerService = false;
         gotReply = true;
         gotSignal = true;
     }
 
     void ControllerClientErrorCB(const ErrorCodeList& errorCodeList) {
-        printf("\n%s:", __FUNCTION__);
+        printf("\n%s:", __func__);
         ErrorCodeList::const_iterator it = errorCodeList.begin();
         for (; it != errorCodeList.end(); ++it) {
             printf("\n%s", ControllerClientErrorText(*it));
@@ -122,22 +122,22 @@ class ControllerClientCallbackHandler : public ControllerClientCallback {
 class ControllerServiceManagerCallbackHandler : public ControllerServiceManagerCallback {
 
     void GetControllerServiceVersionReplyCB(const uint32_t& version) {
-        printf("\n%s: version = %d\n", __FUNCTION__, version);
+        printf("\n%s: version = %d\n", __func__, version);
         gotReply = true;
     }
 
     void LightingResetControllerServiceReplyCB(const LSFResponseCode& responseCode) {
-        printf("\n%s: responseCode = %s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
+        printf("\n%s: responseCode = %s\n", __func__, LSFResponseCodeText(responseCode));
         gotReply = true;
     }
 
     void ControllerServiceLightingResetCB(void) {
-        printf("\n%s\n", __FUNCTION__);
+        printf("\n%s\n", __func__);
         gotSignal = true;
     }
 
     void ControllerServiceNameChangedCB(void) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         gotSignal = true;
     }
 };
@@ -145,7 +145,7 @@ class ControllerServiceManagerCallbackHandler : public ControllerServiceManagerC
 class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetAllLampIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& lampIDs) {
-        printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), lampIDs.size());
+        printf("\n%s(): responseCode = %s, listsize=%d", __func__, LSFResponseCodeText(responseCode), lampIDs.size());
         if (responseCode == LSF_OK) {
             LSFStringList::const_iterator it = lampIDs.begin();
             uint8_t count = 1;
@@ -161,7 +161,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void GetLampSupportedLanguagesReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFStringList& supportedLanguages) {
-        printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), supportedLanguages.size());
+        printf("\n%s(): responseCode = %s, listsize=%d", __func__, LSFResponseCodeText(responseCode), supportedLanguages.size());
         if (responseCode == LSF_OK) {
             LSFStringList::const_iterator it = supportedLanguages.begin();
             uint8_t count = 1;
@@ -177,7 +177,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     void GetLampManufacturerReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language, const LSFString& manufacturer) {
         LSFString uniqueId = lampID;
 
-        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nmanufacturer = %s", manufacturer.c_str());
@@ -188,7 +188,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     void GetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language, const LSFString& lampName) {
         LSFString uniqueId = lampID;
 
-        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nlampName = %s", lampName.c_str());
@@ -201,7 +201,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void SetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (responseCode != LSF_OK) {
             gotSignal = true;
@@ -209,7 +209,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void LampsNameChangedCB(const LSFStringList& lampIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = lampIDs.begin();
         for (; it != lampIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -220,9 +220,9 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampDetailsReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampDetails& lampDetails) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
-            printf("\n%s: lampDetails = %s", __FUNCTION__, lampDetails.c_str());
+            printf("\n%s: lampDetails = %s", __func__, lampDetails.c_str());
         }
         gotReply = true;
         if (numRepliesToWait) {
@@ -232,16 +232,16 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampParametersReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampParameters& lampParameters) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
-            printf("\n%s: parameters = %s", __FUNCTION__, lampParameters.c_str());
+            printf("\n%s: parameters = %s", __func__, lampParameters.c_str());
         }
         gotReply = true;
     }
 
     void GetLampParametersLumensFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& value) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" value = %d", value);
         }
@@ -250,7 +250,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampParametersEnergyUsageMilliwattsFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& value) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" value = %d", value);
         }
@@ -259,7 +259,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampState& lampState) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf("\nstate=%s\n", lampState.c_str());
         }
@@ -271,7 +271,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const bool& onOff) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" onOff = %d", onOff);
         }
@@ -280,7 +280,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& hue) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" hue = %d", hue);
         }
@@ -289,7 +289,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& saturation) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" saturation = %d", saturation);
         }
@@ -298,7 +298,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& brightness) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" brightness = %d", brightness);
         }
@@ -307,7 +307,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& colorTemp) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             printf(" colorTemp = %d", colorTemp);
         }
@@ -316,7 +316,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void ResetLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -324,7 +324,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void LampsStateChangedCB(const LSFStringList& lampIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = lampIDs.begin();
         for (; it != lampIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -335,7 +335,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void TransitionLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (responseCode != LSF_OK) {
             gotSignal = true;
@@ -344,19 +344,19 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void PulseLampWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void PulseLampWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void TransitionLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -365,7 +365,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void TransitionLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -374,7 +374,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void TransitionLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -383,7 +383,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void TransitionLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -392,7 +392,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void TransitionLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -401,7 +401,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void GetLampFaultsReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCodeList& faultCodes) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         if (responseCode == LSF_OK) {
             LampFaultCodeList::const_iterator it = faultCodes.begin();
             for (; it != faultCodes.end(); ++it) {
@@ -414,19 +414,19 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void ClearLampFaultReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LampFaultCode& faultCode) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s faultCode=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), faultCode);
+        printf("\n%s: responseCode = %s lampID = %s faultCode=0x%x", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), faultCode);
         gotReply = true;
     }
 
     void GetLampServiceVersionReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const uint32_t& lampServiceVersion) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s lampServiceVersion=0x%x", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), lampServiceVersion);
+        printf("\n%s: responseCode = %s lampID = %s lampServiceVersion=0x%x", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), lampServiceVersion);
         gotReply = true;
     }
 
     void ResetLampStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -435,7 +435,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void ResetLampStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -444,7 +444,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void ResetLampStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -453,7 +453,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void ResetLampStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -462,7 +462,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void ResetLampStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -471,7 +471,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
     void TransitionLampStateToPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) {
         LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -481,7 +481,7 @@ class LampManagerCallbackHandler : public LampManagerCallback {
 
 class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     void GetLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LampGroup& lampGroup) {
-        printf("\n%s(): responseCode = %s, lampGroupID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lampGroupID.c_str());
+        printf("\n%s(): responseCode = %s, lampGroupID=%s\n", __func__, LSFResponseCodeText(responseCode), lampGroupID.c_str());
         if (responseCode == LSF_OK) {
             printf("\nlampGroup=%s", lampGroup.c_str());
         }
@@ -492,7 +492,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void GetAllLampGroupIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& lampGroupIDs) {
-        printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), lampGroupIDs.size());
+        printf("\n%s(): responseCode = %s, listsize=%d", __func__, LSFResponseCodeText(responseCode), lampGroupIDs.size());
         lampGroupList = lampGroupIDs;
         if (responseCode == LSF_OK) {
             LSFStringList::const_iterator it = lampGroupIDs.begin();
@@ -509,7 +509,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     void GetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language, const LSFString& lampGroupName) {
         LSFString uniqueId = lampGroupID;
 
-        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nlampGroupName = %s", lampGroupName.c_str());
@@ -522,7 +522,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void SetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -530,7 +530,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void LampGroupsNameChangedCB(const LSFStringList& lampGroupIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = lampGroupIDs.begin();
         for (; it != lampGroupIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -540,7 +540,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void CreateLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        printf("\n%s: responseCode=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
+        printf("\n%s: responseCode=%s\n", __func__, LSFResponseCodeText(responseCode));
         if (LSF_OK == responseCode) {
             printf("lampGroupID=%s\n", lampGroupID.c_str());
             lampGroupList.push_back(lampGroupID);
@@ -551,7 +551,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void LampGroupsCreatedCB(const LSFStringList& lampGroupIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = lampGroupIDs.begin();
         for (; it != lampGroupIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -561,7 +561,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void UpdateLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        printf("\n%s(): responseCode = %s, lampGroupID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lampGroupID.c_str());
+        printf("\n%s(): responseCode = %s, lampGroupID=%s\n", __func__, LSFResponseCodeText(responseCode), lampGroupID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -569,7 +569,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void LampGroupsUpdatedCB(const LSFStringList& lampGroupIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = lampGroupIDs.begin();
         for (; it != lampGroupIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -579,7 +579,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void DeleteLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
-        printf("\n%s(): responseCode = %s, lampGroupID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), lampGroupID.c_str());
+        printf("\n%s(): responseCode = %s, lampGroupID=%s\n", __func__, LSFResponseCodeText(responseCode), lampGroupID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -587,7 +587,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
     }
 
     void LampGroupsDeletedCB(const LSFStringList& lampGroupIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = lampGroupIDs.begin();
         for (; it != lampGroupIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -598,7 +598,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void ResetLampGroupStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -607,7 +607,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void TransitionLampGroupStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (responseCode != LSF_OK) {
             gotSignal = true;
@@ -616,19 +616,19 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void PulseLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void PulseLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
     }
 
     void TransitionLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -637,7 +637,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void TransitionLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -646,7 +646,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void TransitionLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -655,7 +655,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void TransitionLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -664,7 +664,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void TransitionLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -673,7 +673,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void ResetLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -682,7 +682,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void ResetLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -691,7 +691,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void ResetLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -700,7 +700,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void ResetLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -709,7 +709,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void ResetLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -718,7 +718,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 
     void TransitionLampGroupStateToPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) {
         LSFString uniqueId = lampGroupID;
-        printf("\n%s: responseCode = %s lampGroupID = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        printf("\n%s: responseCode = %s lampGroupID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -729,7 +729,7 @@ class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
 class PresetManagerCallbackHandler : public PresetManagerCallback {
 
     void GetPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LampState& preset) {
-        printf("\n%s(): responseCode = %s, presetID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), presetID.c_str());
+        printf("\n%s(): responseCode = %s, presetID=%s\n", __func__, LSFResponseCodeText(responseCode), presetID.c_str());
         if (responseCode == LSF_OK) {
             printf("\npreset=%s", preset.c_str());
         }
@@ -740,7 +740,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void GetAllPresetIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& presetIDs) {
-        printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), presetIDs.size());
+        printf("\n%s(): responseCode = %s, listsize=%d", __func__, LSFResponseCodeText(responseCode), presetIDs.size());
         if (responseCode == LSF_OK) {
             presetList = presetIDs;
             LSFStringList::const_iterator it = presetIDs.begin();
@@ -757,7 +757,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     void GetPresetNameReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LSFString& language, const LSFString& presetName) {
         LSFString uniqueId = presetID;
 
-        printf("\n%s: responseCode = %s presetID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s presetID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\npresetName = %s", presetName.c_str());
@@ -770,7 +770,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
 
     void SetPresetNameReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LSFString& language) {
         LSFString uniqueId = presetID;
-        printf("\n%s: responseCode = %s presetID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s presetID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -778,7 +778,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void PresetsNameChangedCB(const LSFStringList& presetIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = presetIDs.begin();
         for (; it != presetIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -788,7 +788,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void CreatePresetReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID) {
-        printf("\n%s: responseCode=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
+        printf("\n%s: responseCode=%s\n", __func__, LSFResponseCodeText(responseCode));
         if (LSF_OK == responseCode) {
             printf("presetID=%s\n", presetID.c_str());
             presetList.push_back(presetID);
@@ -799,7 +799,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void PresetsCreatedCB(const LSFStringList& presetIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = presetIDs.begin();
         for (; it != presetIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -809,7 +809,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void UpdatePresetReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID) {
-        printf("\n%s(): responseCode = %s, presetID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), presetID.c_str());
+        printf("\n%s(): responseCode = %s, presetID=%s\n", __func__, LSFResponseCodeText(responseCode), presetID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -817,7 +817,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void PresetsUpdatedCB(const LSFStringList& presetIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = presetIDs.begin();
         for (; it != presetIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -827,7 +827,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void DeletePresetReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID) {
-        printf("\n%s(): responseCode = %s, presetID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), presetID.c_str());
+        printf("\n%s(): responseCode = %s, presetID=%s\n", __func__, LSFResponseCodeText(responseCode), presetID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -835,7 +835,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void PresetsDeletedCB(const LSFStringList& presetIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = presetIDs.begin();
         for (; it != presetIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -845,7 +845,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void GetDefaultLampStateReplyCB(const LSFResponseCode& responseCode, const LampState& defaultState) {
-        printf("\n%s: responseCode = %s", __FUNCTION__, LSFResponseCodeText(responseCode));
+        printf("\n%s: responseCode = %s", __func__, LSFResponseCodeText(responseCode));
         if (responseCode == LSF_OK) {
             printf("\nstate=%s\n", defaultState.c_str());
         }
@@ -853,7 +853,7 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void SetDefaultLampStateReplyCB(const LSFResponseCode& responseCode) {
-        printf("\n%s: responseCode = %s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
+        printf("\n%s: responseCode = %s\n", __func__, LSFResponseCodeText(responseCode));
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -861,14 +861,14 @@ class PresetManagerCallbackHandler : public PresetManagerCallback {
     }
 
     void DefaultLampStateChangedCB(void) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         gotSignal = true;
     }
 };
 
 class SceneManagerCallbackHandler : public SceneManagerCallback {
     void GetSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const Scene& scene) {
-        printf("\n%s(): responseCode = %s, sceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), sceneID.c_str());
+        printf("\n%s(): responseCode = %s, sceneID=%s\n", __func__, LSFResponseCodeText(responseCode), sceneID.c_str());
         if (responseCode == LSF_OK) {
             printf("\nscene=%s", scene.c_str());
         }
@@ -879,7 +879,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void GetAllSceneIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& sceneIDs) {
-        printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), sceneIDs.size());
+        printf("\n%s(): responseCode = %s, listsize=%d", __func__, LSFResponseCodeText(responseCode), sceneIDs.size());
         if (responseCode == LSF_OK) {
             sceneList = sceneIDs;
             LSFStringList::const_iterator it = sceneIDs.begin();
@@ -896,7 +896,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     void GetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language, const LSFString& sceneName) {
         LSFString uniqueId = sceneID;
 
-        printf("\n%s: responseCode = %s sceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s sceneID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nsceneName = %s", sceneName.c_str());
@@ -909,7 +909,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
 
     void SetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language) {
         LSFString uniqueId = sceneID;
-        printf("\n%s: responseCode = %s sceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s sceneID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -917,7 +917,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void ScenesNameChangedCB(const LSFStringList& sceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = sceneIDs.begin();
         for (; it != sceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -927,7 +927,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void CreateSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) {
-        printf("\n%s: responseCode=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
+        printf("\n%s: responseCode=%s\n", __func__, LSFResponseCodeText(responseCode));
         if (LSF_OK == responseCode) {
             printf("sceneID=%s\n", sceneID.c_str());
             sceneList.push_back(sceneID);
@@ -938,7 +938,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void ScenesCreatedCB(const LSFStringList& sceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = sceneIDs.begin();
         for (; it != sceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -948,7 +948,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void UpdateSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) {
-        printf("\n%s(): responseCode = %s, sceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), sceneID.c_str());
+        printf("\n%s(): responseCode = %s, sceneID=%s\n", __func__, LSFResponseCodeText(responseCode), sceneID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -956,7 +956,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void ScenesUpdatedCB(const LSFStringList& sceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = sceneIDs.begin();
         for (; it != sceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -966,7 +966,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void DeleteSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) {
-        printf("\n%s(): responseCode = %s, sceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), sceneID.c_str());
+        printf("\n%s(): responseCode = %s, sceneID=%s\n", __func__, LSFResponseCodeText(responseCode), sceneID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -974,7 +974,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void ScenesDeletedCB(const LSFStringList& sceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = sceneIDs.begin();
         for (; it != sceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -984,7 +984,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void ApplySceneReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID) {
-        printf("\n%s(): responseCode = %s, sceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), sceneID.c_str());
+        printf("\n%s(): responseCode = %s, sceneID=%s\n", __func__, LSFResponseCodeText(responseCode), sceneID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -992,7 +992,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
     }
 
     void ScenesAppliedCB(const LSFStringList& sceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = sceneIDs.begin();
         for (; it != sceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -1004,7 +1004,7 @@ class SceneManagerCallbackHandler : public SceneManagerCallback {
 
 class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     void GetMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const MasterScene& masterScene) {
-        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
+        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __func__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
         if (responseCode == LSF_OK) {
             printf("\nmasterScene=%s", masterScene.c_str());
         }
@@ -1015,7 +1015,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void GetAllMasterSceneIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& masterSceneIDs) {
-        printf("\n%s(): responseCode = %s, listsize=%d", __FUNCTION__, LSFResponseCodeText(responseCode), masterSceneIDs.size());
+        printf("\n%s(): responseCode = %s, listsize=%d", __func__, LSFResponseCodeText(responseCode), masterSceneIDs.size());
         if (responseCode == LSF_OK) {
             LSFStringList::const_iterator it = masterSceneIDs.begin();
             uint8_t count = 1;
@@ -1031,7 +1031,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     void GetMasterSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const LSFString& language, const LSFString& masterSceneName) {
         LSFString uniqueId = masterSceneID;
 
-        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
 
         if (responseCode == LSF_OK) {
             printf("\nmasterSceneName = %s", masterSceneName.c_str());
@@ -1044,7 +1044,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
 
     void SetMasterSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const LSFString& language) {
         LSFString uniqueId = masterSceneID;
-        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __FUNCTION__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
+        printf("\n%s: responseCode = %s masterSceneID = %s language = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str(), language.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -1052,7 +1052,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void MasterScenesNameChangedCB(const LSFStringList& masterSceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = masterSceneIDs.begin();
         for (; it != masterSceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -1062,7 +1062,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void CreateMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID) {
-        printf("\n%s: responseCode=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode));
+        printf("\n%s: responseCode=%s\n", __func__, LSFResponseCodeText(responseCode));
         if (LSF_OK == responseCode) {
             printf("masterSceneID=%s\n", masterSceneID.c_str());
         } else {
@@ -1072,7 +1072,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void MasterScenesCreatedCB(const LSFStringList& masterSceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = masterSceneIDs.begin();
         for (; it != masterSceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -1082,7 +1082,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void UpdateMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID) {
-        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
+        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __func__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -1090,7 +1090,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void MasterScenesUpdatedCB(const LSFStringList& masterSceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = masterSceneIDs.begin();
         for (; it != masterSceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -1100,7 +1100,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void DeleteMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID) {
-        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
+        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __func__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -1108,7 +1108,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void MasterScenesDeletedCB(const LSFStringList& masterSceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = masterSceneIDs.begin();
         for (; it != masterSceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());
@@ -1118,7 +1118,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void ApplyMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID) {
-        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __FUNCTION__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
+        printf("\n%s(): responseCode = %s, masterSceneID=%s\n", __func__, LSFResponseCodeText(responseCode), masterSceneID.c_str());
         gotReply = true;
         if (LSF_OK != responseCode) {
             gotSignal = true;
@@ -1126,7 +1126,7 @@ class MasterSceneManagerCallbackHandler : public MasterSceneManagerCallback {
     }
 
     void MasterScenesAppliedCB(const LSFStringList& masterSceneIDs) {
-        printf("\n%s", __FUNCTION__);
+        printf("\n%s", __func__);
         LSFStringList::const_iterator it = masterSceneIDs.begin();
         for (; it != masterSceneIDs.end(); ++it) {
             printf("\n%s", (*it).c_str());

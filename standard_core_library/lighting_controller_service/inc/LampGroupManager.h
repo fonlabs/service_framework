@@ -68,14 +68,24 @@ class LampGroupManager : public Manager {
 
     LSFResponseCode GetAllLampGroups(LampGroupMap& lampGroupMap);
 
-    void WriteFile();
+    void ReadWriteFile();
     void ReadSavedData();
 
     uint32_t GetControllerServiceLampGroupInterfaceVersion(void);
 
+    void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
+        lampGroupsLock.Lock();
+        GetBlobInfoInternal(checksum, timestamp);
+        lampGroupsLock.Unlock();
+    }
+
+    void HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp);
+
   protected:
 
-    virtual std::string GetString();
+    void ReplaceMap(std::istringstream& stream);
+
+    virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
 
     LSFResponseCode GetAllGroupLampsInternal(LSFStringList& lampGroupList, LSFStringList& lamps, LSFStringList& refList);
 

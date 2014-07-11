@@ -14,47 +14,55 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <qcc/Debug.h>
 #include <PersistenceThread.h>
 #include <ControllerService.h>
 
 using namespace lsf;
 
+#define QCC_MODULE "PERSISTED_THREAD"
+
 PersistenceThread::PersistenceThread(ControllerService& service)
     : service(service),
     running(true)
 {
+    QCC_DbgTrace(("%s", __func__));
 }
 
 PersistenceThread::~PersistenceThread()
 {
+    QCC_DbgTrace(("%s", __func__));
     Join();
 }
 
 
 void PersistenceThread::Run()
 {
+    QCC_DbgTrace(("%s", __func__));
     while (running) {
         // wait!
         semaphore.Wait();
 
         if (running) {
-            service.GetLampGroupManager().WriteFile();
-            service.GetMasterSceneManager().WriteFile();
-            service.GetPresetManager().WriteFile();
-            service.GetSceneManager().WriteFile();
+            service.GetLampGroupManager().ReadWriteFile();
+            service.GetMasterSceneManager().ReadWriteFile();
+            service.GetPresetManager().ReadWriteFile();
+            service.GetSceneManager().ReadWriteFile();
         }
     }
 }
 
-void PersistenceThread::SignalWrite()
+void PersistenceThread::SignalReadWrite()
 {
+    QCC_DbgTrace(("%s", __func__));
     // signal
     semaphore.Post();
 }
 
 void PersistenceThread::Stop()
 {
+    QCC_DbgTrace(("%s", __func__));
     running = false;
-    SignalWrite();
+    SignalReadWrite();
 }
 

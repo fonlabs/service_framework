@@ -31,11 +31,12 @@ lsf_env.Append(LIBPATH = '$DISTDIR/services_common/lib')
 lsf_env.Append(LIBPATH = '$DISTDIR/notification/lib') 
 lsf_env.Append(LIBPATH = '$DISTDIR/config/lib') 
 
-if lsf_env['BR'] == 'on' :
+if lsf_env['BR'] == 'on' and lsf_env['OS'] != 'openwrt' :
     bdFile = lsf_env.subst('$DISTDIR') + '/cpp/lib/BundledRouter.o'
     lsf_env.Prepend(LIBS = [File(bdFile), 'ajrouter'])
+
 if lsf_env['OS'] == 'openwrt':
-    lsf_env.AppendUnique(LIBS = [ 'stdc++', 'pthread' ])
+    lsf_env.AppendUnique(LIBS = [ 'stdc++', 'pthread'])
 
 lsf_env.Install('$DISTDIR/cpp/bin', 'thin_core_library/lamp_service/routerconfig.xml')
     

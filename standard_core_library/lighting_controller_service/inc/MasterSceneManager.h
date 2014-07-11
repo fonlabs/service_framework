@@ -47,13 +47,23 @@ class MasterSceneManager : public Manager {
     LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
 
     void ReadSavedData();
-    void WriteFile();
+    void ReadWriteFile();
 
     uint32_t GetControllerServiceMasterSceneInterfaceVersion(void);
 
-    virtual std::string GetString();
+    virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
+
+    void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
+        masterScenesLock.Lock();
+        GetBlobInfoInternal(checksum, timestamp);
+        masterScenesLock.Unlock();
+    }
+
+    void HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp);
 
   private:
+
+    void ReplaceMap(std::istringstream& stream);
 
     MasterSceneMap masterScenes;
     Mutex masterScenesLock;

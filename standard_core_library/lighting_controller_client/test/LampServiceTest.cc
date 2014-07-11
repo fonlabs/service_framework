@@ -86,6 +86,7 @@ class MyTestHandler : public services::AnnounceHandler, public SessionListener, 
 
     MyTestHandler(BusAttachment& bus) : services::AnnounceHandler(), bus(bus), _object(NULL)
     {
+        QCC_DbgTrace(("%s", __func__));
         ajn::services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *this, sizeof(interfaces) / sizeof(interfaces[0]));
 
         // to receive notifications:
@@ -94,6 +95,7 @@ class MyTestHandler : public services::AnnounceHandler, public SessionListener, 
 
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason)
     {
+        QCC_DbgTrace(("%s", __func__));
         delete _object;
         _object = NULL;
         delete _config;
@@ -113,7 +115,6 @@ class MyTestHandler : public services::AnnounceHandler, public SessionListener, 
         }
     }
 
-
     virtual void Dismiss(const int32_t msgId, const qcc::String appId)
     {
         QCC_DbgPrintf(("Notification %d dismissed by %s\n", msgId, appId.c_str()));
@@ -125,6 +126,7 @@ class MyTestHandler : public services::AnnounceHandler, public SessionListener, 
     }
 
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData);
+    QCC_DbgTrace(("%s", __func__));
     BusAttachment& bus;
     qcc::String _lampID;
     ProxyBusObject* _object;
@@ -133,6 +135,7 @@ class MyTestHandler : public services::AnnounceHandler, public SessionListener, 
 
 void MyTestHandler::Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData)
 {
+    QCC_DbgTrace(("%s", __func__));
     bus.EnableConcurrentCallbacks();
     bool is_lamp = false;
     QCC_DbgPrintf(("Got announcement for %s on port %u\n", busName, port));
@@ -201,6 +204,7 @@ void MyTestHandler::Announce(uint16_t version, uint16_t port, const char* busNam
 
 int main()
 {
+    QCC_DbgTrace(("%s", __func__));
     BusAttachment bus("lsftest", true);
     QStatus st = bus.Start();
     QCC_DbgPrintf(("BusAttachment::Start(): %s\n", QCC_StatusText(st)));
