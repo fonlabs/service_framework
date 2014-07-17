@@ -26,7 +26,7 @@ using namespace lsf;
 LSFSemaphore::LSFSemaphore()
 {
     QCC_DbgPrintf(("%s", __func__));
-    sem_init(&mutex, 1, 1);
+    sem_init(&mutex, 0, 0);
 }
 
 LSFSemaphore::~LSFSemaphore()

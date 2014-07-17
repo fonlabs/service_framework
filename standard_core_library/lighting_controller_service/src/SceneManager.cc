@@ -159,6 +159,7 @@ SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& l
     Manager(controllerSvc, sceneFile), lampGroupManager(lampGroupMgr), masterSceneManager(masterSceneMgr)
 {
     QCC_DbgPrintf(("%s", __func__));
+    scenes.clear();
 }
 
 LSFResponseCode SceneManager::GetAllScenes(SceneMap& sceneMap)
@@ -720,6 +721,13 @@ void SceneManager::ReadSavedData()
     QCC_DbgTrace(("%s", __func__));
     std::istringstream stream;
     if (!ValidateFileAndRead(stream)) {
+        /*
+         * If there is no file present / CRC check failed on the file create a new
+         * file with initialState entry
+         */
+        scenesLock.Lock();
+        ScheduleFileWrite(false, true);
+        scenesLock.Unlock();
         return;
     }
 
@@ -729,6 +737,7 @@ void SceneManager::ReadSavedData()
 void SceneManager::ReplaceMap(std::istringstream& stream)
 {
     QCC_DbgTrace(("%s", __func__));
+    bool firstIteration = true;
     while (!stream.eof()) {
         std::string token;
         std::string id;
@@ -742,8 +751,15 @@ void SceneManager::ReplaceMap(std::istringstream& stream)
             name = ParseString(stream);
 
             if (0 == strcmp(id.c_str(), resetID.c_str())) {
-                QCC_DbgPrintf(("Skipped reading the file as id=%s, name=[%s]\n", id.c_str(), name.c_str()));
+                QCC_DbgPrintf(("The file has a reset entry. Clearing the map"));
+                scenes.clear();
+            } else if (0 == strcmp(id.c_str(), initialStateID.c_str())) {
+                QCC_DbgPrintf(("The file has a initialState entry. So we ignore it"));
             } else {
+                if (firstIteration) {
+                    scenes.clear();
+                    firstIteration = false;
+                }
                 do {
                     token = ParseString(stream);
                     if (token == "TransitionLampsLampGroupsToState") {
@@ -878,12 +894,21 @@ std::string SceneManager::GetString(const SceneObjectMap& items)
 {
     std::ostringstream stream;
     if (0 == items.size()) {
-        QCC_DbgPrintf(("%s: File is being reset", __func__));
-        const LSFString& id = resetID;
-        const LSFString& name = resetID;
+        if (initialState) {
+            QCC_DbgPrintf(("%s: This is the initial state entry", __func__));
+            const LSFString& id = initialStateID;
+            const LSFString& name = initialStateID;
 
-        stream << "Scene " << id << " \"" << name << "\"\n";
-        stream << "EndScene\n";
+            stream << "Scene " << id << " \"" << name << "\"\n";
+            stream << "EndScene\n";
+        } else {
+            QCC_DbgPrintf(("%s: File is being reset", __func__));
+            const LSFString& id = resetID;
+            const LSFString& name = resetID;
+
+            stream << "Scene " << id << " \"" << name << "\"\n";
+            stream << "EndScene\n";
+        }
     } else {
         for (SceneObjectMap::const_iterator it = items.begin(); it != items.end(); it++) {
             const LSFString& id = it->first;
@@ -976,13 +1001,18 @@ bool SceneManager::GetString(std::string& output, uint32_t& checksum, uint64_t& 
     if (ret) {
         output = GetString(mapCopy);
         scenesLock.Lock();
-        if (!blobUpdateCycle) {
-            checkSum = checksum = GetChecksum(output);
-            timeStamp = timestamp = GetTimestamp64();
-        } else {
+        if (blobUpdateCycle) {
             checksum = checkSum;
             timestamp = timeStamp;
             blobUpdateCycle = false;
+        } else {
+            if (initialState) {
+                timeStamp = timestamp = 0UL;
+                initialState = false;
+            } else {
+                timeStamp = timestamp = GetTimestamp64();
+            }
+            checkSum = checksum = GetChecksum(output);
         }
         scenesLock.Unlock();
     }
@@ -990,16 +1020,15 @@ bool SceneManager::GetString(std::string& output, uint32_t& checksum, uint64_t& 
     return ret;
 }
 
-void SceneManager::HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp)
+void SceneManager::HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgPrintf(("%s", __func__));
     uint64_t currentTimestamp = GetTimestamp64();
     scenesLock.Lock();
-    if ((currentTimestamp - timeStamp) > timestamp) {
-        scenes.clear();
+    if (((timeStamp == 0) || ((currentTimestamp - timeStamp) > timestamp)) && (checkSum != checksum)) {
         std::istringstream stream(blob.c_str());
         ReplaceMap(stream);
-        timeStamp = timestamp;
+        timeStamp = currentTimestamp;
         checkSum = checksum;
         ScheduleFileWrite(true);
     }

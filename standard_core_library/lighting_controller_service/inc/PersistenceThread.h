@@ -36,6 +36,7 @@ class PersistenceThread : public Thread {
 
     virtual void Stop();
 
+    virtual void Join();
 
   private:
     ControllerService& service;

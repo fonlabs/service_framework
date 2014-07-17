@@ -122,7 +122,12 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     uint64_t GetRank();
 
-    uint32_t IsLeader();
+    bool IsLeader();
+
+    virtual void Stop();
+    virtual void Join();
+
+    void SetIsLeader(bool leader);
 
   private:
 
@@ -183,6 +188,16 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      * @return QStatus
      */
     QStatus setProperty(PropertyStoreKey propertyKey, const qcc::String& value, bool isPublic, bool isWritable, bool isAnnouncable);
+    /**
+     * setProperty
+     * @param[in] propertyKey
+     * @param[in] value
+     * @param[in] isPublic
+     * @param[in] isWritable
+     * @param[in] isAnnouncable
+     * @return QStatus
+     */
+    QStatus setProperty(PropertyStoreKey propertyKey, const char* value, bool isPublic, bool isWritable, bool isAnnouncable);
 
     QStatus setProperty(PropertyStoreKey propertyKey, const uint8_t* value, uint32_t len, bool isPublic, bool isWritable, bool isAnnouncable);
 
@@ -190,6 +205,7 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     QStatus setProperty(PropertyStoreKey propertyKey, uint32_t value, bool isPublic, bool isWritable, bool isAnnouncable);
 
+    QStatus setProperty(PropertyStoreKey propertyKey, bool value, bool isPublic, bool isWritable, bool isAnnouncable);
     /**
      * setProperty
      * @param[in] propertyKey
@@ -201,6 +217,17 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      * @return QStatus
      */
     QStatus setProperty(PropertyStoreKey propertyKey, const qcc::String& value, const qcc::String& language, bool isPublic, bool isWritable, bool isAnnouncable);
+    /**
+     * setProperty
+     * @param[in] propertyKey
+     * @param[in] value
+     * @param[in] language
+     * @param[in] isPublic
+     * @param[in] isWritable
+     * @param[in] isAnnouncable
+     * @return QStatus
+     */
+    QStatus setProperty(PropertyStoreKey propertyKey, const char* value, const qcc::String& language, bool isPublic, bool isWritable, bool isAnnouncable);
 
     /**
      * m_Properties
@@ -220,7 +247,6 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
     StringMap obsSettings;
 
     virtual void Run();
-    virtual void Stop();
 
     /**
      * m_PropertyStoreName

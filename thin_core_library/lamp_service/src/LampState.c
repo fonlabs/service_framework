@@ -44,7 +44,7 @@ static LampState TheLampState;
 
 LampResponseCode LAMP_MarshalState(LampState* state, AJ_Message* msg)
 {
-    AJ_InfoPrintf(("%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("%s\n", __func__));
     AJ_Status status = AJ_MarshalArgs(msg, "{sv}", "Hue", "u", state->hue);
     if (status != AJ_OK) {
         return LAMP_ERR_MESSAGE;
@@ -158,11 +158,11 @@ void LAMP_GetState(LampState* state)
 
 void LAMP_SetState(const LampState* state)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     int32_t diff = memcmp(state, &TheLampState, sizeof(LampState));
 
     if (diff) {
-        AJ_InfoPrintf(("\n%s: Calling into NVRAM\n", __FUNCTION__));
+        AJ_InfoPrintf(("\n%s: Calling into NVRAM\n", __func__));
         AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(LampState));
         memcpy(&TheLampState, state, sizeof(LampState));
 

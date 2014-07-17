@@ -44,7 +44,7 @@ uint8_t dbgLAMP_ONBOARDING = 1;
 
 static const char* GenerateSoftAPSSID(char* obSoftAPssid)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     const char* deviceId;
     size_t deviceIdLen;
     char serialId[AJOBS_DEVICE_SERIAL_ID_LEN + 1] = { 0 };
@@ -80,7 +80,7 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
         }
     }
 
-    AJ_AlwaysPrintf(("%s: SoftAP: %s\n", __FUNCTION__, obSoftAPssid));
+    AJ_AlwaysPrintf(("%s: SoftAP: %s\n", __func__, obSoftAPssid));
     return obSoftAPssid;
 }
 
@@ -88,7 +88,7 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
 
 AJ_Status LAMP_InitOnboarding(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     AJ_Status status = AJ_OK;
 
     AJOBS_RegisterObjectList();

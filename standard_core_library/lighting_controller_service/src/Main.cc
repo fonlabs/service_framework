@@ -21,6 +21,8 @@
 #include <qcc/Debug.h>
 #include <string>
 #include <ControllerService.h>
+#include <fstream>
+#include <sstream>
 
 #define QCC_MODULE "MAIN"
 
@@ -45,26 +47,33 @@ static void SigTermHandler(int sig)
     }
 }
 
-static std::string obsConfigFile = "";
+static std::string obsConfigFile = "OnboardingService.conf";
 static std::string factoryConfigFile = "OEMConfig.ini";
 static std::string configFile = "Config.ini";
 static std::string lampGroupFile = "LampGroups.lsf";
 static std::string presetFile = "Presets.lsf";
 static std::string sceneFile = "Scenes.lsf";
 static std::string masterSceneFile = "MasterScenes.lsf";
-static std::string storeFileName = "LightingControllerService";
+static std::string storeFile = "LightingControllerService";
+static std::string obsConfigFilePath;
+static std::string factoryConfigFilePath = factoryConfigFile;
+static std::string configFilePath = configFile;
+static std::string lampGroupFilePath = lampGroupFile;
+static std::string presetFilePath = presetFile;
+static std::string sceneFilePath = sceneFile;
+static std::string masterSceneFilePath = masterSceneFile;
+static std::string storeFilePath = storeFile;
 static std::string storeLocation;
-static bool runDaemon = false;
+static bool runForeground = false;
 
 static void usage(int argc, char** argv)
 {
-    printf("Usage: %s -h ? -k <absolute_directory_path> -d -o <Full path to the Onboarding config file required on OpenWRT>\n\n", argv[0]);
+    printf("Usage: %s -h ? -k <absolute_directory_path> -f\n\n", argv[0]);
     printf("Options:\n");
     printf("   -h                    = Print this help message\n");
     printf("   -?                    = Print this help message\n");
-    printf("   -d                    = Run the Controller Service as a background daemon\n");
-    printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config files.\n\n");
-    printf("   -o <file>             = Full path to the Onboarding config file (needed for DeviceId)\n");
+    printf("   -f                    = Run the Controller Service as a foreground process\n");
+    printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config FilePaths and the on-baording daemon config file path OnboardingService.conf.\n\n");
     printf("Default:\n");
     printf("    %s\n", argv[0]);
 }
@@ -72,34 +81,51 @@ static void usage(int argc, char** argv)
 
 static void parseCommandLine(int argc, char** argv)
 {
-    int opt;
-
-    while ((opt = getopt(argc, argv, "h?k:do:")) != -1) {
-        switch (opt) {
-        case 'h':
-        case '?':
+    /* Parse command line args */
+    for (int i = 1; i < argc; ++i) {
+        if (0 == strcmp("-h", argv[i]) || 0 == strcmp("-?", argv[i])) {
             usage(argc, argv);
             exit(0);
-            break;
-
-        case 'd':
-            runDaemon = true;
-            break;
-
-        case 'k':
-            storeLocation = optarg;
-            break;
-
-        case 'o':
-            obsConfigFile = optarg;
-            break;
-
-        default:
+        } else if (0 == strcmp("-k", argv[i])) {
+            ++i;
+            if (i == argc) {
+                printf("option %s requires a parameter\n", argv[i - 1]);
+                usage(argc, argv);
+                exit(1);
+            } else {
+                storeLocation = argv[i];
+                char* dirPath = getenv("HOME");
+                if (dirPath == NULL) {
+                    dirPath = const_cast<char*>("/");
+                }
+                static std::string absDirPath = std::string(dirPath) + "/" + storeLocation + "/";
+                std::string tempPath = absDirPath + obsConfigFile;
+                std::ifstream file(tempPath.c_str(), std::ifstream::in);
+                if (file) {
+                    obsConfigFilePath = absDirPath + obsConfigFile;
+                }
+                factoryConfigFilePath = absDirPath + factoryConfigFile;
+                configFilePath = absDirPath + configFile;
+                lampGroupFilePath = absDirPath + lampGroupFile;
+                presetFilePath = absDirPath + presetFile;
+                sceneFilePath = absDirPath + sceneFile;
+                masterSceneFilePath = absDirPath + masterSceneFile;
+                storeFilePath = storeLocation + "/" + storeFile;
+            }
+        } else if (0 == strcmp("-f", argv[i])) {
+            runForeground = true;
+        } else {
+            printf("Unknown option %s\n", argv[i]);
             usage(argc, argv);
             exit(-1);
-            break;
         }
     }
+#ifdef _OPEN_WRT_
+    if (obsConfigFilePath.empty()) {
+        printf("OnboardingService.conf not found. This is required for OpenWRT operation.\n");
+        exit(-1);
+    }
+#endif
 }
 
 void lsf_Sleep(uint32_t msec)
@@ -116,21 +142,28 @@ void RunService()
     }
 
     lsf::ControllerServiceManager* controllerSvcManagerPtr =
-        new lsf::ControllerServiceManager(obsConfigFile, factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile);
-    controllerSvcManagerPtr->Start(storeLocation.empty() ? NULL : storeLocation.c_str());
+        new lsf::ControllerServiceManager(obsConfigFilePath, factoryConfigFilePath, configFilePath, lampGroupFilePath, presetFilePath, sceneFilePath, masterSceneFilePath);
 
     if (controllerSvcManagerPtr == NULL) {
         QCC_LogError(ER_OUT_OF_MEMORY, ("%s: Failed to start the Controller Service Manager", __func__));
         exit(-1);
     }
 
-    while (g_running && controllerSvcManagerPtr->IsRunning()) {
-        lsf_Sleep(1000);
+    QStatus status = controllerSvcManagerPtr->Start(storeLocation.empty() ? NULL : storeFilePath.c_str());
+
+    if (status == ER_OK) {
+        while (g_running && controllerSvcManagerPtr->IsRunning() && (controllerSvcManagerPtr->IsConnectedToRouter() == ER_OK)) {
+            lsf_Sleep(1000);
+        }
     }
+
+    QCC_LogError(ER_FAIL, ("%s: Failed to talk to bus", __func__));
 
     if (controllerSvcManagerPtr) {
         controllerSvcManagerPtr->Stop();
+        controllerSvcManagerPtr->Join();
         delete controllerSvcManagerPtr;
+        QCC_DbgPrintf(("%s: After delete controllerSvcManagerPtr", __func__));
     }
 }
 
@@ -142,6 +175,9 @@ void RunAndMonitor()
     fclose(stdout);
     fclose(stderr);
 
+    signal(SIGINT, SigIntHandler);
+    signal(SIGTERM, SigTermHandler);
+
     while (g_running) {
         pid_t pid = fork();
 
@@ -149,12 +185,17 @@ void RunAndMonitor()
             // failed to fork!
             exit(-1);
         } else if (pid == 0) {
+            QCC_DbgPrintf(("%s: Starting Child", __func__));
             RunService();
+            break;
         } else {
             g_child_process = pid;
             int status = 0;
+            QCC_DbgPrintf(("%s: Child PID %d", __func__, pid));
             // wait for exit
             wait(&status);
+            QCC_DbgPrintf(("%s: Exited child PID %d", __func__, pid));
+            lsf_Sleep(1000);
         }
     }
 }
@@ -163,30 +204,28 @@ void RunAndMonitor()
 int main(int argc, char** argv)
 {
     QCC_DbgTrace(("%s", __func__));
-    signal(SIGINT, SigIntHandler);
-    signal(SIGTERM, SigTermHandler);
 
     parseCommandLine(argc, argv);
 
-#ifdef _OPEN_WRT_
-    if (obsConfigFile.empty()) {
-        printf("OBS Config File must be specified\n");
-        return -1;
-    }
-#endif
-
-    if (runDaemon) {
+    if (runForeground) {
+        QCC_DbgPrintf(("%s: Running in foreground", __func__));
+        RunService();
+    } else {
+        QCC_DbgPrintf(("%s: Running in background", __func__));
+        QCC_LogError(ER_OK, ("%s: You are running Controller Service in the default background mode. To debug, start Controller Service with the -f option", __func__));
         pid_t pid = fork();
 
         if (pid == -1) {
             return -1;
         } else if (pid == 0) {
+            QCC_DbgPrintf(("%s: Starting Monitor", __func__));
             RunAndMonitor();
+            return 0;
         } else {
             // Unneeded parent process, just exit.
+            QCC_DbgPrintf(("%s: Monitor PID %d", __func__, pid));
+            QCC_DbgPrintf(("%s: Exiting Main", __func__));
             return 0;
         }
-    } else {
-        RunService();
     }
 }

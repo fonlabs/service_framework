@@ -24,10 +24,17 @@ namespace lsf {
 
 static const LampState defaultLampState = LampState(true, 256, 256, 256, 256);
 
+uint64_t rank = 0;
+
 void GetFactorySetDefaultLampState(LampState& defaultState)
 {
     QCC_DbgPrintf(("%s", __func__));
     defaultState = defaultLampState;
+}
+
+uint32_t GetLinkTimeoutSeconds()
+{
+    return 5;
 }
 
 void GetSyncTimeStamp(uint64_t& timeStamp)
@@ -35,18 +42,24 @@ void GetSyncTimeStamp(uint64_t& timeStamp)
     /* This is just a sample implementation and so it passes back a
      * hard coded value. OEMs are supposed to integrate this
      * with their Time Sync module*/
-    QCC_DbgPrintf(("%s", __func__));
-    timeStamp = 0x4444444444444444;
+    qcc::String timeString = qcc::RandHexString(16);
+    timeStamp = StringToU64(timeString, 16);
+    QCC_DbgPrintf(("%s: timeString = %s timestamp = %llu", __func__, timeString.c_str(), timeStamp));
 }
 
 uint64_t GetRank()
 {
-    return 1;
+    if (rank == 0) {
+        qcc::String rankString = qcc::RandHexString(16);
+        rank = StringToU64(rankString, 16);
+        QCC_DbgPrintf(("%s: rankString = %s rank = %llu", __func__, rankString.c_str(), rank));
+    }
+    return rank;
 }
 
-uint32_t IsLeader()
+bool IsLeader()
 {
-    return 0;
+    return false;
 }
 
 // NOTE: this function will only be called if no Factory Configuration ini file is found.
@@ -62,7 +75,14 @@ void PopulateDefaultProperties(LSFPropertyStore& propStore)
 
     propStore.setProperty(LSFPropertyStore::RANK, GetRank(), true, false, true);
 
-    propStore.setProperty(LSFPropertyStore::IS_LEADER, IsLeader(), true, true, true);
+    propStore.setProperty(LSFPropertyStore::IS_LEADER, IsLeader(), true, false, true);
+
+    // use a random AppId since we don't have one
+    qcc::String app_id = qcc::RandHexString(16);
+    uint8_t* AppId = new uint8_t[16];
+    qcc::HexStringToBytes(app_id, AppId, 16);
+    propStore.setProperty(LSFPropertyStore::APP_ID, AppId, 16, true, false, true);
+
 
     propStore.setProperty(LSFPropertyStore::DEFAULT_LANG, "en", true, true, true);
     propStore.setProperty(LSFPropertyStore::APP_NAME, "LightingControllerService", true, false, true);

@@ -29,6 +29,7 @@ MasterSceneManager::MasterSceneManager(ControllerService& controllerSvc, SceneMa
     Manager(controllerSvc, masterSceneFile), sceneManager(sceneMgr)
 {
     QCC_DbgTrace(("%s", __func__));
+    masterScenes.clear();
 }
 
 LSFResponseCode MasterSceneManager::GetAllMasterScenes(MasterSceneMap& masterSceneMap)
@@ -469,6 +470,13 @@ void MasterSceneManager::ReadSavedData()
     QCC_DbgTrace(("%s", __func__));
     std::istringstream stream;
     if (!ValidateFileAndRead(stream)) {
+        /*
+         * If there is no file present / CRC check failed on the file create a new
+         * file with initialState entry
+         */
+        masterScenesLock.Lock();
+        ScheduleFileWrite(false, true);
+        masterScenesLock.Unlock();
         return;
     }
 
@@ -478,6 +486,7 @@ void MasterSceneManager::ReadSavedData()
 void MasterSceneManager::ReplaceMap(std::istringstream& stream)
 {
     QCC_DbgTrace(("%s", __func__));
+    bool firstIteration = true;
     while (!stream.eof()) {
         std::string token = ParseString(stream);
 
@@ -485,8 +494,15 @@ void MasterSceneManager::ReplaceMap(std::istringstream& stream)
             std::string id = ParseString(stream);
             std::string name = ParseString(stream);
             if (0 == strcmp(id.c_str(), resetID.c_str())) {
-                QCC_DbgPrintf(("Skipped reading the file as id=%s, name=[%s]\n", id.c_str(), name.c_str()));
+                QCC_DbgPrintf(("The file has a reset entry. Clearing the map"));
+                masterScenes.clear();
+            } else if (0 == strcmp(id.c_str(), initialStateID.c_str())) {
+                QCC_DbgPrintf(("The file has a initialState entry. So we ignore it"));
             } else {
+                if (firstIteration) {
+                    masterScenes.clear();
+                    firstIteration = false;
+                }
                 LSFStringList subScenes;
 
                 do {
@@ -512,11 +528,20 @@ std::string MasterSceneManager::GetString(const MasterSceneMap& items)
     std::ostringstream stream;
     // (MasterScene id "name" (Scene id)* EndMasterScene)*
     if (0 == items.size()) {
-        const LSFString& id = resetID;
-        const LSFString& name = resetID;
+        if (initialState) {
+            QCC_DbgPrintf(("%s: This is the initial state entry", __func__));
+            const LSFString& id = initialStateID;
+            const LSFString& name = initialStateID;
 
-        stream << "MasterScene " << id << " \"" << name << "\"";
-        stream << " EndMasterScene" << std::endl;
+            stream << "MasterScene " << id << " \"" << name << "\"";
+            stream << " EndMasterScene" << std::endl;
+        } else {
+            const LSFString& id = resetID;
+            const LSFString& name = resetID;
+
+            stream << "MasterScene " << id << " \"" << name << "\"";
+            stream << " EndMasterScene" << std::endl;
+        }
     } else {
         for (MasterSceneMap::const_iterator it = items.begin(); it != items.end(); ++it) {
             const LSFString& id = it->first;
@@ -556,13 +581,18 @@ bool MasterSceneManager::GetString(std::string& output, uint32_t& checksum, uint
     if (ret) {
         output = GetString(mapCopy);
         masterScenesLock.Lock();
-        if (!blobUpdateCycle) {
-            checkSum = checksum = GetChecksum(output);
-            timeStamp = timestamp = GetTimestamp64();
-        } else {
+        if (blobUpdateCycle) {
             checksum = checkSum;
             timestamp = timeStamp;
             blobUpdateCycle = false;
+        } else {
+            if (initialState) {
+                timeStamp = timestamp = 0UL;
+                initialState = false;
+            } else {
+                timeStamp = timestamp = GetTimestamp64();
+            }
+            checkSum = checksum = GetChecksum(output);
         }
         masterScenesLock.Unlock();
     }
@@ -570,16 +600,15 @@ bool MasterSceneManager::GetString(std::string& output, uint32_t& checksum, uint
     return ret;
 }
 
-void MasterSceneManager::HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp)
+void MasterSceneManager::HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgPrintf(("%s", __func__));
     uint64_t currentTimestamp = GetTimestamp64();
     masterScenesLock.Lock();
-    if ((currentTimestamp - timeStamp) > timestamp) {
-        masterScenes.clear();
+    if (((timeStamp == 0) || ((currentTimestamp - timeStamp) > timestamp)) && (checkSum != checksum)) {
         std::istringstream stream(blob.c_str());
         ReplaceMap(stream);
-        timeStamp = timestamp;
+        timeStamp = currentTimestamp;
         checkSum = checksum;
         ScheduleFileWrite(true);
     }

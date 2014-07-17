@@ -52,26 +52,26 @@ uint8_t dbgLAMP_ABOUT_DATA = 1;
 
 const char* LAMP_GetID(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     return AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
 }
 
 const char* LAMP_GetName(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     return AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME);
 }
 
 void LAMP_SetName(const char* name)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME, name);
     AJSVC_PropertyStore_SaveAll();
 }
 
 static AJ_Status FactoryReset(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     AJSVC_PropertyStore_ResetAll();
 
     // this will clear onboarding data, state, and credentials
@@ -91,7 +91,7 @@ static AJ_Status FactoryReset(void)
 
 static AJ_Status Restart(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     OEM_LS_Restart();
     return AJ_ERR_RESTART_APP;
 }
@@ -101,7 +101,7 @@ static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode
     char newStringPasscode[PASSWORD_VALUE_LENGTH + 1];
     AJ_Status status;
 
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
 
     status = AJ_RawToHex(newPasscode, newPasscodeLen, newStringPasscode, sizeof(newStringPasscode), FALSE);
     if (status != AJ_OK) {
@@ -131,7 +131,7 @@ static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode
 
 static uint8_t IsValueValid(const char* key, const char* value)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     return TRUE;
 }
 
@@ -162,7 +162,7 @@ uint32_t LAMP_PasswordCallback(uint8_t* buffer, uint32_t bufLen)
 
 void LAMP_SetupAboutConfigData(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     AJCFG_Start(&FactoryReset, &Restart, &SetPasscode, &IsValueValid);
     AJ_AboutSetIcon(aboutIconContent, aboutIconSize, aboutIconMimetype, aboutIconUrl);
 

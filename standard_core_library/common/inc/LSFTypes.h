@@ -373,8 +373,6 @@ class MasterScene {
     LSFStringList scenes;
 };
 
-uint64_t GetTimestamp64(void);
-
 /*
  * std::map<masterSceneID, std::pair<masterSceneName, masterScene>>
  */

@@ -59,6 +59,8 @@ void GetFactorySetDefaultLampState(LampState& defaultState);
  */
 void GetSyncTimeStamp(uint64_t& timeStamp);
 
+uint32_t GetLinkTimeoutSeconds();
+
 /**
  * LSFPropertyStore predeclaration
  */

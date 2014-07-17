@@ -32,6 +32,7 @@ PresetManager::PresetManager(ControllerService& controllerSvc, SceneManager* sce
     Manager(controllerSvc, presetFile), sceneManagerPtr(sceneMgrPtr)
 {
     QCC_DbgTrace(("%s", __func__));
+    presets.clear();
 }
 
 LSFResponseCode PresetManager::GetAllPresets(PresetMap& presetMap)
@@ -97,12 +98,29 @@ LSFResponseCode PresetManager::Reset(void)
     return responseCode;
 }
 
-LSFResponseCode PresetManager::ResetDefaultState(bool sendSignal)
+LSFResponseCode PresetManager::ResetDefaultState(void)
 {
     QCC_DbgTrace(("%s", __func__));
-    LampState defaultLampState;
-    GetFactorySetDefaultLampState(defaultLampState);
-    return SetDefaultLampStateInternal(defaultLampState, sendSignal);
+    bool erased = false;
+    presetsLock.Lock();
+    PresetMap::iterator it = presets.find(defaultLampStateID);
+    if (it != presets.end()) {
+        QCC_DbgPrintf(("%s: Removing the default lamp state entry", __func__));
+        presets.erase(it);
+        erased = true;
+    }
+    presetsLock.Unlock();
+    if (erased) {
+        /*
+         * Send the DefaultLampStateChangedSignal
+         */
+        QCC_DbgPrintf(("%s: Sending the DefaultLampStateChangedSignal", __func__));
+        QStatus status = controllerService.SendSignalWithoutArg(ControllerServicePresetInterfaceName, "DefaultLampStateChanged");
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: Unable to send DefaultLampStateChanged signal", __func__));
+        }
+    }
+    return LSF_OK;
 }
 
 LSFResponseCode PresetManager::GetPresetInternal(const LSFString& presetID, LampState& preset)
@@ -482,32 +500,40 @@ void PresetManager::SetDefaultLampState(Message& msg)
 LSFResponseCode PresetManager::GetDefaultLampStateInternal(LampState& preset)
 {
     QCC_DbgPrintf(("%s", __func__));
-    return GetPresetInternal(defaultLampStateID, preset);
+
+    LSFResponseCode responseCode = GetPresetInternal(defaultLampStateID, preset);
+
+    if (responseCode == LSF_ERR_NOT_FOUND) {
+        GetFactorySetDefaultLampState(preset);
+        responseCode = LSF_OK;
+    }
+
+    return responseCode;
 }
 
-LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset, bool sendSignal)
+LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset)
 {
     QCC_DbgPrintf(("%s: preset=%s", __func__, preset.c_str()));
     LSFResponseCode responseCode = LSF_OK;
     QStatus tempStatus = presetsLock.Lock();
+    LSFString presetID = defaultLampStateID;
     if (ER_OK == tempStatus) {
-        presets[defaultLampStateID] = std::make_pair(defaultLampStateID, preset);
+        presets[presetID] = std::make_pair(presetID, preset);
         ScheduleFileWrite();
         tempStatus = presetsLock.Unlock();
         if (ER_OK != tempStatus) {
             QCC_LogError(tempStatus, ("%s: presetsLock.Unlock() failed", __func__));
         }
 
-        if (sendSignal) {
-            /*
-             * Send the DefaultLampStateChangedSignal
-             */
-            QCC_DbgPrintf(("%s: Sending the DefaultLampStateChangedSignal", __func__));
-            tempStatus = controllerService.SendSignalWithoutArg(ControllerServicePresetInterfaceName, "DefaultLampStateChanged");
-            if (ER_OK != tempStatus) {
-                QCC_LogError(tempStatus, ("%s: Unable to send DefaultLampStateChanged signal", __func__));
-            }
+        /*
+         * Send the DefaultLampStateChangedSignal
+         */
+        QCC_DbgPrintf(("%s: Sending the DefaultLampStateChangedSignal", __func__));
+        tempStatus = controllerService.SendSignalWithoutArg(ControllerServicePresetInterfaceName, "DefaultLampStateChanged");
+        if (ER_OK != tempStatus) {
+            QCC_LogError(tempStatus, ("%s: Unable to send DefaultLampStateChanged signal", __func__));
         }
+
     } else {
         responseCode = LSF_ERR_BUSY;
         QCC_LogError(tempStatus, ("%s: presetsLock.Lock() failed", __func__));
@@ -524,22 +550,28 @@ void PresetManager::ReadSavedData(void)
     QCC_DbgTrace(("%s", __func__));
     std::istringstream stream;
     if (!ValidateFileAndRead(stream)) {
+        /*
+         * If there is no file present / CRC check failed on the file create a new
+         * file with initialState entry
+         */
+        presetsLock.Lock();
+        ScheduleFileWrite(false, true);
+        presetsLock.Unlock();
         return;
     }
 
     ReplaceMap(stream);
 }
 
-void PresetManager::HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp)
+void PresetManager::HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgPrintf(("%s", __func__));
     uint64_t currentTimestamp = GetTimestamp64();
     presetsLock.Lock();
-    if ((currentTimestamp - timeStamp) > timestamp) {
-        presets.clear();
+    if (((timeStamp == 0) || ((currentTimestamp - timeStamp) > timestamp)) && (checkSum != checksum)) {
         std::istringstream stream(blob.c_str());
         ReplaceMap(stream);
-        timeStamp = timestamp;
+        timeStamp = currentTimestamp;
         checkSum = checksum;
         ScheduleFileWrite(true);
     }
@@ -549,6 +581,7 @@ void PresetManager::HandleReceivedBlob(std::string& blob, uint32_t& checksum, ui
 void PresetManager::ReplaceMap(std::istringstream& stream)
 {
     QCC_DbgTrace(("%s", __func__));
+    bool firstIteration = true;
     while (!stream.eof()) {
         std::string token = ParseString(stream);
 
@@ -560,8 +593,15 @@ void PresetManager::ReplaceMap(std::istringstream& stream)
             QCC_DbgPrintf(("Preset id=%s, name=[%s]\n", presetId.c_str(), presetName.c_str()));
 
             if (0 == strcmp(presetId.c_str(), resetID.c_str())) {
-                QCC_DbgPrintf(("Skipped reading the file as Preset id=%s, name=[%s]\n", presetId.c_str(), presetName.c_str()));
+                QCC_DbgPrintf(("The file has a reset entry. Clearing the map"));
+                presets.clear();
+            } else if (0 == strcmp(presetId.c_str(), initialStateID.c_str())) {
+                QCC_DbgPrintf(("The file has a initialState entry. So we ignore it"));
             } else {
+                if (firstIteration) {
+                    presets.clear();
+                    firstIteration = false;
+                }
                 LampState state;
                 ParseLampState(stream, state);
 
@@ -573,26 +613,24 @@ void PresetManager::ReplaceMap(std::istringstream& stream)
     }
 }
 
-void PresetManager::InitializeDefaultLampState(void)
-{
-    QCC_DbgPrintf(("%s", __func__));
-    PresetMap::iterator it = presets.find(defaultLampStateID);
-    if (it == presets.end()) {
-        QCC_DbgPrintf(("%s: Reading in default lamp state from OEM Config", __func__));
-        ResetDefaultState(false);
-    }
-}
-
 std::string PresetManager::GetString(const PresetMap& items)
 {
     std::ostringstream stream;
 
     if (0 == items.size()) {
-        QCC_DbgPrintf(("%s: File is being reset", __func__));
-        const LSFString& id = resetID;
-        const LSFString& name = resetID;
+        if (initialState) {
+            QCC_DbgPrintf(("%s: This is the initial state entry", __func__));
+            const LSFString& id = initialStateID;
+            const LSFString& name = initialStateID;
 
-        stream << "Preset " << id << " \"" << name << "\" " << '\n';
+            stream << "Preset " << id << " \"" << name << "\" " << '\n';
+        } else {
+            QCC_DbgPrintf(("%s: File is being reset", __func__));
+            const LSFString& id = resetID;
+            const LSFString& name = resetID;
+
+            stream << "Preset " << id << " \"" << name << "\" " << '\n';
+        }
     } else {
         // (Preset id "name" on/off hue saturation colortemp brightness)*
         for (PresetMap::const_iterator it = items.begin(); it != items.end(); ++it) {
@@ -636,13 +674,18 @@ bool PresetManager::GetString(std::string& output, uint32_t& checksum, uint64_t&
     if (ret) {
         output = GetString(mapCopy);
         presetsLock.Lock();
-        if (!blobUpdateCycle) {
-            checkSum = checksum = GetChecksum(output);
-            timeStamp = timestamp = GetTimestamp64();
-        } else {
+        if (blobUpdateCycle) {
             checksum = checkSum;
             timestamp = timeStamp;
             blobUpdateCycle = false;
+        } else {
+            if (initialState) {
+                timeStamp = timestamp = 0UL;
+                initialState = false;
+            } else {
+                timeStamp = timestamp = GetTimestamp64();
+            }
+            checkSum = checksum = GetChecksum(output);
         }
         presetsLock.Unlock();
     }

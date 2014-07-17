@@ -164,8 +164,8 @@ LampResponseCode OEM_LS_SetColorTemp(uint32_t colorTemp);
  * This function needs to implemented by the OEM to support the Transition Effect
  *
  * @param  newState          New state of the Lamp to transition to
- * @param  timestamp         Timestamp of when to start the transition.
- * @param  transitionPeriod  The time period to transition over
+ * @param  timestamp         Timestamp (in ms) of when to start the transition.
+ * @param  transitionPeriod  The time period (in ms) to transition over
  * @return Status of the operation
  */
 LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod);
@@ -177,7 +177,7 @@ LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp,
  * @param  period           Period of the pulse (in ms). Period refers to the time duration between the start of two pulses
  * @param  duration         The duration of a single pulse (in ms). This must be less than the period
  * @param  numPulses        Number of pulses
- * @param  timestamp        Time stamp of when to start applying the pulse effect from
+ * @param  timestamp        Time stamp (in ms) of when to start applying the pulse effect from
  *
  * @return Status of the operation
  */

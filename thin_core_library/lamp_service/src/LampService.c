@@ -280,7 +280,7 @@ static void CheckForFaults(void)
 static void CheckForStateChanged(void)
 {
     if (ControllerSessionID != 0 && SendStateChanged == TRUE) {
-        AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+        AJ_InfoPrintf(("\n%s\n", __func__));
         AJ_Message sig_out;
         AJ_MarshalSignal(&Bus, &sig_out, LSF_SIGNAL_STATE_STATECHANGED, NULL, ControllerSessionID, 0, 0);
         AJ_MarshalArgs(&sig_out, "s", LAMP_GetID());
@@ -312,7 +312,7 @@ static AJ_Status ConnectToRouter(void)
     AJ_Status status;
     AJ_Time timer;
 
-    AJ_InfoPrintf(("%s:\n", __FUNCTION__));
+    AJ_InfoPrintf(("%s:\n", __func__));
 
     AJ_InitTimer(&timer);
 
@@ -325,12 +325,12 @@ static AJ_Status ConnectToRouter(void)
         AJ_WiFiConnectState wifi_state = AJ_GetWifiConnectState();
         if (AJ_GetWifiConnectState() == AJ_WIFI_CONNECT_OK) {
 #endif
-        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __FUNCTION__));
+        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __func__));
         status = AJ_FindBusAndConnect(&Bus, routingNodePrefix, AJ_CONNECT_TIMEOUT);
 #ifdef ONBOARDING_SERVICE
     } else if (AJ_GetWifiConnectState() == AJ_WIFI_STATION_OK) {
         // we are in soft-AP mode so use the BusNode router
-        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __FUNCTION__));
+        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __func__));
         status = AJ_FindBusAndConnect(&Bus, NULL, AJ_CONNECT_TIMEOUT);
     } else {
         // can't connect because we aren't connected to the network
@@ -346,7 +346,7 @@ static AJ_Status ConnectToRouter(void)
     } while (status != AJ_OK);
 
     if (status == AJ_OK) {
-        AJ_InfoPrintf(("%s: Connected to Daemon:%s\n", __FUNCTION__, AJ_GetUniqueName(&Bus)));
+        AJ_InfoPrintf(("%s: Connected to Daemon:%s\n", __func__, AJ_GetUniqueName(&Bus)));
     }
 
     return status;
@@ -416,7 +416,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
             if (status == AJ_OK) {
                 AJ_SessionOpts session_opts = { AJ_SESSION_TRAFFIC_MESSAGES, AJ_SESSION_PROXIMITY_ANY, AJ_TRANSPORT_ANY, TRUE };
                 // we need to bind the session port to run a service
-                AJ_InfoPrintf(("%s: AJ_BindSessionPort()\n", __FUNCTION__));
+                AJ_InfoPrintf(("%s: AJ_BindSessionPort()\n", __func__));
                 status = AJ_BusBindSessionPort(&Bus, LSF_ServicePort, &session_opts, 0);
             }
 
@@ -442,7 +442,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
             case AJ_REPLY_ID(AJ_METHOD_ADD_MATCH):
                 if (msg.hdr->msgType == AJ_MSG_ERROR) {
-                    AJ_InfoPrintf(("%s: Failed to add match\n", __FUNCTION__));
+                    AJ_InfoPrintf(("%s: Failed to add match\n", __func__));
                     status = AJ_ERR_FAILURE;
                 } else {
                     status = AJ_OK;
@@ -451,12 +451,12 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
             case AJ_REPLY_ID(AJ_METHOD_BIND_SESSION_PORT):
                 if (msg.hdr->msgType == AJ_MSG_ERROR) {
-                    AJ_ErrPrintf(("%s: AJ_METHOD_BIND_SESSION_PORT: AJ_ERR_FAILURE\n", __FUNCTION__));
+                    AJ_ErrPrintf(("%s: AJ_METHOD_BIND_SESSION_PORT: AJ_ERR_FAILURE\n", __func__));
                     status = AJ_ERR_FAILURE;
                 } else {
-                    AJ_InfoPrintf(("%s: AJ_BusRequestName()\n", __FUNCTION__));
+                    AJ_InfoPrintf(("%s: AJ_BusRequestName()\n", __func__));
                     // announce now
-                    AJ_InfoPrintf(("%s: Initializing About!\n", __FUNCTION__));
+                    AJ_InfoPrintf(("%s: Initializing About!\n", __func__));
                     status = AJ_AboutInit(&Bus, LSF_ServicePort);
                 }
                 break;
@@ -468,10 +468,10 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
                     AJ_UnmarshalArgs(&msg, "qus", &port, &ControllerSessionID, &joiner);
                     if (port == LSF_ServicePort) {
                         status = AJ_BusReplyAcceptSession(&msg, TRUE);
-                        AJ_InfoPrintf(("%s: Accepted session session_id=%u joiner=%s\n", __FUNCTION__, ControllerSessionID, joiner));
+                        AJ_InfoPrintf(("%s: Accepted session session_id=%u joiner=%s\n", __func__, ControllerSessionID, joiner));
                     } else {
                         status = AJ_BusReplyAcceptSession(&msg, FALSE);
-                        AJ_InfoPrintf(("%s: Accepted rejected session_id=%u joiner=%s\n", __FUNCTION__, ControllerSessionID, joiner));
+                        AJ_InfoPrintf(("%s: Accepted rejected session_id=%u joiner=%s\n", __func__, ControllerSessionID, joiner));
                     }
 
                     break;
@@ -485,7 +485,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
                     ControllerSessionID = 0;
                     // cancel signal
                     SendStateChanged = FALSE;
-                    AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u", __FUNCTION__, sessionId, reason));
+                    AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u", __func__, sessionId, reason));
                     status = AJ_ERR_SESSION_LOST;
                     break;
                 }
@@ -565,8 +565,8 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
         }
 
         if (status == AJ_ERR_READ || status == AJ_ERR_RESTART || status == AJ_ERR_RESTART_APP) {
-            AJ_InfoPrintf(("%s: AllJoyn disconnect\n", __FUNCTION__));
-            AJ_InfoPrintf(("%s: Disconnected from Daemon:%s\n", __FUNCTION__, AJ_GetUniqueName(&Bus)));
+            AJ_InfoPrintf(("%s: AllJoyn disconnect\n", __func__));
+            AJ_InfoPrintf(("%s: Disconnected from Daemon:%s\n", __func__, AJ_GetUniqueName(&Bus)));
             AJSVC_DisconnectHandler(&Bus);
             AJ_Disconnect(&Bus);
             connected = FALSE;
@@ -589,7 +589,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
 void LAMP_SendStateChangedSignal(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     SendStateChanged = TRUE;
 }
 
@@ -663,7 +663,7 @@ static AJ_Status MarshalStateField(AJ_Message* replyMsg, uint32_t propId)
 {
     LampState state;
     LAMP_GetState(&state);
-    AJ_InfoPrintf(("%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("%s\n", __func__));
 
     switch (propId) {
     case LSF_PROP_STATE_ONOFF:
@@ -696,7 +696,7 @@ static AJ_Status PropSetHandler(AJ_Message* msg, uint32_t propId, void* context)
     AJ_Status status = AJ_OK;
     LampResponseCode responseCode = LAMP_OK;
 
-    AJ_InfoPrintf(("%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("%s\n", __func__));
 
     switch (propId) {
     case LSF_PROP_STATE_ONOFF:
@@ -905,7 +905,7 @@ static AJ_Status GetAllProps(AJ_Message* msg)
     AJ_Arg array1;
 
     AJ_UnmarshalArgs(msg, "s", &iface);
-    AJ_InfoPrintf(("%s: Interface=%s\n", __FUNCTION__, iface));
+    AJ_InfoPrintf(("%s: Interface=%s\n", __func__, iface));
 
     AJ_MarshalReplyMsg(msg, &reply);
     AJ_MarshalContainer(&reply, &array1, AJ_ARG_ARRAY);
@@ -948,7 +948,7 @@ static AJ_Status GetAllProps(AJ_Message* msg)
 
 static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     AJSVC_ServiceStatus serv_status = AJSVC_SERVICE_STATUS_HANDLED;
 
     switch (msg->msgId) {

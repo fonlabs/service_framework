@@ -120,7 +120,9 @@ class LampManager : public Manager {
      * @param   None
      * @return  ER_OK if successful, error otherwise
      */
-    QStatus Stop(void);
+    void Stop(void);
+
+    void Join(void);
 
     /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetAllLampIDs
@@ -267,6 +269,14 @@ class LampManager : public Manager {
     void ResetLampStateField(ajn::Message& message);
 
     uint32_t GetControllerServiceLampInterfaceVersion(void);
+
+    void ConnectToLamps(void) {
+        lampClients.ConnectToLamps();
+    }
+
+    void DisconnectFromLamps(void) {
+        lampClients.DisconnectFromLamps();
+    }
 
   private:
 

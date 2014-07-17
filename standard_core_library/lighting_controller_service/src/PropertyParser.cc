@@ -105,7 +105,7 @@ void PropertyParser::Tokenize(const qcc::String& inStr, std::vector<qcc::String>
     }
 }
 
-bool PropertyParser::ReadWriteFile(const std::string& fileName, const std::map<qcc::String, qcc::String>& data)
+bool PropertyParser::WriteFile(const std::string& fileName, const std::map<qcc::String, qcc::String>& data)
 {
     std::ofstream iniFileWrite(fileName.c_str(), std::ofstream::out | std::ofstream::trunc);
     if (!iniFileWrite.is_open()) {

@@ -18,7 +18,6 @@
 #include <LampValues.h>
 #include <qcc/Debug.h>
 #include <algorithm>
-#include <time.h>
 
 using namespace ajn;
 
@@ -1518,19 +1517,6 @@ LSFResponseCode MasterScene::IsDependentOnScene(LSFString& sceneID)
     }
 
     return responseCode;
-}
-
-uint64_t GetTimestamp64(void)
-{
-    struct timespec ts;
-    uint64_t ret;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    ret = ((uint64_t)(ts.tv_sec)) * 1000;
-    ret += (uint64_t)ts.tv_nsec / 1000000;
-
-    return ret;
 }
 
 }

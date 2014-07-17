@@ -26,6 +26,8 @@ class LampState;
 
 extern const std::string resetID;
 
+extern const std::string initialStateID;
+
 void ParseLampState(std::istream& stream, LampState& state);
 
 /**

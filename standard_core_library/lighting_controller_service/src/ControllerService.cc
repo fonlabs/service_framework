@@ -37,13 +37,15 @@ class ControllerService::ControllerListener :
     public services::AnnounceHandler,
     public SessionListener {
   public:
-    ControllerListener(ControllerService& controller) : controller(controller), multipointjoiner(), multipointSessionId(0) { }
+    ControllerListener(ControllerService* controller) : controller(controller), multipointjoiner(), multipointSessionId(0) { }
+
+    ~ControllerListener() { }
 
     // SessionPortListener
     virtual bool AcceptSessionJoiner(SessionPort sessionPort, const char* joiner, const SessionOpts& opts) {
         QCC_DbgTrace(("%s:SessionPort=%d, joiner=%s", __func__, sessionPort, joiner));
         // only allow multipoint sessions
-        bool acceptStatus = (sessionPort == ControllerServiceSessionPort && controller.elector.IsLeader());
+        bool acceptStatus = (sessionPort == ControllerServiceSessionPort && controller->IsLeader());
         if (acceptStatus && opts.isMultipoint) {
             multipointjoiner = joiner;
             QCC_DbgPrintf(("%s: Recorded multi-point session joiner %s\n", __func__, multipointjoiner.c_str()));
@@ -58,7 +60,7 @@ class ControllerService::ControllerListener :
             if (0 == strcmp(multipointjoiner.c_str(), joiner)) {
                 multipointSessionId = sessionId;
                 QCC_DbgPrintf(("%s: Recorded multi-point session id %d\n", __func__, multipointSessionId));
-                controller.SessionJoined(sessionId);
+                controller->SessionJoined(sessionId);
             }
         } else {
             if (multipointSessionId == sessionId) {
@@ -71,7 +73,7 @@ class ControllerService::ControllerListener :
         QCC_DbgPrintf(("%s: sessionId(%d), reason(%d)", __func__, sessionId, reason));
         if (multipointSessionId == sessionId) {
             QCC_DbgPrintf(("%s: Lost multi-point session id %d\n", __func__, multipointSessionId));
-            controller.SessionLost(sessionId);
+            controller->SessionLost(sessionId);
             multipointSessionId = 0;
             multipointjoiner.clear();
         }
@@ -79,13 +81,13 @@ class ControllerService::ControllerListener :
 
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData) {
         QCC_DbgTrace(("%s:version=%d, port=%d, busName=%s", __func__, version, port, busName));
-        controller.bus.EnableConcurrentCallbacks();
+        controller->bus.EnableConcurrentCallbacks();
         ObjectDescriptions::const_iterator it = objectDescs.find(OnboardingServiceObjectPath);
         if (it != objectDescs.end()) {
             // this implements an onboarding service
             // we need to determine whether it's on the same routing node
 
-            qcc::String myName = controller.bus.GetUniqueName();
+            qcc::String myName = controller->bus.GetUniqueName();
             size_t idx = myName.find_first_of('.');
             myName = myName.substr(0, idx);
 
@@ -94,16 +96,17 @@ class ControllerService::ControllerListener :
             name = name.substr(0, idx2);
 
             if (name == myName) {
-                controller.FoundLocalOnboardingService(busName, port);
+                controller->FoundLocalOnboardingService(busName, port);
             }
         }
     }
 
     virtual void BusDisconnected() {
         QCC_DbgPrintf(("BusDisconnected!"));
+        controller->Restart();
     }
 
-    ControllerService& controller;
+    ControllerService* controller;
     qcc::String multipointjoiner;
     SessionId multipointSessionId;
 };
@@ -150,8 +153,15 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
 
     virtual void JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context) {
         QCC_DbgTrace(("%s:status=%s sessionId=%d", __func__, QCC_StatusText(status), sessionId));
+        OBSJoiner* joinHandler = static_cast<OBSJoiner*>(context);
+
+        if (joinHandler == NULL) {
+            return;
+        }
+
         if (status == ER_OK) {
             controller.obsObjectLock.Lock();
+            controller.isObsObjectReady = false;
             controller.obsObject = new ProxyBusObject(controller.bus, busName.c_str(), ConfigServiceObjectPath, sessionId);
             // ok to call when locked?
             QCC_DbgPrintf(("Joining Onboarding Service on %s with session %u", busName.c_str(), sessionId));
@@ -169,6 +179,8 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
 
             controller.obsObjectLock.Unlock();
         }
+
+        delete joinHandler;
 
         if (status != ER_OK) {
             delete this;
@@ -195,7 +207,7 @@ ControllerService::ControllerService(
     elector(*this),
     bus("LightingServiceController", true),
     serviceSession(0),
-    listener(new ControllerListener(*this)),
+    listener(new ControllerListener(this)),
     lampManager(*this, presetManager),
     lampGroupManager(*this, lampManager, &sceneManager, lampGroupFile),
     presetManager(*this, &sceneManager, presetFile),
@@ -228,7 +240,7 @@ ControllerService::ControllerService(
     elector(*this),
     bus("LightingServiceController", true),
     serviceSession(0),
-    listener(new ControllerListener(*this)),
+    listener(new ControllerListener(this)),
     lampManager(*this, presetManager),
     lampGroupManager(*this, lampManager, &sceneManager, lampGroupFile),
     presetManager(*this, &sceneManager, presetFile),
@@ -269,7 +281,6 @@ void ControllerService::Initialize()
     QCC_DbgTrace(("%s", __func__));
     lampGroupManager.ReadSavedData();
     presetManager.ReadSavedData();
-    presetManager.InitializeDefaultLampState();
     sceneManager.ReadSavedData();
     masterSceneManager.ReadSavedData();
 
@@ -340,7 +351,7 @@ ControllerService::~ControllerService()
 {
     QCC_DbgTrace(("%s", __func__));
     delete listener;
-    bus.Join();
+    QCC_DbgPrintf(("%s: Done deleting listener", __func__));
 }
 
 QStatus ControllerService::CreateAndAddInterface(std::string interfaceDescription, const char* interfaceName) {
@@ -399,6 +410,8 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         QCC_LogError(status, ("%s: Failed to start the bus\n", __func__));
         return status;
     }
+
+    bus.RegisterBusListener(*listener);
 
     /*
      * Connect to the AllJoyn Bus
@@ -506,12 +519,6 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         return status;
     }
 
-    status = elector.Start();
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start LeaderElection object", __func__));
-        return status;
-    }
-
     status = fileWriterThread.Start();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to start file writer thread", __func__));
@@ -591,6 +598,12 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         return status;
     }
 
+    status = elector.Start();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to start LeaderElection object", __func__));
+        return status;
+    }
+
     notificationSender = services::NotificationService::getInstance()->initSend(&bus, &propertyStore);
 
     /*
@@ -622,33 +635,26 @@ QStatus ControllerService::Stop(void)
 {
     QCC_DbgPrintf(("%s", __func__));
 
-    QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __func__));
-    }
+    isRunningLock.Lock();
+    isRunning = false;
+    isRunningLock.Unlock();
 
-    status = elector.Stop();
+    QStatus status = elector.Stop();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to stop the Leader Elector object", __func__));
     }
 
-    aboutService->Unregister();
-    services::AboutServiceApi::DestroyInstance();
-
-    // we need to manage the notification sender's memory
-    services::NotificationService::getInstance()->shutdownSender();
-
-    status = lampManager.Stop();
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Error stopping Lamp Manager", __func__));
-    }
+    lampManager.Stop();
 
     fileWriterThread.Stop();
-    fileWriterThread.Join();
 
-    status = bus.Disconnect();
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Error disconnecting from the AllJoyn bus", __func__));
+    internalPropertyStore.Stop();
+
+    if (bus.IsConnected()) {
+        status = bus.Disconnect();
+        if (status != ER_OK) {
+            QCC_LogError(status, ("%s: Error disconnecting from the AllJoyn bus", __func__));
+        }
     }
 
     status = bus.Stop();
@@ -656,12 +662,47 @@ QStatus ControllerService::Stop(void)
         QCC_LogError(status, ("%s: Error stopping the AllJoyn bus", __func__));
     }
 
+    return status;
+}
+
+QStatus ControllerService::Join(void)
+{
+    QStatus status = elector.Join();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to join the Leader Elector object", __func__));
+    }
+
+    lampManager.Join();
+
+    fileWriterThread.Join();
+
+    internalPropertyStore.Join();
+
+    status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __func__));
+    }
+
+    if (aboutService) {
+        aboutService->Unregister();
+        services::AboutServiceApi::DestroyInstance();
+    }
+
+    // we need to manage the notification sender's memory
+    if (notificationSender) {
+        services::NotificationService::getInstance()->shutdownSender();
+    }
+
+    bus.UnregisterBusListener(*listener);
+
+    bus.UnregisterBusObject(*this);
+
     status = bus.Join();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Error joining the AllJoyn bus", __func__));
     }
 
-    return ER_OK;
+    return status;
 }
 
 QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalName, LSFStringList& idList)
@@ -771,6 +812,26 @@ QStatus ControllerService::SetPassphrase(const char* daemonRealm, size_t passcod
 {
     QCC_DbgTrace(("%s", __func__));
     return ER_OK;
+}
+
+void ControllerService::Overthrow()
+{
+    bus.EnableConcurrentCallbacks();
+
+    // we don't want to connect to new lamps that come up
+    SetIsLeader(false);
+
+    // we're not the leader anymore, so start disconnecting from lamps
+    lampManager.DisconnectFromLamps();
+
+    // we are being overthrown!
+    serviceSessionMutex.Lock();
+    const SessionId sessionId = serviceSession;
+    serviceSessionMutex.Unlock();
+
+    if (sessionId) {
+        bus.LeaveSession(sessionId);
+    }
 }
 
 void ControllerService::SessionJoined(SessionId sessionId)
@@ -1027,19 +1088,16 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
 QStatus ControllerService::SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgTrace(("%s:type=%d blob=%s checksum=%d timestamp=%llu", __func__, type, blob.c_str(), checksum, timestamp));
-    QStatus status = ER_OK;
     serviceSessionMutex.Lock();
-    status = elector.SendBlobUpdate(serviceSession, type, blob, checksum, timestamp);
+    SessionId session = serviceSession;
     serviceSessionMutex.Unlock();
-    return status;
+    return elector.SendBlobUpdate(session, type, blob, checksum, timestamp);
 }
 
 void ControllerService::SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgTrace(("%s:type=%d blob=%s checksum=%d timestamp=%llu", __func__, type, blob.c_str(), checksum, timestamp));
-    serviceSessionMutex.Lock();
     elector.SendGetBlobReply(message, type, blob, checksum, timestamp);
-    serviceSessionMutex.Unlock();
 }
 
 bool ControllerService::IsRunning()
@@ -1050,14 +1108,29 @@ bool ControllerService::IsRunning()
     return b;
 }
 
+QStatus ControllerService::IsConnectedToRouter()
+{
+    QCC_DbgPrintf(("%s", __func__));
+    qcc::String daemonUniqueName = ":" + bus.GetGlobalGUIDShortString() + ".1";
+    ajn::Message reply(bus);
+    return bus.GetAllJoynProxyObj().MethodCall(
+               org::freedesktop::DBus::Peer::InterfaceName,
+               "Ping", NULL, 0, reply, 1000);
+}
+
 uint64_t ControllerService::GetRank()
 {
     return internalPropertyStore.GetRank();
 }
 
-uint32_t ControllerService::IsLeader()
+bool ControllerService::IsLeader()
 {
     return internalPropertyStore.IsLeader();
+}
+
+void ControllerService::SetIsLeader(bool val)
+{
+    internalPropertyStore.SetIsLeader(val);
 }
 
 void ControllerService::AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface)

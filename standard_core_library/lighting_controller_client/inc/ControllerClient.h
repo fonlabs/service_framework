@@ -134,7 +134,7 @@ class ControllerClient : public ajn::MessageReceiver {
      * Internal callback invoked when an announcement is received from a Controller
      * Service Leader
      */
-    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, uint32_t isLeader);
+    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank);
 
     /**
      * Internal callback invoked when a session with a Controller
@@ -222,11 +222,6 @@ class ControllerClient : public ajn::MessageReceiver {
      */
     ControllerClientCallback& callback;
 
-    /**
-     * Try to connect to the ControllerService with the highest DeviceId
-     */
-    //void JoinNextAvailableController();
-
     /*
      * The ID of the CS we are currently trying to connect to
      */
@@ -234,32 +229,17 @@ class ControllerClient : public ajn::MessageReceiver {
         ajn::SessionPort port;
         qcc::String busName;
         uint64_t rank;
-        uint32_t isLeader;
-        bool joining;
-
-        std::string deviceID;
-        std::string deviceName;
+        LSFString deviceID;
+        LSFString deviceName;
+        ajn::ProxyBusObject proxyObject;
+        ajn::SessionId sessionId;
     };
 
-
-    typedef std::map<qcc::String, qcc::String> BusNameToDeviceId;
-    BusNameToDeviceId nameToId;
-
-    /**
-     * Map DeviceID -> ControllerEntry
-     */
-    typedef std::map<qcc::String, ControllerEntry> ControllerEntryMap;
-    ControllerEntryMap controllers;
+    std::set<LSFString> ignoreList;
     ControllerEntry currentLeader;
+    Mutex controllerLock;
 
-    ajn::ProxyBusObject* proxyObject;
-    Mutex controllersLock;
-
-
-    ControllerEntry* GetMaxRankedEntry();
-    void JoinLeaderSession();
     void ClearCurrentLeader();
-    void RemoveUniqueName(const qcc::String& uniqueName);
 
     /**
      * Pointer to the Controller Service Manager
@@ -636,8 +616,6 @@ class ControllerClient : public ajn::MessageReceiver {
 
     typedef std::map<std::string, MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase*> MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap;
     MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap methodReplyWithResponseCodeIDLanguageAndNameHandlers;
-
-    bool alreadyInSession;
 };
 
 template <typename OBJ>

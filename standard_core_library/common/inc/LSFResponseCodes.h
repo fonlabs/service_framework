@@ -27,7 +27,7 @@ typedef enum {
     LSF_ERR_UNKNOWN         = LAMP_ERR_UNKNOWN,               /**< A unknown value */
     LSF_ERR_FAILURE         = LAMP_ERR_FAILURE,               /**< A failure has occurred */
     LSF_ERR_BUSY            = LAMP_ERR_BUSY,                  /**< An operation failed and should be retried later */
-    LSF_ERR_REJECTED        = LAMP_ERR_REJECTED,              /**< The connection was rejected */
+    LSF_ERR_REJECTED        = LAMP_ERR_REJECTED,              /**< The request was rejected */
     LSF_ERR_RANGE           = LAMP_ERR_RANGE,                 /**< Value provided was out of range */
     LSF_ERR_INVALID_FIELD   = LAMP_ERR_INVALID_FIELD,         /**< Invalid param/state field */
     LSF_ERR_MESSAGE         = LAMP_ERR_MESSAGE,               /**< Invalid message */

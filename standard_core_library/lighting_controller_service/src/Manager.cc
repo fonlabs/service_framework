@@ -26,9 +26,23 @@
 
 #include <ControllerService.h>
 
-using namespace lsf;
-
 #define QCC_MODULE "MANAGER"
+
+namespace lsf {
+
+
+uint64_t GetTimestamp64(void)
+{
+    struct timespec ts;
+    uint64_t ret;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+
+    ret = ((uint64_t)(ts.tv_sec)) * 1000;
+    ret += (uint64_t)ts.tv_nsec / 1000000;
+
+    return ret;
+}
 
 Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
     : controllerService(controllerSvc),
@@ -37,7 +51,8 @@ Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
     filePath(filePath),
     checkSum(0),
     timeStamp(0),
-    blobUpdateCycle(false)
+    blobUpdateCycle(false),
+    initialState(false)
 {
     QCC_DbgTrace(("%s", __func__));
     readBlobMessages.clear();
@@ -89,7 +104,14 @@ bool Manager::ValidateFileAndRead(std::istringstream& filestream)
     uint32_t checksum;
     uint64_t timestamp;
 
-    return ValidateFileAndReadInternal(checksum, timestamp, filestream);
+    bool b = ValidateFileAndReadInternal(checksum, timestamp, filestream);
+
+    if (b) {
+        checkSum = checksum;
+        timeStamp = timestamp;
+    }
+
+    return b;
 }
 
 bool Manager::ValidateFileAndReadInternal(uint32_t& checksum, uint64_t& timestamp, std::istringstream& filestream)
@@ -110,12 +132,12 @@ bool Manager::ValidateFileAndReadInternal(uint32_t& checksum, uint64_t& timestam
     stream >> timestamp;
 
     uint64_t currenttime = GetTimestamp64();
-    QCC_DbgPrintf(("%s: timestamp=%lld", __func__, timestamp));
-    QCC_DbgPrintf(("%s: Updated %lld ticks ago", __func__, (currenttime - timestamp)));
+    QCC_DbgPrintf(("%s: timestamp=%llu", __func__, timestamp));
+    QCC_DbgPrintf(("%s: Updated %llu ticks ago", __func__, (currenttime - timestamp)));
 
     stream >> checksum;
 
-    QCC_DbgPrintf(("%s: checksum=%d", __func__, checksum));
+    QCC_DbgPrintf(("%s: checksum=%u", __func__, checksum));
 
     // put the rest of the file into the filestream
     std::stringbuf rest;
@@ -151,11 +173,12 @@ LSFString Manager::GenerateUniqueID(const LSFString& prefix) const
     return prefix + str.c_str();
 }
 
-void Manager::ScheduleFileWrite(bool blobUpdate)
+void Manager::ScheduleFileWrite(bool blobUpdate, bool initState)
 {
     QCC_DbgTrace(("%s", __func__));
     updated = true;
     blobUpdateCycle = blobUpdate;
+    initialState = initState;
     controllerService.ScheduleFileReadWrite(this);
 }
 
@@ -174,3 +197,5 @@ void Manager::GetBlobInfoInternal(uint32_t& checksum, uint64_t& timestamp)
     checksum = checkSum;
     timestamp = timeStamp;
 }
+
+};

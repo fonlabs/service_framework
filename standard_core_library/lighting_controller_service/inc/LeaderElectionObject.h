@@ -34,11 +34,13 @@ class LeaderElectionObject : public ajn::BusObject {
 
     ~LeaderElectionObject();
 
-    void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, uint32_t isLeader, const char* deviceId);
+    void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId);
 
     QStatus Start();
 
     QStatus Stop();
+
+    QStatus Join();
 
     void GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     void GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
@@ -47,9 +49,15 @@ class LeaderElectionObject : public ajn::BusObject {
 
     void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
-    bool IsLeader();
+    void Overthrow(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
   private:
+
+    void OnOverthrowReply(ajn::Message& message, void* context);
+
+    void OnGetBlobReply(ajn::Message& message, void* context);
+
+    void OnGetChecksumAndModificationTimestampReply(ajn::Message& message, void* context);
 
     void OnBlobChanged(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
@@ -59,36 +67,27 @@ class LeaderElectionObject : public ajn::BusObject {
     class Handler;
     Handler* handler;
 
-
     // everything below is related to leader election
     struct ControllerEntry {
         ajn::SessionPort port;
         qcc::String busName;
         qcc::String deviceId;
         uint64_t rank;
-        uint32_t isLeader;
-        bool joining;
+        bool isLeader;
     };
 
-
-    void JoinLeaderSession();
+    void PossiblyOverthrow();
+    void DoLeaderElection();
     void ClearCurrentLeader();
     void OnSessionLost(SessionId sessionId);
-    void OnSessionJoined(QStatus status, SessionId sessionId, ControllerEntry* joined);
+    void OnSessionJoined(QStatus status, SessionId sessionId);
     void OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName);
-    void RemoveUniqueName(const qcc::String& uniqueName);
-
-    ControllerEntry* GetMaxRankedEntry();
 
     // map deviceId -> ControllerEntry
     typedef std::map<qcc::String, ControllerEntry> ControllerEntryMap;
     ControllerEntryMap controllers;
     ControllerEntry currentLeader;
 
-    typedef std::map<qcc::String, qcc::String> BusNameToDeviceId;
-    BusNameToDeviceId nameToId;
-
-    bool isLeader;
     uint64_t myRank;
 
     ajn::ProxyBusObject* leaderObj;
@@ -96,6 +95,9 @@ class LeaderElectionObject : public ajn::BusObject {
     Mutex controllersLock;
 
     const ajn::InterfaceDescription::Member* blobChangedSignal;
+
+    class WorkerThread;
+    WorkerThread* thread;
 };
 
 }

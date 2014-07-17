@@ -24,6 +24,8 @@ namespace lsf {
 
 const std::string resetID = "Reset";
 
+const std::string initialStateID = "InitialState";
+
 void ParseLampState(std::istream& stream, LampState& state)
 {
     bool nullState = (bool) ParseValue<uint32_t>(stream);

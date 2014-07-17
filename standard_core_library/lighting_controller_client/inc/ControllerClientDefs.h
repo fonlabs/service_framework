@@ -42,9 +42,11 @@ typedef enum _ErrorCode {
     /**< Error encountered when trying to register signal handlers */
     ERROR_REGISTERING_SIGNAL_HANDLERS = 1,
     /**< No active Controller Service found */
-    ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND = 7,
+    ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND = 2,
     /**< AllJoyn Method Call Timeout */
-    ERROR_ALLJOYN_METHOD_CALL_TIMEOUT = 8
+    ERROR_ALLJOYN_METHOD_CALL_TIMEOUT = 3,
+    /**< Irrecoverable error */
+    ERROR_IRRECOVERABLE = 4
 } ErrorCode;
 
 typedef std::list<ErrorCode> ErrorCodeList;

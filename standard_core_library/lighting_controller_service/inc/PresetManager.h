@@ -35,7 +35,7 @@ class PresetManager : public Manager {
     PresetManager(ControllerService& controllerSvc, SceneManager* sceneMgrPtr, const std::string& presetFile);
 
     LSFResponseCode Reset(void);
-    LSFResponseCode ResetDefaultState(bool sendSignal = true);
+    LSFResponseCode ResetDefaultState(void);
 
     void GetAllPresetIDs(ajn::Message& msg);
     void GetPresetName(ajn::Message& msg);
@@ -55,10 +55,9 @@ class PresetManager : public Manager {
     LSFResponseCode GetDefaultLampStateInternal(LampState& state);
 
     void ReadSavedData(void);
-    void InitializeDefaultLampState(void);
     void ReadWriteFile(void);
 
-    void HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp);
+    void HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp);
 
     uint32_t GetControllerServicePresetInterfaceVersion(void);
 
@@ -74,7 +73,7 @@ class PresetManager : public Manager {
 
     void ReplaceMap(std::istringstream& stream);
 
-    LSFResponseCode SetDefaultLampStateInternal(LampState& state, bool sendSignal = true);
+    LSFResponseCode SetDefaultLampStateInternal(LampState& state);
 
     PresetMap presets;
     Mutex presetsLock;

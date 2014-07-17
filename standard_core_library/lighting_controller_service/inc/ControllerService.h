@@ -44,6 +44,7 @@
 #include <SceneManager.h>
 #include <MasterSceneManager.h>
 #include <LeaderElectionObject.h>
+#include <LampClients.h>
 
 namespace lsf {
 
@@ -56,6 +57,7 @@ namespace lsf {
  */
 class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener {
     friend class ControllerServiceManager;
+    friend class LampClients;
   public:
 
     /**
@@ -101,6 +103,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      */
     QStatus Stop(void);
 
+    QStatus Join(void);
+
     /**
      * Returns a reference to the AllJoyn BusAttachment
      *
@@ -139,9 +143,15 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     bool IsRunning();
 
+    QStatus IsConnectedToRouter();
+
     uint64_t GetRank();
 
-    uint32_t IsLeader();
+    bool IsLeader();
+
+    void SetIsLeader(bool val);
+
+    void Overthrow();
 
     void AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface);
 
@@ -296,7 +306,6 @@ class ControllerServiceManager {
     }
 
     ~ControllerServiceManager() {
-
     }
     /**
      * Starts the ControllerService
@@ -320,8 +329,16 @@ class ControllerServiceManager {
         return controllerService.Stop();
     }
 
+    QStatus Join(void) {
+        return controllerService.Join();
+    }
+
     bool IsRunning() {
         return controllerService.IsRunning();
+    }
+
+    QStatus IsConnectedToRouter() {
+        return controllerService.IsConnectedToRouter();
     }
 
     ControllerService& GetControllerService(void) { return controllerService; };

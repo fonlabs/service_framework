@@ -79,7 +79,7 @@ class LampGroupManager : public Manager {
         lampGroupsLock.Unlock();
     }
 
-    void HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp);
+    void HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp);
 
   protected:
 

@@ -35,6 +35,7 @@ LampGroupManager::LampGroupManager(ControllerService& controllerSvc, LampManager
     Manager(controllerSvc, lampGroupFile), lampManager(lampMgr), sceneManagerPtr(sceneMgrPtr)
 {
     QCC_DbgTrace(("%s", __func__));
+    lampGroups.clear();
 }
 
 LSFResponseCode LampGroupManager::GetAllLampGroups(LampGroupMap& lampGroupMap)
@@ -829,6 +830,13 @@ void LampGroupManager::ReadSavedData()
     QCC_DbgTrace(("%s", __func__));
     std::istringstream stream;
     if (!ValidateFileAndRead(stream)) {
+        /*
+         * If there is no file present / CRC check failed on the file create a new
+         * file with initialState entry
+         */
+        lampGroupsLock.Lock();
+        ScheduleFileWrite(false, true);
+        lampGroupsLock.Unlock();
         return;
     }
 
@@ -838,6 +846,7 @@ void LampGroupManager::ReadSavedData()
 void LampGroupManager::ReplaceMap(std::istringstream& stream)
 {
     QCC_DbgTrace(("%s", __func__));
+    bool firstIteration = true;
     while (!stream.eof()) {
         std::string token = ParseString(stream);
 
@@ -846,10 +855,16 @@ void LampGroupManager::ReplaceMap(std::istringstream& stream)
             std::string name = ParseString(stream);
 
             if (0 == strcmp(id.c_str(), resetID.c_str())) {
-                QCC_DbgPrintf(("Skipped reading the file as id=%s, name=[%s]\n", id.c_str(), name.c_str()));
+                QCC_DbgPrintf(("The file has a reset entry. Clearing the map"));
+                lampGroups.clear();
+            } else if (0 == strcmp(id.c_str(), initialStateID.c_str())) {
+                QCC_DbgPrintf(("The file has a initialState entry. So we ignore it"));
             } else {
+                if (firstIteration) {
+                    lampGroups.clear();
+                    firstIteration = false;
+                }
                 LampGroup group;
-
                 do {
                     token = ParseString(stream);
 
@@ -877,12 +892,21 @@ std::string LampGroupManager::GetString(const LampGroupMap& items)
     // (LampGroup id "name" (Lamp id)* (SubGroup id)* EndLampGroup)*
     std::ostringstream stream;
     if (0 == items.size()) {
-        QCC_DbgPrintf(("%s: File is being reset", __func__));
-        const LSFString& id = resetID;
-        const LSFString& name = resetID;
+        if (initialState) {
+            QCC_DbgPrintf(("%s: This is the initial state entry", __func__));
+            const LSFString& id = initialStateID;
+            const LSFString& name = initialStateID;
 
-        stream << "LampGroup " << id << " \"" << name << "\"";
-        stream << " EndLampGroup" << std::endl;
+            stream << "LampGroup " << id << " \"" << name << "\"";
+            stream << " EndLampGroup" << std::endl;
+        } else {
+            QCC_DbgPrintf(("%s: File is being reset", __func__));
+            const LSFString& id = resetID;
+            const LSFString& name = resetID;
+
+            stream << "LampGroup " << id << " \"" << name << "\"";
+            stream << " EndLampGroup" << std::endl;
+        }
     } else {
         for (LampGroupMap::const_iterator it = items.begin(); it != items.end(); ++it) {
             const LSFString& id = it->first;
@@ -925,13 +949,18 @@ bool LampGroupManager::GetString(std::string& output, uint32_t& checksum, uint64
     if (ret) {
         output = GetString(mapCopy);
         lampGroupsLock.Lock();
-        if (!blobUpdateCycle) {
-            checkSum = checksum = GetChecksum(output);
-            timeStamp = timestamp = GetTimestamp64();
-        } else {
+        if (blobUpdateCycle) {
             checksum = checkSum;
             timestamp = timeStamp;
             blobUpdateCycle = false;
+        } else {
+            if (initialState) {
+                timeStamp = timestamp = 0UL;
+                initialState = false;
+            } else {
+                timeStamp = timestamp = GetTimestamp64();
+            }
+            checkSum = checksum = GetChecksum(output);
         }
         lampGroupsLock.Unlock();
     }
@@ -939,16 +968,15 @@ bool LampGroupManager::GetString(std::string& output, uint32_t& checksum, uint64
     return ret;
 }
 
-void LampGroupManager::HandleReceivedBlob(std::string& blob, uint32_t& checksum, uint64_t timestamp)
+void LampGroupManager::HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgPrintf(("%s", __func__));
     uint64_t currentTimestamp = GetTimestamp64();
     lampGroupsLock.Lock();
-    if ((currentTimestamp - timeStamp) > timestamp) {
-        lampGroups.clear();
+    if (((timeStamp == 0) || ((currentTimestamp - timeStamp) > timestamp)) && (checkSum != checksum)) {
         std::istringstream stream(blob.c_str());
         ReplaceMap(stream);
-        timeStamp = timestamp;
+        timeStamp = currentTimestamp;
         checkSum = checksum;
         ScheduleFileWrite(true);
     }

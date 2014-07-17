@@ -143,17 +143,21 @@ void ControllerClient::ControllerClientBusHandler::Announce(
         }
         ait->second.Get("t", &rank);
 
-        uint32_t isLeader = 0;
+        bool isLeader;
         ait = aboutData.find("IsLeader");
         if (ait == aboutData.end()) {
             QCC_LogError(ER_FAIL, ("%s: IsLeader missing in About Announcement", __func__));
             return;
         }
-        ait->second.Get("u", &isLeader);
+        ait->second.Get("b", &isLeader);
 
-        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%d isLeader=%d", __func__,
+        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%llu isLeader=%d", __func__,
                        busName, port, deviceID, deviceName, rank, isLeader));
-        controllerClient.OnAnnounced(port, busName, deviceID, deviceName, rank, isLeader);
+        if (isLeader) {
+            controllerClient.OnAnnounced(port, busName, deviceID, deviceName, rank);
+        } else {
+            QCC_DbgPrintf(("%s: Received a non-leader announcement", __func__));
+        }
     }
 }
 
@@ -175,14 +179,12 @@ ControllerClient::ControllerClient(
     bus(bus),
     busHandler(new ControllerClientBusHandler(*this)),
     callback(clientCB),
-    proxyObject(NULL),
     controllerServiceManagerPtr(NULL),
     lampManagerPtr(NULL),
     lampGroupManagerPtr(NULL),
     presetManagerPtr(NULL),
     sceneManagerPtr(NULL),
-    masterSceneManagerPtr(NULL),
-    alreadyInSession(false)
+    masterSceneManagerPtr(NULL)
 {
     ClearCurrentLeader();
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
@@ -203,124 +205,23 @@ uint32_t ControllerClient::GetVersion(void)
 
 void ControllerClient::ClearCurrentLeader()
 {
-    currentLeader.busName = "";
+    currentLeader.busName.clear();
     currentLeader.rank = 0;
-    currentLeader.isLeader = 0;
     currentLeader.port = 0;
-    currentLeader.joining = false;
-}
-
-ControllerClient::ControllerEntry* ControllerClient::GetMaxRankedEntry()
-{
-    ControllerEntry* max_rank = NULL;
-
-    QCC_DbgPrintf(("%s", __func__));
-
-    // now decide what to do!
-    ControllerEntryMap::iterator it = controllers.begin();
-    for (; it != controllers.end(); ++it) {
-        ControllerEntry& entry = it->second;
-        if (max_rank) {
-            if ((max_rank->isLeader && entry.isLeader) && (max_rank->rank < entry.rank)) {
-                max_rank = &entry;
-            }
-        } else {
-            max_rank = &entry;
-        }
-    }
-
-    return max_rank;
-}
-
-void ControllerClient::JoinLeaderSession()
-{
-    QCC_DbgPrintf(("%s", __func__));
-
-    if (alreadyInSession) {
-        QCC_DbgPrintf(("%s: Already in a session with a Controller Service", __func__));
-        return;
-    }
-
-    ErrorCodeList errorList;
-    controllersLock.Lock();
-    ControllerEntry* max_rank = GetMaxRankedEntry();
-
-    //QCC_DbgPrintf(("Max rank: %lu; currentleader=%lu", (max_rank ? max_rank->rank : 0UL), currentLeader.rank));
-
-    bool change_session = false;
-    if (max_rank != NULL && currentLeader.rank < max_rank->rank) {
-        change_session = true;
-    }
-
-    SessionId serviceSession = proxyObject ? proxyObject->GetSessionId() : 0;
-    // need to clean this up
-    delete proxyObject;
-    proxyObject = NULL;
-
-    controllersLock.Unlock();
-
-    // best to do this after releasing the lock
-    if (change_session) {
-        if (serviceSession) {
-            bus.LeaveSession(serviceSession);
-            ClearCurrentLeader();
-        }
-
-        // don't try to join the same session twice!
-        if (!max_rank->joining) {
-            SessionOpts options;
-            options.isMultipoint = true;
-            QStatus status = bus.JoinSessionAsync(max_rank->busName.c_str(), max_rank->port, busHandler, options, busHandler, max_rank);
-            if (status != ER_OK) {
-                errorList.push_back(ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND);
-                QCC_LogError(status, ("%s: JoinSessionAsync\n", __func__));
-
-                // unable to join
-                controllersLock.Lock();
-                RemoveUniqueName(max_rank->busName);
-                controllersLock.Unlock();
-            } else {
-                max_rank->joining = true;
-            }
-        }
-        // else nothing to join
-    }
-
-    if (!errorList.empty()) {
-        callback.ControllerClientErrorCB(errorList);
-    }
-
-    alreadyInSession = true;
-}
-
-// call while locked!
-void ControllerClient::RemoveUniqueName(const qcc::String& uniqueName)
-{
-    QCC_DbgPrintf(("%s", __func__));
-    BusNameToDeviceId::iterator bit = nameToId.find(uniqueName);
-    if (bit != nameToId.end()) {
-        ControllerEntryMap::iterator it = controllers.find(bit->second);
-        if (it != controllers.end()) {
-            QCC_DbgPrintf(("Removing mapping: %s -> %s", uniqueName.c_str(), bit->second.c_str()));
-            controllers.erase(it);
-        }
-
-        nameToId.erase(bit);
-    }
+    currentLeader.sessionId = 0;
+    currentLeader.deviceID.clear();
+    currentLeader.deviceName.clear();
 }
 
 void ControllerClient::OnSessionMemberRemoved(ajn::SessionId sessionId, const char* uniqueName)
 {
-    controllersLock.Lock();
-
-    if (currentLeader.busName == uniqueName) {
-        controllersLock.Unlock();
-        // the leader has left its own session so treat this as a SessionLost
+    controllerLock.Lock();
+    if ((currentLeader.busName == uniqueName) && (currentLeader.sessionId == sessionId)) {
         OnSessionLost(sessionId);
     } else {
-        RemoveUniqueName(uniqueName);
-        controllersLock.Unlock();
+        QCC_DbgPrintf(("%s: Ignoring spurious OnSessionMemberRemoved", __func__));
     }
+    controllerLock.Unlock();
 }
 
 
@@ -328,22 +229,22 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
 {
     QCC_DbgPrintf(("OnSessionLost(%u)\n", sessionID));
 
-    QCC_DbgPrintf(("alreadyInSession set to false\n"));
-    alreadyInSession = false;
+    LSFString deviceName;
+    LSFString deviceID;
 
-    controllersLock.Lock();
-    if (proxyObject != NULL && proxyObject->GetSessionId() == sessionID) {
-        qcc::String busName = proxyObject->GetServiceName();
-        delete proxyObject;
-        proxyObject = NULL;
-        RemoveUniqueName(busName);
+    deviceName.clear();
+    deviceID.clear();
 
+    controllerLock.Lock();
+    if (currentLeader.sessionId == sessionID) {
+        deviceName = currentLeader.deviceName;
+        deviceID = currentLeader.deviceID;
         ClearCurrentLeader();
-        controllersLock.Unlock();
-        callback.DisconnectedFromControllerServiceCB(currentLeader.deviceID, currentLeader.deviceName);
-        JoinLeaderSession();
-    } else {
-        controllersLock.Unlock();
+    }
+    controllerLock.Unlock();
+
+    if (!deviceID.empty()) {
+        callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 }
 
@@ -397,162 +298,130 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
     bus.EnableConcurrentCallbacks();
 
     ControllerEntry* joined = static_cast<ControllerEntry*>(context);
-    joined->joining = false;
 
-    QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __func__, sessionId, QCC_StatusText(status)));
+    LSFString deviceName;
+    deviceName.clear();
 
-    if (status == ER_OK) {
-        controllersLock.Lock();
-        SessionId oldSession = proxyObject ? proxyObject->GetSessionId() : 0;
+    if (joined) {
+        QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __func__, sessionId, QCC_StatusText(status)));
+        controllerLock.Lock();
 
-        LSFString device_id = joined->deviceID;
-        LSFString device_name = joined->deviceName;
-        bool make_callback = false;
-
-        if (currentLeader.rank <= joined->rank) {
-            currentLeader = *joined;
-            make_callback = true;
-
-            // we are connected to the new leader!
-            delete proxyObject;
-            proxyObject = new ProxyBusObject(bus, currentLeader.busName.c_str(), ControllerServiceObjectPath, sessionId);
-            // add the synchronization interface
-            //const InterfaceDescription* stateSyncInterface = bus.GetInterface(LeaderElectionAndStateSyncInterfaceName);
-            //leaderObj->AddInterface(*stateSyncInterface);
-            proxyObject->IntrospectRemoteObject();
-
-            // call these with the lock
-            AddMethodHandlers();
-            AddSignalHandlers();
+        /*
+         * Check to see if this is a response from a Controller Service that is in our ignore list
+         */
+        if (ignoreList.find(joined->deviceID) != ignoreList.end()) {
+            QCC_DbgPrintf(("%s: Ignoring Join Session response from Controller Service %s", __func__, joined->deviceID.c_str()));
+            ignoreList.erase(joined->deviceID);
         } else {
-            // we don't care about this session anymore!
-            // leave it!
-            oldSession = sessionId;
+            if (joined->deviceID == currentLeader.deviceID) {
+                QCC_DbgPrintf(("%s: Response from the current leader", __func__));
+                if (status == ER_OK) {
+                    currentLeader.proxyObject = ProxyBusObject(bus, currentLeader.busName.c_str(), ControllerServiceObjectPath, sessionId);
+                    currentLeader.proxyObject.IntrospectRemoteObject();
+                    currentLeader.sessionId = sessionId;
+                    AddMethodHandlers();
+                    AddSignalHandlers();
+                }
+                /*
+                 * This is to account for the case when the device name of Controller Service changes when a
+                 * Join Session with the Controller Service is in progress
+                 */
+                deviceName = currentLeader.deviceName;
+            }
+        }
+        controllerLock.Unlock();
+
+        if (!deviceName.empty()) {
+            if (ER_OK == status) {
+                callback.ConnectedToControllerServiceCB(joined->deviceID, deviceName);
+            } else {
+                callback.ConnectToControllerServiceFailedCB(joined->deviceID, deviceName);
+            }
         }
 
-        controllersLock.Unlock();
-
-        // there is an old session to leave
-        if (oldSession) {
-            bus.LeaveSession(oldSession);
-        }
-
-        if (make_callback) {
-            callback.ConnectedToControllerServiceCB(device_id, device_name);
-        }
-
-        /*
-         * Get and print the versions of all the Controller Service interfaces
-         */
-        /*
-           QCC_DbgPrintf(("%s: Trying to read the versions of all the Controller Service interfaces", __func__));
-           MsgArg val;
-           status = proxyObject->GetProperty(ControllerServiceInterfaceName, "Version", val);
-           if (ER_OK == status) {
-            uint32_t iVal = 0;
-            val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceInterfaceVersion = %d", __func__, iVal));
-           } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceInterfaceName));
-           }
-           val.Clear();
-           status = proxyObject->GetProperty(ControllerServiceLampInterfaceName, "Version", val);
-           if (ER_OK == status) {
-            uint32_t iVal = 0;
-            val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceLampInterfaceVersion = %d", __func__, iVal));
-           } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampInterfaceName));
-           }
-           val.Clear();
-           status = proxyObject->GetProperty(ControllerServiceLampGroupInterfaceName, "Version", val);
-           if (ER_OK == status) {
-            uint32_t iVal = 0;
-            val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceLampGroupInterfaceVersion = %d", __func__, iVal));
-           } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceLampGroupInterfaceName));
-           }
-           val.Clear();
-           status = proxyObject->GetProperty(ControllerServicePresetInterfaceName, "Version", val);
-           if (ER_OK == status) {
-            uint32_t iVal = 0;
-            val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServicePresetInterfaceVersion = %d", __func__, iVal));
-           } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServicePresetInterfaceName));
-           }
-           val.Clear();
-           status = proxyObject->GetProperty(ControllerServiceSceneInterfaceName, "Version", val);
-           if (ER_OK == status) {
-            uint32_t iVal = 0;
-            val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceSceneInterfaceVersion = %d", __func__, iVal));
-           } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceSceneInterfaceName));
-           }
-           val.Clear();
-           status = proxyObject->GetProperty(ControllerServiceMasterSceneInterfaceName, "Version", val);
-           if (ER_OK == status) {
-            uint32_t iVal = 0;
-            val.Get("u", &iVal);
-            QCC_DbgPrintf(("%s: ControllerServiceMasterSceneInterfaceVersion = %d", __func__, iVal));
-           } else {
-            QCC_LogError(status, ("GetProperty on %s failed", ControllerServiceMasterSceneInterfaceName));
-           }
-         */
-    } else {
-        callback.ConnectToControllerServiceFailedCB(joined->deviceID, joined->deviceName);
-        alreadyInSession = false;
-
-        // if the connection failed, assume the CS is no longer there until we see another announcement
-        controllersLock.Lock();
-        RemoveUniqueName(joined->busName);
-        controllersLock.Unlock();
-        JoinLeaderSession();
-    }
-
-    if (!errorList.empty()) {
-        callback.ControllerClientErrorCB(errorList);
+        delete joined;
     }
 }
 
-void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank, uint32_t isLeader)
+void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank)
 {
-    QCC_DbgPrintf(("ControllerClient::OnAnnounced(port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu, isLeader=%d)",
-                   port, busName, deviceID, deviceName, rank, isLeader));
+    QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu", __func__, port, busName, deviceID, deviceName, rank));
 
-    controllersLock.Lock();
-    // find or insert
-    nameToId[busName] = deviceID;
-    ControllerEntry& entry = controllers[deviceID];
+    bool nameChanged = false;
+    bool connectToNewLeader = false;
+    LSFString oldDeviceId;
+    LSFString oldDeviceName;
+    SessionId oldSessionId = 0;
 
+    oldDeviceId.clear();
+    oldDeviceName.clear();
+
+    controllerLock.Lock();
     // if the name of the current CS has changed...
     if (deviceID == currentLeader.deviceID) {
-        // TODO: can the rank change?
-        bool nameChanged = false;
         if (deviceName != currentLeader.deviceName) {
-            entry.deviceName = deviceName;
             currentLeader.deviceName = deviceName;
-            nameChanged = true;
+            if (currentLeader.sessionId != 0) {
+                nameChanged = true;
+            }
+            QCC_DbgPrintf(("%s: Current leader name change", __func__));
         }
-        controllersLock.Unlock();
-        if (nameChanged) {
-            controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
+    } else {
+        if (rank > currentLeader.rank) {
+            connectToNewLeader = true;
+
+            ControllerEntry entry;
+            entry.port = port;
+            entry.deviceID = deviceID;
+            entry.deviceName = deviceName;
+            entry.rank = rank;
+            entry.busName = busName;
+            entry.sessionId = 0;
+
+            if (!currentLeader.busName.empty()) {
+                if (currentLeader.sessionId == 0) {
+                    QCC_DbgPrintf(("%s: Pushed current leader in ignore list", __func__));
+                    ignoreList.insert(currentLeader.deviceID);
+                } else {
+                    oldSessionId = currentLeader.sessionId;
+                    oldDeviceId = currentLeader.deviceID;
+                    oldDeviceName = currentLeader.deviceName;
+                }
+            }
+            currentLeader = entry;
+            QCC_DbgPrintf(("%s: Updated new current leader entry", __func__));
+        } else {
+            QCC_DbgPrintf(("%s: Ignoring a lower ranking leader accouncement than current leader", __func__));
         }
-        return;
     }
+    controllerLock.Unlock();
 
-    entry.port = port;
-    entry.busName = busName;
-    entry.rank = rank;
-    entry.isLeader = isLeader;
-    entry.joining = false;
-    entry.deviceID = deviceID;
-    entry.deviceName = deviceName;
-    controllersLock.Unlock();
+    if (nameChanged) {
+        controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
+    } else if (connectToNewLeader) {
+        if (oldSessionId) {
+            QCC_DbgPrintf(("%s: Tearing down old session", __func__));
+            bus.LeaveSession(oldSessionId);
+            callback.DisconnectedFromControllerServiceCB(oldDeviceId, oldDeviceName);
+        }
 
-    JoinLeaderSession();
+        QCC_DbgPrintf(("%s: Joining session with the new leader", __func__));
+        SessionOpts opts;
+        opts.isMultipoint = true;
+        ControllerEntry* context = new ControllerEntry();
+        context->port = port;
+        context->deviceID = deviceID;
+        context->deviceName = deviceName;
+        context->rank = rank;
+        context->busName = busName;
+        context->sessionId = 0;
+        QStatus status = bus.JoinSessionAsync(busName, port, busHandler, opts, busHandler, context);
+        if (status != ER_OK) {
+            QCC_LogError(status, ("%s: JoinSessionAsync failed", __func__));
+            delete context;
+            callback.ConnectToControllerServiceFailedCB(deviceID, deviceName);
+        }
+    }
 }
 
 ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
@@ -565,10 +434,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
     void* context)
 {
     ControllerClientStatus status = CONTROLLER_CLIENT_OK;
-    controllersLock.Lock();
+    controllerLock.Lock();
 
-    if (proxyObject != NULL) {
-        QStatus ajStatus = proxyObject->MethodCallAsync(
+    if (currentLeader.sessionId) {
+        QStatus ajStatus = currentLeader.proxyObject.MethodCallAsync(
             ifaceName,
             methodName,
             handler,
@@ -585,7 +454,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
         status = CONTROLLER_CLIENT_ERR_NOT_CONNECTED;
     }
 
-    controllersLock.Unlock();
+    controllerLock.Unlock();
     return status;
 }
 
@@ -898,8 +767,39 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
     }
 }
 
-void ControllerClient::Reset(void) {
+void ControllerClient::Reset(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
 
+    LSFString deviceName;
+    LSFString deviceID;
+    SessionId sessionId = 0;
+
+    deviceName.clear();
+    deviceID.clear();
+
+    controllerLock.Lock();
+    sessionId = currentLeader.sessionId;
+    deviceName = currentLeader.deviceName;
+    deviceID = currentLeader.deviceID;
+    ClearCurrentLeader();
+    controllerLock.Unlock();
+
+    if (sessionId) {
+        bus.LeaveSession(sessionId);
+        callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
+    }
+
+    QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
+    if (ER_OK == status) {
+        status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
+    }
+
+    if (status != ER_OK) {
+        ErrorCodeList errors;
+        errors.push_back(ERROR_IRRECOVERABLE);
+        callback.ControllerClientErrorCB(errors);
+    }
 }
 
 void ControllerClient::AddMethodHandlers()
@@ -1015,12 +915,12 @@ void ControllerClient::AddMethodHandlers()
 
 void ControllerClient::AddSignalHandlers()
 {
-    const InterfaceDescription* controllerServiceInterface = proxyObject->GetInterface(ControllerServiceInterfaceName);
-    const InterfaceDescription* controllerServiceLampInterface = proxyObject->GetInterface(ControllerServiceLampInterfaceName);
-    const InterfaceDescription* controllerServiceLampGroupInterface = proxyObject->GetInterface(ControllerServiceLampGroupInterfaceName);
-    const InterfaceDescription* controllerServicePresetInterface = proxyObject->GetInterface(ControllerServicePresetInterfaceName);
-    const InterfaceDescription* controllerServiceSceneInterface = proxyObject->GetInterface(ControllerServiceSceneInterfaceName);
-    const InterfaceDescription* controllerServiceMasterSceneInterface = proxyObject->GetInterface(ControllerServiceMasterSceneInterfaceName);
+    const InterfaceDescription* controllerServiceInterface = currentLeader.proxyObject.GetInterface(ControllerServiceInterfaceName);
+    const InterfaceDescription* controllerServiceLampInterface = currentLeader.proxyObject.GetInterface(ControllerServiceLampInterfaceName);
+    const InterfaceDescription* controllerServiceLampGroupInterface = currentLeader.proxyObject.GetInterface(ControllerServiceLampGroupInterfaceName);
+    const InterfaceDescription* controllerServicePresetInterface = currentLeader.proxyObject.GetInterface(ControllerServicePresetInterfaceName);
+    const InterfaceDescription* controllerServiceSceneInterface = currentLeader.proxyObject.GetInterface(ControllerServiceSceneInterfaceName);
+    const InterfaceDescription* controllerServiceMasterSceneInterface = currentLeader.proxyObject.GetInterface(ControllerServiceMasterSceneInterfaceName);
 
     const SignalEntry signalEntries[] = {
         { controllerServiceInterface->GetMember("ControllerServiceLightingReset"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },

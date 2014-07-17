@@ -32,7 +32,6 @@ PersistenceThread::PersistenceThread(ControllerService& service)
 PersistenceThread::~PersistenceThread()
 {
     QCC_DbgTrace(("%s", __func__));
-    Join();
 }
 
 
@@ -50,6 +49,7 @@ void PersistenceThread::Run()
             service.GetSceneManager().ReadWriteFile();
         }
     }
+    QCC_DbgPrintf(("%s: Exited", __func__));
 }
 
 void PersistenceThread::SignalReadWrite()
@@ -64,5 +64,11 @@ void PersistenceThread::Stop()
     QCC_DbgTrace(("%s", __func__));
     running = false;
     SignalReadWrite();
+}
+
+void PersistenceThread::Join()
+{
+    QCC_DbgTrace(("%s", __func__));
+    Thread::Join();
 }
 

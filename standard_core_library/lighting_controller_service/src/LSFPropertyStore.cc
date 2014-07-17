@@ -57,8 +57,6 @@ LSFPropertyStore::LSFPropertyStore(const std::string& obsConfigFile, const std::
 LSFPropertyStore::~LSFPropertyStore()
 {
     QCC_DbgTrace(("%s", __func__));
-    Stop();
-    Join();
 }
 
 void LSFPropertyStore::Initialize()
@@ -143,11 +141,8 @@ void LSFPropertyStore::ReadFactoryConfiguration()
         setProperty(RANK, value, true, false, true);
     }
 
-    iter = factorySettings.find("IsLeader");
-    if (iter != factorySettings.end()) {
-        uint32_t value = qcc::StringToU32(iter->second);
-        setProperty(IS_LEADER, value, true, true, true);
-    }
+    // isLeader==false by default
+    setProperty(IS_LEADER, false, true, false, true);
 
     std::vector<qcc::String>::const_iterator it;
     for (it = supportedLanguages.begin(); it != supportedLanguages.end(); ++it) {
@@ -411,6 +406,8 @@ QStatus LSFPropertyStore::Update(const char* name, const char* languageTag, cons
         needsWrite = true;
         propsLock.Unlock();
         propsCond.Signal();
+    } else {
+        propsLock.Unlock();
     }
 
     return status;
@@ -455,7 +452,7 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
     bool deleted = false;
     propsLock.Lock();
     std::pair<PropertyMap::iterator, PropertyMap::iterator> propertiesIter = properties.equal_range(propertyKey);
-    for (PropertyMap::iterator it = propertiesIter.first; it != propertiesIter.second; ++it) {
+    for (PropertyMap::iterator it = propertiesIter.first; it != propertiesIter.second;) {
         const PropertyStoreProperty& property = it->second;
         if (property.getIsWritable()) {
             if ((languageTag == NULL && property.getLanguage().empty()) || (languageTag != NULL && property.getLanguage() == languageTag)) {
@@ -477,13 +474,18 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
                     }
 
                     it->second = newProperty;
+                    ++it;
                 } else {
-                    properties.erase(it);
+                    it = properties.erase(it);
                 }
 
                 deleted = true;
                 break;
+            } else {
+                ++it;
             }
+        } else {
+            ++it;
         }
     }
 
@@ -495,6 +497,8 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
         needsWrite = true;
         propsLock.Unlock();
         propsCond.Signal();
+    } else {
+        propsLock.Unlock();
     }
 
     return status;
@@ -533,15 +537,21 @@ void LSFPropertyStore::Run()
                 }
 
                 const MsgArg& val = property.getPropertyValue();
-                const char* propVal;
-                val.Get("s", &propVal);
-                fileOutput[name] = propVal;
+                if (val.typeId != ALLJOYN_BOOLEAN) {
+                    const char* propVal;
+                    val.Get("s", &propVal);
+                    fileOutput[name] = propVal;
+                } else {
+                    bool propVal;
+                    val.Get("b", &propVal);
+                    fileOutput[name] = propVal ? "1" : "0";
+                }
             }
         }
 
         // these are the new Properties if and only if the data
         // was successfully written to the user config file.
-        if (PropertyParser::ReadWriteFile(configFileName, fileOutput)) {
+        if (PropertyParser::WriteFile(configFileName, fileOutput)) {
             // send the announcement!
             AboutService* aboutService = AboutServiceApi::getInstance();
             if (aboutService) {
@@ -557,6 +567,12 @@ void LSFPropertyStore::Stop()
     QCC_DbgTrace(("%s", __func__));
     running = false;
     propsCond.Signal();
+}
+
+void LSFPropertyStore::Join()
+{
+    QCC_DbgTrace(("%s", __func__));
+    Thread::Join();
 }
 
 QStatus LSFPropertyStore::isLanguageSupported(const char* language)
@@ -637,18 +653,26 @@ uint64_t LSFPropertyStore::GetRank()
     return rank;
 }
 
-uint32_t LSFPropertyStore::IsLeader()
+bool LSFPropertyStore::IsLeader()
 {
     QCC_DbgTrace(("%s", __func__));
-    uint32_t leader = 0;
+    bool leader = 0;
     propsLock.Lock();
     PropertyMap::iterator iter = properties.find(IS_LEADER);
     if (iter != properties.end()) {
-        iter->second.getPropertyValue().Get("u", &leader);
+        iter->second.getPropertyValue().Get("b", &leader);
     }
 
     propsLock.Unlock();
     return leader;
+}
+
+void LSFPropertyStore::SetIsLeader(bool leader)
+{
+    propsLock.Lock();
+    setProperty(IS_LEADER, leader, true, false, true);
+    propsLock.Unlock();
+    AboutServiceApi::getInstance()->Announce();
 }
 
 QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, uint64_t value, bool isPublic, bool isWritable, bool isAnnouncable)
@@ -673,6 +697,23 @@ QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, uint32_t val
     QCC_DbgTrace(("%s", __func__));
     QStatus status = ER_OK;
     MsgArg msgArg("u", value);
+    status = validateValue(propertyKey, msgArg);
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey);
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, bool value, bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    QCC_DbgTrace(("%s", __func__));
+    QStatus status = ER_OK;
+    MsgArg msgArg("b", value);
     status = validateValue(propertyKey, msgArg);
     if (status != ER_OK) {
         return status;
@@ -717,6 +758,41 @@ QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const qcc::S
     removeExisting(propertyKey);
 
     PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const char* value, bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    QCC_DbgTrace(("%s", __func__));
+    QStatus status = ER_OK;
+    MsgArg msgArg("s", value);
+    status = validateValue(propertyKey, msgArg);
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey);
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, isPublic, isWritable, isAnnouncable);
+    properties.insert(PropertyPair(propertyKey, property));
+    return status;
+}
+
+QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, const char* value, const qcc::String& language,
+                                      bool isPublic, bool isWritable, bool isAnnouncable)
+{
+    QCC_DbgTrace(("%s", __func__));
+    QStatus status = ER_OK;
+    MsgArg msgArg("s", value);
+    status = validateValue(propertyKey, msgArg, language);
+    if (status != ER_OK) {
+        return status;
+    }
+
+    removeExisting(propertyKey, language);
+
+    PropertyStoreProperty property(PropertyStoreName[propertyKey], msgArg, language, isPublic, isWritable, isAnnouncable);
     properties.insert(PropertyPair(propertyKey, property));
     return status;
 }
@@ -826,7 +902,7 @@ QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn:
         break;
 
     case IS_LEADER:
-        if (value.typeId != ALLJOYN_UINT32) {
+        if (value.typeId != ALLJOYN_BOOLEAN) {
             status = ER_INVALID_VALUE;
         }
         break;

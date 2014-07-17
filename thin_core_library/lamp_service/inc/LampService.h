@@ -53,7 +53,7 @@ uint32_t LAMP_GetServiceVersion(void);
  * we time out waiting for a message.  Use this if you want to run
  * OEM-specific code on the same thread as the AllJoyn event loop
  *
- * @param timeout   The timeout
+ * @param timeout   The timeout (in ms)
  * @param callback  The callback function
  * @return          None
  */

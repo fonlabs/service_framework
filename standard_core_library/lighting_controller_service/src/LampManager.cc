@@ -56,10 +56,16 @@ QStatus LampManager::Start(const char* keyStoreFileLocation)
     return status;
 }
 
-QStatus LampManager::Stop(void)
+void LampManager::Stop(void)
 {
     QCC_DbgPrintf(("%s", __func__));
-    return lampClients.Join();
+    lampClients.Stop();
+}
+
+void LampManager::Join(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
+    lampClients.Join();
 }
 
 void LampManager::GetAllLampIDs(ajn::Message& message)

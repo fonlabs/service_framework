@@ -32,7 +32,7 @@ uint8_t dbgLAMP_MAIN = 1;
 
 int AJ_Main(void)
 {
-    AJ_InfoPrintf(("\n%s\n", __FUNCTION__));
+    AJ_InfoPrintf(("\n%s\n", __func__));
     LAMP_RunService();
     return 0;
 }

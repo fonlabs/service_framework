@@ -90,8 +90,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     QStatus Start(const char* keyStoreFileLocation);
 
-    QStatus Join(void);
-
     void Run(void);
 
     /**
@@ -101,6 +99,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * @return  ER_OK if successful, error otherwise
      */
     void Stop(void);
+
+    void Join(void);
 
     /**
      * Called when JoinSessionAsync() completes.
@@ -255,6 +255,10 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* context);
 
+    void ConnectToLamps(void);
+
+    void DisconnectFromLamps(void);
+
   private:
 
     void* LampClientsThread(void* data);
@@ -356,7 +360,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     typedef std::map<LSFString, LampConnection*> LampMap;
     LampMap activeLamps;
 
-    std::list<LampConnection*> aboutsList;
+    LampMap aboutsList;
     Mutex aboutsListLock;
 
     std::list<LampConnection*> joinSessionCBList;
@@ -383,6 +387,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     std::list<ajn::Message> getAllLampIDsRequests;
     Mutex getAllLampIDsLock;
 
+    Mutex joinSessionInProgressLock;
     std::set<LSFString> joinSessionInProgressList;
 
     LSFSemaphore wakeUp;
@@ -396,6 +401,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     Mutex ngnsPingResponseLock;
     Mutex sessionPingResponseLock;
     bool pingsInProgress;
+
+    Mutex connectToLampsLock;
+    bool connectToLamps;
 };
 
 }

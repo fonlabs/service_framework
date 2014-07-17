@@ -33,6 +33,8 @@ namespace lsf {
 
 class ControllerService;
 
+uint64_t GetTimestamp64(void);
+
 class Manager : public ajn::MessageReceiver {
 
     static const size_t ID_STR_LEN = 8;
@@ -43,7 +45,7 @@ class Manager : public ajn::MessageReceiver {
 
     void ScheduleFileRead(ajn::Message& message);
 
-    void ScheduleFileWrite(bool blobUpdate = false);
+    void ScheduleFileWrite(bool blobUpdate = false, bool initState = false);
 
     //protected:
 
@@ -75,6 +77,7 @@ class Manager : public ajn::MessageReceiver {
     uint32_t checkSum;
     uint64_t timeStamp;
     bool blobUpdateCycle;
+    bool initialState;
 
     std::list<ajn::Message> readBlobMessages;
 };
