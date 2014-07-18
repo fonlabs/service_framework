@@ -151,7 +151,8 @@ AJOBS_Settings OEM_LS_OnboardingSettings = {
     // changing the format of the SSID will break compatibility with AJ-On
     .AJOBS_SoftAPSSID = { 0 },
     .AJOBS_SoftAPIsHidden = FALSE,
-    .AJOBS_SoftAPPassphrase = NULL
+    .AJOBS_SoftAPPassphrase = NULL,
+    .AJOBS_RESET_WIFI_ON_IDLE = TRUE
 };
 
 #endif
