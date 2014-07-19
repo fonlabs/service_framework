@@ -352,6 +352,12 @@ ControllerService::~ControllerService()
     QCC_DbgTrace(("%s", __func__));
     delete listener;
     QCC_DbgPrintf(("%s: Done deleting listener", __func__));
+
+    for (DispatcherMap::iterator it = messageHandlers.begin(); it != messageHandlers.end(); ++it) {
+        delete it->second;
+    }
+
+    messageHandlers.clear();
 }
 
 QStatus ControllerService::CreateAndAddInterface(std::string interfaceDescription, const char* interfaceName) {

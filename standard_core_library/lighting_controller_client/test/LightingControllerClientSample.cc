@@ -1225,6 +1225,7 @@ void PrintHelp() {
     printf("(85):  GetPresetDataSet\n");
     printf("(86):  GetSceneDataSet\n");
     printf("(87):  GetMasterSceneDataSet\n");
+    printf("(88):  Reset\n");
 }
 
 int main()
@@ -1978,6 +1979,9 @@ int main()
                 printf("\nInvoking GetMasterSceneDataSet(%s)\n", uniqueId.c_str());
                 status = masterSceneManager.GetMasterSceneDataSet(uniqueId.c_str());
                 numRepliesToWait = 2;
+            } else if (cmd == "88") {
+                printf("\nInvoking Reset()");
+                client.Reset();
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {

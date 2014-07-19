@@ -17,6 +17,7 @@
 #include <LSFPropertyStore.h>
 #include <OEM_CS_Config.h>
 #include <qcc/Debug.h>
+#include <qcc/Util.h>
 
 namespace lsf {
 
@@ -32,11 +33,6 @@ void GetFactorySetDefaultLampState(LampState& defaultState)
     defaultState = defaultLampState;
 }
 
-uint32_t GetLinkTimeoutSeconds()
-{
-    return 5;
-}
-
 void GetSyncTimeStamp(uint64_t& timeStamp)
 {
     /* This is just a sample implementation and so it passes back a
@@ -47,17 +43,12 @@ void GetSyncTimeStamp(uint64_t& timeStamp)
     QCC_DbgPrintf(("%s: timeString = %s timestamp = %llu", __func__, timeString.c_str(), timeStamp));
 }
 
-uint64_t GetRank()
+uint64_t OEMGetRank()
 {
-    if (rank == 0) {
-        qcc::String rankString = qcc::RandHexString(16);
-        rank = StringToU64(rankString, 16);
-        QCC_DbgPrintf(("%s: rankString = %s rank = %llu", __func__, rankString.c_str(), rank));
-    }
-    return rank;
+    return qcc::Rand64();
 }
 
-bool IsLeader()
+bool OEMIsLeader()
 {
     return false;
 }
@@ -73,16 +64,11 @@ void PopulateDefaultProperties(LSFPropertyStore& propStore)
     languages.push_back("de-AT");
     propStore.setSupportedLangs(languages);
 
-    propStore.setProperty(LSFPropertyStore::RANK, GetRank(), true, false, true);
-
-    propStore.setProperty(LSFPropertyStore::IS_LEADER, IsLeader(), true, false, true);
-
     // use a random AppId since we don't have one
     qcc::String app_id = qcc::RandHexString(16);
     uint8_t* AppId = new uint8_t[16];
     qcc::HexStringToBytes(app_id, AppId, 16);
     propStore.setProperty(LSFPropertyStore::APP_ID, AppId, 16, true, false, true);
-
 
     propStore.setProperty(LSFPropertyStore::DEFAULT_LANG, "en", true, true, true);
     propStore.setProperty(LSFPropertyStore::APP_NAME, "LightingControllerService", true, false, true);

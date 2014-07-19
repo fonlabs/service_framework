@@ -41,6 +41,11 @@ namespace lsf {
 #define PING_TIMEOUT_IN_MS 300
 
 /*
+ * Link timeout in seconds
+ */
+#define LINK_TIMEOUT 5
+
+/*
  * Returns the factory set value of the default lamp state. The
  * PresetManager will use this value to initialize the default
  * lamp state if it does not find a persisted value for the same
@@ -59,8 +64,6 @@ void GetFactorySetDefaultLampState(LampState& defaultState);
  */
 void GetSyncTimeStamp(uint64_t& timeStamp);
 
-uint32_t GetLinkTimeoutSeconds();
-
 /**
  * LSFPropertyStore predeclaration
  */
@@ -74,6 +77,15 @@ class LSFPropertyStore;
  * @param propStore The property store
  */
 void PopulateDefaultProperties(LSFPropertyStore& propStore);
+
+/**
+ * OEMGetRank
+ */
+uint64_t OEMGetRank();
+/**
+ * OEMIsLeader
+ */
+bool OEMIsLeader();
 
 } //lsf
 

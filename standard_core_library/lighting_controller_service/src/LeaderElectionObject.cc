@@ -441,7 +441,7 @@ void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId)
         controllersLock.Unlock();
 
         // we don't need to wait for this
-        bus.SetLinkTimeoutAsync(sessionId, GetLinkTimeoutSeconds(), handler, NULL);
+        bus.SetLinkTimeoutAsync(sessionId, LINK_TIMEOUT, handler, NULL);
 
         leaderObj->MethodCallAsync(
             LeaderElectionAndStateSyncInterfaceName,

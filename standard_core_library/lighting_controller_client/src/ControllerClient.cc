@@ -333,9 +333,17 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
 
         if (!deviceName.empty()) {
             if (ER_OK == status) {
-                callback.ConnectedToControllerServiceCB(joined->deviceID, deviceName);
+                uint32_t linkTimeOut = 5;
+                QStatus tempStatus = bus.SetLinkTimeout(sessionId, linkTimeOut);
+                if (tempStatus != ER_OK) {
+                    QCC_LogError(tempStatus, ("%s: SetLinkTimeout failed", __func__));
+                    Reset();
+                } else {
+                    callback.ConnectedToControllerServiceCB(joined->deviceID, deviceName);
+                }
             } else {
                 callback.ConnectToControllerServiceFailedCB(joined->deviceID, deviceName);
+                Reset();
             }
         }
 
@@ -352,6 +360,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     LSFString oldDeviceId;
     LSFString oldDeviceName;
     SessionId oldSessionId = 0;
+    bool lowerRankingLeader = false;
 
     oldDeviceId.clear();
     oldDeviceName.clear();
@@ -392,6 +401,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             QCC_DbgPrintf(("%s: Updated new current leader entry", __func__));
         } else {
             QCC_DbgPrintf(("%s: Ignoring a lower ranking leader accouncement than current leader", __func__));
+            lowerRankingLeader = true;
         }
     }
     controllerLock.Unlock();
@@ -421,6 +431,8 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             delete context;
             callback.ConnectToControllerServiceFailedCB(deviceID, deviceName);
         }
+    } else if (lowerRankingLeader) {
+        Reset();
     }
 }
 

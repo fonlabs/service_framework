@@ -28,9 +28,9 @@
 
 // if we're tracking the child process, we need to pass signals to it
 static pid_t g_child_process = 0;
-
-
 static volatile sig_atomic_t g_running = true;
+static volatile sig_atomic_t isRunning = false;
+
 static void SigIntHandler(int sig)
 {
     g_running = false;
@@ -77,7 +77,6 @@ static void usage(int argc, char** argv)
     printf("Default:\n");
     printf("    %s\n", argv[0]);
 }
-
 
 static void parseCommandLine(int argc, char** argv)
 {
@@ -133,7 +132,6 @@ void lsf_Sleep(uint32_t msec)
     usleep(1000 * msec);
 }
 
-
 void RunService()
 {
     QCC_DbgTrace(("%s", __func__));
@@ -151,6 +149,8 @@ void RunService()
 
     QStatus status = controllerSvcManagerPtr->Start(storeLocation.empty() ? NULL : storeFilePath.c_str());
 
+    isRunning = true;
+
     if (status == ER_OK) {
         while (g_running && controllerSvcManagerPtr->IsRunning() && (controllerSvcManagerPtr->IsConnectedToRouter() == ER_OK)) {
             lsf_Sleep(1000);
@@ -165,6 +165,8 @@ void RunService()
         delete controllerSvcManagerPtr;
         QCC_DbgPrintf(("%s: After delete controllerSvcManagerPtr", __func__));
     }
+
+    isRunning = false;
 }
 
 
@@ -199,7 +201,6 @@ void RunAndMonitor()
         }
     }
 }
-
 
 int main(int argc, char** argv)
 {

@@ -24,6 +24,7 @@
 #include <qcc/Debug.h>
 #include <qcc/StringUtil.h>
 #include <alljoyn/about/AboutServiceApi.h>
+#include "GuidUtil.h"
 
 #define QCC_MODULE "LSF_PROPSTORE"
 
@@ -38,15 +39,12 @@ qcc::String LSFPropertyStore::PropertyStoreName[NUMBER_OF_KEYS + 1] = {
     "SupportUrl", "Rank", "IsLeader", ""
 };
 
-
-
 LSFPropertyStore::LSFPropertyStore(const std::string& obsConfigFile, const std::string& factoryConfigFile, const std::string& configFile)
     : isInitialized(false),
     obsConfigFile(obsConfigFile),
     configFileName(configFile),
     factoryConfigFileName(factoryConfigFile),
-    factoryReset(false),
-    needsWrite(false),
+    asyncTasks(doNothing),
     running(true)
 {
     QCC_DbgTrace(("%s", __func__));
@@ -75,27 +73,22 @@ void LSFPropertyStore::Initialize()
 void LSFPropertyStore::ReadFactoryConfiguration()
 {
     QCC_DbgTrace(("%s", __func__));
-    // we need to get the same DeviceId as the onboarding manager
-    if (obsSettings.empty()) {
-        if (PropertyParser::ParseFile(obsConfigFile, obsSettings)) {
-            StringMap::const_iterator iter = obsSettings.find(PropertyStoreName[DEVICE_ID]);
-            if (iter != obsSettings.end()) {
-                setProperty(DEVICE_ID, iter->second, true, false, true);
-            }
-        }
 
-        // we need a device id
-        if (getProperty(DEVICE_ID) == NULL) {
-            qcc::String new_id = qcc::RandHexString(16);
-            setProperty(DEVICE_ID, new_id, true, false, true);
-        }
-    }
+    qcc::String deviceId;
+    GuidUtil::GetInstance()->GetDeviceIdString(&deviceId);
+    setProperty(DEVICE_ID, deviceId, true, false, true);
 
+    setProperty(RANK, OEMGetRank(), true, false, true);
+    setProperty(IS_LEADER, OEMIsLeader(), true, false, true);
 
     if (factorySettings.empty()) {
         if (!PropertyParser::ParseFile(factoryConfigFileName, factorySettings)) {
             // ini not found: fall back to hard-coded defaults
             PopulateDefaultProperties(*this);
+            propsLock.Lock();
+            asyncTasks = writetoOEMConfig;
+            propsLock.Unlock();
+            propsCond.Signal();
             return;
         }
     }
@@ -122,27 +115,18 @@ void LSFPropertyStore::ReadFactoryConfiguration()
 
     iter = factorySettings.find(PropertyStoreName[APP_ID]);
     if (iter != factorySettings.end()) {
-        qcc::String device_id = iter->second;
+        qcc::String app_id = iter->second;
 
         uint8_t* AppId = new uint8_t[16];
-        qcc::HexStringToBytes(device_id, AppId, 16);
+        qcc::HexStringToBytes(app_id, AppId, 16);
         setProperty(APP_ID, AppId, 16, true, false, true);
     } else {
         // use a random AppId since we don't have one
-        qcc::String device_id = qcc::RandHexString(16);
+        qcc::String app_id = qcc::RandHexString(16);
         uint8_t* AppId = new uint8_t[16];
-        qcc::HexStringToBytes(device_id, AppId, 16);
+        qcc::HexStringToBytes(app_id, AppId, 16);
         setProperty(APP_ID, AppId, 16, true, false, true);
     }
-
-    iter = factorySettings.find("Rank");
-    if (iter != factorySettings.end()) {
-        uint64_t value = qcc::StringToU64(iter->second);
-        setProperty(RANK, value, true, false, true);
-    }
-
-    // isLeader==false by default
-    setProperty(IS_LEADER, false, true, false, true);
 
     std::vector<qcc::String>::const_iterator it;
     for (it = supportedLanguages.begin(); it != supportedLanguages.end(); ++it) {
@@ -194,7 +178,10 @@ void LSFPropertyStore::ReadConfiguration()
 QStatus LSFPropertyStore::Reset()
 {
     QCC_DbgTrace(("%s", __func__));
-    factoryReset = true;
+    propsLock.Lock();
+    asyncTasks = removeConfigFile;
+    propsLock.Unlock();
+    propsCond.Signal();
     return ER_OK;
 }
 
@@ -403,7 +390,7 @@ QStatus LSFPropertyStore::Update(const char* name, const char* languageTag, cons
     }
 
     if (status == ER_OK) {
-        needsWrite = true;
+        asyncTasks = writetoConfig;
         propsLock.Unlock();
         propsCond.Signal();
     } else {
@@ -494,7 +481,7 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
     }
 
     if (status == ER_OK) {
-        needsWrite = true;
+        asyncTasks = writetoConfig;
         propsLock.Unlock();
         propsCond.Signal();
     } else {
@@ -504,12 +491,83 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
     return status;
 }
 
+QStatus LSFPropertyStore::FillStringMapWithProperties(StringMap& fileOutput, PropertyMap& propertiestoWrite, bool justWritable)
+{
+    for (PropertyMap::const_iterator it = propertiestoWrite.begin(); it != propertiestoWrite.end(); ++it) {
+        const PropertyStoreProperty& property = it->second;
+
+        if (justWritable && !property.getIsWritable()) { //write just writable properties
+            continue;
+        }
+
+        qcc::String name = property.getPropertyName();
+        if (name == PropertyStoreName[DEVICE_ID] || name == PropertyStoreName[IS_LEADER] || name == PropertyStoreName[RANK]) {
+            continue;
+        }
+
+        const qcc::String& lang = property.getLanguage();
+
+
+        if (!lang.empty()) {
+            name += "." + lang;
+        }
+
+        const MsgArg& val = property.getPropertyValue();
+        switch (val.typeId) {
+        case ALLJOYN_STRING:
+            {
+                const char* propVal;
+                val.Get("s", &propVal);
+                fileOutput[name] = propVal;
+            }
+            break;
+
+        case ALLJOYN_BOOLEAN:
+            {
+                bool propVal;
+                val.Get("b", &propVal);
+                fileOutput[name] = propVal ? "1" : "0";
+            }
+            break;
+
+        case ALLJOYN_BYTE_ARRAY:
+            {
+                uint8_t* propVal;
+                size_t propLen;
+                val.Get("ay", &propLen, &propVal);
+                fileOutput[name] = qcc::BytesToHexString(propVal, propLen);
+            }
+            break;
+
+        case ALLJOYN_ARRAY:
+            {
+                const MsgArg* items = val.v_array.GetElements();
+                const size_t numItems = val.v_array.GetNumElements();
+                for (size_t i = 0; i < numItems; i++) {
+                    if (items[i].typeId == ALLJOYN_STRING) {
+                        const char* propVal;
+                        items[i].Get("s", &propVal);
+                        fileOutput[name].append(propVal, strlen(propVal));
+                        fileOutput[name].append(" ");
+                    }
+                }
+            }
+            break;
+
+        default:
+            QCC_DbgHLPrintf(("ERROR - can't parse type:%d. name:%s", val.typeId, name.c_str()));
+            break;
+        }
+    }
+    return ER_OK;
+}
+
 void LSFPropertyStore::Run()
 {
     QCC_DbgTrace(("%s", __func__));
     while (running) {
         propsLock.Lock();
-        while (!needsWrite && running) {
+        while (asyncTasks == doNothing && running) {
             propsCond.Wait(propsLock);
         }
 
@@ -520,45 +578,35 @@ void LSFPropertyStore::Run()
 
         // make a copy to minimize the critical section
         PropertyMap toWrite = properties;
-        needsWrite = false;
+        AsyncTasks localAsyncTasks = asyncTasks;
+        asyncTasks = doNothing;
         propsLock.Unlock();
 
-        StringMap fileOutput;
-        for (PropertyMap::const_iterator it = toWrite.begin(); it != toWrite.end(); ++it) {
-            const PropertyStoreProperty& property = it->second;
-
-            if (property.getIsWritable()) {
-                qcc::String name = property.getPropertyName();
-                const qcc::String& lang = property.getLanguage();
-
-
-                if (!lang.empty()) {
-                    name += "." + lang;
-                }
-
-                const MsgArg& val = property.getPropertyValue();
-                if (val.typeId != ALLJOYN_BOOLEAN) {
-                    const char* propVal;
-                    val.Get("s", &propVal);
-                    fileOutput[name] = propVal;
-                } else {
-                    bool propVal;
-                    val.Get("b", &propVal);
-                    fileOutput[name] = propVal ? "1" : "0";
-                }
+        if (localAsyncTasks == removeConfigFile) {
+            if (remove(configFileName.c_str()) != 0) {
+                QCC_DbgHLPrintf(("ERROR - Error deleting config file !!!"));
+            } else {
+                QCC_DbgPrintf(("Config file deleted !!!"));
             }
+            continue;
         }
+
+        StringMap fileOutput;
+        FillStringMapWithProperties(fileOutput, toWrite, localAsyncTasks == writetoConfig);
 
         // these are the new Properties if and only if the data
         // was successfully written to the user config file.
-        if (PropertyParser::WriteFile(configFileName, fileOutput)) {
-            // send the announcement!
-            AboutService* aboutService = AboutServiceApi::getInstance();
-            if (aboutService) {
-                aboutService->Announce();
+        if (localAsyncTasks == writetoConfig) {
+            if (PropertyParser::WriteFile(configFileName, fileOutput)) {
+                // send the announcement!
+                AboutService* aboutService = AboutServiceApi::getInstance();
+                if (aboutService) {
+                    aboutService->Announce();
+                }
             }
+        } else if (localAsyncTasks == writetoOEMConfig) {
+            PropertyParser::WriteFile(factoryConfigFileName, fileOutput);
         }
-        // what to do if this fails?
     }
 }
 
@@ -600,7 +648,6 @@ LSFPropertyStore::PropertyStoreKey LSFPropertyStore::getPropertyStoreKeyFromName
     return NUMBER_OF_KEYS;
 }
 
-
 QStatus LSFPropertyStore::setSupportedLangs(const std::vector<qcc::String>& supportedLangs)
 {
     QCC_DbgTrace(("%s", __func__));
@@ -624,7 +671,6 @@ QStatus LSFPropertyStore::setSupportedLangs(const std::vector<qcc::String>& supp
     properties.insert(PropertyPair(propertyKey, property));
     return status;
 }
-
 
 PropertyStoreProperty* LSFPropertyStore::getProperty(PropertyStoreKey propertyKey)
 {
@@ -892,7 +938,6 @@ QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn:
         } else if (strcmp(value.v_array.GetElemSig(), "s") != 0) {
             status = ER_INVALID_VALUE;
         }
-
         break;
 
     case RANK:

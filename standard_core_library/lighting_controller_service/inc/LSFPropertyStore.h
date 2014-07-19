@@ -58,6 +58,13 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
     } PropertyStoreKey;
 
   private:
+    typedef enum AsyncTasks {
+        doNothing,
+        writetoOEMConfig,
+        writetoConfig,
+        removeConfigFile,
+    }AsyncTasks;
+
     friend void PopulateDefaultProperties(LSFPropertyStore& propStore);
 
     //typedef std::pair<PropertyStoreKey, qcc::String> PropertyMapKey;
@@ -148,8 +155,6 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     const std::string factoryConfigFileName;
 
-    bool factoryReset;
-
     void ReadConfiguration();
     void ReadFactoryConfiguration();
 
@@ -229,14 +234,14 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      */
     QStatus setProperty(PropertyStoreKey propertyKey, const char* value, const qcc::String& language, bool isPublic, bool isWritable, bool isAnnouncable);
 
+    QStatus FillStringMapWithProperties(StringMap& fileOutput, PropertyMap& propertiestoWrite, bool justWritable);
     /**
      * m_Properties
      */
     PropertyMap properties;
     Mutex propsLock;
     Condition propsCond;
-
-    bool needsWrite;
+    AsyncTasks asyncTasks;
     bool running;
 
     /**
