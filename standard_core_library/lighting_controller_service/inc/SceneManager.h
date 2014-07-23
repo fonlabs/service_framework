@@ -78,8 +78,10 @@ class SceneManager : public Manager {
     Mutex scenesLock;
     LampGroupManager& lampGroupManager;
     MasterSceneManager* masterSceneManager;
+    size_t blobLength;
 
     std::string GetString(const SceneObjectMap& items);
+    std::string GetString(const std::string& name, const std::string& id, const Scene& scene);
 };
 
 class SceneObject : public BusObject, public Translator {

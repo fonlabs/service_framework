@@ -39,9 +39,8 @@ qcc::String LSFPropertyStore::PropertyStoreName[NUMBER_OF_KEYS + 1] = {
     "SupportUrl", "Rank", "IsLeader", ""
 };
 
-LSFPropertyStore::LSFPropertyStore(const std::string& obsConfigFile, const std::string& factoryConfigFile, const std::string& configFile)
+LSFPropertyStore::LSFPropertyStore(const std::string& factoryConfigFile, const std::string& configFile)
     : isInitialized(false),
-    obsConfigFile(obsConfigFile),
     configFileName(configFile),
     factoryConfigFileName(factoryConfigFile),
     asyncTasks(doNothing),

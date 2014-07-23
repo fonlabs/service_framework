@@ -39,6 +39,9 @@ class Manager : public ajn::MessageReceiver {
 
     static const size_t ID_STR_LEN = 8;
 
+  protected:
+    static const size_t MAX_FILE_LEN = 1024 * 127;
+
   public:
 
     Manager(ControllerService& controllerSvc, const std::string& filePath = "");
@@ -71,8 +74,6 @@ class Manager : public ajn::MessageReceiver {
     void GetBlobInfoInternal(uint32_t& checksum, uint64_t& time);
 
     void WriteFileWithChecksumAndTimestamp(const std::string& str, uint32_t checksum, uint64_t timestamp);
-
-    void MethodReplyPassthrough(ajn::Message& msg, void* context);
 
     uint32_t checkSum;
     uint64_t timeStamp;

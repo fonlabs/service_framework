@@ -38,6 +38,8 @@ typedef enum {
     LAMP_ERR_INVALID_FIELD   = 10, /**< Invalid param/state field */
     LAMP_ERR_MESSAGE         = 11, /**< An invalid message was received */
     LAMP_ERR_INVALID_ARGS    = 12, /**< The arguments were invalid */
+    LAMP_ERR_EMPTY_NAME      = 13,  /**< The name was empty */
+    LAMP_ERR_RESOURCES       = 14, /**< Out of memory*/
     LAMP_RESPONSE_CODE_LAST        /**< The last Lamp Response code */
 } LampResponseCode;
 

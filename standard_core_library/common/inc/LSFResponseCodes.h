@@ -32,6 +32,8 @@ typedef enum {
     LSF_ERR_INVALID_FIELD   = LAMP_ERR_INVALID_FIELD,         /**< Invalid param/state field */
     LSF_ERR_MESSAGE         = LAMP_ERR_MESSAGE,               /**< Invalid message */
     LSF_ERR_INVALID_ARGS    = LAMP_ERR_INVALID_ARGS,          /**< The arguments were invalid */
+    LSF_ERR_EMPTY_NAME      = LAMP_ERR_EMPTY_NAME,            /**< The name is empty */
+    LSF_ERR_RESOURCES       = LAMP_ERR_RESOURCES,             /**< not enough resources */
     LSF_ERR_PARTIAL         = LAMP_RESPONSE_CODE_LAST,        /**< The requested operation was only partially successful */
     LSF_ERR_NOT_FOUND       = LAMP_RESPONSE_CODE_LAST + 1,    /**< The entity of interest was not found */
     LSF_ERR_NO_SLOT         = LAMP_RESPONSE_CODE_LAST + 2,    /**< There is no slot for new entry */

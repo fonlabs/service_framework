@@ -78,8 +78,10 @@ class PresetManager : public Manager {
     PresetMap presets;
     Mutex presetsLock;
     SceneManager* sceneManagerPtr;
+    size_t blobLength;
 
     std::string GetString(const PresetMap& items);
+    std::string GetString(const std::string& name, const std::string& id, const LampState& preset);
 };
 
 }

@@ -193,8 +193,30 @@ ControllerClient::ControllerClient(
 
 ControllerClient::~ControllerClient()
 {
+    LSFString deviceName;
+    LSFString deviceID;
+    SessionId sessionId = 0;
+
+    controllerLock.Lock();
+    sessionId = currentLeader.sessionId;
+    deviceName = currentLeader.deviceName;
+    deviceID = currentLeader.deviceID;
+    ClearCurrentLeader();
+    controllerLock.Unlock();
+
+    if (sessionId) {
+        bus.LeaveSession(sessionId);
+    }
+
     services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-    delete busHandler;
+
+    RemoveSignalHandlers();
+    RemoveMethodHandlers();
+
+    if (busHandler) {
+        delete busHandler;
+        busHandler = NULL;
+    }
 }
 
 uint32_t ControllerClient::GetVersion(void)
@@ -306,29 +328,22 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
         QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __func__, sessionId, QCC_StatusText(status)));
         controllerLock.Lock();
 
-        /*
-         * Check to see if this is a response from a Controller Service that is in our ignore list
-         */
-        if (ignoreList.find(joined->deviceID) != ignoreList.end()) {
-            QCC_DbgPrintf(("%s: Ignoring Join Session response from Controller Service %s", __func__, joined->deviceID.c_str()));
-            ignoreList.erase(joined->deviceID);
-        } else {
-            if (joined->deviceID == currentLeader.deviceID) {
-                QCC_DbgPrintf(("%s: Response from the current leader", __func__));
-                if (status == ER_OK) {
-                    currentLeader.proxyObject = ProxyBusObject(bus, currentLeader.busName.c_str(), ControllerServiceObjectPath, sessionId);
-                    currentLeader.proxyObject.IntrospectRemoteObject();
-                    currentLeader.sessionId = sessionId;
-                    AddMethodHandlers();
-                    AddSignalHandlers();
-                }
-                /*
-                 * This is to account for the case when the device name of Controller Service changes when a
-                 * Join Session with the Controller Service is in progress
-                 */
-                deviceName = currentLeader.deviceName;
+        if (joined->deviceID == currentLeader.deviceID) {
+            QCC_DbgPrintf(("%s: Response from the current leader", __func__));
+            if (status == ER_OK) {
+                currentLeader.proxyObject = ProxyBusObject(bus, currentLeader.busName.c_str(), ControllerServiceObjectPath, sessionId);
+                currentLeader.proxyObject.IntrospectRemoteObject();
+                currentLeader.sessionId = sessionId;
+                AddMethodHandlers();
+                AddSignalHandlers();
             }
+            /*
+             * This is to account for the case when the device name of Controller Service changes when a
+             * Join Session with the Controller Service is in progress
+             */
+            deviceName = currentLeader.deviceName;
         }
+
         controllerLock.Unlock();
 
         if (!deviceName.empty()) {
@@ -387,15 +402,10 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             entry.busName = busName;
             entry.sessionId = 0;
 
-            if (!currentLeader.busName.empty()) {
-                if (currentLeader.sessionId == 0) {
-                    QCC_DbgPrintf(("%s: Pushed current leader in ignore list", __func__));
-                    ignoreList.insert(currentLeader.deviceID);
-                } else {
-                    oldSessionId = currentLeader.sessionId;
-                    oldDeviceId = currentLeader.deviceID;
-                    oldDeviceName = currentLeader.deviceName;
-                }
+            if ((!currentLeader.busName.empty()) && (currentLeader.sessionId != 0)) {
+                oldSessionId = currentLeader.sessionId;
+                oldDeviceId = currentLeader.deviceID;
+                oldDeviceName = currentLeader.deviceName;
             }
             currentLeader = entry;
             QCC_DbgPrintf(("%s: Updated new current leader entry", __func__));
@@ -419,6 +429,10 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
         SessionOpts opts;
         opts.isMultipoint = true;
         ControllerEntry* context = new ControllerEntry();
+        if (!context) {
+            QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+            return;
+        }
         context->port = port;
         context->deviceID = deviceID;
         context->deviceName = deviceName;
@@ -478,6 +492,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 {
     QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
+    if (!methodNameContext) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return CONTROLLER_CLIENT_ERR_FAILURE;
+    }
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
         methodName,
@@ -544,6 +562,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 {
     QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
+    if (!methodNameContext) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return CONTROLLER_CLIENT_ERR_FAILURE;
+    }
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
         methodName,
@@ -604,8 +626,11 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
     const ajn::MsgArg* args,
     size_t numArgs)
 {
-    QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
+    if (!methodNameContext) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return CONTROLLER_CLIENT_ERR_FAILURE;
+    }
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
         methodName,
@@ -665,6 +690,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithUint32Value(
 {
     QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
+    if (!methodNameContext) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return CONTROLLER_CLIENT_ERR_FAILURE;
+    }
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
         methodName,
@@ -720,6 +749,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 {
     QCC_DbgPrintf(("%s: Method Call=%s", __func__, methodName));
     LSFString* methodNameContext = new LSFString(methodName);
+    if (!methodNameContext) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return CONTROLLER_CLIENT_ERR_FAILURE;
+    }
     ControllerClientStatus status = MethodCallAsyncHelper(
         ifaceName,
         methodName,
@@ -816,8 +849,6 @@ void ControllerClient::Reset(void)
 
 void ControllerClient::AddMethodHandlers()
 {
-    //methodReplyWithResponseCodeAndListOfIDsHandlers.clear();
-
     if (controllerServiceManagerPtr) {
         AddNoArgSignalHandler("ControllerServiceLightingReset", controllerServiceManagerPtr, &ControllerServiceManager::ControllerServiceLightingReset);
 
@@ -966,6 +997,52 @@ void ControllerClient::AddSignalHandlers()
             signalEntries[i].member,
             ControllerServiceObjectPath);
     }
+}
+
+void ControllerClient::RemoveSignalHandlers()
+{
+    const InterfaceDescription* controllerServiceInterface = currentLeader.proxyObject.GetInterface(ControllerServiceInterfaceName);
+    const InterfaceDescription* controllerServiceLampInterface = currentLeader.proxyObject.GetInterface(ControllerServiceLampInterfaceName);
+    const InterfaceDescription* controllerServiceLampGroupInterface = currentLeader.proxyObject.GetInterface(ControllerServiceLampGroupInterfaceName);
+    const InterfaceDescription* controllerServicePresetInterface = currentLeader.proxyObject.GetInterface(ControllerServicePresetInterfaceName);
+    const InterfaceDescription* controllerServiceSceneInterface = currentLeader.proxyObject.GetInterface(ControllerServiceSceneInterfaceName);
+    const InterfaceDescription* controllerServiceMasterSceneInterface = currentLeader.proxyObject.GetInterface(ControllerServiceMasterSceneInterfaceName);
+
+    const SignalEntry signalEntries[] = {
+        { controllerServiceInterface->GetMember("ControllerServiceLightingReset"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampsStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampGroupInterface->GetMember("LampGroupsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("DefaultLampStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServicePresetInterface->GetMember("PresetsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceSceneInterface->GetMember("ScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceMasterSceneInterface->GetMember("MasterScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) }
+    };
+
+    for (size_t i = 0; i < (sizeof(signalEntries) / sizeof(SignalEntry)); ++i) {
+        bus.UnregisterSignalHandler(
+            this,
+            signalEntries[i].handler,
+            signalEntries[i].member,
+            ControllerServiceObjectPath);
+    }
+
+    DeleteSignalHandlers();
+    DeleteNoArgSignalHandlers();
 }
 
 }

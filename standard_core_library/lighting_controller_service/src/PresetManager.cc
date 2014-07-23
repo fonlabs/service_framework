@@ -29,7 +29,7 @@ using namespace ajn;
 LSFString defaultLampStateID = "DefaultLampState";
 
 PresetManager::PresetManager(ControllerService& controllerSvc, SceneManager* sceneMgrPtr, const std::string& presetFile) :
-    Manager(controllerSvc, presetFile), sceneManagerPtr(sceneMgrPtr)
+    Manager(controllerSvc, presetFile), sceneManagerPtr(sceneMgrPtr), blobLength(0)
 {
     QCC_DbgTrace(("%s", __func__));
     presets.clear();
@@ -75,6 +75,7 @@ LSFResponseCode PresetManager::Reset(void)
          * Clear the Presets
          */
         presets.clear();
+        blobLength = 0;
         ScheduleFileWrite();
         tempStatus = presetsLock.Unlock();
         if (ER_OK != tempStatus) {
@@ -107,6 +108,7 @@ LSFResponseCode PresetManager::ResetDefaultState(void)
     if (it != presets.end()) {
         QCC_DbgPrintf(("%s: Removing the default lamp state entry", __func__));
         presets.erase(it);
+        blobLength -= GetString(it->second.first, defaultLampStateID, it->second.second).length();
         erased = true;
     }
     presetsLock.Unlock();
@@ -243,6 +245,9 @@ void PresetManager::SetPresetName(Message& msg)
     if (0 != strcmp("en", language.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name[0] == '\0') {
+        QCC_LogError(ER_FAIL, ("%s: preset name is empty", __func__));
+        responseCode = LSF_ERR_EMPTY_NAME;
     } else {
         if (strlen(name) > LSF_MAX_NAME_LENGTH) {
             responseCode = LSF_ERR_INVALID_ARGS;
@@ -252,10 +257,18 @@ void PresetManager::SetPresetName(Message& msg)
             if (ER_OK == status) {
                 PresetMap::iterator it = presets.find(uniqueId);
                 if (it != presets.end()) {
-                    it->second.first = LSFString(name);
-                    responseCode = LSF_OK;
-                    nameChanged = true;
-                    ScheduleFileWrite();
+                    LSFString newName = name;
+                    size_t newlen = blobLength - it->second.first.length() + newName.length();
+
+                    if (newlen < MAX_FILE_LEN) {
+                        blobLength = newlen;
+                        it->second.first = newName;
+                        responseCode = LSF_OK;
+                        nameChanged = true;
+                        ScheduleFileWrite();
+                    } else {
+                        responseCode = LSF_ERR_RESOURCES;
+                    }
                 }
                 status = presetsLock.Unlock();
                 if (ER_OK != status) {
@@ -302,14 +315,24 @@ void PresetManager::CreatePreset(Message& msg)
             if (0 != strcmp("en", language.c_str())) {
                 QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
                 responseCode = LSF_ERR_INVALID_ARGS;
+            } else if (name.empty()) {
+                QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
+                responseCode = LSF_ERR_EMPTY_NAME;
             } else if (preset.nullState) {
                 QCC_LogError(ER_FAIL, ("%s: Cannot save NULL state as a Preset", __func__, language.c_str()));
                 responseCode = LSF_ERR_INVALID_ARGS;
             } else {
-                presets[presetID].first = name;
-                presets[presetID].second = preset;
-                created = true;
-                ScheduleFileWrite();
+                std::string newGroupStr = GetString(name, presetID, preset);
+                size_t newlen = blobLength + newGroupStr.length();
+                if (newlen < MAX_FILE_LEN) {
+                    blobLength = newlen;
+                    presets[presetID].first = name;
+                    presets[presetID].second = preset;
+                    created = true;
+                    ScheduleFileWrite();
+                } else {
+                    responseCode = LSF_ERR_RESOURCES;
+                }
             }
         } else {
             QCC_LogError(ER_FAIL, ("%s: No slot for new Preset", __func__));
@@ -354,10 +377,20 @@ void PresetManager::UpdatePreset(Message& msg)
     if (ER_OK == status) {
         PresetMap::iterator it = presets.find(presetId);
         if (it != presets.end()) {
-            presets[presetID].second = preset;
-            responseCode = LSF_OK;
-            updated = true;
-            ScheduleFileWrite();
+            size_t newlen = blobLength;
+            // sub len of old group, add len of new group
+            newlen -= GetString(it->second.first, presetID, it->second.second).length();
+            newlen += GetString(it->second.first, presetID, preset).length();
+
+            if (newlen < MAX_FILE_LEN) {
+                blobLength = newlen;
+                presets[presetID].second = preset;
+                responseCode = LSF_OK;
+                updated = true;
+                ScheduleFileWrite();
+            } else {
+                responseCode = LSF_ERR_RESOURCES;
+            }
         }
         status = presetsLock.Unlock();
         if (ER_OK != status) {
@@ -400,6 +433,7 @@ void PresetManager::DeletePreset(Message& msg)
         if (ER_OK == status) {
             PresetMap::iterator it = presets.find(presetId);
             if (it != presets.end()) {
+                blobLength -= GetString(it->second.first, presetId, it->second.second).length();
                 presets.erase(it);
                 deleted = true;
                 ScheduleFileWrite();
@@ -518,8 +552,33 @@ LSFResponseCode PresetManager::SetDefaultLampStateInternal(LampState& preset)
     QStatus tempStatus = presetsLock.Lock();
     LSFString presetID = defaultLampStateID;
     if (ER_OK == tempStatus) {
-        presets[presetID] = std::make_pair(presetID, preset);
-        ScheduleFileWrite();
+
+        PresetMap::iterator it = presets.find(presetID);
+        if (it != presets.end()) {
+            size_t newlen = blobLength;
+            newlen -= GetString(it->second.first, presetID, it->second.second).length();
+            newlen += GetString(it->second.first, presetID, preset).length();
+
+            if (newlen < MAX_FILE_LEN) {
+                blobLength = newlen;
+                it->second.second = preset;
+                ScheduleFileWrite();
+            } else {
+                responseCode = LSF_ERR_RESOURCES;
+            }
+        } else {
+            size_t newlen = blobLength + GetString(presetID, presetID, preset).length();
+
+            if (newlen < MAX_FILE_LEN) {
+                blobLength = newlen;
+                presets[presetID] = std::make_pair(presetID, preset);
+                ScheduleFileWrite();
+            } else {
+                responseCode = LSF_ERR_RESOURCES;
+            }
+        }
+
+
         tempStatus = presetsLock.Unlock();
         if (ER_OK != tempStatus) {
             QCC_LogError(tempStatus, ("%s: presetsLock.Unlock() failed", __func__));
@@ -560,6 +619,7 @@ void PresetManager::ReadSavedData(void)
         return;
     }
 
+    blobLength = stream.str().size();
     ReplaceMap(stream);
 }
 
@@ -613,6 +673,23 @@ void PresetManager::ReplaceMap(std::istringstream& stream)
     }
 }
 
+std::string PresetManager::GetString(const std::string& name, const std::string& id, const LampState& state)
+{
+    std::ostringstream stream;
+    if (!state.nullState) {
+        stream << "Preset " << id << " \"" << name << "\" "
+               << (state.nullState ? 1 : 0) << ' '
+               << (state.onOff ? 1 : 0) << ' '
+               << state.hue << ' ' << state.saturation << ' '
+               << state.colorTemp << ' ' << state.brightness << '\n';
+    } else {
+        QCC_DbgPrintf(("%s: Saving NULL state as preset", __func__));
+        stream << "Preset " << id << " \"" << name << "\" "
+               << (state.nullState ? 1 : 0) << '\n';
+    }
+    return stream.str();
+}
+
 std::string PresetManager::GetString(const PresetMap& items)
 {
     std::ostringstream stream;
@@ -638,17 +715,7 @@ std::string PresetManager::GetString(const PresetMap& items)
             const LSFString& name = it->second.first;
             const LampState& state = it->second.second;
 
-            if (!state.nullState) {
-                stream << "Preset " << id << " \"" << name << "\" "
-                       << (state.nullState ? 1 : 0) << ' '
-                       << (state.onOff ? 1 : 0) << ' '
-                       << state.hue << ' ' << state.saturation << ' '
-                       << state.colorTemp << ' ' << state.brightness << '\n';
-            } else {
-                QCC_DbgPrintf(("%s: Saving NULL state as preset", __func__));
-                stream << "Preset " << id << " \"" << name << "\" "
-                       << (state.nullState ? 1 : 0) << '\n';
-            }
+            stream << GetString(name, id, state);
         }
     }
 
@@ -715,7 +782,6 @@ void PresetManager::ReadWriteFile()
     }
 
     std::list<ajn::Message> tempMessageList;
-    tempMessageList.clear();
 
     readMutex.Lock();
     if (read) {

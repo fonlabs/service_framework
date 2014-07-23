@@ -47,7 +47,6 @@ static void SigTermHandler(int sig)
     }
 }
 
-static std::string obsConfigFile = "OnboardingService.conf";
 static std::string factoryConfigFile = "OEMConfig.ini";
 static std::string configFile = "Config.ini";
 static std::string lampGroupFile = "LampGroups.lsf";
@@ -55,7 +54,6 @@ static std::string presetFile = "Presets.lsf";
 static std::string sceneFile = "Scenes.lsf";
 static std::string masterSceneFile = "MasterScenes.lsf";
 static std::string storeFile = "LightingControllerService";
-static std::string obsConfigFilePath;
 static std::string factoryConfigFilePath = factoryConfigFile;
 static std::string configFilePath = configFile;
 static std::string lampGroupFilePath = lampGroupFile;
@@ -73,7 +71,7 @@ static void usage(int argc, char** argv)
     printf("   -h                    = Print this help message\n");
     printf("   -?                    = Print this help message\n");
     printf("   -f                    = Run the Controller Service as a foreground process\n");
-    printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config FilePaths and the on-baording daemon config file path OnboardingService.conf.\n\n");
+    printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config FilePaths\n\n");
     printf("Default:\n");
     printf("    %s\n", argv[0]);
 }
@@ -98,11 +96,6 @@ static void parseCommandLine(int argc, char** argv)
                     dirPath = const_cast<char*>("/");
                 }
                 static std::string absDirPath = std::string(dirPath) + "/" + storeLocation + "/";
-                std::string tempPath = absDirPath + obsConfigFile;
-                std::ifstream file(tempPath.c_str(), std::ifstream::in);
-                if (file) {
-                    obsConfigFilePath = absDirPath + obsConfigFile;
-                }
                 factoryConfigFilePath = absDirPath + factoryConfigFile;
                 configFilePath = absDirPath + configFile;
                 lampGroupFilePath = absDirPath + lampGroupFile;
@@ -119,12 +112,6 @@ static void parseCommandLine(int argc, char** argv)
             exit(-1);
         }
     }
-#ifdef _OPEN_WRT_
-    if (obsConfigFilePath.empty()) {
-        printf("OnboardingService.conf not found. This is required for OpenWRT operation.\n");
-        exit(-1);
-    }
-#endif
 }
 
 void lsf_Sleep(uint32_t msec)
@@ -140,7 +127,7 @@ void RunService()
     }
 
     lsf::ControllerServiceManager* controllerSvcManagerPtr =
-        new lsf::ControllerServiceManager(obsConfigFilePath, factoryConfigFilePath, configFilePath, lampGroupFilePath, presetFilePath, sceneFilePath, masterSceneFilePath);
+        new lsf::ControllerServiceManager(factoryConfigFilePath, configFilePath, lampGroupFilePath, presetFilePath, sceneFilePath, masterSceneFilePath);
 
     if (controllerSvcManagerPtr == NULL) {
         QCC_LogError(ER_OUT_OF_MEMORY, ("%s: Failed to start the Controller Service Manager", __func__));
@@ -163,6 +150,7 @@ void RunService()
         controllerSvcManagerPtr->Stop();
         controllerSvcManagerPtr->Join();
         delete controllerSvcManagerPtr;
+        controllerSvcManagerPtr = NULL;
         QCC_DbgPrintf(("%s: After delete controllerSvcManagerPtr", __func__));
     }
 

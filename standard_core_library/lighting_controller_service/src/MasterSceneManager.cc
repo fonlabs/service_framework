@@ -26,7 +26,7 @@ using namespace ajn;
 #define QCC_MODULE "MASTER_SCENE_MANAGER"
 
 MasterSceneManager::MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const std::string& masterSceneFile) :
-    Manager(controllerSvc, masterSceneFile), sceneManager(sceneMgr)
+    Manager(controllerSvc, masterSceneFile), sceneManager(sceneMgr), blobLength(0)
 {
     QCC_DbgTrace(("%s", __func__));
     masterScenes.clear();
@@ -70,6 +70,7 @@ LSFResponseCode MasterSceneManager::Reset(void)
          * Clear the MasterScenes
          */
         masterScenes.clear();
+        blobLength = 0;
         ScheduleFileWrite();
         tempStatus = masterScenesLock.Unlock();
         if (ER_OK != tempStatus) {
@@ -204,6 +205,9 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
     if (0 != strcmp("en", language.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name[0] == '\0') {
+        QCC_LogError(ER_FAIL, ("%s: master scene name is empty", __func__));
+        responseCode = LSF_ERR_EMPTY_NAME;
     } else {
         if (strlen(name) > LSF_MAX_NAME_LENGTH) {
             responseCode = LSF_ERR_INVALID_ARGS;
@@ -213,10 +217,17 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
             if (ER_OK == status) {
                 MasterSceneMap::iterator it = masterScenes.find(uniqueId);
                 if (it != masterScenes.end()) {
-                    it->second.first = LSFString(name);
-                    responseCode = LSF_OK;
-                    nameChanged = true;
-                    ScheduleFileWrite();
+                    LSFString newName = name;
+                    size_t newlen = blobLength - it->second.first.length() + newName.length();
+
+                    if (newlen < MAX_FILE_LEN) {
+                        it->second.first = newName;
+                        responseCode = LSF_OK;
+                        nameChanged = true;
+                        ScheduleFileWrite();
+                    } else {
+                        responseCode = LSF_ERR_RESOURCES;
+                    }
                 }
                 status = masterScenesLock.Unlock();
                 if (ER_OK != status) {
@@ -263,11 +274,22 @@ void MasterSceneManager::CreateMasterScene(Message& message)
             if (0 != strcmp("en", language.c_str())) {
                 QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
                 responseCode = LSF_ERR_INVALID_ARGS;
+            } else if (name.empty()) {
+                QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
+                responseCode = LSF_ERR_EMPTY_NAME;
             } else {
-                masterScenes[masterSceneID].first = name;
-                masterScenes[masterSceneID].second = masterScene;
-                created = true;
-                ScheduleFileWrite();
+                std::string newGroupStr = GetString(name, masterSceneID, masterScene);
+
+                size_t newlen = blobLength + newGroupStr.length();
+                if (newlen < MAX_FILE_LEN) {
+                    blobLength = newlen;
+                    masterScenes[masterSceneID].first = name;
+                    masterScenes[masterSceneID].second = masterScene;
+                    created = true;
+                    ScheduleFileWrite();
+                } else {
+                    responseCode = LSF_ERR_RESOURCES;
+                }
             }
         } else {
             QCC_LogError(ER_FAIL, ("%s: No slot for new MasterScene", __func__));
@@ -312,10 +334,20 @@ void MasterSceneManager::UpdateMasterScene(Message& message)
     if (ER_OK == status) {
         MasterSceneMap::iterator it = masterScenes.find(uniqueId);
         if (it != masterScenes.end()) {
-            masterScenes[masterSceneID].second = masterScene;
-            responseCode = LSF_OK;
-            updated = true;
-            ScheduleFileWrite();
+            size_t newlen = blobLength;
+            // sub len of old group, add len of new group
+            newlen -= GetString(it->second.first, masterSceneID, it->second.second).length();
+            newlen += GetString(it->second.first, masterSceneID, masterScene).length();
+
+            if (newlen < MAX_FILE_LEN) {
+                blobLength = newlen;
+                masterScenes[masterSceneID].second = masterScene;
+                responseCode = LSF_OK;
+                updated = true;
+                ScheduleFileWrite();
+            } else {
+                responseCode = LSF_ERR_RESOURCES;
+            }
         }
         status = masterScenesLock.Unlock();
         if (ER_OK != status) {
@@ -356,7 +388,9 @@ void MasterSceneManager::DeleteMasterScene(Message& message)
     if (ER_OK == status) {
         MasterSceneMap::iterator it = masterScenes.find(uniqueId);
         if (it != masterScenes.end()) {
+            blobLength -= GetString(it->second.first, uniqueId, it->second.second).length();
             masterScenes.erase(it);
+
             responseCode = LSF_OK;
             deleted = true;
             ScheduleFileWrite();
@@ -480,6 +514,7 @@ void MasterSceneManager::ReadSavedData()
         return;
     }
 
+    blobLength = stream.str().size();
     ReplaceMap(stream);
 }
 
@@ -522,6 +557,19 @@ void MasterSceneManager::ReplaceMap(std::istringstream& stream)
     }
 }
 
+std::string MasterSceneManager::GetString(const std::string& name, const std::string& id, const MasterScene& msc)
+{
+    std::ostringstream stream;
+    stream << "MasterScene " << id << " \"" << name << "\"";
+
+    for (LSFStringList::const_iterator sit = msc.scenes.begin(); sit != msc.scenes.end(); ++sit) {
+        stream << " Scene " << *sit;
+    }
+
+    stream << " EndMasterScene" << std::endl;
+    return stream.str();
+}
+
 std::string MasterSceneManager::GetString(const MasterSceneMap& items)
 {
     QCC_DbgTrace(("%s", __func__));
@@ -547,14 +595,7 @@ std::string MasterSceneManager::GetString(const MasterSceneMap& items)
             const LSFString& id = it->first;
             const LSFString& name = it->second.first;
             const MasterScene& msc = it->second.second;
-
-            stream << "MasterScene " << id << " \"" << name << "\"";
-
-            for (LSFStringList::const_iterator sit = msc.scenes.begin(); sit != msc.scenes.end(); ++sit) {
-                stream << " Scene " << *sit;
-            }
-
-            stream << " EndMasterScene" << std::endl;
+            stream << GetString(name, id, msc);
         }
     }
 
@@ -637,7 +678,6 @@ void MasterSceneManager::ReadWriteFile()
     }
 
     std::list<ajn::Message> tempMessageList;
-    tempMessageList.clear();
 
     readMutex.Lock();
     if (read) {
@@ -658,7 +698,7 @@ void MasterSceneManager::ReadWriteFile()
     }
 
     if (status) {
-        while (tempMessageList.size()) {
+        while (!tempMessageList.empty()) {
             uint64_t currentTime = GetTimestamp64();
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();

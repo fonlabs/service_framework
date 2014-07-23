@@ -68,8 +68,10 @@ class MasterSceneManager : public Manager {
     MasterSceneMap masterScenes;
     Mutex masterScenesLock;
     SceneManager& sceneManager;
+    size_t blobLength;
 
     std::string GetString(const MasterSceneMap& items);
+    std::string GetString(const std::string& name, const std::string& id, const MasterScene& msc);
 };
 
 }

@@ -59,7 +59,7 @@ Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
 }
 
 static uint32_t GetAdler32Checksum(const uint8_t* data, size_t len) {
-    QCC_DbgTrace(("%s", __func__));
+    QCC_DbgTrace(("%s: len = %d", __func__, len));
     uint32_t adler = 1;
     uint32_t adlerPrime = 65521;
     while (data && len) {
@@ -150,19 +150,6 @@ bool Manager::ValidateFileAndReadInternal(uint32_t& checksum, uint64_t& timestam
 
     stream.close();
     return adler == checksum;
-}
-
-void Manager::MethodReplyPassthrough(ajn::Message& msg, void* context)
-{
-    QCC_DbgTrace(("%s", __func__));
-    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    size_t numArgs;
-    const ajn::MsgArg* args;
-    msg->GetArgs(numArgs, args);
-
-    ajn::Message* origMessage = static_cast<ajn::Message*>(context);
-    controllerService.SendMethodReply(*origMessage, args, numArgs);
-    delete origMessage;
 }
 
 LSFString Manager::GenerateUniqueID(const LSFString& prefix) const

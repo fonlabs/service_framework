@@ -148,7 +148,11 @@ LampClients::LampClients(ControllerService& controllerSvc)
 LampClients::~LampClients()
 {
     QCC_DbgTrace(("%s", __func__));
-    delete serviceHandler;
+
+    if (serviceHandler) {
+        delete serviceHandler;
+        serviceHandler = NULL;
+    }
 
     while (methodQueue.size()) {
         QueuedMethodCall* queuedCall = methodQueue.front();
@@ -219,6 +223,7 @@ void LampClients::Join(void)
 void LampClients::Stop(void)
 {
     QCC_DbgTrace(("%s", __func__));
+    DisconnectFromLamps();
     isRunning = false;
     wakeUp.Post();
 }
@@ -262,6 +267,8 @@ void LampClients::HandleAboutAnnounce(const LSFString lampID, const LSFString& l
         } else {
             QCC_DbgPrintf(("%s: connectToLamps is false", __func__));
         }
+    } else {
+        QCC_LogError(ER_FAIL, ("%s: Could not allocate memory for new LampConnection", __func__));
     }
 }
 
@@ -373,18 +380,22 @@ void LampClients::SendMethodReply(LSFResponseCode responseCode, ajn::Message msg
     MsgArg* args = new MsgArg[numArgs];
     if (args) {
         args[0] = MsgArg("u", responseCode);
+        args[0].SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs, true);
         uint8_t index = 1;
         while (stdArgs.size()) {
             args[index] = stdArgs.front();
+            args[index].SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs, true);
             stdArgs.pop_front();
             index++;
         }
         while (custArgs.size()) {
             args[index] = custArgs.front();
+            args[index].SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs, true);
             custArgs.pop_front();
             index++;
         }
         controllerService.SendMethodReply(msg, args, numArgs);
+        delete [] args;
     } else {
         QCC_LogError(ER_OUT_OF_MEMORY, ("%s: Failed to allocate enough memory", __func__));
     }
@@ -446,6 +457,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
     LSFResponseCode responseCode = LSF_OK;
     QStatus status = ER_OK;
     uint32_t notFound = 0;
+    uint32_t failures = 0;
     QueuedMethodCallElementList elementList = queuedCall->methodCallElements;
 
     while (elementList.size()) {
@@ -494,6 +506,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
 
                 if (status != ER_OK) {
                     QCC_LogError(status, ("%s: MethodCallAsync failed", __func__));
+                    failures++;
                 }
             } else {
                 notFound++;
@@ -503,8 +516,8 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
         elementList.pop_front();
     }
 
-    if (notFound) {
-        DecrementWaitingAndSendResponse(queuedCall, 0, 0, notFound);
+    if (notFound || failures) {
+        DecrementWaitingAndSendResponse(queuedCall, 0, failures, notFound);
     }
 
     return responseCode;
@@ -514,6 +527,10 @@ void LampClients::GetLampState(const LSFString& lampID, Message& inMsg)
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll");
     element.args.push_back(MsgArg("s", LampServiceStateInterfaceName));
     queuedCall->AddMethodCallElement(element);
@@ -526,6 +543,10 @@ void LampClients::GetLampStateField(const LSFString& lampID, const LSFString& fi
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get");
     element.args.push_back(MsgArg("s", LampServiceStateInterfaceName));
     element.args.push_back(MsgArg("s", field.c_str()));
@@ -541,6 +562,10 @@ void LampClients::GetLampDetails(const LSFString& lampID, Message& inMsg)
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll");
     element.args.push_back(MsgArg("s", LampServiceDetailsInterfaceName));
     queuedCall->AddMethodCallElement(element);
@@ -553,6 +578,10 @@ void LampClients::GetLampParameters(const LSFString& lampID, Message& inMsg)
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, org::freedesktop::DBus::Properties::InterfaceName, "GetAll");
     element.args.push_back(MsgArg("s", LampServiceParametersInterfaceName));
     queuedCall->AddMethodCallElement(element);
@@ -565,6 +594,10 @@ void LampClients::GetLampParametersField(const LSFString& lampID, const LSFStrin
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get");
     element.args.push_back(MsgArg("s", LampServiceParametersInterfaceName));
     element.args.push_back(MsgArg("s", field.c_str()));
@@ -581,6 +614,11 @@ void LampClients::HandleGetReply(ajn::Message& message, void* context)
     QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
     QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
+
+    if (queuedCall == NULL) {
+        QCC_LogError(ER_FAIL, ("%s: Received NULL context", __func__));
+        return;
+    }
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         size_t numArgs;
@@ -603,7 +641,12 @@ void LampClients::ChangeLampState(const ajn::Message& inMsg, bool groupOperation
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
 
-    if (groupOperation || (sceneOperation && (0 == strcmp(ControllerServiceSceneInterfaceName, inMsg->GetInterface())))) {
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
+
+    if (groupOperation || (sceneOperation && ((0 == strcmp(ControllerServiceSceneInterfaceName, inMsg->GetInterface())) || (0 == strcmp(ControllerServiceMasterSceneInterfaceName, inMsg->GetInterface()))))) {
         size_t numArgs;
         const MsgArg* args;
         Message tempMsg = inMsg;
@@ -778,6 +821,10 @@ void LampClients::GetLampFaults(const LSFString& lampID, ajn::Message& inMsg)
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithVariant));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get");
     element.args.push_back(MsgArg("s", LampServiceInterfaceName));
     element.args.push_back(MsgArg("s", "LampFaults"));
@@ -791,6 +838,10 @@ void LampClients::GetLampVersion(const LSFString& lampID, ajn::Message& inMsg)
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithVariant));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, org::freedesktop::DBus::Properties::InterfaceName, "Get");
     element.args.push_back(MsgArg("s", LampServiceInterfaceName));
     element.args.push_back(MsgArg("s", "LampServiceVersion"));
@@ -824,6 +875,10 @@ void LampClients::ClearLampFault(const LSFString& lampID, LampFaultCode faultCod
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithLampResponseCode));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, LampServiceInterfaceName, "ClearLampFault");
     element.args.push_back(MsgArg("u", faultCode));
     queuedCall->AddMethodCallElement(element);
@@ -855,6 +910,10 @@ void LampClients::GetLampSupportedLanguages(const LSFString& lampID, ajn::Messag
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithKeyValuePairs));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, AboutInterfaceName, "GetAboutData");
     element.args.push_back(MsgArg("s", "en"));
     queuedCall->AddMethodCallElement(element);
@@ -901,6 +960,10 @@ void LampClients::GetLampName(const LSFString& lampID, const LSFString& language
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithKeyValuePairs));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, ConfigServiceInterfaceName, "GetConfigurations");
     element.args.push_back(MsgArg("s", language.c_str()));
     queuedCall->AddMethodCallElement(element);
@@ -914,6 +977,10 @@ void LampClients::GetLampManufacturer(const LSFString& lampID, const LSFString& 
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleReplyWithKeyValuePairs));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, ConfigServiceInterfaceName, "GetConfigurations");
     element.args.push_back(MsgArg("s", language.c_str()));
     queuedCall->AddMethodCallElement(element);
@@ -927,6 +994,10 @@ void LampClients::SetLampName(const LSFString& lampID, const LSFString& name, co
 {
     QCC_DbgTrace(("%s", __func__));
     QueuedMethodCall* queuedCall = new QueuedMethodCall(inMsg, static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetReply));
+    if (!queuedCall) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+        return;
+    }
     QueuedMethodCallElement element = QueuedMethodCallElement(lampID, ConfigServiceInterfaceName, "UpdateConfigurations");
 
     MsgArg name_arg("s", name.c_str());
@@ -994,8 +1065,7 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
                 } else {
                     joinSessionCBList.push_back(connection);
                     QCC_DbgPrintf(("%s: Add %s to joinSessionCBList", __func__, connection->lampId.c_str()));
-                    tempStatus = joinSessionCBListLock.Unlock();
-                    if (ER_OK != tempStatus) {
+                    if (ER_OK != joinSessionCBListLock.Unlock()) {
                         QCC_LogError(tempStatus, ("%s: joinSessionCBListLock.Unlock() failed", __func__));
                     }
                     wakeUp.Post();
@@ -1030,10 +1100,13 @@ void LampClients::PingCB(QStatus status, void* context)
         }
         receivedNGNSPingResponses++;
         ngnsPingResponseLock.Unlock();
-        delete ((LSFString*)context);
         wakeUp.Post();
     } else {
         QCC_DbgPrintf(("%s: connectToLamps is false or context is NULL", __func__));
+    }
+
+    if (context) {
+        delete ((LSFString*)context);
     }
 }
 
@@ -1058,10 +1131,13 @@ void LampClients::SessionPingCB(Message& reply, void* context)
         }
         receivedSessionPingResponses++;
         sessionPingResponseLock.Unlock();
-        delete ((LSFString*)context);
         wakeUp.Post();
     } else {
         QCC_DbgPrintf(("%s: connectToLamps is false or context is NULL", __func__));
+    }
+
+    if (context) {
+        delete ((LSFString*)context);
     }
 }
 
@@ -1458,7 +1534,11 @@ void LampClients::Run(void)
             if (status != ER_OK) {
                 QCC_LogError(status, ("%s: queueLock.Lock() failed", __func__));
             } else {
-                methodQueue.clear();
+                while (methodQueue.size()) {
+                    QueuedMethodCall* queuedCall = methodQueue.front();
+                    delete queuedCall;
+                    methodQueue.pop_front();
+                }
                 QCC_DbgPrintf(("%s: Cleared methodQueue", __func__));
                 status = queueLock.Unlock();
                 if (status != ER_OK) {
@@ -1484,6 +1564,7 @@ void LampClients::Run(void)
                 QCC_LogError(status, ("%s: joinSessionCBListLock.Lock() failed", __func__));
             } else {
                 for (std::list<LampConnection*>::iterator it = joinSessionCBList.begin(); it != joinSessionCBList.end(); it++) {
+                    controllerService.GetBusAttachment().LeaveSession((*it)->sessionID);
                     delete (*it);
                 }
                 joinSessionCBList.clear();
@@ -1539,6 +1620,10 @@ void LampClients::Run(void)
             if (ER_OK != status) {
                 QCC_LogError(status, ("%s: aboutsListLock.Lock() failed", __func__));
             } else {
+                for (LampMap::iterator it = aboutsList.begin(); it != aboutsList.end(); ++it) {
+                    LampConnection* conn = it->second;
+                    delete conn;
+                }
                 aboutsList.clear();
                 QCC_DbgPrintf(("%s: Cleared aboutsList", __func__));
                 status = aboutsListLock.Unlock();

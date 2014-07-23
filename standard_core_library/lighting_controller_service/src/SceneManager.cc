@@ -156,7 +156,7 @@ void SceneObject::ObjectRegistered(void)
 }
 
 SceneManager::SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, MasterSceneManager* masterSceneMgr, const std::string& sceneFile) :
-    Manager(controllerSvc, sceneFile), lampGroupManager(lampGroupMgr), masterSceneManager(masterSceneMgr)
+    Manager(controllerSvc, sceneFile), lampGroupManager(lampGroupMgr), masterSceneManager(masterSceneMgr), blobLength(0)
 {
     QCC_DbgPrintf(("%s", __func__));
     scenes.clear();
@@ -216,6 +216,7 @@ LSFResponseCode SceneManager::Reset(void)
          * Clear the Scenes
          */
         scenes.clear();
+        blobLength = 0;
         ScheduleFileWrite();
         tempStatus = scenesLock.Unlock();
         if (ER_OK != tempStatus) {
@@ -377,6 +378,9 @@ void SceneManager::SetSceneName(Message& message)
     if (0 != strcmp("en", language.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name[0] == '\0') {
+        QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
+        responseCode = LSF_ERR_EMPTY_NAME;
     } else {
         if (strlen(name) > LSF_MAX_NAME_LENGTH) {
             responseCode = LSF_ERR_INVALID_ARGS;
@@ -386,12 +390,21 @@ void SceneManager::SetSceneName(Message& message)
             if (ER_OK == status) {
                 SceneObjectMap::iterator it = scenes.find(uniqueId);
                 if (it != scenes.end()) {
+
                     it->second->sceneNameMutex.Lock();
-                    it->second->sceneName = LSFString(name);
-                    it->second->sceneNameMutex.Unlock();
-                    responseCode = LSF_OK;
-                    nameChanged = true;
-                    ScheduleFileWrite();
+                    LSFString newName = name;
+                    size_t newlen = blobLength - it->second->sceneName.length() + newName.length();
+
+                    if (newlen < MAX_FILE_LEN) {
+                        it->second->sceneName = newName;
+                        it->second->sceneNameMutex.Unlock();
+                        responseCode = LSF_OK;
+                        nameChanged = true;
+                        ScheduleFileWrite();
+                    } else {
+                        it->second->sceneNameMutex.Unlock();
+                        responseCode = LSF_ERR_RESOURCES;
+                    }
                 }
                 status = scenesLock.Unlock();
                 if (ER_OK != status) {
@@ -438,13 +451,30 @@ void SceneManager::CreateScene(Message& message)
             if (0 != strcmp("en", language.c_str())) {
                 QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
                 responseCode = LSF_ERR_INVALID_ARGS;
+            } else if (name.empty()) {
+                QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
+                responseCode = LSF_ERR_EMPTY_NAME;
             } else if (scene.invalidArgs) {
                 QCC_LogError(ER_FAIL, ("%s: Invalid Scene components specified", __func__));
                 responseCode = LSF_ERR_INVALID_ARGS;
             } else {
-                scenes.insert(std::make_pair(sceneID, new SceneObject(*this, sceneID, scene, name)));
-                created = true;
-                ScheduleFileWrite();
+                std::string newGroupStr = GetString(name, sceneID, scene);
+                size_t newlen = blobLength + newGroupStr.length();
+
+                if (newlen < MAX_FILE_LEN) {
+                    SceneObject* newObj = new SceneObject(*this, sceneID, scene, name);
+                    if (newObj) {
+                        blobLength = newlen;
+                        scenes.insert(std::make_pair(sceneID, newObj));
+                        created = true;
+                        ScheduleFileWrite();
+                    } else {
+                        QCC_LogError(ER_FAIL, ("%s: Could not allocate memory for new SceneObject", __func__));
+                        responseCode = LSF_ERR_RESOURCES;
+                    }
+                } else {
+                    responseCode = LSF_ERR_RESOURCES;
+                }
             }
         } else {
             QCC_LogError(ER_FAIL, ("%s: No slot for new Scene", __func__));
@@ -489,10 +519,20 @@ void SceneManager::UpdateScene(Message& message)
     if (ER_OK == status) {
         SceneObjectMap::iterator it = scenes.find(uniqueId);
         if (it != scenes.end()) {
-            it->second->scene = scene;
-            responseCode = LSF_OK;
-            updated = true;
-            ScheduleFileWrite();
+            size_t newlen = blobLength;
+            // sub len of old group, add len of new group
+            newlen -= GetString(it->second->sceneName, uniqueId, it->second->scene).length();
+            newlen += GetString(it->second->sceneName, uniqueId, scene).length();
+
+            if (newlen < MAX_FILE_LEN) {
+                blobLength = newlen;
+                it->second->scene = scene;
+                responseCode = LSF_OK;
+                updated = true;
+                ScheduleFileWrite();
+            } else {
+                responseCode = LSF_ERR_RESOURCES;
+            }
         }
         status = scenesLock.Unlock();
         if (ER_OK != status) {
@@ -535,6 +575,8 @@ void SceneManager::DeleteScene(Message& message)
         if (ER_OK == status) {
             SceneObjectMap::iterator it = scenes.find(sceneId);
             if (it != scenes.end()) {
+                blobLength -= GetString(it->second->sceneName, sceneID, it->second->scene).length();
+
                 delete it->second;
                 scenes.erase(it);
                 deleted = true;
@@ -625,6 +667,7 @@ void SceneManager::ApplyScene(ajn::Message& message)
     responseCode = ApplySceneInternal(message, scenesList);
 
     if (LSF_OK == responseCode) {
+        scenesList.push_back(sceneID);
         controllerService.SendSignal(ControllerServiceSceneInterfaceName, "ScenesApplied", scenesList);
         SceneObject* sceneObj = NULL;
         scenesLock.Lock();
@@ -731,6 +774,7 @@ void SceneManager::ReadSavedData()
         return;
     }
 
+    blobLength = stream.str().size();
     ReplaceMap(stream);
 }
 
@@ -863,7 +907,12 @@ void SceneManager::ReplaceMap(std::istringstream& stream)
                 } while (token != "EndScene");
 
                 std::pair<LSFString, Scene> thePair(name, scene);
-                scenes.insert(std::make_pair(id, new SceneObject(*this, id, scene, name)));
+                SceneObject* newObj = new SceneObject(*this, id, scene, name);
+                if (newObj) {
+                    scenes.insert(std::make_pair(id, newObj));
+                } else {
+                    QCC_LogError(ER_FAIL, ("%s: Could not allocate memory for new SceneObject", __func__));
+                }
             }
         }
     }
@@ -890,6 +939,73 @@ static void OutputState(std::ostream& stream, const std::string& name, const Lam
     }
 }
 
+std::string SceneManager::GetString(const std::string& name, const std::string& id, const Scene& scene)
+{
+    std::ostringstream stream;
+    stream << "Scene " << id << " \"" << name << "\"\n";
+
+    // TransitionLampsLampGroupsToState
+    if (!scene.transitionToStateComponent.empty()) {
+        stream << "\tTransitionLampsLampGroupsToState\n";
+        for (TransitionLampsLampGroupsToStateList::const_iterator cit = scene.transitionToStateComponent.begin(); cit != scene.transitionToStateComponent.end(); ++cit) {
+            const TransitionLampsLampGroupsToState& comp = *cit;
+
+            OutputLamps(stream, "Lamp", comp.lamps);
+            OutputLamps(stream, "LampGroup", comp.lampGroups);
+            OutputState(stream, "LampState", comp.state);
+            stream << "\t\tPeriod " << comp.transitionPeriod << '\n';
+        }
+
+        stream << "\tEndTransitionLampsLampGroupsToState\n";
+    }
+
+    if (!scene.transitionToPresetComponent.empty()) {
+        stream << "\tTransitionLampsLampGroupsToPreset\n";
+        for (TransitionLampsLampGroupsToPresetList::const_iterator cit = scene.transitionToPresetComponent.begin(); cit != scene.transitionToPresetComponent.end(); ++cit) {
+            const TransitionLampsLampGroupsToPreset& comp = *cit;
+
+            OutputLamps(stream, "Lamp", comp.lamps);
+            OutputLamps(stream, "LampGroup", comp.lampGroups);
+            stream << "\t\tLampState " << comp.presetID << "\n\t\tPeriod " << comp.transitionPeriod << '\n';
+        }
+
+        stream << "\tEndTransitionLampsLampGroupsToPreset\n";
+    }
+
+
+    if (!scene.pulseWithStateComponent.empty()) {
+        stream << "\tPulseLampsLampGroupsWithState\n";
+        for (PulseLampsLampGroupsWithStateList::const_iterator cit = scene.pulseWithStateComponent.begin(); cit != scene.pulseWithStateComponent.end(); ++cit) {
+            const PulseLampsLampGroupsWithState& comp = *cit;
+
+            OutputLamps(stream, "Lamp", comp.lamps);
+            OutputLamps(stream, "LampGroup", comp.lampGroups);
+            OutputState(stream, "FromState", comp.fromState);
+            OutputState(stream, "ToState", comp.toState);
+            stream << "\t\tPeriod " << comp.pulsePeriod << "\n\t\tDuration " << comp.pulseDuration << "\n\t\tPulses " << comp.numPulses << '\n';
+        }
+
+        stream << "\tEndPulseLampsLampGroupsWithState\n";
+    }
+
+    if (!scene.pulseWithPresetComponent.empty()) {
+        stream << "\tPulseLampsLampGroupsWithPreset\n";
+        for (PulseLampsLampGroupsWithPresetList::const_iterator cit = scene.pulseWithPresetComponent.begin(); cit != scene.pulseWithPresetComponent.end(); ++cit) {
+            const PulseLampsLampGroupsWithPreset& comp = *cit;
+
+            OutputLamps(stream, "Lamp", comp.lamps);
+            OutputLamps(stream, "LampGroup", comp.lampGroups);
+            stream << "\t\tFromState " << comp.fromPreset << "\n\t\tToState " << comp.toPreset
+                   << "\n\t\tPeriod " << comp.pulsePeriod << "\n\t\tDuration " << comp.pulseDuration << "\n\t\tPulses " << comp.numPulses << '\n';
+        }
+
+        stream << "\tEndPulseLampsLampGroupsWithPreset\n";
+    }
+
+    stream << "EndScene\n";
+    return stream.str();
+}
+
 std::string SceneManager::GetString(const SceneObjectMap& items)
 {
     std::ostringstream stream;
@@ -914,68 +1030,7 @@ std::string SceneManager::GetString(const SceneObjectMap& items)
             const LSFString& id = it->first;
             const LSFString& name = it->second->sceneName;
             const Scene& scene = it->second->scene;
-
-            stream << "Scene " << id << " \"" << name << "\"\n";
-
-            // TransitionLampsLampGroupsToState
-            if (!scene.transitionToStateComponent.empty()) {
-                stream << "\tTransitionLampsLampGroupsToState\n";
-                for (TransitionLampsLampGroupsToStateList::const_iterator cit = scene.transitionToStateComponent.begin(); cit != scene.transitionToStateComponent.end(); ++cit) {
-                    const TransitionLampsLampGroupsToState& comp = *cit;
-
-                    OutputLamps(stream, "Lamp", comp.lamps);
-                    OutputLamps(stream, "LampGroup", comp.lampGroups);
-                    OutputState(stream, "LampState", comp.state);
-                    stream << "\t\tPeriod " << comp.transitionPeriod << '\n';
-                }
-
-                stream << "\tEndTransitionLampsLampGroupsToState\n";
-            }
-
-            if (!scene.transitionToPresetComponent.empty()) {
-                stream << "\tTransitionLampsLampGroupsToPreset\n";
-                for (TransitionLampsLampGroupsToPresetList::const_iterator cit = scene.transitionToPresetComponent.begin(); cit != scene.transitionToPresetComponent.end(); ++cit) {
-                    const TransitionLampsLampGroupsToPreset& comp = *cit;
-
-                    OutputLamps(stream, "Lamp", comp.lamps);
-                    OutputLamps(stream, "LampGroup", comp.lampGroups);
-                    stream << "\t\tLampState " << comp.presetID << "\n\t\tPeriod " << comp.transitionPeriod << '\n';
-                }
-
-                stream << "\tEndTransitionLampsLampGroupsToPreset\n";
-            }
-
-
-            if (!scene.pulseWithStateComponent.empty()) {
-                stream << "\tPulseLampsLampGroupsWithState\n";
-                for (PulseLampsLampGroupsWithStateList::const_iterator cit = scene.pulseWithStateComponent.begin(); cit != scene.pulseWithStateComponent.end(); ++cit) {
-                    const PulseLampsLampGroupsWithState& comp = *cit;
-
-                    OutputLamps(stream, "Lamp", comp.lamps);
-                    OutputLamps(stream, "LampGroup", comp.lampGroups);
-                    OutputState(stream, "FromState", comp.fromState);
-                    OutputState(stream, "ToState", comp.toState);
-                    stream << "\t\tPeriod " << comp.pulsePeriod << "\n\t\tDuration " << comp.pulseDuration << "\n\t\tPulses " << comp.numPulses << '\n';
-                }
-
-                stream << "\tEndPulseLampsLampGroupsWithState\n";
-            }
-
-            if (!scene.pulseWithPresetComponent.empty()) {
-                stream << "\tPulseLampsLampGroupsWithPreset\n";
-                for (PulseLampsLampGroupsWithPresetList::const_iterator cit = scene.pulseWithPresetComponent.begin(); cit != scene.pulseWithPresetComponent.end(); ++cit) {
-                    const PulseLampsLampGroupsWithPreset& comp = *cit;
-
-                    OutputLamps(stream, "Lamp", comp.lamps);
-                    OutputLamps(stream, "LampGroup", comp.lampGroups);
-                    stream << "\t\tFromState " << comp.fromPreset << "\n\t\tToState " << comp.toPreset
-                           << "\n\t\tPeriod " << comp.pulsePeriod << "\n\t\tDuration " << comp.pulseDuration << "\n\t\tPulses " << comp.numPulses << '\n';
-                }
-
-                stream << "\tEndPulseLampsLampGroupsWithPreset\n";
-            }
-
-            stream << "EndScene\n";
+            stream << GetString(name, id, scene);
         }
     }
 
@@ -1057,7 +1112,6 @@ void SceneManager::ReadWriteFile()
     }
 
     std::list<ajn::Message> tempMessageList;
-    tempMessageList.clear();
 
     readMutex.Lock();
     if (read) {
@@ -1078,7 +1132,7 @@ void SceneManager::ReadWriteFile()
     }
 
     if (status) {
-        while (tempMessageList.size()) {
+        while (!tempMessageList.empty()) {
             uint64_t currentTime = GetTimestamp64();
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_SCENE, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();

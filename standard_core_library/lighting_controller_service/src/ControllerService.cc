@@ -31,6 +31,11 @@ using namespace ajn;
 
 #define QCC_MODULE "CONTROLLER_SERVICE"
 
+static const char* OnboardingInterfaces[] = {
+    OnboardingServiceInterfaceName,
+    ConfigServiceInterfaceName
+};
+
 class ControllerService::ControllerListener :
     public SessionPortListener,
     public BusListener,
@@ -196,7 +201,6 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
 
 ControllerService::ControllerService(
     ajn::services::PropertyStore& propStore,
-    const std::string& obsConfigFile,
     const std::string& factoryConfigFile,
     const std::string& configFile,
     const std::string& lampGroupFile,
@@ -213,7 +217,7 @@ ControllerService::ControllerService(
     presetManager(*this, &sceneManager, presetFile),
     sceneManager(*this, lampGroupManager, &masterSceneManager, sceneFile),
     masterSceneManager(*this, sceneManager, masterSceneFile),
-    internalPropertyStore(obsConfigFile, factoryConfigFile, configFile), // we don't use this!
+    internalPropertyStore(factoryConfigFile, configFile), // we don't use this!
     propertyStore(propStore),
     aboutService(NULL),
     aboutIconService(bus, DeviceIconMimeType, DeviceIconURL, DeviceIcon, DeviceIconSize),
@@ -225,11 +229,10 @@ ControllerService::ControllerService(
     fileWriterThread(*this),
     firstAnnouncementSent(false)
 {
-    QCC_DbgTrace(("%s:obsConfigFile=%s, factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, obsConfigFile.c_str(), factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
+    QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
 }
 
 ControllerService::ControllerService(
-    const std::string& obsConfigFile,
     const std::string& factoryConfigFile,
     const std::string& configFile,
     const std::string& lampGroupFile,
@@ -246,7 +249,7 @@ ControllerService::ControllerService(
     presetManager(*this, &sceneManager, presetFile),
     sceneManager(*this, lampGroupManager, &masterSceneManager, sceneFile),
     masterSceneManager(*this, sceneManager, masterSceneFile),
-    internalPropertyStore(obsConfigFile, factoryConfigFile, configFile),
+    internalPropertyStore(factoryConfigFile, configFile),
     propertyStore(internalPropertyStore),
     aboutService(NULL),
     aboutIconService(bus, DeviceIconMimeType, DeviceIconURL, DeviceIcon, DeviceIconSize),
@@ -258,7 +261,7 @@ ControllerService::ControllerService(
     fileWriterThread(*this),
     firstAnnouncementSent(false)
 {
-    QCC_DbgTrace(("%s:obsConfigFile=%s, factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, obsConfigFile.c_str(), factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
+    QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
     internalPropertyStore.Initialize();
 }
 
@@ -268,11 +271,16 @@ void ControllerService::FoundLocalOnboardingService(const char* busName, Session
 
     SessionOpts opts;
     OBSJoiner* joinHandler = new OBSJoiner(*this, busName);
-    QStatus status = bus.JoinSessionAsync(busName, port, NULL, opts, joinHandler);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("Failed to join Onboarding Service on %s:%u", busName, port));
-        //QCC_DbgPrintf(("Successful CreateAndAddInterface for %s", entries[i].interfaceName));
-        delete joinHandler;
+
+    if (joinHandler) {
+        QStatus status = bus.JoinSessionAsync(busName, port, NULL, opts, joinHandler);
+        if (status != ER_OK) {
+            QCC_LogError(status, ("Failed to join Onboarding Service on %s:%u", busName, port));
+            //QCC_DbgPrintf(("Successful CreateAndAddInterface for %s", entries[i].interfaceName));
+            delete joinHandler;
+        }
+    } else {
+        QCC_LogError(ER_FAIL, ("%s: Could not allocate memory for OBSJoiner", __func__));
     }
 }
 
@@ -350,14 +358,24 @@ void ControllerService::Initialize()
 ControllerService::~ControllerService()
 {
     QCC_DbgTrace(("%s", __func__));
-    delete listener;
+    if (listener) {
+        delete listener;
+        listener = NULL;
+    }
     QCC_DbgPrintf(("%s: Done deleting listener", __func__));
 
     for (DispatcherMap::iterator it = messageHandlers.begin(); it != messageHandlers.end(); ++it) {
         delete it->second;
     }
-
     messageHandlers.clear();
+
+    obsObjectLock.Lock();
+    if (obsObject != NULL) {
+        delete obsObject;
+        QCC_DbgPrintf(("%s: Done deleting obsObject", __func__));
+        obsObject = NULL;
+    }
+    obsObjectLock.Unlock();
 }
 
 QStatus ControllerService::CreateAndAddInterface(std::string interfaceDescription, const char* interfaceName) {
@@ -398,53 +416,9 @@ QStatus ControllerService::CreateAndAddInterfaces(const InterfaceEntry* entries,
     return status;
 }
 
-static const char* OnboardingInterfaces[] = {
-    OnboardingServiceInterfaceName,
-    ConfigServiceInterfaceName
-};
-
-QStatus ControllerService::Start(const char* keyStoreFileLocation)
+QStatus ControllerService::RegisterMethodHandlers(void)
 {
-    QCC_DbgPrintf(("%s:%s", __func__, keyStoreFileLocation));
     QStatus status = ER_OK;
-
-    /*
-     * Start the AllJoyn Bus
-     */
-    status = bus.Start();
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the bus\n", __func__));
-        return status;
-    }
-
-    bus.RegisterBusListener(*listener);
-
-    /*
-     * Connect to the AllJoyn Bus
-     */
-    status = bus.Connect();
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to connect to the bus\n", __func__));
-        return status;
-    }
-
-    /*
-     * Create and Add the Controller Service Interfaces to the AllJoyn Bus
-     */
-    const InterfaceEntry interfaceEntries[] = {
-        { ControllerServiceDescription, ControllerServiceInterfaceName },
-        { ControllerServiceLampDescription, ControllerServiceLampInterfaceName },
-        { ControllerServiceLampGroupDescription, ControllerServiceLampGroupInterfaceName },
-        { ControllerServicePresetDescription, ControllerServicePresetInterfaceName },
-        { ControllerServiceSceneDescription, ControllerServiceSceneInterfaceName },
-        { ControllerServiceMasterSceneDescription, ControllerServiceMasterSceneInterfaceName }
-    };
-
-    status = CreateAndAddInterfaces(interfaceEntries, sizeof(interfaceEntries) / sizeof(InterfaceEntry));
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to CreateAndAddInterfaces", __func__));
-        return status;
-    }
 
     const InterfaceDescription* controllerServiceInterface = bus.GetInterface(ControllerServiceInterfaceName);
     const InterfaceDescription* controllerServiceLampInterface = bus.GetInterface(ControllerServiceLampInterfaceName);
@@ -519,9 +493,61 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         { controllerServiceMasterSceneInterface->GetMember("GetMasterScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceMasterSceneInterface->GetMember("ApplyMasterScene"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
     };
+
     status = AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(MethodEntry));
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to AddMethodHandlers", __func__));
+    }
+
+    return status;
+}
+
+QStatus ControllerService::Start(const char* keyStoreFileLocation)
+{
+    QCC_DbgPrintf(("%s:%s", __func__, keyStoreFileLocation));
+    QStatus status = ER_OK;
+
+    /*
+     * Start the AllJoyn Bus
+     */
+    status = bus.Start();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to start the bus\n", __func__));
+        return status;
+    }
+
+    bus.RegisterBusListener(*listener);
+
+    /*
+     * Connect to the AllJoyn Bus
+     */
+    status = bus.Connect();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to connect to the bus\n", __func__));
+        return status;
+    }
+
+    /*
+     * Create and Add the Controller Service Interfaces to the AllJoyn Bus
+     */
+    const InterfaceEntry interfaceEntries[] = {
+        { ControllerServiceDescription, ControllerServiceInterfaceName },
+        { ControllerServiceLampDescription, ControllerServiceLampInterfaceName },
+        { ControllerServiceLampGroupDescription, ControllerServiceLampGroupInterfaceName },
+        { ControllerServicePresetDescription, ControllerServicePresetInterfaceName },
+        { ControllerServiceSceneDescription, ControllerServiceSceneInterfaceName },
+        { ControllerServiceMasterSceneDescription, ControllerServiceMasterSceneInterfaceName }
+    };
+
+    status = CreateAndAddInterfaces(interfaceEntries, sizeof(interfaceEntries) / sizeof(InterfaceEntry));
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to CreateAndAddInterfaces", __func__));
+        return status;
+    }
+
+    status = RegisterMethodHandlers();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to RegisterMethodHandlers", __func__));
         return status;
     }
 
@@ -631,7 +657,7 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
 
     status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
     if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the register Announce Handler", __func__));
+        QCC_LogError(status, ("%s: Failed to register Announce Handler", __func__));
     }
 
     return status;
@@ -644,6 +670,17 @@ QStatus ControllerService::Stop(void)
     isRunningLock.Lock();
     isRunning = false;
     isRunningLock.Unlock();
+
+    SessionId session = 0;
+    obsObjectLock.Lock();
+    if (obsObject != NULL) {
+        session = obsObject->GetSessionId();
+    }
+    obsObjectLock.Unlock();
+
+    if (session != 0) {
+        bus.LeaveSession(session);
+    }
 
     QStatus status = elector.Stop();
     if (status != ER_OK) {
@@ -684,11 +721,6 @@ QStatus ControllerService::Join(void)
 
     internalPropertyStore.Join();
 
-    status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __func__));
-    }
-
     if (aboutService) {
         aboutService->Unregister();
         services::AboutServiceApi::DestroyInstance();
@@ -697,6 +729,11 @@ QStatus ControllerService::Join(void)
     // we need to manage the notification sender's memory
     if (notificationSender) {
         services::NotificationService::getInstance()->shutdownSender();
+    }
+
+    status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to unregister Announce Handler", __func__));
     }
 
     bus.UnregisterBusListener(*listener);
@@ -725,7 +762,7 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
             ids[i] = it->c_str();
         }
         arg.Set("as", arraySize, ids);
-        arg.SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        arg.SetOwnershipFlags(MsgArg::OwnsData);
     }
 
     serviceSessionMutex.Lock();
@@ -966,7 +1003,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::M
         }
 
         replyArgs[1].Set("as", arraySize, ids);
-        replyArgs[1].SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        replyArgs[1].SetOwnershipFlags(MsgArg::OwnsData);
         QCC_DbgPrintf(("%s: Sending method reply with %d entries", __func__, arraySize));
     } else {
         replyArgs[1].Set("as", 0, NULL);

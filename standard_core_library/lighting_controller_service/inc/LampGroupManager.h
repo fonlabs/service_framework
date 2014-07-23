@@ -106,8 +106,10 @@ class LampGroupManager : public Manager {
     Mutex lampGroupsLock;
     LampManager& lampManager;
     SceneManager* sceneManagerPtr;
+    size_t blobLength;
 
     std::string GetString(const LampGroupMap& items);
+    std::string GetString(const std::string& name, const std::string& id, const LampGroup& group);
 };
 
 }

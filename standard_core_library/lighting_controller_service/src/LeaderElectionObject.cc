@@ -179,8 +179,20 @@ LeaderElectionObject::LeaderElectionObject(ControllerService& controller)
 LeaderElectionObject::~LeaderElectionObject()
 {
     QCC_DbgTrace(("%s", __func__));
-    delete handler;
-    delete thread;
+    if (handler) {
+        delete handler;
+        handler = NULL;
+    }
+
+    if (thread) {
+        delete thread;
+        thread = NULL;
+    }
+
+    if (leaderObj) {
+        delete leaderObj;
+        leaderObj = NULL;
+    }
 }
 
 
@@ -206,8 +218,10 @@ void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busNam
 
         currentLeader = entry;
         const SessionId oldSession = leaderObj ? leaderObj->GetSessionId() : 0;
-        delete leaderObj;
-        leaderObj = NULL;
+        if (leaderObj) {
+            delete leaderObj;
+            leaderObj = NULL;
+        }
         controllersLock.Unlock();
 
         // moving to a new session
@@ -401,6 +415,10 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
 
     if (!storesToFetch.empty()) {
         Synchronization* sync = new Synchronization();
+        if (!sync) {
+            QCC_LogError(ER_FAIL, ("%s: Could not allocate memory for new Synchronization context", __func__));
+            return;
+        }
         sync->numWaiting = storesToFetch.size();
         QCC_DbgPrintf(("Going to synchronize %d types", sync->numWaiting));
 
@@ -408,14 +426,22 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
             LSFBlobType type = *it;
             MsgArg arg("u", type);
 
-            leaderObj->MethodCallAsync(
-                LeaderElectionAndStateSyncInterfaceName,
-                "GetBlob",
-                this,
-                static_cast<MessageReceiver::ReplyHandler>(&LeaderElectionObject::OnGetBlobReply),
-                &arg,
-                1,
-                sync);
+            controllersLock.Lock();
+            if (leaderObj) {
+                QStatus status = leaderObj->MethodCallAsync(
+                    LeaderElectionAndStateSyncInterfaceName,
+                    "GetBlob",
+                    this,
+                    static_cast<MessageReceiver::ReplyHandler>(&LeaderElectionObject::OnGetBlobReply),
+                    &arg,
+                    1,
+                    sync);
+                if (status != ER_OK) {
+                    delete sync;
+                    QCC_LogError(ER_FAIL, ("%s: Method Call Async failed", __func__));
+                }
+            }
+            controllersLock.Unlock();
         }
     } else {
         // no need to sync anything; check if we're the new leader
@@ -432,8 +458,17 @@ void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId)
         controllersLock.Lock();
 
         // we are connected to the new leader!
-        delete leaderObj;
+        if (leaderObj) {
+            delete leaderObj;
+            leaderObj = NULL;
+        }
+
         leaderObj = new ProxyBusObject(bus, currentLeader.busName.c_str(), LeaderElectionAndStateSyncObjectPath, sessionId);
+
+        if (!leaderObj) {
+            QCC_LogError(ER_FAIL, ("%s: Could not allocate memory for new ProxyBusObject", __func__));
+            return;
+        }
 
         // add the synchronization interface
         const InterfaceDescription* stateSyncInterface = bus.GetInterface(LeaderElectionAndStateSyncInterfaceName);
@@ -596,11 +631,13 @@ void LeaderElectionObject::PossiblyOverthrow()
         QCC_DbgPrintf(("Now must overthrow leader of rank %lu", currentLeader.rank));
         // no reply to this method!
         // restart the leader election process
-        leaderObj->MethodCallAsync(
-            LeaderElectionAndStateSyncInterfaceName,
-            "Overthrow",
-            this,
-            static_cast<MessageReceiver::ReplyHandler>(&LeaderElectionObject::OnOverthrowReply));
+        if (leaderObj) {
+            leaderObj->MethodCallAsync(
+                LeaderElectionAndStateSyncInterfaceName,
+                "Overthrow",
+                this,
+                static_cast<MessageReceiver::ReplyHandler>(&LeaderElectionObject::OnOverthrowReply));
+        }
     }
 
     controllersLock.Unlock();
@@ -679,7 +716,7 @@ void LeaderElectionObject::GetChecksumAndModificationTimestamp(const ajn::Interf
     out[2].Set("(uut)", static_cast<uint32_t>(LSF_SCENE), scenechecksum, currentTimestamp - scenetimestamp);
     out[3].Set("(uut)", static_cast<uint32_t>(LSF_MASTER_SCENE), masterscenechecksum, currentTimestamp - masterscenetimestamp);
     outArg.Set("a(uut)", 4, out);
-    outArg.SetOwnershipFlags(MsgArg::OwnsArgs | MsgArg::OwnsData);
+    outArg.SetOwnershipFlags(MsgArg::OwnsArgs | MsgArg::OwnsData, true);
 
     MethodReply(message, &outArg, 1);
 }

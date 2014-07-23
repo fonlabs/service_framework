@@ -235,7 +235,6 @@ class ControllerClient : public ajn::MessageReceiver {
         ajn::SessionId sessionId;
     };
 
-    std::set<LSFString> ignoreList;
     ControllerEntry currentLeader;
     Mutex controllerLock;
 
@@ -305,6 +304,8 @@ class ControllerClient : public ajn::MessageReceiver {
     class TypeHandler;
 
     void AddSignalHandlers();
+
+    void RemoveSignalHandlers();
 
     /**
      * Template for AllJoyn MessageReceiver
@@ -381,6 +382,14 @@ class ControllerClient : public ajn::MessageReceiver {
     typedef std::map<std::string, SignalHandlerBase*> SignalDispatcherMap;
     SignalDispatcherMap signalHandlers;
 
+    void DeleteSignalHandlers(void)
+    {
+        for (SignalDispatcherMap::iterator it = signalHandlers.begin(); it != signalHandlers.end(); it++) {
+            delete it->second;
+        }
+        signalHandlers.clear();
+    }
+
     template <typename OBJ>
     void AddNoArgSignalHandler(const std::string& signalName, OBJ* obj, void (OBJ::* signal)(void))
     {
@@ -419,6 +428,14 @@ class ControllerClient : public ajn::MessageReceiver {
 
     typedef std::map<std::string, NoArgSignalHandlerBase*> NoArgSignalDispatcherMap;
     NoArgSignalDispatcherMap noArgSignalHandlers;
+
+    void DeleteNoArgSignalHandlers(void)
+    {
+        for (NoArgSignalDispatcherMap::iterator it = noArgSignalHandlers.begin(); it != noArgSignalHandlers.end(); it++) {
+            delete it->second;
+        }
+        noArgSignalHandlers.clear();
+    }
 
     void AddMethodHandlers();
 
@@ -616,6 +633,33 @@ class ControllerClient : public ajn::MessageReceiver {
 
     typedef std::map<std::string, MethodReplyWithResponseCodeIDLanguageAndNameHandlerBase*> MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap;
     MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap methodReplyWithResponseCodeIDLanguageAndNameHandlers;
+
+    void RemoveMethodHandlers() {
+        for (MethodReplyWithUint32ValueDispatcherMap::iterator it = methodReplyWithUint32ValueHandlers.begin(); it != methodReplyWithUint32ValueHandlers.end(); it++) {
+            delete it->second;
+        }
+        methodReplyWithUint32ValueHandlers.clear();
+
+        for (MethodReplyWithResponseCodeAndListOfIDsDispatcherMap::iterator it = methodReplyWithResponseCodeAndListOfIDsHandlers.begin(); it != methodReplyWithResponseCodeAndListOfIDsHandlers.end(); it++) {
+            delete it->second;
+        }
+        methodReplyWithResponseCodeAndListOfIDsHandlers.clear();
+
+        for (MethodReplyWithResponseCodeIDAndNameDispatcherMap::iterator it = methodReplyWithResponseCodeIDAndNameHandlers.begin(); it != methodReplyWithResponseCodeIDAndNameHandlers.end(); it++) {
+            delete it->second;
+        }
+        methodReplyWithResponseCodeIDAndNameHandlers.clear();
+
+        for (MethodReplyWithResponseCodeIDLanguageAndNameDispatcherMap::iterator it = methodReplyWithResponseCodeIDLanguageAndNameHandlers.begin(); it != methodReplyWithResponseCodeIDLanguageAndNameHandlers.end(); it++) {
+            delete it->second;
+        }
+        methodReplyWithResponseCodeIDLanguageAndNameHandlers.clear();
+
+        for (MethodReplyWithResponseCodeAndIDDispatcherMap::iterator it = methodReplyWithResponseCodeAndIDHandlers.begin(); it != methodReplyWithResponseCodeAndIDHandlers.end(); it++) {
+            delete it->second;
+        }
+        methodReplyWithResponseCodeAndIDHandlers.clear();
+    }
 };
 
 template <typename OBJ>
@@ -639,6 +683,7 @@ ControllerClientStatus ControllerClient::MethodCallAsync(
 
     if (status != CONTROLLER_CLIENT_OK) {
         delete handler;
+        handler = NULL;
     }
 
     return status;

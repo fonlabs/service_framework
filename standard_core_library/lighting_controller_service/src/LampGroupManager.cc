@@ -32,7 +32,7 @@ using namespace ajn;
 #define QCC_MODULE "LAMP_GROUP_MANAGER"
 
 LampGroupManager::LampGroupManager(ControllerService& controllerSvc, LampManager& lampMgr, SceneManager* sceneMgrPtr, const std::string& lampGroupFile) :
-    Manager(controllerSvc, lampGroupFile), lampManager(lampMgr), sceneManagerPtr(sceneMgrPtr)
+    Manager(controllerSvc, lampGroupFile), lampManager(lampMgr), sceneManagerPtr(sceneMgrPtr), blobLength(0)
 {
     QCC_DbgTrace(("%s", __func__));
     lampGroups.clear();
@@ -76,6 +76,7 @@ LSFResponseCode LampGroupManager::Reset(void)
          * Clear the LampGroups
          */
         lampGroups.clear();
+        blobLength = 0;
 
         ScheduleFileWrite();
 
@@ -216,6 +217,9 @@ void LampGroupManager::SetLampGroupName(Message& message)
     if (0 != strcmp("en", language.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name[0] == '\0') {
+        QCC_LogError(ER_FAIL, ("%s: group name is empty", __func__));
+        responseCode = LSF_ERR_EMPTY_NAME;
     } else {
         if (strlen(name) > LSF_MAX_NAME_LENGTH) {
             responseCode = LSF_ERR_INVALID_ARGS;
@@ -225,10 +229,18 @@ void LampGroupManager::SetLampGroupName(Message& message)
             if (ER_OK == status) {
                 LampGroupMap::iterator it = lampGroups.find(uniqueId);
                 if (it != lampGroups.end()) {
-                    it->second.first = LSFString(name);
-                    responseCode = LSF_OK;
-                    nameChanged = true;
-                    ScheduleFileWrite();
+                    LSFString newName = name;
+                    size_t newlen = blobLength - it->second.first.length() + newName.length();
+
+                    if (newlen < MAX_FILE_LEN) {
+                        blobLength = newlen;
+                        it->second.first = newName;
+                        responseCode = LSF_OK;
+                        nameChanged = true;
+                        ScheduleFileWrite();
+                    } else {
+                        responseCode = LSF_ERR_RESOURCES;
+                    }
                 }
                 status = lampGroupsLock.Unlock();
                 if (ER_OK != status) {
@@ -275,11 +287,21 @@ void LampGroupManager::CreateLampGroup(Message& message)
             if (0 != strcmp("en", language.c_str())) {
                 QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
                 responseCode = LSF_ERR_INVALID_ARGS;
+            } else if (name.empty()) {
+                QCC_LogError(ER_FAIL, ("%s: group name is empty", __func__));
+                responseCode = LSF_ERR_EMPTY_NAME;
             } else {
-                lampGroups[lampGroupID].first = name;
-                lampGroups[lampGroupID].second = lampGroup;
-                created = true;
-                ScheduleFileWrite();
+                std::string newGroupStr = GetString(name, lampGroupID, lampGroup);
+                size_t newlen = blobLength + newGroupStr.length();
+                if (newlen < MAX_FILE_LEN) {
+                    blobLength = newlen;
+                    lampGroups[lampGroupID].first = name;
+                    lampGroups[lampGroupID].second = lampGroup;
+                    created = true;
+                    ScheduleFileWrite();
+                } else {
+                    responseCode = LSF_ERR_RESOURCES;
+                }
             }
         } else {
             QCC_LogError(ER_FAIL, ("%s: No slot for new LampGroup", __func__));
@@ -324,10 +346,21 @@ void LampGroupManager::UpdateLampGroup(Message& message)
     if (ER_OK == status) {
         LampGroupMap::iterator it = lampGroups.find(uniqueId);
         if (it != lampGroups.end()) {
-            lampGroups[lampGroupID].second = lampGroup;
-            responseCode = LSF_OK;
-            updated = true;
-            ScheduleFileWrite();
+
+            size_t newlen = blobLength;
+            // sub len of old group, add len of new group
+            newlen -= GetString(it->second.first, lampGroupID, it->second.second).length();
+            newlen += GetString(it->second.first, lampGroupID, lampGroup).length();
+
+            if (newlen < MAX_FILE_LEN) {
+                blobLength = newlen;
+                it->second.second = lampGroup;
+                responseCode = LSF_OK;
+                updated = true;
+                ScheduleFileWrite();
+            } else {
+                responseCode = LSF_ERR_RESOURCES;
+            }
         }
         status = lampGroupsLock.Unlock();
         if (ER_OK != status) {
@@ -370,6 +403,8 @@ void LampGroupManager::DeleteLampGroup(Message& message)
         if (ER_OK == status) {
             LampGroupMap::iterator it = lampGroups.find(lampGroupId);
             if (it != lampGroups.end()) {
+                blobLength -= GetString(it->second.first, lampGroupId, it->second.second).length();
+
                 lampGroups.erase(it);
                 deleted = true;
                 ScheduleFileWrite();
@@ -840,6 +875,7 @@ void LampGroupManager::ReadSavedData()
         return;
     }
 
+    blobLength = stream.str().size();
     ReplaceMap(stream);
 }
 
@@ -886,6 +922,22 @@ void LampGroupManager::ReplaceMap(std::istringstream& stream)
     }
 }
 
+std::string LampGroupManager::GetString(const std::string& name, const std::string& id, const LampGroup& group)
+{
+    std::ostringstream stream;
+    stream << "LampGroup " << id << " \"" << name << "\"";
+
+    for (LSFStringList::const_iterator lit = group.lamps.begin(); lit != group.lamps.end(); ++lit) {
+        stream << " Lamp " << *lit;
+    }
+    for (LSFStringList::const_iterator lit = group.lampGroups.begin(); lit != group.lampGroups.end(); ++lit) {
+        stream << " LampGroup " << *lit;
+    }
+
+    stream << " EndLampGroup" << std::endl;
+    return stream.str();
+}
+
 std::string LampGroupManager::GetString(const LampGroupMap& items)
 {
     QCC_DbgTrace(("%s", __func__));
@@ -913,16 +965,7 @@ std::string LampGroupManager::GetString(const LampGroupMap& items)
             const LSFString& name = it->second.first;
             const LampGroup& group = it->second.second;
 
-            stream << "LampGroup " << id << " \"" << name << "\"";
-
-            for (LSFStringList::const_iterator lit = group.lamps.begin(); lit != group.lamps.end(); ++lit) {
-                stream << " Lamp " << *lit;
-            }
-            for (LSFStringList::const_iterator lit = group.lampGroups.begin(); lit != group.lampGroups.end(); ++lit) {
-                stream << " LampGroup " << *lit;
-            }
-
-            stream << " EndLampGroup" << std::endl;
+            stream << GetString(name, id, group);
         }
     }
 
@@ -1005,7 +1048,6 @@ void LampGroupManager::ReadWriteFile()
     }
 
     std::list<ajn::Message> tempMessageList;
-    tempMessageList.clear();
 
     readMutex.Lock();
     if (read) {
@@ -1026,7 +1068,7 @@ void LampGroupManager::ReadWriteFile()
     }
 
     if (status) {
-        while (tempMessageList.size()) {
+        while (!tempMessageList.empty()) {
             uint64_t currentTime = GetTimestamp64();
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_LAMP_GROUP, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();

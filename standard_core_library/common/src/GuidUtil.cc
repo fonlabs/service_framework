@@ -51,6 +51,10 @@ GuidUtil::GuidUtil()
 
 GuidUtil::~GuidUtil()
 {
+    if (pGuidUtil) {
+        delete pGuidUtil;
+        pGuidUtil = NULL;
+    }
 }
 
 void GuidUtil::NormalizeString(char* strGUID)
