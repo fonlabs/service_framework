@@ -24,7 +24,7 @@
 #include <qcc/Debug.h>
 #include <qcc/StringUtil.h>
 #include <alljoyn/about/AboutServiceApi.h>
-#include "GuidUtil.h"
+#include <alljoyn/services_common/GuidUtil.h>
 
 #define QCC_MODULE "LSF_PROPSTORE"
 

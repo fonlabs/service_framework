@@ -62,17 +62,14 @@ static uint32_t GetAdler32Checksum(const uint8_t* data, size_t len) {
     QCC_DbgTrace(("%s: len = %d", __func__, len));
     uint32_t adler = 1;
     uint32_t adlerPrime = 65521;
+    uint32_t a = adler & 0xFFFF;
+    uint32_t b = adler >> 16;
     while (data && len) {
-        size_t l = len % 3800; // Max number of iterations before modulus must be computed
-        uint32_t a = adler & 0xFFFF;
-        uint32_t b = adler >> 16;
-        len -= l;
-        while (l--) {
-            a += *data++;
-            b += a;
-        }
-        adler = ((b % adlerPrime) << 16) | (a % adlerPrime);
+        a = (a + *data++) % adlerPrime;
+        b = (b + a) % adlerPrime;
+        len--;
     }
+    adler = (b << 16) | a;
     QCC_DbgTrace(("%s: adler=0x%x", __func__, adler));
     return adler;
 }
