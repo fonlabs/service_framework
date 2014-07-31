@@ -100,6 +100,8 @@ void CreateUniqueList(LSFStringList& uniqueList, LSFStringList& fromList);
 
 void CreateUniqueList(LSFStringList& uniqueList, ajn::MsgArg* idsArray, size_t idsSize);
 
+char* strdupnew(const char*s);
+
 class LampState {
 
   public:
@@ -113,7 +115,7 @@ class LampState {
     const char* c_str(void) const;
 
     void Set(const ajn::MsgArg& arg);
-    void Get(ajn::MsgArg* arg) const;
+    void Get(ajn::MsgArg* arg, bool ownership = false) const;
 
     bool onOff;
     uint32_t hue;
@@ -142,7 +144,7 @@ class LampParameters {
     const char* c_str(void) const;
 
     void Set(const ajn::MsgArg& arg);
-    void Get(ajn::MsgArg* arg) const;
+    void Get(ajn::MsgArg* arg, bool ownership = false) const;
 
     uint32_t energyUsageMilliwatts;
     uint32_t lumens;
@@ -162,7 +164,7 @@ class LampDetails {
     const char* c_str(void) const;
 
     void Set(const ajn::MsgArg& arg);
-    void Get(ajn::MsgArg* arg) const;
+    void Get(ajn::MsgArg* arg, bool ownership = false) const;
 
     LampMake make;
     LampModel model;

@@ -23,6 +23,7 @@
 #include <ControllerService.h>
 #include <fstream>
 #include <sstream>
+#include <OEM_CS_Config.h>
 
 #define QCC_MODULE "MAIN"
 
@@ -72,6 +73,7 @@ static void usage(int argc, char** argv)
     printf("   -?                    = Print this help message\n");
     printf("   -f                    = Run the Controller Service as a foreground process\n");
     printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config FilePaths\n\n");
+    printf("   -v                    = Print the version number and exit\n");
     printf("Default:\n");
     printf("    %s\n", argv[0]);
 }
@@ -82,6 +84,9 @@ static void parseCommandLine(int argc, char** argv)
     for (int i = 1; i < argc; ++i) {
         if (0 == strcmp("-h", argv[i]) || 0 == strcmp("-?", argv[i])) {
             usage(argc, argv);
+            exit(0);
+        } else if (0 == strcmp("-v", argv[i])) {
+            printf("Version: %u\n", CONTROLLER_SERVICE_VERSION);
             exit(0);
         } else if (0 == strcmp("-k", argv[i])) {
             ++i;
@@ -119,11 +124,16 @@ void lsf_Sleep(uint32_t msec)
     usleep(1000 * msec);
 }
 
-void RunService()
+void RunService(bool listenToInterrupts)
 {
     QCC_DbgTrace(("%s", __func__));
     if (!storeLocation.empty()) {
         chdir(storeLocation.c_str());
+    }
+
+    if (listenToInterrupts) {
+        signal(SIGINT, SigIntHandler);
+        signal(SIGTERM, SigTermHandler);
     }
 
     lsf::ControllerServiceManager* controllerSvcManagerPtr =
@@ -139,8 +149,8 @@ void RunService()
     isRunning = true;
 
     if (status == ER_OK) {
-        while (g_running && controllerSvcManagerPtr->IsRunning() && (controllerSvcManagerPtr->IsConnectedToRouter() == ER_OK)) {
-            lsf_Sleep(1000);
+        while (g_running && controllerSvcManagerPtr->IsRunning() && (controllerSvcManagerPtr->IsConnectedToRouter(TIMEOUT_MS_CONNECTED_TO_ROUTING_NODE) == ER_OK)) {
+            lsf_Sleep(TIMEOUT_MS_CONNECTED_TO_ROUTING_NODE);
         }
     }
 
@@ -176,7 +186,7 @@ void RunAndMonitor()
             exit(-1);
         } else if (pid == 0) {
             QCC_DbgPrintf(("%s: Starting Child", __func__));
-            RunService();
+            RunService(false);
             break;
         } else {
             g_child_process = pid;
@@ -198,7 +208,7 @@ int main(int argc, char** argv)
 
     if (runForeground) {
         QCC_DbgPrintf(("%s: Running in foreground", __func__));
-        RunService();
+        RunService(true);
     } else {
         QCC_DbgPrintf(("%s: Running in background", __func__));
         QCC_LogError(ER_OK, ("%s: You are running Controller Service in the default background mode. To debug, start Controller Service with the -f option", __func__));
@@ -217,4 +227,6 @@ int main(int argc, char** argv)
             return 0;
         }
     }
+
+    return 0;
 }

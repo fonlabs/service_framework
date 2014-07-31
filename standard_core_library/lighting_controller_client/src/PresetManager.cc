@@ -102,7 +102,7 @@ ControllerClientStatus PresetManager::CreatePreset(const LampState& preset, cons
     QCC_DbgPrintf(("%s: preset=%s", __func__, preset.c_str()));
 
     MsgArg arg[3];
-    preset.Get(&arg[0]);
+    preset.Get(&arg[0], true);
     arg[1].Set("s", presetName.c_str());
     arg[2].Set("s", language.c_str());
 

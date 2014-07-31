@@ -291,7 +291,8 @@ class LampManager : public Manager {
                                  PulseLampsWithStateList& pulseWithStateComponent,
                                  PulseLampsWithPresetList& pulseWithPresetComponent,
                                  bool groupOperation = false,
-                                 bool sceneOperation = false);
+                                 bool sceneOperation = false,
+                                 LSFString sceneOrMasterSceneId = LSFString());
 
     LampClients lampClients;
     PresetManager& presetManager;

@@ -62,6 +62,11 @@ LSFResponseCode LampGroupManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __func__));
     LSFResponseCode responseCode = LSF_OK;
+
+    if (!controllerService.UpdatesAllowed()) {
+        return LSF_ERR_BUSY;
+    }
+
     QStatus tempStatus = lampGroupsLock.Lock();
     if (ER_OK == tempStatus) {
         /*
@@ -197,6 +202,8 @@ void LampGroupManager::GetLampGroupName(Message& message)
 
 void LampGroupManager::SetLampGroupName(Message& message)
 {
+
+
     QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
     LSFResponseCode responseCode = LSF_ERR_NOT_FOUND;
 
@@ -214,6 +221,12 @@ void LampGroupManager::SetLampGroupName(Message& message)
     args[1].Get("s", &name);
 
     LSFString language = static_cast<LSFString>(args[2].v_string.str);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeIDAndName(message, LSF_ERR_BUSY, lampGroupID, language);
+        return;
+    }
+
     if (0 != strcmp("en", language.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
@@ -267,30 +280,41 @@ void LampGroupManager::CreateLampGroup(Message& message)
     QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
 
     LSFResponseCode responseCode = LSF_OK;
+    LSFString lampGroupID;
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, LSF_ERR_BUSY, lampGroupID);
+        return;
+    }
+
+    lampGroupID = GenerateUniqueID("LAMP_GROUP");
 
     bool created = false;
-    LSFString lampGroupID;
 
     const ajn::MsgArg* inputArgs;
     size_t numInputArgs;
     message->GetArgs(numInputArgs, inputArgs);
 
-    QStatus status = lampGroupsLock.Lock();
-    if (ER_OK == status) {
-        if (lampGroups.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
-            lampGroupID = GenerateUniqueID("LAMP_GROUP");
-            LampGroup lampGroup(inputArgs[0], inputArgs[1]);
+    LampGroup lampGroup(inputArgs[0], inputArgs[1]);
+    LSFString name = static_cast<LSFString>(inputArgs[2].v_string.str);
+    LSFString language = static_cast<LSFString>(inputArgs[3].v_string.str);
 
-            LSFString name = static_cast<LSFString>(inputArgs[2].v_string.str);
-            LSFString language = static_cast<LSFString>(inputArgs[3].v_string.str);
-
-            if (0 != strcmp("en", language.c_str())) {
-                QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
-                responseCode = LSF_ERR_INVALID_ARGS;
-            } else if (name.empty()) {
-                QCC_LogError(ER_FAIL, ("%s: group name is empty", __func__));
-                responseCode = LSF_ERR_EMPTY_NAME;
-            } else {
+    if (0 != strcmp("en", language.c_str())) {
+        QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: group name is empty", __func__));
+        responseCode = LSF_ERR_EMPTY_NAME;
+    } else if (name.length() > LSF_MAX_NAME_LENGTH) {
+        QCC_LogError(ER_FAIL, ("%s: name length exceeds %d", __func__, LSF_MAX_NAME_LENGTH));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (lampGroup.lamps.empty() && lampGroup.lampGroups.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Empty Lamps and LampGroups list", __func__));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else {
+        QStatus status = lampGroupsLock.Lock();
+        if (ER_OK == status) {
+            if (lampGroups.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
                 std::string newGroupStr = GetString(name, lampGroupID, lampGroup);
                 size_t newlen = blobLength + newGroupStr.length();
                 if (newlen < MAX_FILE_LEN) {
@@ -302,18 +326,22 @@ void LampGroupManager::CreateLampGroup(Message& message)
                 } else {
                     responseCode = LSF_ERR_RESOURCES;
                 }
+            } else {
+                QCC_LogError(ER_FAIL, ("%s: No slot for new LampGroup", __func__));
+                responseCode = LSF_ERR_NO_SLOT;
+            }
+            status = lampGroupsLock.Unlock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: lampGroupsLock.Unlock() failed", __func__));
             }
         } else {
-            QCC_LogError(ER_FAIL, ("%s: No slot for new LampGroup", __func__));
-            responseCode = LSF_ERR_NO_SLOT;
+            responseCode = LSF_ERR_BUSY;
+            QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __func__));
         }
-        status = lampGroupsLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: lampGroupsLock.Unlock() failed", __func__));
-        }
-    } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __func__));
+    }
+
+    if (!created) {
+        lampGroupID.clear();
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
@@ -342,33 +370,43 @@ void LampGroupManager::UpdateLampGroup(Message& message)
     LSFString lampGroupID(uniqueId);
     LampGroup lampGroup(args[1], args[2]);
 
-    QStatus status = lampGroupsLock.Lock();
-    if (ER_OK == status) {
-        LampGroupMap::iterator it = lampGroups.find(uniqueId);
-        if (it != lampGroups.end()) {
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, LSF_ERR_BUSY, lampGroupID);
+        return;
+    }
 
-            size_t newlen = blobLength;
-            // sub len of old group, add len of new group
-            newlen -= GetString(it->second.first, lampGroupID, it->second.second).length();
-            newlen += GetString(it->second.first, lampGroupID, lampGroup).length();
-
-            if (newlen < MAX_FILE_LEN) {
-                blobLength = newlen;
-                it->second.second = lampGroup;
-                responseCode = LSF_OK;
-                updated = true;
-                ScheduleFileWrite();
-            } else {
-                responseCode = LSF_ERR_RESOURCES;
-            }
-        }
-        status = lampGroupsLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: lampGroupsLock.Unlock() failed", __func__));
-        }
+    if (lampGroup.lamps.empty() && lampGroup.lampGroups.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Empty Lamps and LampGroups list", __func__));
+        responseCode = LSF_ERR_INVALID_ARGS;
     } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __func__));
+        QStatus status = lampGroupsLock.Lock();
+        if (ER_OK == status) {
+            LampGroupMap::iterator it = lampGroups.find(uniqueId);
+            if (it != lampGroups.end()) {
+
+                size_t newlen = blobLength;
+                // sub len of old group, add len of new group
+                newlen -= GetString(it->second.first, lampGroupID, it->second.second).length();
+                newlen += GetString(it->second.first, lampGroupID, lampGroup).length();
+
+                if (newlen < MAX_FILE_LEN) {
+                    blobLength = newlen;
+                    it->second.second = lampGroup;
+                    responseCode = LSF_OK;
+                    updated = true;
+                    ScheduleFileWrite();
+                } else {
+                    responseCode = LSF_ERR_RESOURCES;
+                }
+            }
+            status = lampGroupsLock.Unlock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: lampGroupsLock.Unlock() failed", __func__));
+            }
+        } else {
+            responseCode = LSF_ERR_BUSY;
+            QCC_LogError(status, ("%s: lampGroupsLock.Lock() failed", __func__));
+        }
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
@@ -395,6 +433,11 @@ void LampGroupManager::DeleteLampGroup(Message& message)
     args[0].Get("s", &lampGroupId);
 
     LSFString lampGroupID(lampGroupId);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, LSF_ERR_BUSY, lampGroupID);
+        return;
+    }
 
     responseCode = IsDependentOnLampGroup(lampGroupID);
 
@@ -527,7 +570,7 @@ void LampGroupManager::TransitionLampGroupState(Message& message)
         TransitionLampsLampGroupsToState component(lamps, lampGroupList, state, transitionPeriod);
         transitionToStateComponent.push_back(component);
 
-        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent);
 
         if (LSF_ERR_NOT_FOUND == responseCode) {
             controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
@@ -574,7 +617,7 @@ void LampGroupManager::PulseLampGroupWithState(ajn::Message& message)
         PulseLampsLampGroupsWithState component(lamps, lampGroupList, fromLampGroupState, toLampGroupState, period, duration, numPulses);
         pulseWithStateComponent.push_back(component);
 
-        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent);
 
         if (LSF_ERR_NOT_FOUND == responseCode) {
             controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
@@ -617,7 +660,7 @@ void LampGroupManager::PulseLampGroupWithPreset(ajn::Message& message)
         PulseLampsLampGroupsWithPreset component(lamps, lampGroupList, fromPresetID, toPresetID, period, duration, numPulses);
         pulseWithPresetComponent.push_back(component);
 
-        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent);
 
         if (LSF_ERR_NOT_FOUND == responseCode) {
             controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupID);
@@ -656,7 +699,7 @@ void LampGroupManager::TransitionLampGroupStateToPreset(Message& message)
         TransitionLampsLampGroupsToPreset component(lamps, lampGroupList, preset, transitionPeriod);
         transitionToPresetComponent.push_back(component);
 
-        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent, true);
+        responseCode = ChangeLampGroupStateAndField(message, transitionToStateComponent, transitionToPresetComponent, pulseWithStateComponent, pulseWithPresetComponent);
 
         if (LSF_ERR_NOT_FOUND == responseCode) {
             controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
@@ -707,7 +750,7 @@ LSFResponseCode LampGroupManager::ChangeLampGroupStateAndField(Message& message,
                                                                TransitionLampsLampGroupsToPresetList& transitionToPresetComponent,
                                                                PulseLampsLampGroupsWithStateList& pulseWithStateComponent,
                                                                PulseLampsLampGroupsWithPresetList& pulseWithPresetComponent,
-                                                               bool groupOperation)
+                                                               bool groupOperation, LSFString sceneOrMasterSceneID)
 {
     QCC_DbgTrace(("%s", __func__));
     LSFResponseCode responseCode = LSF_OK;
@@ -781,7 +824,7 @@ LSFResponseCode LampGroupManager::ChangeLampGroupStateAndField(Message& message,
     if (numLamps == 0) {
         responseCode = LSF_ERR_NOT_FOUND;
     } else {
-        lampManager.ChangeLampStateAndField(message, transitionToStateList, transitionToPresetList, stateFieldList, pulseWithStateList, pulseWithPresetList, groupOperation, !groupOperation);
+        lampManager.ChangeLampStateAndField(message, transitionToStateList, transitionToPresetList, stateFieldList, pulseWithStateList, pulseWithPresetList, groupOperation, !groupOperation, sceneOrMasterSceneID);
     }
 
     return responseCode;

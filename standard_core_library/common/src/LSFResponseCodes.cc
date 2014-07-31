@@ -35,6 +35,7 @@ const char* LSFResponseCodeText(LSFResponseCode responseCode)
         LSF_CASE(LSF_ERR_MESSAGE);
         LSF_CASE(LSF_ERR_INVALID_ARGS);
         LSF_CASE(LSF_ERR_EMPTY_NAME);
+        LSF_CASE(LSF_ERR_RESOURCES);
         LSF_CASE(LSF_ERR_PARTIAL);
         LSF_CASE(LSF_ERR_NOT_FOUND);
         LSF_CASE(LSF_ERR_NO_SLOT);

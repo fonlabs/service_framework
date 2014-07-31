@@ -210,6 +210,8 @@ ControllerClient::~ControllerClient()
 
     services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
 
+    services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(bus);
+
     RemoveSignalHandlers();
     RemoveMethodHandlers();
 

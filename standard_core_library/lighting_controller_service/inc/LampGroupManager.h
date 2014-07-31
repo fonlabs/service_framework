@@ -100,7 +100,7 @@ class LampGroupManager : public Manager {
                                                  TransitionLampsLampGroupsToPresetList& transitionToPresetComponent,
                                                  PulseLampsLampGroupsWithStateList& pulseWithStateComponent,
                                                  PulseLampsLampGroupsWithPresetList& pulseWithPresetComponent,
-                                                 bool groupOperation = false);
+                                                 bool groupOperation = true, LSFString sceneOrMasterSceneID = LSFString());
 
     LampGroupMap lampGroups;
     Mutex lampGroupsLock;

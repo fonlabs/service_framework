@@ -115,8 +115,9 @@ LampResponseCode OEM_LS_ApplyPulseEffect(LampState* fromState, LampState* toStat
 
 LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod)
 {
-    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), transitionPeriod=%u\n", __func__,
-                   newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff, transitionPeriod));
+    AJ_InfoPrintf(("%s: (Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), transitionPeriod=%u, start=%u/%u\n", __func__,
+                   newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff, transitionPeriod,
+                   (uint32_t) (timestamp), (uint32_t) (timestamp >> 32)));
 
     LAMP_SetState(newState);
     return LAMP_OK;

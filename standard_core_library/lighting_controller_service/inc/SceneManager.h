@@ -36,6 +36,8 @@ class SceneManager : public Manager {
   public:
     SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, MasterSceneManager* masterSceneMgr, const std::string& sceneFile);
 
+    void UnregsiterSceneEventActionObjects(void);
+
     LSFResponseCode Reset(void);
     LSFResponseCode IsDependentOnPreset(LSFString& presetID);
     LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
@@ -48,6 +50,8 @@ class SceneManager : public Manager {
     void UpdateScene(ajn::Message& message);
     void GetScene(ajn::Message& message);
     void ApplyScene(ajn::Message& message);
+
+    void SendSceneOrMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId);
 
     LSFResponseCode GetAllScenes(SceneMap& sceneMap);
 
@@ -70,7 +74,7 @@ class SceneManager : public Manager {
 
     void ReplaceMap(std::istringstream& stream);
 
-    LSFResponseCode ApplySceneInternal(ajn::Message message, LSFStringList& sceneList);
+    LSFResponseCode ApplySceneInternal(ajn::Message message, LSFStringList& sceneList, LSFString sceneOrMasterSceneId);
 
     typedef std::map<LSFString, SceneObject*> SceneObjectMap;
 

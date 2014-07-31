@@ -42,22 +42,27 @@ class LeaderElectionObject : public ajn::BusObject {
 
     QStatus Join();
 
-    void GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
-    void GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
-
-    QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
+    void OnSessionJoined(ajn::SessionId session, const char* joiner);
 
     void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
+    QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
-    void Overthrow(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    void ClearCurrentState(void);
+
+
+    void OnSessionMemberAdded(ajn::SessionId session, const char* uniqueName);
+    void OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName);
 
   private:
 
+    void GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    void OnGetChecksumAndModificationTimestampReply(ajn::Message& message, void* context);
+
+    void Overthrow(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     void OnOverthrowReply(ajn::Message& message, void* context);
 
+    void GetBlob(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     void OnGetBlobReply(ajn::Message& message, void* context);
-
-    void OnGetChecksumAndModificationTimestampReply(ajn::Message& message, void* context);
 
     void OnBlobChanged(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
@@ -77,11 +82,10 @@ class LeaderElectionObject : public ajn::BusObject {
     };
 
     void PossiblyOverthrow();
-    void DoLeaderElection();
+    bool DoLeaderElection();
     void ClearCurrentLeader();
     void OnSessionLost(SessionId sessionId);
     void OnSessionJoined(QStatus status, SessionId sessionId);
-    void OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName);
 
     // map deviceId -> ControllerEntry
     typedef std::map<qcc::String, ControllerEntry> ControllerEntryMap;

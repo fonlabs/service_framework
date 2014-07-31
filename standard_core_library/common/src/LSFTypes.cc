@@ -99,6 +99,14 @@ void CreateUniqueList(LSFStringList& uniqueList, ajn::MsgArg* idsArray, size_t i
 
 }
 
+char* strdupnew(const char*s) {
+    char* d = new char[strlen(s) + 1];
+    if (d) {
+        strcpy(d, s);
+    }
+    return d;
+}
+
 LampState::LampState() :
     onOff(false),
     hue(0),
@@ -202,7 +210,7 @@ void LampState::Set(const ajn::MsgArg& arg)
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
 }
 
-void LampState::Get(ajn::MsgArg* arg) const
+void LampState::Get(ajn::MsgArg* arg, bool ownership) const
 {
     QCC_DbgPrintf(("%s", __func__));
     if (nullState) {
@@ -232,6 +240,9 @@ void LampState::Get(ajn::MsgArg* arg) const
         dict[4].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
         arg->Set("a{sv}", (size_t)5, dict);
+        if (ownership) {
+            arg->SetOwnershipFlags(MsgArg::OwnsArgs, true);
+        }
     }
 }
 
@@ -294,7 +305,7 @@ void LampParameters::Set(const ajn::MsgArg& arg)
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
 }
 
-void LampParameters::Get(ajn::MsgArg* arg) const
+void LampParameters::Get(ajn::MsgArg* arg, bool ownership) const
 {
     QCC_DbgPrintf(("%s", __func__));
     const char* str[] = { "Energy_Usage_Milliwatts", "Brightness_Lumens" };
@@ -309,6 +320,9 @@ void LampParameters::Get(ajn::MsgArg* arg) const
     dict[1].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     arg->Set("a{sv}", (size_t)2, dict);
+    if (ownership) {
+        arg->SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    }
 }
 
 LampDetails::LampDetails()
@@ -455,7 +469,7 @@ void LampDetails::Set(const ajn::MsgArg& arg)
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
 }
 
-void LampDetails::Get(ajn::MsgArg* arg) const
+void LampDetails::Get(ajn::MsgArg* arg, bool ownership) const
 {
     QCC_DbgPrintf(("%s", __func__));
     const char* str[] = {
@@ -559,6 +573,9 @@ void LampDetails::Get(ajn::MsgArg* arg) const
     dict[18].SetOwnershipFlags(MsgArg::OwnsArgs, true);
 
     arg->Set("a{sv}", (size_t)19, dict);
+    if (ownership) {
+        arg->SetOwnershipFlags(MsgArg::OwnsArgs, true);
+    }
 }
 
 LampGroup::LampGroup()
@@ -646,7 +663,8 @@ void LampGroup::Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const
             idsVec[i++] = it->c_str();
         }
         lampList->Set("as", idsVecSize, idsVec);
-        lampList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        delete [] idsVec;
+        lampList->SetOwnershipFlags(MsgArg::OwnsArgs);
     } else {
         lampList->Set("as", 0, NULL);
     }
@@ -659,7 +677,8 @@ void LampGroup::Get(ajn::MsgArg* lampList, ajn::MsgArg* lampGroupList) const
             gidsVec[i++] = it->c_str();
         }
         lampGroupList->Set("as", gidsVecSize, gidsVec);
-        lampGroupList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        delete [] gidsVec;
+        lampGroupList->SetOwnershipFlags(MsgArg::OwnsArgs);
     } else {
         lampGroupList->Set("as", 0, NULL);
     }
@@ -753,7 +772,11 @@ void TransitionLampsLampGroupsToState::Set(const ajn::MsgArg& component)
     if (state.nullState) {
         QCC_LogError(ER_FAIL, ("%s: TransitionLampsLampGroupsToState cannot include NULL state", __func__));
         invalidArgs =  true;
+    } else if (lamps.empty() && lampGroups.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Lamps and Lamp Group list both cannot be empty", __func__));
+        invalidArgs =  true;
     }
+
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
 }
 
@@ -788,7 +811,9 @@ void TransitionLampsLampGroupsToState::Get(ajn::MsgArg* component) const
     stateArg.Get("a{sv}", &stateArgsSize, &stateArgs);
 
     component->Set("(asasa{sv}u)", numLamps, lampList, numLampGroups, lampGroupList, stateArgsSize, stateArgs, transitionPeriod);
-    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    delete [] lampList;
+    delete [] lampGroupList;
+    component->SetOwnershipFlags(MsgArg::OwnsArgs, true);
 }
 
 TransitionLampsLampGroupsToPreset::TransitionLampsLampGroupsToPreset(LSFStringList& lampList, LSFStringList& lampGroupList, LSFString& presetID, uint32_t& transPeriod) :
@@ -865,6 +890,9 @@ void TransitionLampsLampGroupsToPreset::Set(const ajn::MsgArg& component)
     if (0 == strcmp(presetID.c_str(), CurrentStateIdentifier.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: TransitionLampsLampGroupsToPreset cannot include current state", __func__));
         invalidArgs =  true;
+    } else if (lamps.empty() && lampGroups.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Lamps and Lamp Group list both cannot be empty", __func__));
+        invalidArgs =  true;
     }
 
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
@@ -894,7 +922,9 @@ void TransitionLampsLampGroupsToPreset::Get(ajn::MsgArg* component) const
     }
 
     component->Set("(asassu)", numLamps, lampList, numLampGroups, lampGroupList, presetID.c_str(), transitionPeriod);
-    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    delete [] lampList;
+    delete [] lampGroupList;
+    component->SetOwnershipFlags(MsgArg::OwnsArgs, true);
 }
 
 PulseLampsLampGroupsWithState::PulseLampsLampGroupsWithState(LSFStringList& lampList, LSFStringList& lampGroupList, LampState& fromLampState, LampState& toLampState, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
@@ -986,6 +1016,9 @@ void PulseLampsLampGroupsWithState::Set(const ajn::MsgArg& component)
     if (toState.nullState) {
         QCC_LogError(ER_FAIL, ("%s: PulseLampsLampGroupsWithState cannot include to state as NULL state", __func__));
         invalidArgs =  true;
+    } else if (lamps.empty() && lampGroups.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Lamps and Lamp Group list both cannot be empty", __func__));
+        invalidArgs =  true;
     }
 
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
@@ -1029,7 +1062,9 @@ void PulseLampsLampGroupsWithState::Get(ajn::MsgArg* component) const
     toStateArg.Get("a{sv}", &toStateArgsSize, &toStateArgs);
 
     component->Set("(asasa{sv}a{sv}uuu)", numLamps, lampList, numLampGroups, lampGroupList, fromStateArgsSize, fromStateArgs, toStateArgsSize, toStateArgs, pulsePeriod, pulseDuration, numPulses);
-    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    delete [] lampList;
+    delete [] lampGroupList;
+    component->SetOwnershipFlags(MsgArg::OwnsArgs, true);
 }
 
 PulseLampsLampGroupsWithPreset::PulseLampsLampGroupsWithPreset(LSFStringList& lampList, LSFStringList& lampGroupList,  LSFString& fromPreset, LSFString& toPreset, uint32_t& period, uint32_t& duration, uint32_t& numOfPulses) :
@@ -1113,6 +1148,9 @@ void PulseLampsLampGroupsWithPreset::Set(const ajn::MsgArg& component)
     if (0 == strcmp(toPreset.c_str(), CurrentStateIdentifier.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: PulseLampsLampGroupsWithPreset cannot include to state as the current state", __func__));
         invalidArgs =  true;
+    } else if (lamps.empty() && lampGroups.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Lamps and Lamp Group list both cannot be empty", __func__));
+        invalidArgs =  true;
     }
 
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
@@ -1142,7 +1180,9 @@ void PulseLampsLampGroupsWithPreset::Get(ajn::MsgArg* component) const
     }
 
     component->Set("(asasssuuu)", numLamps, lampList, numLampGroups, lampGroupList, fromPreset.c_str(), toPreset.c_str(), pulsePeriod, pulseDuration, numPulses);
-    component->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+    delete [] lampList;
+    delete [] lampGroupList;
+    component->SetOwnershipFlags(MsgArg::OwnsArgs, true);
 }
 
 Scene::Scene() :
@@ -1321,7 +1361,7 @@ void Scene::Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transi
             it->Get(&transitionToStateComponentArray[i]);
         }
         transitionToStateComponentList->Set("a(asasa{sv}u)", transitionToStateComponentArraySize, transitionToStateComponentArray);
-        transitionToStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        transitionToStateComponentList->SetOwnershipFlags(MsgArg::OwnsArgs, true);
     } else {
         transitionToStateComponentList->Set("a(asasa{sv}u)", 0, NULL);
     }
@@ -1334,7 +1374,7 @@ void Scene::Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transi
             it->Get(&transitionToPresetComponentArray[i]);
         }
         transitionToPresetComponentList->Set("a(asassu)", transitionToPresetComponentArraySize, transitionToPresetComponentArray);
-        transitionToPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        transitionToPresetComponentList->SetOwnershipFlags(MsgArg::OwnsArgs, true);
     } else {
         transitionToPresetComponentList->Set("a(asassu)", 0, NULL);
     }
@@ -1347,7 +1387,7 @@ void Scene::Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transi
             it->Get(&pulseWithStateComponentArray[i]);
         }
         pulseWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", pulseWithStateComponentArraySize, pulseWithStateComponentArray);
-        pulseWithStateComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        pulseWithStateComponentList->SetOwnershipFlags(MsgArg::OwnsArgs, true);
     } else {
         pulseWithStateComponentList->Set("a(asasa{sv}a{sv}uuu)", 0, NULL);
     }
@@ -1360,7 +1400,7 @@ void Scene::Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transi
             it->Get(&pulseWithPresetComponentArray[i]);
         }
         pulseWithPresetComponentList->Set("a(asasssuuu)", pulseWithPresetComponentArraySize, pulseWithPresetComponentArray);
-        pulseWithPresetComponentList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        pulseWithPresetComponentList->SetOwnershipFlags(MsgArg::OwnsArgs, true);
     } else {
         pulseWithPresetComponentList->Set("a(asasssuuu)", 0, NULL);
     }
@@ -1500,7 +1540,8 @@ void MasterScene::Get(ajn::MsgArg* sceneList) const
             gidsVec[i++] = it->c_str();
         }
         sceneList->Set("as", gidsVecSize, gidsVec);
-        sceneList->SetOwnershipFlags(MsgArg::OwnsData | MsgArg::OwnsArgs);
+        delete [] gidsVec;
+        sceneList->SetOwnershipFlags(MsgArg::OwnsArgs);
     } else {
         sceneList->Set("as", 0, NULL);
     }

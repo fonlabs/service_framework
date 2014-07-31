@@ -36,14 +36,25 @@ namespace lsf {
 #define MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
 
 /*
+ * Timeout for NGNS Pings
+ */
+#define NGNS_PING_TIMEOUT_IN_MS 1500
+
+/*
  * Timeout for Pings
  */
-#define PING_TIMEOUT_IN_MS 300
+#define SESSION_PING_TIMEOUT_IN_MS 500
 
 /*
  * Link timeout in seconds
  */
 #define LINK_TIMEOUT 5
+
+/*
+ * Timeout used in the check to see if the Controller Service is still connected
+ * to the routing node
+ */
+#define TIMEOUT_MS_CONNECTED_TO_ROUTING_NODE 5000
 
 /*
  * Returns the factory set value of the default lamp state. The

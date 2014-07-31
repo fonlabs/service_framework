@@ -121,19 +121,23 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void SendMethodReply(const ajn::Message& msg, const ajn::MsgArg* args = NULL, size_t numArgs = 0);
 
-    void SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode& responseCode, LSFStringList& idList);
+    void SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode responseCode, const LSFStringList& idList);
 
-    void SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
+    void SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& lsfName);
 
-    void SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId);
+    void SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId);
 
-    void SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t& value);
+    void SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t value);
 
-    void SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name);
+    void SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& language, const LSFString& name);
 
-    QStatus SendSignal(const char* ifaceName, const char* methodName, LSFStringList& idList);
+    QStatus SendSignal(const char* ifaceName, const char* methodName, const LSFStringList& idList);
 
     QStatus SendSignalWithoutArg(const char* ifaceName, const char* signalName);
+
+    void SendSceneOrMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId) {
+        sceneManager.SendSceneOrMasterSceneAppliedSignal(sceneorMasterSceneId);
+    }
 
     void ScheduleFileReadWrite(Manager* manager);
 
@@ -143,7 +147,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     bool IsRunning();
 
-    QStatus IsConnectedToRouter();
+    QStatus IsConnectedToRouter(const uint32_t timeoutMS);
 
     uint64_t GetRank();
 
@@ -157,9 +161,11 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void RemoveObjDescriptionFromAnnouncement(qcc::String path, qcc::String interface);
 
-  private:
+    void SetAllowUpdates(bool allow);
 
-    LeaderElectionObject elector;
+    bool UpdatesAllowed();
+
+  private:
 
     void Initialize();
 
@@ -186,6 +192,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     QStatus CreateAndAddInterfaces(const InterfaceEntry* entries, size_t numEntries);
 
     ajn::BusAttachment bus;
+    LeaderElectionObject elector;
     lsf::Mutex serviceSessionMutex;
     ajn::SessionId serviceSession;
 
@@ -202,7 +209,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void SessionLost(ajn::SessionId sessionId);
     void LeaveSession(ajn::SessionId sessionId);
-    void SessionJoined(ajn::SessionId sessionId);
+    void SessionJoined(ajn::SessionId sessionId, const char* joiner);
 
     void FoundLocalOnboardingService(const char* busName, ajn::SessionPort port);
 
@@ -234,6 +241,9 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void GetControllerServiceVersion(ajn::Message& msg);
 
+    /*
+     * This function is not thread safe. it should not be called without locking messageHandlersLock
+     */
     template <typename OBJ>
     void AddMethodHandler(const std::string& methodName, OBJ* obj, void (OBJ::* methodCall)(ajn::Message &))
     {
@@ -272,10 +282,14 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     typedef std::map<std::string, MethodHandlerBase*> DispatcherMap;
     DispatcherMap messageHandlers;
+    Mutex messageHandlersLock;
 
 
     PersistenceThread fileWriterThread;
     bool firstAnnouncementSent;
+
+    bool updatesAllowed;
+    Mutex updatesAllowedLock;
 };
 
 class ControllerServiceManager {
@@ -335,8 +349,8 @@ class ControllerServiceManager {
         return controllerService.IsRunning();
     }
 
-    QStatus IsConnectedToRouter() {
-        return controllerService.IsConnectedToRouter();
+    QStatus IsConnectedToRouter(const uint32_t timeoutMS) {
+        return controllerService.IsConnectedToRouter(timeoutMS);
     }
 
     ControllerService& GetControllerService(void) { return controllerService; };

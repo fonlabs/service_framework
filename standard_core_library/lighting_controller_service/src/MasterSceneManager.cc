@@ -56,6 +56,10 @@ LSFResponseCode MasterSceneManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __func__));
     LSFResponseCode responseCode = LSF_OK;
+    if (!controllerService.UpdatesAllowed()) {
+        return LSF_ERR_BUSY;
+    }
+
     QStatus tempStatus = masterScenesLock.Lock();
     if (ER_OK == tempStatus) {
         /*
@@ -143,6 +147,24 @@ void MasterSceneManager::GetAllMasterSceneIDs(Message& message)
     controllerService.SendMethodReplyWithResponseCodeAndListOfIDs(message, responseCode, idList);
 }
 
+void MasterSceneManager::SendMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId)
+{
+    QCC_DbgPrintf(("%s: %s", __func__, sceneorMasterSceneId.c_str()));
+    bool found = false;
+    masterScenesLock.Lock();
+    MasterSceneMap::iterator it = masterScenes.find(sceneorMasterSceneId);
+    if (it != masterScenes.end()) {
+        found = true;
+    }
+    masterScenesLock.Unlock();
+
+    if (found) {
+        LSFStringList masterSceneList;
+        masterSceneList.push_back(sceneorMasterSceneId);
+        controllerService.SendSignal(ControllerServiceMasterSceneInterfaceName, "MasterScenesApplied", masterSceneList);
+    }
+}
+
 void MasterSceneManager::GetMasterSceneName(Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
@@ -202,6 +224,12 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
     args[1].Get("s", &name);
 
     LSFString language = static_cast<LSFString>(args[2].v_string.str);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeIDAndName(message, LSF_ERR_BUSY, masterSceneID, language);
+        return;
+    }
+
     if (0 != strcmp("en", language.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
@@ -255,32 +283,45 @@ void MasterSceneManager::CreateMasterScene(Message& message)
 
     LSFResponseCode responseCode = LSF_OK;
 
-    bool created = false;
     LSFString masterSceneID;
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, LSF_ERR_BUSY, masterSceneID);
+        return;
+    }
+
+    masterSceneID = GenerateUniqueID("MASTER_SCENE");
+
+    bool created = false;
 
     const ajn::MsgArg* inputArgs;
     size_t numInputArgs;
     message->GetArgs(numInputArgs, inputArgs);
 
-    QStatus status = masterScenesLock.Lock();
-    if (ER_OK == status) {
-        if (masterScenes.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
-            masterSceneID = GenerateUniqueID("MASTER_SCENE");
-            MasterScene masterScene(inputArgs[0]);
+    MasterScene masterScene(inputArgs[0]);
 
-            LSFString name = static_cast<LSFString>(inputArgs[1].v_string.str);
-            LSFString language = static_cast<LSFString>(inputArgs[2].v_string.str);
+    LSFString name = static_cast<LSFString>(inputArgs[1].v_string.str);
+    LSFString language = static_cast<LSFString>(inputArgs[2].v_string.str);
 
-            if (0 != strcmp("en", language.c_str())) {
-                QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
-                responseCode = LSF_ERR_INVALID_ARGS;
-            } else if (name.empty()) {
-                QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
-                responseCode = LSF_ERR_EMPTY_NAME;
-            } else {
-                std::string newGroupStr = GetString(name, masterSceneID, masterScene);
+    if (0 != strcmp("en", language.c_str())) {
+        QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
+        responseCode = LSF_ERR_EMPTY_NAME;
+    } else if (name.length() > LSF_MAX_NAME_LENGTH) {
+        QCC_LogError(ER_FAIL, ("%s: name length exceeds %d", __func__, LSF_MAX_NAME_LENGTH));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (masterScene.scenes.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Empty Scenes list", __func__));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else {
+        QStatus status = masterScenesLock.Lock();
+        if (ER_OK == status) {
+            if (masterScenes.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
+                std::string newMasterSceneStr = GetString(name, masterSceneID, masterScene);
 
-                size_t newlen = blobLength + newGroupStr.length();
+                size_t newlen = blobLength + newMasterSceneStr.length();
                 if (newlen < MAX_FILE_LEN) {
                     blobLength = newlen;
                     masterScenes[masterSceneID].first = name;
@@ -290,18 +331,22 @@ void MasterSceneManager::CreateMasterScene(Message& message)
                 } else {
                     responseCode = LSF_ERR_RESOURCES;
                 }
+            } else {
+                QCC_LogError(ER_FAIL, ("%s: No slot for new MasterScene", __func__));
+                responseCode = LSF_ERR_NO_SLOT;
+            }
+            status = masterScenesLock.Unlock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
             }
         } else {
-            QCC_LogError(ER_FAIL, ("%s: No slot for new MasterScene", __func__));
-            responseCode = LSF_ERR_NO_SLOT;
+            responseCode = LSF_ERR_BUSY;
+            QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
         }
-        status = masterScenesLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
-        }
-    } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
+    }
+
+    if (!created) {
+        masterSceneID.clear();
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, masterSceneID);
@@ -328,34 +373,45 @@ void MasterSceneManager::UpdateMasterScene(Message& message)
     args[0].Get("s", &uniqueId);
 
     LSFString masterSceneID(uniqueId);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, LSF_ERR_BUSY, masterSceneID);
+        return;
+    }
+
     MasterScene masterScene(args[1]);
 
-    QStatus status = masterScenesLock.Lock();
-    if (ER_OK == status) {
-        MasterSceneMap::iterator it = masterScenes.find(uniqueId);
-        if (it != masterScenes.end()) {
-            size_t newlen = blobLength;
-            // sub len of old group, add len of new group
-            newlen -= GetString(it->second.first, masterSceneID, it->second.second).length();
-            newlen += GetString(it->second.first, masterSceneID, masterScene).length();
-
-            if (newlen < MAX_FILE_LEN) {
-                blobLength = newlen;
-                masterScenes[masterSceneID].second = masterScene;
-                responseCode = LSF_OK;
-                updated = true;
-                ScheduleFileWrite();
-            } else {
-                responseCode = LSF_ERR_RESOURCES;
-            }
-        }
-        status = masterScenesLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
-        }
+    if (masterScene.scenes.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: Empty Scenes list", __func__));
+        responseCode = LSF_ERR_INVALID_ARGS;
     } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
+        QStatus status = masterScenesLock.Lock();
+        if (ER_OK == status) {
+            MasterSceneMap::iterator it = masterScenes.find(uniqueId);
+            if (it != masterScenes.end()) {
+                size_t newlen = blobLength;
+                // sub len of old group, add len of new group
+                newlen -= GetString(it->second.first, masterSceneID, it->second.second).length();
+                newlen += GetString(it->second.first, masterSceneID, masterScene).length();
+
+                if (newlen < MAX_FILE_LEN) {
+                    blobLength = newlen;
+                    masterScenes[masterSceneID].second = masterScene;
+                    responseCode = LSF_OK;
+                    updated = true;
+                    ScheduleFileWrite();
+                } else {
+                    responseCode = LSF_ERR_RESOURCES;
+                }
+            }
+            status = masterScenesLock.Unlock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: masterScenesLock.Unlock() failed", __func__));
+            }
+        } else {
+            responseCode = LSF_ERR_BUSY;
+            QCC_LogError(status, ("%s: masterScenesLock.Lock() failed", __func__));
+        }
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, masterSceneID);
@@ -383,6 +439,11 @@ void MasterSceneManager::DeleteMasterScene(Message& message)
     args[0].Get("s", &uniqueId);
 
     LSFString masterSceneID(uniqueId);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(message, LSF_ERR_BUSY, masterSceneID);
+        return;
+    }
 
     QStatus status = masterScenesLock.Lock();
     if (ER_OK == status) {
@@ -487,12 +548,10 @@ void MasterSceneManager::ApplyMasterScene(ajn::Message& message)
     }
 
     if (LSF_OK == responseCode) {
-        responseCode = sceneManager.ApplySceneInternal(message, scenes);
+        responseCode = sceneManager.ApplySceneInternal(message, scenes, uniqueId);
     }
 
-    if (LSF_OK == responseCode) {
-        controllerService.SendSignal(ControllerServiceMasterSceneInterfaceName, "MasterScenesApplied", appliedList);
-    } else {
+    if (LSF_OK != responseCode) {
         controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, uniqueId);
     }
 }

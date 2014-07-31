@@ -221,7 +221,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     void GetLampParametersField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
 
     void ChangeLampState(const ajn::Message& inMsg, bool groupOperation, bool sceneOperation, TransitionStateParamsList& transitionStateParams,
-                         TransitionStateFieldParamsList& transitionStateFieldparams, PulseStateParamsList& pulseParams);
+                         TransitionStateFieldParamsList& transitionStateFieldparams, PulseStateParamsList& pulseParams, LSFString sceneOrMasterSceneID = LSFString());
 
     /**
      * Get the lamp faults
@@ -271,7 +271,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     struct ResponseCounter {
         ResponseCounter() :
-            numWaiting(0), successCount(0), failCount(0), notFoundCount(0), total(0) { }
+            numWaiting(0), successCount(0), failCount(0), notFoundCount(0), total(0) {
+            sceneOrMasterSceneID.clear();
+        }
 
         void AddLamps(uint32_t numLamps)
         {
@@ -287,6 +289,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
         std::list<ajn::MsgArg> standardReplyArgs;
         std::list<ajn::MsgArg> customReplyArgs;
+        LSFString sceneOrMasterSceneID;
     };
 
     struct QueuedMethodCallElement {
@@ -342,9 +345,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
 
-    void PingCB(QStatus status, void* context);
-
     void SessionPingCB(Message& message, void* context);
+
+    void PingCB(QStatus status, void* context);
 
     struct LampConnection {
         LSFString lampId;
@@ -392,15 +395,10 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFSemaphore wakeUp;
 
-    uint8_t sentNGNSPings;
     uint8_t sentSessionPings;
-    uint8_t receivedNGNSPingResponses;
     uint8_t receivedSessionPingResponses;
-    LSFStringList probableLostLamps;
     LSFStringList lostLamps;
-    Mutex ngnsPingResponseLock;
     Mutex sessionPingResponseLock;
-    bool pingsInProgress;
 
     Mutex connectToLampsLock;
     bool connectToLamps;

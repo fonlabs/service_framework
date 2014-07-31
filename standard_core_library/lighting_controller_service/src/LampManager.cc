@@ -406,7 +406,8 @@ void LampManager::ChangeLampStateAndField(Message& message,
                                           PulseLampsWithStateList& pulseWithStateComponent,
                                           PulseLampsWithPresetList& pulseWithPresetComponent,
                                           bool groupOperation,
-                                          bool sceneOperation)
+                                          bool sceneOperation,
+                                          LSFString sceneOrMasterSceneId)
 {
     LSFResponseCode responseCode = LSF_ERR_FAILURE;
 
@@ -426,7 +427,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
     while (transitionToStateComponent.size()) {
         LampsAndState transitionToStateComp = transitionToStateComponent.front();
         MsgArg state;
-        transitionToStateComp.state.Get(&state);
+        transitionToStateComp.state.Get(&state, true);
         QCC_DbgPrintf(("%s: Applying transitionToStateComponent", __func__));
         TransitionStateParams params(transitionToStateComp.lamps, timestamp, state, transitionToStateComp.transitionPeriod);
         stateParamsList.push_back(params);
@@ -439,7 +440,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
         responseCode = presetManager.GetPresetInternal(transitionToPresetComp.presetID, preset);
         if (LSF_OK == responseCode) {
             MsgArg state;
-            preset.Get(&state);
+            preset.Get(&state, true);
             QCC_DbgPrintf(("%s: Applying transitionToPresetComponent", __func__));
             TransitionStateParams params(transitionToPresetComp.lamps, timestamp, state, transitionToPresetComp.transitionPeriod);
             stateParamsList.push_back(params);
@@ -472,8 +473,8 @@ void LampManager::ChangeLampStateAndField(Message& message,
         PulseLampsWithState pulseWithStateComp = pulseWithStateComponent.front();
         MsgArg fromState;
         MsgArg toState;
-        pulseWithStateComp.fromState.Get(&fromState);
-        pulseWithStateComp.toState.Get(&toState);
+        pulseWithStateComp.fromState.Get(&fromState, true);
+        pulseWithStateComp.toState.Get(&toState, true);
         PulseStateParams params(pulseWithStateComp.lamps, fromState, toState, pulseWithStateComp.period, pulseWithStateComp.duration,
                                 pulseWithStateComp.numPulses, timestamp);
         pulseParamsList.push_back(params);
@@ -490,8 +491,8 @@ void LampManager::ChangeLampStateAndField(Message& message,
             if (LSF_OK == responseCode) {
                 MsgArg fromState;
                 MsgArg toState;
-                fromPreset.Get(&fromState);
-                toPreset.Get(&toState);
+                fromPreset.Get(&fromState, true);
+                toPreset.Get(&toState, true);
                 QCC_DbgPrintf(("%s: Applying pulseWithPresetComponent", __func__));
                 PulseStateParams params(pulseWithPresetComp.lamps, fromState, toState, pulseWithPresetComp.period, pulseWithPresetComp.duration,
                                         pulseWithPresetComp.numPulses, timestamp);
@@ -512,7 +513,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
         pulseWithPresetComponent.pop_front();
     }
 
-    lampClients.ChangeLampState(message, groupOperation, sceneOperation, stateParamsList, stateFieldParamsList, pulseParamsList);
+    lampClients.ChangeLampState(message, groupOperation, sceneOperation, stateParamsList, stateFieldParamsList, pulseParamsList, sceneOrMasterSceneId);
 }
 
 void LampManager::TransitionLampState(ajn::Message& message)

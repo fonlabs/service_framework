@@ -44,6 +44,8 @@ class MasterSceneManager : public Manager {
     void GetMasterScene(ajn::Message& message);
     void ApplyMasterScene(ajn::Message& message);
 
+    void SendMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId);
+
     LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
 
     void ReadSavedData();

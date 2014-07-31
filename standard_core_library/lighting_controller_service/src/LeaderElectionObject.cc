@@ -31,9 +31,13 @@ bool g_IsLeader = false;
 using namespace lsf;
 using namespace ajn;
 
+static const char* ControllerServiceInterface[] = {
+    ControllerServiceInterfaceName
+};
+
 class LeaderElectionObject::WorkerThread : public Thread {
   public:
-    WorkerThread(LeaderElectionObject& object) : object(object), running(true) { }
+    WorkerThread(LeaderElectionObject& object, services::AnnounceHandler& handler) : object(object), handler(handler), running(true) { }
 
     virtual ~WorkerThread() { }
 
@@ -45,6 +49,7 @@ class LeaderElectionObject::WorkerThread : public Thread {
   protected:
 
     LeaderElectionObject& object;
+    services::AnnounceHandler& handler;
     volatile bool running;
     LSFSemaphore semaphore;
 };
@@ -59,13 +64,18 @@ void LeaderElectionObject::WorkerThread::Run()
             return;
         }
 
-        // advertise!
-        services::AboutServiceApi::getInstance()->Announce();
+        bool found;
+        do {
+            object.ClearCurrentState();
+            services::AboutServiceApi::getInstance()->Announce();
+            // wait one second for announcements to come in
+            usleep(1000000);
 
-        // wait one second for announcements to come in
-        usleep(1000000);
+            found = object.DoLeaderElection();
 
-        object.DoLeaderElection();
+            // start over!
+            // increment the semaphore so it will go again
+        } while (!found);
     }
 }
 
@@ -102,12 +112,6 @@ class LeaderElectionObject::Handler : public ajn::services::AnnounceHandler,
         QCC_DbgTrace(("SessionLost(%u)", sessionId));
         elector.bus.EnableConcurrentCallbacks();
         elector.OnSessionLost(sessionId);
-    }
-
-    virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName) {
-        QCC_DbgTrace(("SessionMemberRemoved(%u, %s)", sessionId, uniqueName));
-        elector.bus.EnableConcurrentCallbacks();
-        elector.OnSessionMemberRemoved(sessionId, uniqueName);
     }
 
     LeaderElectionObject& elector;
@@ -170,7 +174,7 @@ LeaderElectionObject::LeaderElectionObject(ControllerService& controller)
     myRank(0UL),
     leaderObj(NULL),
     blobChangedSignal(NULL),
-    thread(new WorkerThread(*this))
+    thread(new WorkerThread(*this, *handler))
 {
     QCC_DbgTrace(("%s", __func__));
     ClearCurrentLeader();
@@ -198,7 +202,7 @@ LeaderElectionObject::~LeaderElectionObject()
 
 void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId)
 {
-    QCC_DbgPrintf(("OnAnnounced(%u, %s, %lu)", port, busName, rank));
+    QCC_DbgPrintf(("OnAnnounced(%u, %s, %s, %lu)", port, busName, (isLeader ? "true" : "false"), rank));
 
     if (isLeader) {
         controllersLock.Lock();
@@ -262,7 +266,7 @@ void LeaderElectionObject::OnSessionLost(SessionId sessionId)
     thread->Go();
 }
 
-void LeaderElectionObject::DoLeaderElection()
+bool LeaderElectionObject::DoLeaderElection()
 {
     QCC_DbgTrace(("%s", __func__));
     controllersLock.Lock();
@@ -291,10 +295,38 @@ void LeaderElectionObject::DoLeaderElection()
         QCC_DbgPrintf(("Set Leader bit = true and announce\n"));
         g_IsLeader = true;
         controller.SetIsLeader(true);
+        controller.SetAllowUpdates(true);
         controller.GetLampManager().ConnectToLamps();
+        return true;
+    } else if (leaderRank) {
+        // do nothing; we're already connected to a leader
+        return true;
     }
 
     // else somebody else is the leader so we should wait for it to announce with isLeader=1
+    // but what if the announcement never comes?
+
+    // by returning false, we tell the thread to try again.
+    return false;
+}
+
+void LeaderElectionObject::OnSessionMemberAdded(SessionId sessionId, const char* uniqueName)
+{
+    QCC_DbgTrace(("LeaderElectionObject::OnSessionMemberAdded(%u, %s)", sessionId, uniqueName));
+    controllersLock.Lock();
+
+    // clients won't appear in this map!
+    ControllerEntryMap::const_iterator it = controllers.find(uniqueName);
+    if (it != controllers.end()) {
+        const ControllerEntry& entry = it->second;
+
+        QCC_DbgTrace(("RANK: %lu, myRank: %lu", entry.rank, myRank));
+        if (entry.rank > myRank) {
+            controller.SetAllowUpdates(false);
+        }
+    }
+
+    controllersLock.Unlock();
 }
 
 void LeaderElectionObject::OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName)
@@ -357,6 +389,8 @@ void LeaderElectionObject::OnGetBlobReply(ajn::Message& message, void* context)
 
     Synchronization* sync = static_cast<Synchronization*>(context);
     if (0 == qcc::DecrementAndFetch(&sync->numWaiting)) {
+        // wait another second for announcements to come in
+        thread->Go();
         // we're finished synchronizing!
         QCC_DbgPrintf(("Finished synchronizing!"));
         delete sync;
@@ -422,6 +456,8 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
         sync->numWaiting = storesToFetch.size();
         QCC_DbgPrintf(("Going to synchronize %d types", sync->numWaiting));
 
+        bool methodCallFailCount = 0;
+
         for (std::list<LSFBlobType>::iterator it = storesToFetch.begin(); it != storesToFetch.end(); ++it) {
             LSFBlobType type = *it;
             MsgArg arg("u", type);
@@ -437,19 +473,32 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
                     1,
                     sync);
                 if (status != ER_OK) {
-                    delete sync;
+                    methodCallFailCount++;
                     QCC_LogError(ER_FAIL, ("%s: Method Call Async failed", __func__));
                 }
             }
             controllersLock.Unlock();
         }
+
+        if (methodCallFailCount == storesToFetch.size()) {
+            QCC_LogError(ER_FAIL, ("%s: All Method Call Asyncs failed", __func__));
+            delete sync;
+        }
     } else {
         // no need to sync anything; check if we're the new leader
-        PossiblyOverthrow();
+        PossiblyOverthrow(); services::AboutServiceApi::getInstance()->Announce();
     }
 }
 
 
+// called when somebody joins *our* session
+void LeaderElectionObject::OnSessionJoined(ajn::SessionId session, const char* joiner)
+{
+    QCC_DbgPrintf(("ControllerService::OnSessionJoined(%u, %s)", session, joiner));
+    //OnSessionMemberAdded(session, joiner);
+}
+
+// called when we join another controller's session
 void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId)
 {
     QCC_DbgPrintf(("ControllerService::OnJoined(%s, %u, %s)", QCC_StatusText(status), sessionId, currentLeader.busName.c_str()));
@@ -466,6 +515,7 @@ void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId)
         leaderObj = new ProxyBusObject(bus, currentLeader.busName.c_str(), LeaderElectionAndStateSyncObjectPath, sessionId);
 
         if (!leaderObj) {
+            controllersLock.Unlock();
             QCC_LogError(ER_FAIL, ("%s: Could not allocate memory for new ProxyBusObject", __func__));
             return;
         }
@@ -513,10 +563,6 @@ void LeaderElectionObject::ClearCurrentLeader()
     currentLeader.port = 0;
 }
 
-static const char* ControllerServiceInterface[] = {
-    ControllerServiceInterfaceName
-};
-
 QStatus LeaderElectionObject::Start()
 {
     QCC_DbgTrace(("%s", __func__));
@@ -531,6 +577,12 @@ QStatus LeaderElectionObject::Start()
     }
 
     const InterfaceDescription* stateSyncInterface = bus.GetInterface(LeaderElectionAndStateSyncInterfaceName);
+
+    if (!stateSyncInterface) {
+        QCC_LogError(status, ("%s: Failed to get a valid state sync interface", __func__));
+        return status;
+    }
+
     AddInterface(*stateSyncInterface);
 
     const MethodEntry methodEntries[] = {
@@ -561,6 +613,9 @@ QStatus LeaderElectionObject::Start()
         QCC_LogError(status, ("%s: Failed to register BusObject for the Leader Object", __func__));
         return status;
     }
+
+    // announce before registering the handler and hope that my peers see this before I see an announcement with IsLeader=1
+    services::AboutServiceApi::getInstance()->Announce();
 
     status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
     if (status != ER_OK) {
@@ -603,17 +658,14 @@ QStatus LeaderElectionObject::Join()
         QCC_LogError(status, ("%s: Failed to start the unregister BlobChanged Handler", __func__));
     }
 
-    status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the unregister Announce Handler", __func__));
-    }
-
     return status;
 }
 
 void LeaderElectionObject::Overthrow(const InterfaceDescription::Member* member, ajn::Message& msg)
 {
     QCC_DbgTrace(("%s", __func__));
+
+    controller.SetAllowUpdates(false);
 
     g_IsLeader = false;
     controller.Overthrow();
@@ -663,7 +715,7 @@ QStatus LeaderElectionObject::SendBlobUpdate(SessionId session, LSFBlobType type
     QCC_DbgTrace(("%s", __func__));
     MsgArg args[4];
     args[0].Set("u", static_cast<uint32_t>(type));
-    args[1].Set("s", strdup(blob.c_str()));
+    args[1].Set("s", strdupnew(blob.c_str()));
     args[1].SetOwnershipFlags(MsgArg::OwnsData);
     args[2].Set("u", checksum);
     args[3].Set("t", timestamp);
@@ -676,7 +728,7 @@ void LeaderElectionObject::SendGetBlobReply(ajn::Message& message, LSFBlobType t
     QCC_DbgTrace(("%s", __func__));
     MsgArg args[4];
     args[0].Set("u", static_cast<uint32_t>(type));
-    args[1].Set("s", strdup(blob.c_str()));
+    args[1].Set("s", strdupnew(blob.c_str()));
     args[1].SetOwnershipFlags(MsgArg::OwnsData);
     args[2].Set("u", checksum);
     args[3].Set("t", timestamp);
@@ -784,5 +836,21 @@ void LeaderElectionObject::OnBlobChanged(const InterfaceDescription::Member* mem
     default:
         QCC_LogError(ER_FAIL, ("%s: Unsupported blob type requested", __func__));
         break;
+    }
+}
+
+void LeaderElectionObject::ClearCurrentState(void)
+{
+    controllersLock.Lock();
+    ClearCurrentLeader();
+    controllers.clear();
+    controllersLock.Unlock();
+    QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
+    if (ER_OK == status) {
+        QCC_DbgPrintf(("%s: UnRegisterAnnounceHandler successful", __func__));
+        status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
+        if (status == ER_OK) {
+            QCC_DbgPrintf(("%s: RegisterAnnounceHandler successful", __func__));
+        }
     }
 }

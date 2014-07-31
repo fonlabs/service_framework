@@ -59,6 +59,11 @@ LSFResponseCode PresetManager::Reset(void)
 {
     QCC_DbgPrintf(("%s", __func__));
     LSFResponseCode responseCode = LSF_OK;
+
+    if (!controllerService.UpdatesAllowed()) {
+        return LSF_ERR_BUSY;
+    }
+
     QStatus tempStatus = presetsLock.Lock();
     if (ER_OK == tempStatus) {
         /*
@@ -107,8 +112,8 @@ LSFResponseCode PresetManager::ResetDefaultState(void)
     PresetMap::iterator it = presets.find(defaultLampStateID);
     if (it != presets.end()) {
         QCC_DbgPrintf(("%s: Removing the default lamp state entry", __func__));
-        presets.erase(it);
         blobLength -= GetString(it->second.first, defaultLampStateID, it->second.second).length();
+        presets.erase(it);
         erased = true;
     }
     presetsLock.Unlock();
@@ -242,6 +247,12 @@ void PresetManager::SetPresetName(Message& msg)
     args[1].Get("s", &name);
 
     LSFString language = static_cast<LSFString>(args[2].v_string.str);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeIDAndName(msg, LSF_ERR_BUSY, presetID, language);
+        return;
+    }
+
     if (0 != strcmp("en", language.c_str())) {
         QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
         responseCode = LSF_ERR_INVALID_ARGS;
@@ -296,34 +307,43 @@ void PresetManager::CreatePreset(Message& msg)
 
     LSFResponseCode responseCode = LSF_OK;
 
-    bool created = false;
     LSFString presetID;
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(msg, LSF_ERR_BUSY, presetID);
+        return;
+    }
+
+    presetID = GenerateUniqueID("PRESET");
+
+    bool created = false;
 
     const ajn::MsgArg* inputArgs;
     size_t numInputArgs;
     msg->GetArgs(numInputArgs, inputArgs);
 
-    QStatus status = presetsLock.Lock();
-    if (ER_OK == status) {
-        if (presets.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
-            presetID = GenerateUniqueID("PRESET");
-            LampState preset(inputArgs[0]);
+    LampState preset(inputArgs[0]);
+    LSFString name = static_cast<LSFString>(inputArgs[1].v_string.str);
+    LSFString language = static_cast<LSFString>(inputArgs[2].v_string.str);
 
-            LSFString name = static_cast<LSFString>(inputArgs[1].v_string.str);
-            LSFString language = static_cast<LSFString>(inputArgs[2].v_string.str);
-
-            if (0 != strcmp("en", language.c_str())) {
-                QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
-                responseCode = LSF_ERR_INVALID_ARGS;
-            } else if (name.empty()) {
-                QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
-                responseCode = LSF_ERR_EMPTY_NAME;
-            } else if (preset.nullState) {
-                QCC_LogError(ER_FAIL, ("%s: Cannot save NULL state as a Preset", __func__, language.c_str()));
-                responseCode = LSF_ERR_INVALID_ARGS;
-            } else {
-                std::string newGroupStr = GetString(name, presetID, preset);
-                size_t newlen = blobLength + newGroupStr.length();
+    if (0 != strcmp("en", language.c_str())) {
+        QCC_LogError(ER_FAIL, ("%s: Language %s not supported", __func__, language.c_str()));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name.empty()) {
+        QCC_LogError(ER_FAIL, ("%s: scene name is empty", __func__));
+        responseCode = LSF_ERR_EMPTY_NAME;
+    } else if (preset.nullState) {
+        QCC_LogError(ER_FAIL, ("%s: Cannot save NULL state as a Preset", __func__, language.c_str()));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else if (name.length() > LSF_MAX_NAME_LENGTH) {
+        QCC_LogError(ER_FAIL, ("%s: name length exceeds %d", __func__, LSF_MAX_NAME_LENGTH));
+        responseCode = LSF_ERR_INVALID_ARGS;
+    } else {
+        QStatus status = presetsLock.Lock();
+        if (ER_OK == status) {
+            if (presets.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
+                std::string newPresetStr = GetString(name, presetID, preset);
+                size_t newlen = blobLength + newPresetStr.length();
                 if (newlen < MAX_FILE_LEN) {
                     blobLength = newlen;
                     presets[presetID].first = name;
@@ -333,18 +353,22 @@ void PresetManager::CreatePreset(Message& msg)
                 } else {
                     responseCode = LSF_ERR_RESOURCES;
                 }
+            } else {
+                QCC_LogError(ER_FAIL, ("%s: No slot for new Preset", __func__));
+                responseCode = LSF_ERR_NO_SLOT;
+            }
+            status = presetsLock.Unlock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: presetsLock.Unlock() failed", __func__));
             }
         } else {
-            QCC_LogError(ER_FAIL, ("%s: No slot for new Preset", __func__));
-            responseCode = LSF_ERR_NO_SLOT;
+            responseCode = LSF_ERR_BUSY;
+            QCC_LogError(status, ("%s: presetsLock.Lock() failed", __func__));
         }
-        status = presetsLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: presetsLock.Unlock() failed", __func__));
-        }
-    } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: presetsLock.Lock() failed", __func__));
+    }
+
+    if (!created) {
+        presetID.clear();
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, presetID);
@@ -371,34 +395,45 @@ void PresetManager::UpdatePreset(Message& msg)
     args[0].Get("s", &presetId);
 
     LSFString presetID(presetId);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(msg, LSF_ERR_BUSY, presetID);
+        return;
+    }
+
     LampState preset(args[1]);
 
-    QStatus status = presetsLock.Lock();
-    if (ER_OK == status) {
-        PresetMap::iterator it = presets.find(presetId);
-        if (it != presets.end()) {
-            size_t newlen = blobLength;
-            // sub len of old group, add len of new group
-            newlen -= GetString(it->second.first, presetID, it->second.second).length();
-            newlen += GetString(it->second.first, presetID, preset).length();
-
-            if (newlen < MAX_FILE_LEN) {
-                blobLength = newlen;
-                presets[presetID].second = preset;
-                responseCode = LSF_OK;
-                updated = true;
-                ScheduleFileWrite();
-            } else {
-                responseCode = LSF_ERR_RESOURCES;
-            }
-        }
-        status = presetsLock.Unlock();
-        if (ER_OK != status) {
-            QCC_LogError(status, ("%s: presetsLock.Unlock() failed", __func__));
-        }
+    if (preset.nullState) {
+        QCC_LogError(ER_FAIL, ("%s: Empty state", __func__));
+        responseCode = LSF_ERR_INVALID_ARGS;
     } else {
-        responseCode = LSF_ERR_BUSY;
-        QCC_LogError(status, ("%s: presetsLock.Lock() failed", __func__));
+        QStatus status = presetsLock.Lock();
+        if (ER_OK == status) {
+            PresetMap::iterator it = presets.find(presetId);
+            if (it != presets.end()) {
+                size_t newlen = blobLength;
+                // sub len of old group, add len of new group
+                newlen -= GetString(it->second.first, presetID, it->second.second).length();
+                newlen += GetString(it->second.first, presetID, preset).length();
+
+                if (newlen < MAX_FILE_LEN) {
+                    blobLength = newlen;
+                    presets[presetID].second = preset;
+                    responseCode = LSF_OK;
+                    updated = true;
+                    ScheduleFileWrite();
+                } else {
+                    responseCode = LSF_ERR_RESOURCES;
+                }
+            }
+            status = presetsLock.Unlock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: presetsLock.Unlock() failed", __func__));
+            }
+        } else {
+            responseCode = LSF_ERR_BUSY;
+            QCC_LogError(status, ("%s: presetsLock.Lock() failed", __func__));
+        }
     }
 
     controllerService.SendMethodReplyWithResponseCodeAndID(msg, responseCode, presetID);
@@ -425,6 +460,11 @@ void PresetManager::DeletePreset(Message& msg)
     args[0].Get("s", &presetId);
 
     LSFString presetID(presetId);
+
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithResponseCodeAndID(msg, LSF_ERR_BUSY, presetID);
+        return;
+    }
 
     responseCode = sceneManagerPtr->IsDependentOnPreset(presetID);
 
@@ -523,12 +563,16 @@ void PresetManager::SetDefaultLampState(Message& msg)
 
     MsgArg arg;
 
-    LampState preset(*inputArg);
-    if (LSF_OK == SetDefaultLampStateInternal(preset)) {
-        responseCode = LSF_OK;
-    }
+    if (!controllerService.UpdatesAllowed()) {
+        controllerService.SendMethodReplyWithUint32Value(msg, LSF_ERR_BUSY);
+    } else {
+        LampState preset(*inputArg);
+        if (LSF_OK == SetDefaultLampStateInternal(preset)) {
+            responseCode = LSF_OK;
+        }
 
-    controllerService.SendMethodReplyWithUint32Value(msg, (uint32_t &)responseCode);
+        controllerService.SendMethodReplyWithUint32Value(msg, (uint32_t &)responseCode);
+    }
 }
 
 LSFResponseCode PresetManager::GetDefaultLampStateInternal(LampState& preset)

@@ -48,7 +48,7 @@ class ControllerService::ControllerListener :
 
     // SessionPortListener
     virtual bool AcceptSessionJoiner(SessionPort sessionPort, const char* joiner, const SessionOpts& opts) {
-        QCC_DbgTrace(("%s:SessionPort=%d, joiner=%s", __func__, sessionPort, joiner));
+        QCC_DbgTrace(("%s:SessionPort=%u, joiner=%s", __func__, sessionPort, joiner));
         // only allow multipoint sessions
         bool acceptStatus = (sessionPort == ControllerServiceSessionPort && controller->IsLeader());
         if (acceptStatus && opts.isMultipoint) {
@@ -60,12 +60,12 @@ class ControllerService::ControllerListener :
     }
 
     virtual void SessionJoined(SessionPort sessionPort, SessionId sessionId, const char* joiner) {
-        QCC_DbgPrintf(("%s: sessionPort(%d), sessionId(%d), joiner(%s)", __func__, sessionPort, sessionId, joiner));
+        QCC_DbgPrintf(("%s: sessionPort(%u), sessionId(%u), joiner(%s)", __func__, sessionPort, sessionId, joiner));
         if (multipointSessionId == 0) {
-            if (0 == strcmp(multipointjoiner.c_str(), joiner)) {
+            if (multipointjoiner == joiner) {
                 multipointSessionId = sessionId;
-                QCC_DbgPrintf(("%s: Recorded multi-point session id %d\n", __func__, multipointSessionId));
-                controller->SessionJoined(sessionId);
+                QCC_DbgPrintf(("%s: Recorded multi-point session id %u\n", __func__, multipointSessionId));
+                controller->SessionJoined(sessionId, joiner);
             }
         } else {
             if (multipointSessionId == sessionId) {
@@ -75,13 +75,25 @@ class ControllerService::ControllerListener :
     }
 
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason) {
-        QCC_DbgPrintf(("%s: sessionId(%d), reason(%d)", __func__, sessionId, reason));
+        QCC_DbgPrintf(("%s: sessionId(%u), reason(%d)", __func__, sessionId, reason));
         if (multipointSessionId == sessionId) {
-            QCC_DbgPrintf(("%s: Lost multi-point session id %d\n", __func__, multipointSessionId));
+            QCC_DbgPrintf(("%s: Lost multi-point session id %u\n", __func__, multipointSessionId));
             controller->SessionLost(sessionId);
             multipointSessionId = 0;
             multipointjoiner.clear();
         }
+    }
+
+    virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName) {
+        QCC_DbgTrace(("%s(%u, %s)", __func__, sessionId, uniqueName));
+        controller->bus.EnableConcurrentCallbacks();
+        controller->elector.OnSessionMemberRemoved(sessionId, uniqueName);
+    }
+
+    virtual void SessionMemberAdded(SessionId sessionId, const char* uniqueName) {
+        QCC_DbgTrace(("%s(%u, %s)", __func__, sessionId, uniqueName));
+        controller->bus.EnableConcurrentCallbacks();
+        controller->elector.OnSessionMemberAdded(sessionId, uniqueName);
     }
 
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData) {
@@ -158,11 +170,6 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
 
     virtual void JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context) {
         QCC_DbgTrace(("%s:status=%s sessionId=%d", __func__, QCC_StatusText(status), sessionId));
-        OBSJoiner* joinHandler = static_cast<OBSJoiner*>(context);
-
-        if (joinHandler == NULL) {
-            return;
-        }
 
         if (status == ER_OK) {
             controller.obsObjectLock.Lock();
@@ -185,8 +192,6 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
             controller.obsObjectLock.Unlock();
         }
 
-        delete joinHandler;
-
         if (status != ER_OK) {
             delete this;
         }
@@ -195,9 +200,6 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
     ControllerService& controller;
     qcc::String busName;
 };
-
-
-
 
 ControllerService::ControllerService(
     ajn::services::PropertyStore& propStore,
@@ -208,8 +210,8 @@ ControllerService::ControllerService(
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
     BusObject(ControllerServiceObjectPath),
-    elector(*this),
     bus("LightingServiceController", true),
+    elector(*this),
     serviceSession(0),
     listener(new ControllerListener(this)),
     lampManager(*this, presetManager),
@@ -227,7 +229,8 @@ ControllerService::ControllerService(
     isObsObjectReady(false),
     isRunning(true),
     fileWriterThread(*this),
-    firstAnnouncementSent(false)
+    firstAnnouncementSent(false),
+    updatesAllowed(false)
 {
     QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
 }
@@ -240,8 +243,8 @@ ControllerService::ControllerService(
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
     BusObject(ControllerServiceObjectPath),
-    elector(*this),
     bus("LightingServiceController", true),
+    elector(*this),
     serviceSession(0),
     listener(new ControllerListener(this)),
     lampManager(*this, presetManager),
@@ -259,7 +262,8 @@ ControllerService::ControllerService(
     isObsObjectReady(false),
     isRunning(true),
     fileWriterThread(*this),
-    firstAnnouncementSent(false)
+    firstAnnouncementSent(false),
+    updatesAllowed(false)
 {
     QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
     internalPropertyStore.Initialize();
@@ -292,6 +296,7 @@ void ControllerService::Initialize()
     sceneManager.ReadSavedData();
     masterSceneManager.ReadSavedData();
 
+    messageHandlersLock.Lock();
     AddMethodHandler("LightingResetControllerService", this, &ControllerService::LightingResetControllerService);
     AddMethodHandler("GetControllerServiceVersion", this, &ControllerService::GetControllerServiceVersion);
     AddMethodHandler("GetAllLampIDs", &lampManager, &LampManager::GetAllLampIDs);
@@ -353,6 +358,7 @@ void ControllerService::Initialize()
     AddMethodHandler("DeleteMasterScene", &masterSceneManager, &MasterSceneManager::DeleteMasterScene);
     AddMethodHandler("GetMasterScene", &masterSceneManager, &MasterSceneManager::GetMasterScene);
     AddMethodHandler("ApplyMasterScene", &masterSceneManager, &MasterSceneManager::ApplyMasterScene);
+    messageHandlersLock.Unlock();
 }
 
 ControllerService::~ControllerService()
@@ -364,11 +370,6 @@ ControllerService::~ControllerService()
     }
     QCC_DbgPrintf(("%s: Done deleting listener", __func__));
 
-    for (DispatcherMap::iterator it = messageHandlers.begin(); it != messageHandlers.end(); ++it) {
-        delete it->second;
-    }
-    messageHandlers.clear();
-
     obsObjectLock.Lock();
     if (obsObject != NULL) {
         delete obsObject;
@@ -376,6 +377,26 @@ ControllerService::~ControllerService()
         obsObject = NULL;
     }
     obsObjectLock.Unlock();
+
+    if (aboutService) {
+        services::AboutServiceApi::DestroyInstance();
+        aboutService = NULL;
+    }
+
+    if (notificationSender) {
+        services::NotificationService::getInstance()->shutdown();
+        notificationSender = NULL;
+    }
+
+    DispatcherMap localCopy;
+    messageHandlersLock.Lock();
+    localCopy = messageHandlers;
+    messageHandlers.clear();
+    messageHandlersLock.Unlock();
+
+    for (DispatcherMap::iterator it = localCopy.begin(); it != localCopy.end(); it++) {
+        delete it->second;
+    }
 }
 
 QStatus ControllerService::CreateAndAddInterface(std::string interfaceDescription, const char* interfaceName) {
@@ -693,6 +714,22 @@ QStatus ControllerService::Stop(void)
 
     internalPropertyStore.Stop();
 
+    status = services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(bus);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to unregister all Announce Handlers", __func__));
+    }
+
+    sceneManager.UnregsiterSceneEventActionObjects();
+
+    if (aboutService) {
+        aboutService->Unregister();
+    }
+
+    // we need to manage the notification sender's memory
+    if (notificationSender) {
+        services::NotificationService::getInstance()->shutdownSender();
+    }
+
     if (bus.IsConnected()) {
         status = bus.Disconnect();
         if (status != ER_OK) {
@@ -721,21 +758,6 @@ QStatus ControllerService::Join(void)
 
     internalPropertyStore.Join();
 
-    if (aboutService) {
-        aboutService->Unregister();
-        services::AboutServiceApi::DestroyInstance();
-    }
-
-    // we need to manage the notification sender's memory
-    if (notificationSender) {
-        services::NotificationService::getInstance()->shutdownSender();
-    }
-
-    status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *listener, OnboardingInterfaces, 2);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to unregister Announce Handler", __func__));
-    }
-
     bus.UnregisterBusListener(*listener);
 
     bus.UnregisterBusObject(*this);
@@ -748,7 +770,7 @@ QStatus ControllerService::Join(void)
     return status;
 }
 
-QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalName, LSFStringList& idList)
+QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalName, const LSFStringList& idList)
 {
     QCC_DbgTrace(("%s:ifaceName=%s signalName=%s", __func__, ifaceName, signalName));
     QStatus status = ER_BUS_NO_SESSION;
@@ -762,12 +784,15 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
             ids[i] = it->c_str();
         }
         arg.Set("as", arraySize, ids);
-        arg.SetOwnershipFlags(MsgArg::OwnsData);
+        delete [] ids;
     }
 
     serviceSessionMutex.Lock();
     if (serviceSession != 0) {
-        status = Signal(NULL, serviceSession, *(bus.GetInterface(ifaceName)->GetMember(signalName)), &arg, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
+        if (signal) {
+            status = Signal(NULL, serviceSession, *signal, &arg, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+        }
     }
     serviceSessionMutex.Unlock();
 
@@ -787,7 +812,10 @@ QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const cha
 
     serviceSessionMutex.Lock();
     if (serviceSession != 0) {
-        status = Signal(NULL, serviceSession, *(bus.GetInterface(ifaceName)->GetMember(signalName)), NULL, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
+        if (signal) {
+            status = Signal(NULL, serviceSession, *signal, NULL, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+        }
     }
     serviceSessionMutex.Unlock();
 
@@ -877,10 +905,11 @@ void ControllerService::Overthrow()
     }
 }
 
-void ControllerService::SessionJoined(SessionId sessionId)
+void ControllerService::SessionJoined(SessionId sessionId, const char* joiner)
 {
     QCC_DbgTrace(("%s:sessionId-%d", __func__, sessionId));
     bus.SetSessionListener(sessionId, listener);
+    elector.OnSessionJoined(sessionId, joiner);
 
     // we are now serving up a multipoint session to the apps
     serviceSessionMutex.Lock();
@@ -966,12 +995,19 @@ void ControllerService::MethodCallDispatcher(const InterfaceDescription::Member*
 
     QCC_DbgPrintf(("%s: Received Method call %s from interface %s", __func__, msg->GetMemberName(), msg->GetInterface()));
 
+    MethodHandlerBase* handler = NULL;
+
+    messageHandlersLock.Lock();
     DispatcherMap::iterator it = messageHandlers.find(msg->GetMemberName());
     if (it != messageHandlers.end()) {
-        MethodHandlerBase* handler = it->second;
-        handler->Handle(msg);
+        handler = it->second;
     } else {
         QCC_LogError(ER_FAIL, ("%s: Could not find handler for method call", __func__));
+    }
+    messageHandlersLock.Unlock();
+
+    if (handler) {
+        handler->Handle(msg);
     }
 }
 
@@ -986,7 +1022,7 @@ void ControllerService::SendMethodReply(const ajn::Message& msg, const ajn::MsgA
     }
 }
 
-void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode& responseCode, LSFStringList& idList)
+void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode responseCode, const LSFStringList& idList)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
@@ -1003,7 +1039,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::M
         }
 
         replyArgs[1].Set("as", arraySize, ids);
-        replyArgs[1].SetOwnershipFlags(MsgArg::OwnsData);
+        delete [] ids;
         QCC_DbgPrintf(("%s: Sending method reply with %d entries", __func__, arraySize));
     } else {
         replyArgs[1].Set("as", 0, NULL);
@@ -1017,7 +1053,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::M
     }
 }
 
-void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName)
+void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& lsfName)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
@@ -1035,7 +1071,7 @@ void ControllerService::SendMethodReplyWithResponseCodeIDAndName(const ajn::Mess
     }
 }
 
-void ControllerService::SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId)
+void ControllerService::SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
@@ -1052,7 +1088,7 @@ void ControllerService::SendMethodReplyWithResponseCodeAndID(const ajn::Message&
     }
 }
 
-void ControllerService::SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t& value)
+void ControllerService::SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t value)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
@@ -1067,7 +1103,7 @@ void ControllerService::SendMethodReplyWithUint32Value(const ajn::Message& msg, 
     }
 }
 
-void ControllerService::SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& name)
+void ControllerService::SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& language, const LSFString& name)
 {
     QCC_DbgPrintf(("%s: Method Reply for %s", __func__, msg->GetMemberName()));
 
@@ -1151,14 +1187,14 @@ bool ControllerService::IsRunning()
     return b;
 }
 
-QStatus ControllerService::IsConnectedToRouter()
+QStatus ControllerService::IsConnectedToRouter(const uint32_t timeoutMS)
 {
     QCC_DbgPrintf(("%s", __func__));
     qcc::String daemonUniqueName = ":" + bus.GetGlobalGUIDShortString() + ".1";
     ajn::Message reply(bus);
     return bus.GetAllJoynProxyObj().MethodCall(
                org::freedesktop::DBus::Peer::InterfaceName,
-               "Ping", NULL, 0, reply, 1000);
+               "Ping", NULL, 0, reply, timeoutMS);
 }
 
 uint64_t ControllerService::GetRank()
@@ -1196,4 +1232,20 @@ void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, q
     if (firstAnnouncementSent) {
         aboutService->Announce();
     }
+}
+
+void ControllerService::SetAllowUpdates(bool allow)
+{
+    QCC_DbgPrintf(("ControllerService::SetAllowUpdates(%s)", (allow ? "true" : "false")));
+    updatesAllowedLock.Lock();
+    updatesAllowed = allow;
+    updatesAllowedLock.Unlock();
+}
+
+bool ControllerService::UpdatesAllowed()
+{
+    updatesAllowedLock.Lock();
+    bool allowed = updatesAllowed;
+    updatesAllowedLock.Unlock();
+    return allowed;
 }

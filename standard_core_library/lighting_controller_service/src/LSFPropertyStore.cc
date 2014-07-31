@@ -236,7 +236,7 @@ QStatus LSFPropertyStore::ReadAll(const char* languageTag, Filter filter, ajn::M
             status = isLanguageSupported(languageTag);
         } else {
             PropertyMap::iterator it = mapCopy.find(DEFAULT_LANG);
-            if (it == properties.end()) {
+            if (it == mapCopy.end()) {
                 return ER_LANGUAGE_NOT_SUPPORTED;
             }
 
