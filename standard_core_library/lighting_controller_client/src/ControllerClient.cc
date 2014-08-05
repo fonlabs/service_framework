@@ -22,6 +22,7 @@
 #include <qcc/Debug.h>
 
 #include <ControllerClient.h>
+#include <AllJoynStd.h>
 
 using namespace qcc;
 using namespace ajn;
@@ -39,7 +40,7 @@ namespace lsf {
  */
 class ControllerClient::ControllerClientBusHandler :
     public SessionListener, public BusAttachment::JoinSessionAsyncCB,
-    public services::AnnounceHandler {
+    public services::AnnounceHandler, public BusListener {
 
   public:
     /**
@@ -69,6 +70,13 @@ class ControllerClient::ControllerClientBusHandler :
 
     virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName);
 
+    virtual void BusDisconnected() {
+        QCC_DbgPrintf(("BusDisconnected!"));
+        ErrorCodeList errors;
+        errors.push_back(ERROR_DISCONNECTED_FROM_BUS);
+        controllerClient.callback.ControllerClientErrorCB(errors);
+    }
+
   private:
 
     /**
@@ -76,6 +84,49 @@ class ControllerClient::ControllerClientBusHandler :
      */
     ControllerClient& controllerClient;
 };
+
+void ControllerClient::DoLeaveSessionAsync(ajn::SessionId sessionId)
+{
+    QCC_DbgPrintf(("%s: sessionId(%d)", __func__, sessionId));
+    MsgArg arg("u", sessionId);
+
+    bus.GetAllJoynProxyObj().MethodCallAsync(
+        org::alljoyn::Bus::InterfaceName,
+        "LeaveSession",
+        this,
+        static_cast<ajn::MessageReceiver::ReplyHandler>(&ControllerClient::LeaveSessionAsyncReplyHandler),
+        &arg,
+        1);
+}
+
+void ControllerClient::LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context)
+{
+    QCC_DbgPrintf(("%s: Method Reply for LeaveSessionAsync:%s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+
+    if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+        uint32_t disposition;
+        QStatus status = message->GetArgs("u", &disposition);
+        if (status == ER_OK) {
+            switch (disposition) {
+            case ALLJOYN_LEAVESESSION_REPLY_SUCCESS:
+                QCC_DbgPrintf(("%s: Leave Session successful", __func__));
+                break;
+
+            case ALLJOYN_LEAVESESSION_REPLY_NO_SESSION:
+                QCC_DbgPrintf(("%s: No Session", __func__));
+                break;
+
+            case ALLJOYN_LEAVESESSION_REPLY_FAILED:
+                QCC_DbgPrintf(("%s: Leave Session reply failed", __func__));
+                break;
+
+            default:
+                QCC_DbgPrintf(("%s: Leave Session unexpected disposition", __func__));
+                break;
+            }
+        }
+    }
+}
 
 
 void ControllerClient::ControllerClientBusHandler::JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context)
@@ -189,6 +240,7 @@ ControllerClient::ControllerClient(
     ClearCurrentLeader();
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("services::AnnouncementRegistrar::RegisterAnnounceHandler: %s\n", QCC_StatusText(status)));
+    bus.RegisterBusListener(*busHandler);
 }
 
 ControllerClient::~ControllerClient()
@@ -205,7 +257,7 @@ ControllerClient::~ControllerClient()
     controllerLock.Unlock();
 
     if (sessionId) {
-        bus.LeaveSession(sessionId);
+        DoLeaveSessionAsync(sessionId);
     }
 
     services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
@@ -214,6 +266,8 @@ ControllerClient::~ControllerClient()
 
     RemoveSignalHandlers();
     RemoveMethodHandlers();
+
+    bus.UnregisterBusListener(*busHandler);
 
     if (busHandler) {
         delete busHandler;
@@ -239,13 +293,25 @@ void ControllerClient::ClearCurrentLeader()
 
 void ControllerClient::OnSessionMemberRemoved(ajn::SessionId sessionId, const char* uniqueName)
 {
+    bool leaveSession = false;
+
     controllerLock.Lock();
+    QCC_DbgPrintf(("%s: Received sessionId(%d), uniqueName(%s)", __func__, sessionId, uniqueName));
+    QCC_DbgPrintf(("%s: Current Leader sessionId(%d), currentLeader.busName(%s)", __func__, currentLeader.sessionId, uniqueName));
     if ((currentLeader.busName == uniqueName) && (currentLeader.sessionId == sessionId)) {
-        OnSessionLost(sessionId);
+        QCC_DbgPrintf(("%s: Setting leaveSession", __func__));
+        leaveSession = true;
     } else {
         QCC_DbgPrintf(("%s: Ignoring spurious OnSessionMemberRemoved", __func__));
     }
     controllerLock.Unlock();
+
+    if (leaveSession) {
+        QCC_DbgPrintf(("%s: Attempting DoLeaveSessionAsync", __func__));
+        DoLeaveSessionAsync(sessionId);
+        QCC_DbgPrintf(("%s: After DoLeaveSessionAsync", __func__));
+        OnSessionLost(sessionId);
+    }
 }
 
 
@@ -385,6 +451,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     controllerLock.Lock();
     // if the name of the current CS has changed...
     if (deviceID == currentLeader.deviceID) {
+        QCC_DbgPrintf(("%s: Same deviceID as current leader %s", __func__, deviceID));
         if (deviceName != currentLeader.deviceName) {
             currentLeader.deviceName = deviceName;
             if (currentLeader.sessionId != 0) {
@@ -394,6 +461,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
         }
     } else {
         if (rank > currentLeader.rank) {
+            QCC_DbgPrintf(("%s: Announcement with higher rank(%d) than current leader's rank(%d)", __func__, rank, currentLeader.rank));
             connectToNewLeader = true;
 
             ControllerEntry entry;
@@ -412,7 +480,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             currentLeader = entry;
             QCC_DbgPrintf(("%s: Updated new current leader entry", __func__));
         } else {
-            QCC_DbgPrintf(("%s: Ignoring a lower ranking leader accouncement than current leader", __func__));
+            QCC_DbgPrintf(("%s: Ignoring a lower ranking leader announcement than current leader", __func__));
             lowerRankingLeader = true;
         }
     }
@@ -423,7 +491,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     } else if (connectToNewLeader) {
         if (oldSessionId) {
             QCC_DbgPrintf(("%s: Tearing down old session", __func__));
-            bus.LeaveSession(oldSessionId);
+            DoLeaveSessionAsync(oldSessionId);
             callback.DisconnectedFromControllerServiceCB(oldDeviceId, oldDeviceName);
         }
 
@@ -833,7 +901,7 @@ void ControllerClient::Reset(void)
     controllerLock.Unlock();
 
     if (sessionId) {
-        bus.LeaveSession(sessionId);
+        DoLeaveSessionAsync(sessionId);
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 

@@ -46,7 +46,9 @@ typedef enum _ErrorCode {
     /**< AllJoyn Method Call Timeout */
     ERROR_ALLJOYN_METHOD_CALL_TIMEOUT = 3,
     /**< Irrecoverable error */
-    ERROR_IRRECOVERABLE = 4
+    ERROR_IRRECOVERABLE = 4,
+    /**< Disconnected from the AllJoyn Bus */
+    ERROR_DISCONNECTED_FROM_BUS = 5
 } ErrorCode;
 
 typedef std::list<ErrorCode> ErrorCodeList;

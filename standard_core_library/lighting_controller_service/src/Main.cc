@@ -149,7 +149,7 @@ void RunService(bool listenToInterrupts)
     isRunning = true;
 
     if (status == ER_OK) {
-        while (g_running && controllerSvcManagerPtr->IsRunning() && (controllerSvcManagerPtr->IsConnectedToRouter(TIMEOUT_MS_CONNECTED_TO_ROUTING_NODE) == ER_OK)) {
+        while (g_running && controllerSvcManagerPtr->IsRunning()) {
             lsf_Sleep(TIMEOUT_MS_CONNECTED_TO_ROUTING_NODE);
         }
     }

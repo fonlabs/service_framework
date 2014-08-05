@@ -22,6 +22,7 @@
 #include <ControllerService.h>
 #include <ServiceDescription.h>
 #include <DeviceIcon.h>
+#include <AllJoynStd.h>
 
 #include <alljoyn/notification/NotificationService.h>
 #include <string>
@@ -161,7 +162,7 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
             controller.obsObjectLock.Unlock();
 
             if (session != 0) {
-                controller.bus.LeaveSession(session);
+                controller.DoLeaveSessionAsync(session);
             }
         }
 
@@ -700,7 +701,7 @@ QStatus ControllerService::Stop(void)
     obsObjectLock.Unlock();
 
     if (session != 0) {
-        bus.LeaveSession(session);
+        DoLeaveSessionAsync(session);
     }
 
     QStatus status = elector.Stop();
@@ -901,7 +902,7 @@ void ControllerService::Overthrow()
     serviceSessionMutex.Unlock();
 
     if (sessionId) {
-        bus.LeaveSession(sessionId);
+        DoLeaveSessionAsync(sessionId);
     }
 }
 
@@ -931,7 +932,7 @@ void ControllerService::LeaveSession(ajn::SessionId sessionId)
 {
     QCC_DbgTrace(("%s:sessionId=%u", __func__, sessionId));
     bus.EnableConcurrentCallbacks();
-    bus.LeaveSession(sessionId);
+    DoLeaveSessionAsync(sessionId);
 }
 
 void ControllerService::LightingResetControllerService(Message& msg)
@@ -1187,14 +1188,47 @@ bool ControllerService::IsRunning()
     return b;
 }
 
-QStatus ControllerService::IsConnectedToRouter(const uint32_t timeoutMS)
+void ControllerService::DoLeaveSessionAsync(ajn::SessionId sessionId)
 {
-    QCC_DbgPrintf(("%s", __func__));
-    qcc::String daemonUniqueName = ":" + bus.GetGlobalGUIDShortString() + ".1";
-    ajn::Message reply(bus);
-    return bus.GetAllJoynProxyObj().MethodCall(
-               org::freedesktop::DBus::Peer::InterfaceName,
-               "Ping", NULL, 0, reply, timeoutMS);
+    QCC_DbgPrintf(("%s: sessionId(%d)", __func__, sessionId));
+    MsgArg arg("u", sessionId);
+
+    bus.GetAllJoynProxyObj().MethodCallAsync(
+        org::alljoyn::Bus::InterfaceName,
+        "LeaveSession",
+        this,
+        static_cast<ajn::MessageReceiver::ReplyHandler>(&ControllerService::LeaveSessionAsyncReplyHandler),
+        &arg,
+        1);
+}
+
+void ControllerService::LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context)
+{
+    QCC_DbgPrintf(("%s: Method Reply for LeaveSessionAsync:%s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+
+    if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+        uint32_t disposition;
+        QStatus status = message->GetArgs("u", &disposition);
+        if (status == ER_OK) {
+            switch (disposition) {
+            case ALLJOYN_LEAVESESSION_REPLY_SUCCESS:
+                QCC_DbgPrintf(("%s: Leave Session successful", __func__));
+                break;
+
+            case ALLJOYN_LEAVESESSION_REPLY_NO_SESSION:
+                QCC_DbgPrintf(("%s: No Session", __func__));
+                break;
+
+            case ALLJOYN_LEAVESESSION_REPLY_FAILED:
+                QCC_DbgPrintf(("%s: Leave Session reply failed", __func__));
+                break;
+
+            default:
+                QCC_DbgPrintf(("%s: Leave Session unexpected disposition", __func__));
+                break;
+            }
+        }
+    }
 }
 
 uint64_t ControllerService::GetRank()

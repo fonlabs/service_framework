@@ -105,7 +105,7 @@ class SceneObject : public BusObject, public Translator {
         ret.assign("en");
     }
 
-    const char* Translate(const char* sourceLanguage, const char* targetLanguage, const char* source);
+    const char* Translate(const char* sourceLanguage, const char* targetLanguage, const char* source, qcc::String& buffer);
 
     void ObjectRegistered(void);
 

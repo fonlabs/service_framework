@@ -130,6 +130,10 @@ class ControllerClient : public ajn::MessageReceiver {
 
   private:
 
+    void DoLeaveSessionAsync(ajn::SessionId sessionId);
+
+    void LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context);
+
     /**
      * Internal callback invoked when an announcement is received from a Controller
      * Service Leader

@@ -232,7 +232,7 @@ void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busNam
         // this won't catch a join in progress
         if (oldSession) {
             QCC_DbgPrintf(("Leaving session %u", oldSession));
-            bus.LeaveSession(oldSession);
+            controller.DoLeaveSessionAsync(oldSession);
         }
 
         SessionOpts opts;
@@ -257,7 +257,9 @@ void LeaderElectionObject::OnSessionLost(SessionId sessionId)
     controllersLock.Lock();
     if (leaderObj && leaderObj->GetSessionId() == sessionId) {
         ClearCurrentLeader();
-        delete leaderObj;
+        if (leaderObj) {
+            delete leaderObj;
+        }
         leaderObj = NULL;
     }
     controllersLock.Unlock();
@@ -342,9 +344,9 @@ void LeaderElectionObject::OnSessionMemberRemoved(SessionId sessionId, const cha
     }
 
     if (leaderObj && leaderObj->GetServiceName() == uniqueName) {
-        ClearCurrentLeader();
         // no need to treat this any different if the session was lost
         controllersLock.Unlock();
+        controller.DoLeaveSessionAsync(sessionId);
         // we don't want to keep this session alive anymore!
         OnSessionLost(sessionId);
     } else {

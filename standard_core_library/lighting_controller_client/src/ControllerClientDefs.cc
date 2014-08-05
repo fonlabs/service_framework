@@ -27,6 +27,7 @@ const char* ControllerClientErrorText(ErrorCode errorCode)
         LSF_CASE(ERROR_NO_ACTIVE_CONTROLLER_SERVICE_FOUND);
         LSF_CASE(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
         LSF_CASE(ERROR_IRRECOVERABLE);
+        LSF_CASE(ERROR_DISCONNECTED_FROM_BUS);
 
     default:
         return "<unknown>";

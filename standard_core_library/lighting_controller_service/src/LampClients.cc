@@ -208,7 +208,7 @@ void LampClients::Join(void)
 
     for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); ++it) {
         LampConnection* conn = it->second;
-        controllerService.GetBusAttachment().LeaveSession(conn->object.GetSessionId());
+        controllerService.DoLeaveSessionAsync(conn->object.GetSessionId());
         delete conn;
     }
     activeLamps.clear();
@@ -340,8 +340,7 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
         /*
          * Tear down the session if the object setup was unsuccessful
          */
-        tempStatus = controllerService.GetBusAttachment().LeaveSession(sessionId);
-        QCC_DbgPrintf(("%s: controllerService.GetBusAttachment().LeaveSession returns %s\n", __func__, QCC_StatusText(tempStatus)));
+        controllerService.DoLeaveSessionAsync(sessionId);
         delete connection;
     }
 }
@@ -1256,9 +1255,7 @@ void LampClients::Run(void)
 
                     if (status != ER_OK) {
                         QCC_LogError(status, ("%s: Sending Session Ping failed", __func__));
-                        status = controllerService.GetBusAttachment().LeaveSession(it->second->sessionID);
-                        QCC_DbgPrintf(("%s: controllerService.GetBusAttachment().LeaveSession for %s returns %s\n",
-                                       __func__, it->second->lampId.c_str(), QCC_StatusText(status)));
+                        controllerService.DoLeaveSessionAsync(it->second->sessionID);
                         LampMap::iterator lit = sendNGNSPings.find(it->first);
                         if (lit == sendNGNSPings.end()) {
                             sendNGNSPings.insert(std::make_pair(it->first, it->second));
@@ -1294,9 +1291,7 @@ void LampClients::Run(void)
                 LampMap::iterator it = activeLamps.find(lostLampsList.front());
                 if (it != activeLamps.end()) {
                     LampConnection* connection = it->second;
-                    status = controllerService.GetBusAttachment().LeaveSession(connection->sessionID);
-                    QCC_DbgPrintf(("%s: controllerService.GetBusAttachment().LeaveSession for %s returns %s\n",
-                                   __func__, connection->lampId.c_str(), QCC_StatusText(status)));
+                    controllerService.DoLeaveSessionAsync(connection->sessionID);
                     LampMap::iterator lit = sendNGNSPings.find(it->first);
                     if (lit == sendNGNSPings.end()) {
                         sendNGNSPings.insert(std::make_pair(it->first, it->second));
@@ -1497,9 +1492,7 @@ void LampClients::Run(void)
              */
             while (leaveSessionList.size()) {
                 LampConnection* connection = leaveSessionList.front();
-                status = controllerService.GetBusAttachment().LeaveSession(connection->sessionID);
-                QCC_DbgPrintf(("%s: controllerService.GetBusAttachment().LeaveSession for %s returns %s\n",
-                               __func__, connection->lampId.c_str(), QCC_StatusText(status)));
+                controllerService.DoLeaveSessionAsync(connection->sessionID);
                 joinSessionInProgressLock.Lock();
                 joinSessionInProgressList.erase(connection->lampId);
                 joinSessionInProgressLock.Unlock();
@@ -1553,7 +1546,7 @@ void LampClients::Run(void)
 
             for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); ++it) {
                 LampConnection* conn = it->second;
-                controllerService.GetBusAttachment().LeaveSession(conn->object.GetSessionId());
+                controllerService.DoLeaveSessionAsync(conn->object.GetSessionId());
                 delete conn;
             }
             activeLamps.clear();
@@ -1569,7 +1562,7 @@ void LampClients::Run(void)
                 QCC_LogError(status, ("%s: joinSessionCBListLock.Lock() failed", __func__));
             } else {
                 for (std::list<LampConnection*>::iterator it = joinSessionCBList.begin(); it != joinSessionCBList.end(); it++) {
-                    controllerService.GetBusAttachment().LeaveSession((*it)->sessionID);
+                    controllerService.DoLeaveSessionAsync((*it)->sessionID);
                     delete (*it);
                 }
                 joinSessionCBList.clear();

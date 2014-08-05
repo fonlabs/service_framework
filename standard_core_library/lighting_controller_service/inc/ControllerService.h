@@ -147,8 +147,6 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     bool IsRunning();
 
-    QStatus IsConnectedToRouter(const uint32_t timeoutMS);
-
     uint64_t GetRank();
 
     bool IsLeader();
@@ -164,6 +162,10 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void SetAllowUpdates(bool allow);
 
     bool UpdatesAllowed();
+
+    void DoLeaveSessionAsync(ajn::SessionId sessionId);
+
+    void LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context);
 
   private:
 
@@ -347,10 +349,6 @@ class ControllerServiceManager {
 
     bool IsRunning() {
         return controllerService.IsRunning();
-    }
-
-    QStatus IsConnectedToRouter(const uint32_t timeoutMS) {
-        return controllerService.IsConnectedToRouter(timeoutMS);
     }
 
     ControllerService& GetControllerService(void) { return controllerService; };

@@ -95,40 +95,37 @@ void SceneObject::ApplySceneHandler(const InterfaceDescription::Member* member, 
     MethodReply(message);
 }
 
-const char* SceneObject::Translate(const char* sourceLanguage, const char* targetLanguage, const char* source)
+const char* SceneObject::Translate(const char* sourceLanguage, const char* targetLanguage, const char* source, qcc::String& buffer)
 {
-    QCC_DbgPrintf(("%s", __func__));
+    QCC_DbgPrintf(("SceneObject::Translate(%s, %s, %s)", sourceLanguage, targetLanguage, source));
 
     if (0 == strcmp(targetLanguage, "en")) {
         if (0 == strcmp(source, sceneEventActionObjId)) {
-            QCC_DbgPrintf(("%s", sceneEventActionObjDescription[0]));
-            return sceneEventActionObjDescription[0];
-        }
-        if (0 == strcmp(source, sceneEventActionInterfaceId)) {
-            qcc::String ret = sceneEventActionInterfaceDescription[0];
+            buffer = sceneEventActionObjDescription[0];
+        } else if (0 == strcmp(source, sceneEventActionInterfaceId)) {
+            buffer = sceneEventActionObjDescription[0];
             sceneNameMutex.Lock();
-            ret.append(sceneName.c_str());
+            buffer.append(sceneName.c_str());
             sceneNameMutex.Unlock();
-            QCC_DbgPrintf(("%s", ret.c_str()));
-            return ret.c_str();
-        }
-        if (0 == strcmp(source, sceneAppliedId)) {
-            qcc::String ret = sceneAppliedDescription[0];
+        } else if (0 == strcmp(source, sceneAppliedId)) {
+            buffer = sceneEventActionObjDescription[0];
             sceneNameMutex.Lock();
-            ret.append(sceneName.c_str());
+            buffer.append(sceneName.c_str());
             sceneNameMutex.Unlock();
-            QCC_DbgPrintf(("%s", ret.c_str()));
-            return ret.c_str();
-        }
-        if (0 == strcmp(source, applySceneId)) {
-            qcc::String ret = applySceneDescription[0];
+        } else if (0 == strcmp(source, applySceneId)) {
+            buffer = sceneEventActionObjDescription[0];
             sceneNameMutex.Lock();
-            ret.append(sceneName.c_str());
+            buffer.append(sceneName.c_str());
             sceneNameMutex.Unlock();
-            QCC_DbgPrintf(("%s", ret.c_str()));
-            return ret.c_str();
+        } else {
+            // shouldn't happen!
+            return NULL;
         }
+
+        QCC_DbgPrintf(("Translate: %s", sourceLanguage, targetLanguage, source, buffer.c_str()));
+        return buffer.c_str();
     }
+
     return NULL;
 }
 
