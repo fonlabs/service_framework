@@ -136,6 +136,8 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
     void SetIsLeader(bool leader);
 
+    void SetRank(uint64_t rank);
+
   private:
 
     QStatus setSupportedLangs(const std::vector<qcc::String>& supportedLangs);

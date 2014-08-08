@@ -91,12 +91,6 @@ class ControllerService::ControllerListener :
         controller->elector.OnSessionMemberRemoved(sessionId, uniqueName);
     }
 
-    virtual void SessionMemberAdded(SessionId sessionId, const char* uniqueName) {
-        QCC_DbgTrace(("%s(%u, %s)", __func__, sessionId, uniqueName));
-        controller->bus.EnableConcurrentCallbacks();
-        controller->elector.OnSessionMemberAdded(sessionId, uniqueName);
-    }
-
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData) {
         QCC_DbgTrace(("%s:version=%d, port=%d, busName=%s", __func__, version, port, busName));
         controller->bus.EnableConcurrentCallbacks();
@@ -694,6 +688,7 @@ QStatus ControllerService::Stop(void)
     isRunningLock.Unlock();
 
     SessionId session = 0;
+
     obsObjectLock.Lock();
     if (obsObject != NULL) {
         session = obsObject->GetSessionId();
@@ -704,10 +699,9 @@ QStatus ControllerService::Stop(void)
         DoLeaveSessionAsync(session);
     }
 
-    QStatus status = elector.Stop();
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to stop the Leader Elector object", __func__));
-    }
+    LeaveSession();
+
+    elector.Stop();
 
     lampManager.Stop();
 
@@ -715,7 +709,7 @@ QStatus ControllerService::Stop(void)
 
     internalPropertyStore.Stop();
 
-    status = services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(bus);
+    QStatus status = services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(bus);
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to unregister all Announce Handlers", __func__));
     }
@@ -748,10 +742,7 @@ QStatus ControllerService::Stop(void)
 
 QStatus ControllerService::Join(void)
 {
-    QStatus status = elector.Join();
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to join the Leader Elector object", __func__));
-    }
+    elector.Join();
 
     lampManager.Join();
 
@@ -763,7 +754,7 @@ QStatus ControllerService::Join(void)
 
     bus.UnregisterBusObject(*this);
 
-    status = bus.Join();
+    QStatus status = bus.Join();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Error joining the AllJoyn bus", __func__));
     }
@@ -886,21 +877,15 @@ QStatus ControllerService::SetPassphrase(const char* daemonRealm, size_t passcod
     return ER_OK;
 }
 
-void ControllerService::Overthrow()
+void ControllerService::LeaveSession(void)
 {
+    QCC_DbgTrace(("%s", __func__));
     bus.EnableConcurrentCallbacks();
-
-    // we don't want to connect to new lamps that come up
-    SetIsLeader(false);
-
-    // we're not the leader anymore, so start disconnecting from lamps
-    lampManager.DisconnectFromLamps();
-
-    // we are being overthrown!
+    ajn::SessionId sessionId = 0;
     serviceSessionMutex.Lock();
-    const SessionId sessionId = serviceSession;
+    sessionId = serviceSession;
+    serviceSession = 0;
     serviceSessionMutex.Unlock();
-
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
     }
@@ -910,7 +895,6 @@ void ControllerService::SessionJoined(SessionId sessionId, const char* joiner)
 {
     QCC_DbgTrace(("%s:sessionId-%d", __func__, sessionId));
     bus.SetSessionListener(sessionId, listener);
-    elector.OnSessionJoined(sessionId, joiner);
 
     // we are now serving up a multipoint session to the apps
     serviceSessionMutex.Lock();
@@ -926,13 +910,6 @@ void ControllerService::SessionLost(SessionId sessionId)
     serviceSessionMutex.Lock();
     serviceSession = 0;
     serviceSessionMutex.Unlock();
-}
-
-void ControllerService::LeaveSession(ajn::SessionId sessionId)
-{
-    QCC_DbgTrace(("%s:sessionId=%u", __func__, sessionId));
-    bus.EnableConcurrentCallbacks();
-    DoLeaveSessionAsync(sessionId);
 }
 
 void ControllerService::LightingResetControllerService(Message& msg)

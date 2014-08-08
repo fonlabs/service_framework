@@ -22,12 +22,13 @@
 
 #include <LSFTypes.h>
 #include <Mutex.h>
+#include <Alarm.h>
 
 namespace lsf {
 
 class ControllerService;
 
-class LeaderElectionObject : public ajn::BusObject {
+class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmListener {
   public:
 
     LeaderElectionObject(ControllerService& controller);
@@ -36,24 +37,32 @@ class LeaderElectionObject : public ajn::BusObject {
 
     void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId);
 
-    QStatus Start();
+    QStatus Start(void);
 
-    QStatus Stop();
+    void Stop(void);
 
-    QStatus Join();
-
-    void OnSessionJoined(ajn::SessionId session, const char* joiner);
+    void Join(void);
 
     void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
     QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
-    void ClearCurrentState(void);
+    QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
 
-
-    void OnSessionMemberAdded(ajn::SessionId session, const char* uniqueName);
     void OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName);
 
+    void Run(void);
+
+    void AlarmTriggered(void);
+
+    uint64_t GetRank(void) {
+        return myRank;
+    }
+
   private:
+
+    struct Synchronization {
+        volatile int32_t numWaiting;
+    };
 
     void GetChecksumAndModificationTimestamp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     void OnGetChecksumAndModificationTimestampReply(ajn::Message& message, void* context);
@@ -74,34 +83,84 @@ class LeaderElectionObject : public ajn::BusObject {
 
     // everything below is related to leader election
     struct ControllerEntry {
+      public:
         ajn::SessionPort port;
         qcc::String busName;
         qcc::String deviceId;
         uint64_t rank;
         bool isLeader;
+
+        void Clear() {
+            busName = "";
+            deviceId = "";
+            rank = 0;
+            isLeader = false;
+            port = 0;
+        }
     };
 
-    void PossiblyOverthrow();
-    bool DoLeaderElection();
-    void ClearCurrentLeader();
     void OnSessionLost(SessionId sessionId);
-    void OnSessionJoined(QStatus status, SessionId sessionId);
+    void OnSessionJoined(QStatus status, SessionId sessionId, void* context);
 
-    // map deviceId -> ControllerEntry
-    typedef std::map<qcc::String, ControllerEntry> ControllerEntryMap;
-    ControllerEntryMap controllers;
-    ControllerEntry currentLeader;
+    typedef std::list<ajn::Message> OverThrowList;
+    typedef std::map<uint64_t, ControllerEntry> ControllersMap;
+    typedef std::map<uint64_t, uint32_t> SuccessfulJoinSessionReplies;
+    typedef std::list<uint64_t> FailedJoinSessionReplies;
+    typedef std::list<uint32_t> SessionLostList;
+    typedef std::map<uint32_t, const char*> SessionMemberRemovedMap;
+    typedef struct _CurrentLeader {
+        ControllerEntry controllerDetails;
+        ajn::ProxyBusObject proxyObj;
+
+        void Clear(void) {
+            controllerDetails.Clear();
+            proxyObj = ProxyBusObject();
+        }
+    } CurrentLeader;
+
+    Mutex currentLeaderMutex;
+    CurrentLeader currentLeader;
+
+    Mutex failedJoinSessionMutex;
+    FailedJoinSessionReplies failedJoinSessions;
+
+    Mutex successfulJoinSessionMutex;
+    SuccessfulJoinSessionReplies successfulJoinSessions;
+
+    Mutex sessionLostMutex;
+    SessionLostList sessionLostList;
+
+    Mutex sessionMemberRemovedMutex;
+    SessionMemberRemovedMap sessionMemberRemoved;
+
+    Mutex controllersMapMutex;
+    ControllersMap controllersMap;
+
+    Mutex overThrowListMutex;
+    OverThrowList overThrowList;
 
     uint64_t myRank;
 
-    ajn::ProxyBusObject* leaderObj;
-
-    Mutex controllersLock;
+    volatile sig_atomic_t isRunning;
 
     const ajn::InterfaceDescription::Member* blobChangedSignal;
 
-    class WorkerThread;
-    WorkerThread* thread;
+    LSFSemaphore wakeSem;
+
+    Mutex electionAlarmMutex;
+    Alarm electionAlarm;
+
+    volatile sig_atomic_t alarmTriggered;
+    volatile sig_atomic_t isLeader;
+    volatile sig_atomic_t startElection;
+    volatile sig_atomic_t okToSetAlarm;
+    volatile sig_atomic_t gotOverthrowReply;
+    Mutex outGoingLeaderMutex;
+    qcc::String outGoingLeaderBusName;
+    uint64_t outgoingLeaderRank;
+    Mutex upComingLeaderMutex;
+    qcc::String upComingLeaderBusName;
+    uint64_t upcomingLeaderRank;
 };
 
 }

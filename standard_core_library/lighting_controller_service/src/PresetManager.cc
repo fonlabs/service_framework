@@ -835,7 +835,7 @@ void PresetManager::ReadWriteFile()
     }
     readMutex.Unlock();
 
-    if (tempMessageList.size() && !status) {
+    if ((tempMessageList.size() || sendUpdate) && !status) {
         std::istringstream stream;
         status = ValidateFileAndReadInternal(checksum, timestamp, stream);
         if (status) {
@@ -851,6 +851,12 @@ void PresetManager::ReadWriteFile()
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_PRESET, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();
         }
+    }
+
+    if (sendUpdate) {
+        sendUpdate = false;
+        uint64_t currentTime = GetTimestamp64();
+        controllerService.GetLeaderElectionObj().SendBlobUpdate(LSF_PRESET, output, checksum, (currentTime - timestamp));
     }
 }
 

@@ -1503,8 +1503,8 @@ int main()
                     lamps.push_back(lampList.front());
                     lampList.pop_front();
                     LampGroup group(lamps, lampGroups);
-                    printf("\nInvoking CreateLampGroup(%s)\n", group.c_str());
-                    LSFString name = LSFString("SampleLampGroup");
+                    LSFString name = LSFString("01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123");
+                    printf("\nInvoking  name size(%d) CreateLampGroup(%s)\n", name.size(), group.c_str());
                     status = lampGroupManager.CreateLampGroup(group, name);
                     waitForReply = true;
                     waitForSignal = true;

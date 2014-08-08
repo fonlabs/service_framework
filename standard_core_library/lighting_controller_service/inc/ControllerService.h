@@ -58,6 +58,7 @@ namespace lsf {
 class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener {
     friend class ControllerServiceManager;
     friend class LampClients;
+    friend class LeaderElectionObject;
   public:
 
     /**
@@ -153,8 +154,6 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     void SetIsLeader(bool val);
 
-    void Overthrow();
-
     void AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface);
 
     void RemoveObjDescriptionFromAnnouncement(qcc::String path, qcc::String interface);
@@ -166,6 +165,14 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void DoLeaveSessionAsync(ajn::SessionId sessionId);
 
     void LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context);
+
+    void OverrideRank(uint64_t rank) {
+        internalPropertyStore.SetRank(rank);
+    }
+
+    LeaderElectionObject& GetLeaderElectionObj(void) {
+        return elector;
+    }
 
   private:
 
@@ -210,8 +217,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     MasterSceneManager masterSceneManager;
 
     void SessionLost(ajn::SessionId sessionId);
-    void LeaveSession(ajn::SessionId sessionId);
     void SessionJoined(ajn::SessionId sessionId, const char* joiner);
+    void LeaveSession(void);
 
     void FoundLocalOnboardingService(const char* busName, ajn::SessionPort port);
 
@@ -352,6 +359,10 @@ class ControllerServiceManager {
     }
 
     ControllerService& GetControllerService(void) { return controllerService; };
+
+    void OverrideRank(uint64_t rank) {
+        controllerService.OverrideRank(rank);
+    }
 
   private:
     ControllerService controllerService;

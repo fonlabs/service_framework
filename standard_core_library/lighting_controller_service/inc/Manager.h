@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <Mutex.h>
+#include <signal.h>
 
 namespace lsf {
 
@@ -47,6 +48,8 @@ class Manager : public ajn::MessageReceiver {
     Manager(ControllerService& controllerSvc, const std::string& filePath = "");
 
     void ScheduleFileRead(ajn::Message& message);
+
+    void TriggerUpdate(void);
 
     void ScheduleFileWrite(bool blobUpdate = false, bool initState = false);
 
@@ -81,6 +84,8 @@ class Manager : public ajn::MessageReceiver {
     bool initialState;
 
     std::list<ajn::Message> readBlobMessages;
+
+    volatile sig_atomic_t sendUpdate;
 };
 
 }

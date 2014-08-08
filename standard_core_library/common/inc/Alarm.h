@@ -1,5 +1,5 @@
-#ifndef _THREAD_H_
-#define _THREAD_H_
+#ifndef _ALARM_H_
+#define _ALARM_H_
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -16,31 +16,50 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <pthread.h>
+#include <Thread.h>
+#include <LSFSemaphore.h>
+#include <signal.h>
 
 #include <alljoyn/Status.h>
 
 namespace lsf {
 
-class Thread {
+/**
+ * An alarm listener is capable of receiving alarm callbacks
+ */
+class AlarmListener {
+
+  public:
+    /**
+     * Virtual destructor for derivable class.
+     */
+    virtual ~AlarmListener() { }
+
+    virtual void AlarmTriggered(void) = 0;
+};
+
+class Alarm : public Thread {
   public:
 
-    Thread();
+    Alarm(AlarmListener* alarmListener);
 
-    virtual ~Thread();
+    ~Alarm();
 
-    virtual void Run() = 0;
-    virtual void Stop() = 0;
+    void SetAlarm(uint8_t timeInSecs);
 
-    QStatus Start();
+    void Run(void);
 
-    void Join();
+    void Stop(void);
+
+    void Join(void);
 
   private:
 
-    static void* RunThread(void* data);
-
-    pthread_t thread;
+    volatile sig_atomic_t isRunning;
+    AlarmListener* alarmListener;
+    volatile sig_atomic_t progressInTime;
+    volatile sig_atomic_t timeToTrack;
+    volatile sig_atomic_t alarmReset;
 };
 
 }

@@ -720,6 +720,13 @@ void LSFPropertyStore::SetIsLeader(bool leader)
     AboutServiceApi::getInstance()->Announce();
 }
 
+void LSFPropertyStore::SetRank(uint64_t rank)
+{
+    propsLock.Lock();
+    setProperty(RANK, rank, true, false, true);
+    propsLock.Unlock();
+}
+
 QStatus LSFPropertyStore::setProperty(PropertyStoreKey propertyKey, uint64_t value, bool isPublic, bool isWritable, bool isAnnouncable)
 {
     QCC_DbgTrace(("%s", __func__));

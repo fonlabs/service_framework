@@ -52,7 +52,8 @@ Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
     checkSum(0),
     timeStamp(0),
     blobUpdateCycle(false),
-    initialState(false)
+    initialState(false),
+    sendUpdate(false)
 {
     QCC_DbgTrace(("%s", __func__));
     readBlobMessages.clear();
@@ -174,6 +175,12 @@ void Manager::ScheduleFileRead(Message& message)
     read = true;
     controllerService.ScheduleFileReadWrite(this);
     readMutex.Unlock();
+}
+
+void Manager::TriggerUpdate(void)
+{
+    sendUpdate = true;
+    controllerService.ScheduleFileReadWrite(this);
 }
 
 void Manager::GetBlobInfoInternal(uint32_t& checksum, uint64_t& timestamp)

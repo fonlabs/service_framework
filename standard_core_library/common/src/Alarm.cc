@@ -14,41 +14,70 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Thread.h>
+#include <Alarm.h>
 #include <qcc/Debug.h>
 
 using namespace lsf;
 
-#define QCC_MODULE "LSF_THREAD"
+#define QCC_MODULE "LSF_ALARM"
 
-void* Thread::RunThread(void* data)
+Alarm::Alarm(AlarmListener* alarmListener) :
+    isRunning(true),
+    alarmListener(alarmListener),
+    progressInTime(0),
+    timeToTrack(0),
+    alarmReset(false)
 {
     QCC_DbgPrintf(("%s", __func__));
-    Thread* thread = static_cast<Thread*>(data);
-    thread->Run();
-    return NULL;
+    Thread::Start();
 }
 
-Thread::Thread()
+Alarm::~Alarm()
 {
     QCC_DbgPrintf(("%s", __func__));
 }
 
-Thread::~Thread()
+void Alarm::Run()
 {
     QCC_DbgPrintf(("%s", __func__));
+
+    while (isRunning) {
+        QCC_DbgPrintf(("%s", __func__));
+        usleep(1000000);
+        if (alarmReset) {
+            QCC_DbgPrintf(("%s: Alarm Reloaded", __func__));
+            progressInTime = 0;
+            alarmReset = false;
+        } else {
+            if (timeToTrack) {
+                progressInTime++;
+                if (progressInTime == timeToTrack) {
+                    QCC_DbgPrintf(("%s: Calling AlarmTriggered", __func__));
+                    progressInTime = 0;
+                    timeToTrack = 0;
+                    alarmListener->AlarmTriggered();
+                }
+            }
+        }
+    }
 }
 
-QStatus Thread::Start()
+void Alarm::Join()
 {
     QCC_DbgPrintf(("%s", __func__));
-    int ret = pthread_create(&thread, NULL, &Thread::RunThread, this);
-    return ret == 0 ? ER_OK : ER_FAIL;
+    Thread::Join();
 }
 
-void Thread::Join()
+void Alarm::Stop()
 {
-    QCC_DbgPrintf(("%s", __func__));
-    pthread_join(thread, NULL);
+    isRunning = false;
+    progressInTime = 0;
+    timeToTrack = 0;
+    alarmReset = false;
 }
 
+void Alarm::SetAlarm(uint8_t timeInSecs)
+{
+    timeToTrack = timeInSecs;
+    alarmReset = true;
+}

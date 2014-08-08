@@ -1100,7 +1100,7 @@ void LampGroupManager::ReadWriteFile()
     }
     readMutex.Unlock();
 
-    if (tempMessageList.size() && !status) {
+    if ((tempMessageList.size() || sendUpdate) && !status) {
         std::istringstream stream;
         status = ValidateFileAndReadInternal(checksum, timestamp, stream);
         if (status) {
@@ -1116,6 +1116,12 @@ void LampGroupManager::ReadWriteFile()
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_LAMP_GROUP, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();
         }
+    }
+
+    if (sendUpdate) {
+        sendUpdate = false;
+        uint64_t currentTime = GetTimestamp64();
+        controllerService.GetLeaderElectionObj().SendBlobUpdate(LSF_LAMP_GROUP, output, checksum, (currentTime - timestamp));
     }
 }
 
