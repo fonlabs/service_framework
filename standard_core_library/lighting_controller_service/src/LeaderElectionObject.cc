@@ -89,10 +89,10 @@ void LeaderElectionObject::Handler::Announce(
         bool isLeader = false;
         const char* deviceId;
 
-/*        QCC_DbgPrintf(("%s: About Data Dump", __func__));
+        QCC_DbgPrintf(("%s: About Data Dump", __func__));
         for (ait = aboutData.begin(); ait != aboutData.end(); ait++) {
             QCC_DbgPrintf(("%s: %s", ait->first.c_str(), ait->second.ToString().c_str()));
-        }*/
+        }
 
         ait = aboutData.find("DeviceId");
         if (ait == aboutData.end()) {
@@ -561,16 +561,23 @@ void LeaderElectionObject::Run(void)
                             controllersMapMutex.Lock();
                             ControllersMap::iterator it = controllersMap.find(upcomingLeaderRank);
                             if (it != controllersMap.end()) {
-                                controllersMap.erase(it);
+                                if (it->second.isLeader) {
+                                    /*
+                                     * The leader announcement came through just as we were going to timeout.
+                                     * So loopback
+                                     */
+                                    loopBack = true;
+                                } else {
+                                    controllersMap.erase(it);
+                                    upComingLeaderMutex.Lock();
+                                    upComingLeaderBusName.clear();
+                                    upcomingLeaderRank = 0;
+                                    upComingLeaderMutex.Unlock();
+
+                                    controller.SetAllowUpdates(true);
+                                }
                             }
                             controllersMapMutex.Unlock();
-
-                            upComingLeaderMutex.Lock();
-                            upComingLeaderBusName.clear();
-                            upcomingLeaderRank = 0;
-                            upComingLeaderMutex.Unlock();
-
-                            controller.SetAllowUpdates(true);
                         }
                     }
                 }

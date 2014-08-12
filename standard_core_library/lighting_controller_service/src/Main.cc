@@ -66,6 +66,7 @@ static std::string storeLocation;
 static bool runForeground = false;
 static bool overrideRank = false;
 static uint64_t rank = 0;
+static bool disableBackgroundLogging = true;
 
 static void usage(int argc, char** argv)
 {
@@ -77,6 +78,7 @@ static void usage(int argc, char** argv)
     printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config FilePaths\n\n");
     printf("   -v                    = Print the version number and exit\n");
     printf("   -r                    = Override the rank for debugging purposes\n");
+    printf("   -l                    = Enable background logging\n");
     printf("Default:\n");
     printf("    %s\n", argv[0]);
 }
@@ -114,6 +116,8 @@ static void parseCommandLine(int argc, char** argv)
             }
         } else if (0 == strcmp("-f", argv[i])) {
             runForeground = true;
+        } else if (0 == strcmp("-l", argv[i])) {
+            disableBackgroundLogging = false;
         } else if (0 == strcmp("-r", argv[i])) {
             ++i;
             if (i == argc) {
@@ -188,9 +192,11 @@ void RunService(bool listenToInterrupts)
 void RunAndMonitor()
 {
     // we are a background process!
-    fclose(stdin);
-    fclose(stdout);
-    fclose(stderr);
+    if (disableBackgroundLogging) {
+        fclose(stdin);
+        fclose(stdout);
+        fclose(stderr);
+    }
 
     signal(SIGINT, SigIntHandler);
     signal(SIGTERM, SigTermHandler);

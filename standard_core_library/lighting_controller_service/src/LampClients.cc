@@ -1621,23 +1621,6 @@ void LampClients::Run(void)
                     QCC_LogError(status, ("%s: aboutsListLock.Unlock() failed", __func__));
                 }
             }
-
-            if (isRunning) {
-                status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-                if (ER_OK == status) {
-                    QCC_DbgPrintf(("%s: UnRegisterAnnounceHandler successful", __func__));
-                    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-                    if (status == ER_OK) {
-                        QCC_DbgPrintf(("%s: RegisterAnnounceHandler successful", __func__));
-                    }
-                }
-
-                if (status != ER_OK) {
-                    QCC_LogError(ER_FAIL, ("%s: FATAL ERROR: Unable to register/unregister announce handler", __func__));
-                    controllerService.Restart();
-                    Stop();
-                }
-            }
         }
 
         QCC_DbgPrintf(("%s: Exited", __func__));

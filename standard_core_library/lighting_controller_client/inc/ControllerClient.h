@@ -235,14 +235,37 @@ class ControllerClient : public ajn::MessageReceiver {
         uint64_t rank;
         LSFString deviceID;
         LSFString deviceName;
-        ajn::ProxyBusObject proxyObject;
-        ajn::SessionId sessionId;
+
+        void Clear(void) {
+            busName.clear();
+            rank = 0;
+            port = 0;
+            deviceID.clear();
+            deviceName.clear();
+        }
     };
 
-    ControllerEntry currentLeader;
-    Mutex controllerLock;
+    typedef std::map<uint64_t, ControllerEntry> Leaders;
 
-    void ClearCurrentLeader();
+    Leaders leadersMap;
+    Mutex leadersMapLock;
+
+    typedef struct _CurrentLeader {
+        ControllerEntry controllerDetails;
+        ajn::ProxyBusObject proxyObject;
+        ajn::SessionId sessionId;
+
+        void Clear(void) {
+            controllerDetails.Clear();
+            proxyObject = ProxyBusObject();
+            sessionId = 0;
+        }
+    } CurrentLeader;
+
+    CurrentLeader currentLeader;
+    Mutex currentLeaderLock;
+
+    bool JoinSessionWithAnotherLeader(uint64_t currentLeaderRank = 0);
 
     /**
      * Pointer to the Controller Service Manager

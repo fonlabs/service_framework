@@ -237,7 +237,7 @@ ControllerClient::ControllerClient(
     sceneManagerPtr(NULL),
     masterSceneManagerPtr(NULL)
 {
-    ClearCurrentLeader();
+    currentLeader.Clear();
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("services::AnnouncementRegistrar::RegisterAnnounceHandler: %s\n", QCC_StatusText(status)));
     bus.RegisterBusListener(*busHandler);
@@ -249,12 +249,13 @@ ControllerClient::~ControllerClient()
     LSFString deviceID;
     SessionId sessionId = 0;
 
-    controllerLock.Lock();
+    currentLeaderLock.Lock();
+    RemoveSignalHandlers();
     sessionId = currentLeader.sessionId;
-    deviceName = currentLeader.deviceName;
-    deviceID = currentLeader.deviceID;
-    ClearCurrentLeader();
-    controllerLock.Unlock();
+    deviceName = currentLeader.controllerDetails.deviceName;
+    deviceID = currentLeader.controllerDetails.deviceID;
+    currentLeader.Clear();
+    currentLeaderLock.Unlock();
 
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
@@ -264,15 +265,14 @@ ControllerClient::~ControllerClient()
 
     services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(bus);
 
-    RemoveSignalHandlers();
-    RemoveMethodHandlers();
-
     bus.UnregisterBusListener(*busHandler);
 
     if (busHandler) {
         delete busHandler;
         busHandler = NULL;
     }
+
+    RemoveMethodHandlers();
 }
 
 uint32_t ControllerClient::GetVersion(void)
@@ -281,30 +281,85 @@ uint32_t ControllerClient::GetVersion(void)
     return CONTROLLER_CLIENT_VERSION;
 }
 
-void ControllerClient::ClearCurrentLeader()
+bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
 {
-    currentLeader.busName.clear();
-    currentLeader.rank = 0;
-    currentLeader.port = 0;
-    currentLeader.sessionId = 0;
-    currentLeader.deviceID.clear();
-    currentLeader.deviceName.clear();
+    QCC_DbgPrintf(("%s: Current Leader Rank %llu", __func__, currentLeaderRank));
+
+    ControllerEntry entry;
+    entry.Clear();
+
+    leadersMapLock.Lock();
+    if (currentLeaderRank) {
+        Leaders::iterator it = leadersMap.find(currentLeaderRank);
+        if (it != leadersMap.end()) {
+            leadersMap.erase(it);
+        }
+    }
+    for (Leaders::reverse_iterator rit = leadersMap.rbegin(); rit != leadersMap.rend(); rit++) {
+        entry = rit->second;
+        QCC_DbgPrintf(("%s: Found a leader with rank %llu", __func__, rit->second.rank));
+        break;
+    }
+    leadersMapLock.Unlock();
+
+    if (entry.rank != 0) {
+        ControllerEntry* context = new ControllerEntry;
+        if (!context) {
+            QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+            return true;
+        }
+        *context = entry;
+        SessionOpts opts;
+        opts.isMultipoint = true;
+        QStatus status = bus.JoinSessionAsync(entry.busName.c_str(), entry.port, busHandler, opts, busHandler, context);
+        if (status != ER_OK) {
+            QCC_LogError(status, ("%s: JoinSessionAsync failed", __func__));
+            delete context;
+            callback.ConnectToControllerServiceFailedCB(entry.deviceID, entry.deviceName);
+
+            bool emptyList = false;
+
+            leadersMapLock.Lock();
+            Leaders::iterator it = leadersMap.find(entry.rank);
+            if (it != leadersMap.end()) {
+                leadersMap.erase(it);
+            }
+            if (leadersMap.empty()) {
+                emptyList = true;
+            }
+            leadersMapLock.Unlock();
+
+            if (emptyList) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            QCC_DbgPrintf(("%s: JoinSessionAsync request successful with leader of rank %llu", __func__, entry.rank));
+            currentLeaderLock.Lock();
+            currentLeader.controllerDetails = entry;
+            currentLeaderLock.Unlock();
+            return true;
+        }
+    } else {
+        return true;
+    }
 }
 
 void ControllerClient::OnSessionMemberRemoved(ajn::SessionId sessionId, const char* uniqueName)
 {
     bool leaveSession = false;
 
-    controllerLock.Lock();
+    currentLeaderLock.Lock();
     QCC_DbgPrintf(("%s: Received sessionId(%d), uniqueName(%s)", __func__, sessionId, uniqueName));
-    QCC_DbgPrintf(("%s: Current Leader sessionId(%d), currentLeader.busName(%s)", __func__, currentLeader.sessionId, uniqueName));
-    if ((currentLeader.busName == uniqueName) && (currentLeader.sessionId == sessionId)) {
+    QCC_DbgPrintf(("%s: Current Leader sessionId(%d), currentLeader.controllerDetails.busName(%s)", __func__, currentLeader.sessionId, currentLeader.controllerDetails.busName.c_str()));
+    if ((currentLeader.controllerDetails.busName == uniqueName) && (currentLeader.sessionId == sessionId)) {
         QCC_DbgPrintf(("%s: Setting leaveSession", __func__));
         leaveSession = true;
     } else {
         QCC_DbgPrintf(("%s: Ignoring spurious OnSessionMemberRemoved", __func__));
     }
-    controllerLock.Unlock();
+    currentLeaderLock.Unlock();
 
     if (leaveSession) {
         QCC_DbgPrintf(("%s: Attempting DoLeaveSessionAsync", __func__));
@@ -321,20 +376,26 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
 
     LSFString deviceName;
     LSFString deviceID;
+    uint64_t currentLeaderRank = 0;
 
     deviceName.clear();
     deviceID.clear();
 
-    controllerLock.Lock();
+    currentLeaderLock.Lock();
     if (currentLeader.sessionId == sessionID) {
-        deviceName = currentLeader.deviceName;
-        deviceID = currentLeader.deviceID;
-        ClearCurrentLeader();
+        deviceName = currentLeader.controllerDetails.deviceName;
+        deviceID = currentLeader.controllerDetails.deviceID;
+        currentLeaderRank = currentLeader.controllerDetails.rank;
+        currentLeader.Clear();
     }
-    controllerLock.Unlock();
+    currentLeaderLock.Unlock();
 
     if (!deviceID.empty()) {
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
+    }
+
+    if (currentLeaderRank) {
+        while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
     }
 }
 
@@ -394,12 +455,12 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
 
     if (joined) {
         QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __func__, sessionId, QCC_StatusText(status)));
-        controllerLock.Lock();
+        currentLeaderLock.Lock();
 
-        if (joined->deviceID == currentLeader.deviceID) {
+        if (joined->deviceID == currentLeader.controllerDetails.deviceID) {
             QCC_DbgPrintf(("%s: Response from the current leader", __func__));
             if (status == ER_OK) {
-                currentLeader.proxyObject = ProxyBusObject(bus, currentLeader.busName.c_str(), ControllerServiceObjectPath, sessionId);
+                currentLeader.proxyObject = ProxyBusObject(bus, currentLeader.controllerDetails.busName.c_str(), ControllerServiceObjectPath, sessionId);
                 currentLeader.proxyObject.IntrospectRemoteObject();
                 currentLeader.sessionId = sessionId;
                 AddMethodHandlers();
@@ -409,10 +470,10 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
              * This is to account for the case when the device name of Controller Service changes when a
              * Join Session with the Controller Service is in progress
              */
-            deviceName = currentLeader.deviceName;
+            deviceName = currentLeader.controllerDetails.deviceName;
         }
 
-        controllerLock.Unlock();
+        currentLeaderLock.Unlock();
 
         if (!deviceName.empty()) {
             if (ER_OK == status) {
@@ -420,13 +481,20 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                 QStatus tempStatus = bus.SetLinkTimeout(sessionId, linkTimeOut);
                 if (tempStatus != ER_OK) {
                     QCC_LogError(tempStatus, ("%s: SetLinkTimeout failed", __func__));
-                    Reset();
+                    bus.LeaveSession(sessionId);
+                    currentLeaderLock.Lock();
+                    currentLeader.Clear();
+                    currentLeaderLock.Unlock();
+                    while (!(JoinSessionWithAnotherLeader())) ;
                 } else {
                     callback.ConnectedToControllerServiceCB(joined->deviceID, deviceName);
                 }
             } else {
                 callback.ConnectToControllerServiceFailedCB(joined->deviceID, deviceName);
-                Reset();
+                currentLeaderLock.Lock();
+                currentLeader.Clear();
+                currentLeaderLock.Unlock();
+                while (!(JoinSessionWithAnotherLeader(joined->rank))) ;
             }
         }
 
@@ -439,84 +507,44 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu", __func__, port, busName, deviceID, deviceName, rank));
 
     bool nameChanged = false;
-    bool connectToNewLeader = false;
-    LSFString oldDeviceId;
-    LSFString oldDeviceName;
-    SessionId oldSessionId = 0;
-    bool lowerRankingLeader = false;
+    bool noLeaderDetected = false;
 
-    oldDeviceId.clear();
-    oldDeviceName.clear();
+    ControllerEntry entry;
+    entry.port = port;
+    entry.deviceID = deviceID;
+    entry.deviceName = deviceName;
+    entry.rank = rank;
+    entry.busName = busName;
 
-    controllerLock.Lock();
+    currentLeaderLock.Lock();
     // if the name of the current CS has changed...
-    if (deviceID == currentLeader.deviceID) {
+    if (deviceID == currentLeader.controllerDetails.deviceID) {
         QCC_DbgPrintf(("%s: Same deviceID as current leader %s", __func__, deviceID));
-        if (deviceName != currentLeader.deviceName) {
-            currentLeader.deviceName = deviceName;
+        if (deviceName != currentLeader.controllerDetails.deviceName) {
+            currentLeader.controllerDetails.deviceName = deviceName;
             if (currentLeader.sessionId != 0) {
                 nameChanged = true;
             }
             QCC_DbgPrintf(("%s: Current leader name change", __func__));
         }
-    } else {
-        if (rank > currentLeader.rank) {
-            QCC_DbgPrintf(("%s: Announcement with higher rank(%d) than current leader's rank(%d)", __func__, rank, currentLeader.rank));
-            connectToNewLeader = true;
-
-            ControllerEntry entry;
-            entry.port = port;
-            entry.deviceID = deviceID;
-            entry.deviceName = deviceName;
-            entry.rank = rank;
-            entry.busName = busName;
-            entry.sessionId = 0;
-
-            if ((!currentLeader.busName.empty()) && (currentLeader.sessionId != 0)) {
-                oldSessionId = currentLeader.sessionId;
-                oldDeviceId = currentLeader.deviceID;
-                oldDeviceName = currentLeader.deviceName;
-            }
-            currentLeader = entry;
-            QCC_DbgPrintf(("%s: Updated new current leader entry", __func__));
-        } else {
-            QCC_DbgPrintf(("%s: Ignoring a lower ranking leader announcement than current leader", __func__));
-            lowerRankingLeader = true;
-        }
+    } else if (currentLeader.controllerDetails.rank == 0) {
+        noLeaderDetected = true;
     }
-    controllerLock.Unlock();
+    currentLeaderLock.Unlock();
 
     if (nameChanged) {
         controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
-    } else if (connectToNewLeader) {
-        if (oldSessionId) {
-            QCC_DbgPrintf(("%s: Tearing down old session", __func__));
-            DoLeaveSessionAsync(oldSessionId);
-            callback.DisconnectedFromControllerServiceCB(oldDeviceId, oldDeviceName);
-        }
+    }
 
-        QCC_DbgPrintf(("%s: Joining session with the new leader", __func__));
-        SessionOpts opts;
-        opts.isMultipoint = true;
-        ControllerEntry* context = new ControllerEntry();
-        if (!context) {
-            QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
-            return;
-        }
-        context->port = port;
-        context->deviceID = deviceID;
-        context->deviceName = deviceName;
-        context->rank = rank;
-        context->busName = busName;
-        context->sessionId = 0;
-        QStatus status = bus.JoinSessionAsync(busName, port, busHandler, opts, busHandler, context);
-        if (status != ER_OK) {
-            QCC_LogError(status, ("%s: JoinSessionAsync failed", __func__));
-            delete context;
-            callback.ConnectToControllerServiceFailedCB(deviceID, deviceName);
-        }
-    } else if (lowerRankingLeader) {
-        Reset();
+    leadersMapLock.Lock();
+    std::pair<Leaders::iterator, bool> ins = leadersMap.insert(std::make_pair(rank, entry));
+    if (ins.second == false) {
+        ins.first->second = entry;
+    }
+    leadersMapLock.Unlock();
+
+    if (noLeaderDetected) {
+        while (!(JoinSessionWithAnotherLeader())) ;
     }
 }
 
@@ -530,7 +558,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
     void* context)
 {
     ControllerClientStatus status = CONTROLLER_CLIENT_OK;
-    controllerLock.Lock();
+    currentLeaderLock.Lock();
 
     if (currentLeader.sessionId) {
         QStatus ajStatus = currentLeader.proxyObject.MethodCallAsync(
@@ -550,7 +578,7 @@ ControllerClientStatus ControllerClient::MethodCallAsyncHelper(
         status = CONTROLLER_CLIENT_ERR_NOT_CONNECTED;
     }
 
-    controllerLock.Unlock();
+    currentLeaderLock.Unlock();
     return status;
 }
 
@@ -893,28 +921,19 @@ void ControllerClient::Reset(void)
     deviceName.clear();
     deviceID.clear();
 
-    controllerLock.Lock();
+    currentLeaderLock.Lock();
     sessionId = currentLeader.sessionId;
-    deviceName = currentLeader.deviceName;
-    deviceID = currentLeader.deviceID;
-    ClearCurrentLeader();
-    controllerLock.Unlock();
+    deviceName = currentLeader.controllerDetails.deviceName;
+    deviceID = currentLeader.controllerDetails.deviceID;
+    currentLeader.Clear();
+    currentLeaderLock.Unlock();
 
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 
-    QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-    if (ER_OK == status) {
-        status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-    }
-
-    if (status != ER_OK) {
-        ErrorCodeList errors;
-        errors.push_back(ERROR_IRRECOVERABLE);
-        callback.ControllerClientErrorCB(errors);
-    }
+    while (!(JoinSessionWithAnotherLeader())) ;
 }
 
 void ControllerClient::AddMethodHandlers()
