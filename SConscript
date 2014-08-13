@@ -11,11 +11,13 @@ if not env.has_key('_ALLJOYNCORE_') and os.path.exists('../alljoyn/alljoyn_core/
 env['BUILD_SERVICES_SAMPLES'] = 'off'
 
 # Add all services include path
+env.Append(CPPPATH = '$DISTDIR/about/inc');
 env.Append(CPPPATH = '$DISTDIR/config/inc');
 env.Append(CPPPATH = '$DISTDIR/services_common/inc');
 env.Append(CPPPATH = '$DISTDIR/notification/inc');
 
 # Build all the services
+env.SConscript('../alljoyn/services/about/cpp/SConscript', {'about_env': env})
 env.SConscript('../../base/config/cpp/SConscript', {'config_env': env})
 env.SConscript('../../base/notification/cpp/SConscript', {'nsenv': env})
 env.SConscript('../../base/services_common/cpp/SConscript', {'services_common_env': env})
@@ -24,6 +26,7 @@ lsf_env = env.Clone()
 lsf_env['WS'] = None 
  
 # Add all services lib path
+lsf_env.Append(LIBPATH = '$DISTDIR/about/lib')    
 lsf_env.Append(LIBPATH = '$DISTDIR/services_common/lib')  
 lsf_env.Append(LIBPATH = '$DISTDIR/notification/lib') 
 lsf_env.Append(LIBPATH = '$DISTDIR/config/lib') 
@@ -41,6 +44,7 @@ lsf_env.Install('$DISTDIR/cpp/bin', 'thin_core_library/lamp_service/routerconfig
 lsf_env.Append(CPPPATH = [ lsf_env.Dir('standard_core_library/common/inc') ])
 lsf_env.Append(CPPPATH = [ lsf_env.Dir('common/inc') ])
 lsf_env['common_srcs'] = lsf_env.Glob('standard_core_library/common/src/*.cc')
+#lsf_env['common_srcs'] += lsf_env.Glob('../../base/sample_apps/cpp/samples_common/*.cc')
 lsf_env['common_objs'] = lsf_env.Object(lsf_env['common_srcs']) 
 
 #Build Lighting Controller Client
