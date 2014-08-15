@@ -821,8 +821,10 @@ void PresetManager::ReadWriteFile()
 
     if (status) {
         WriteFileWithChecksumAndTimestamp(output, checksum, timestamp);
-        uint64_t currentTime = GetTimestamp64();
-        controllerService.SendBlobUpdate(LSF_PRESET, output, checksum, (currentTime - timestamp));
+        if (timestamp != 0UL) {
+            uint64_t currentTime = GetTimestamp64();
+            controllerService.SendBlobUpdate(LSF_PRESET, output, checksum, (currentTime - timestamp));
+        }
     }
 
     std::list<ajn::Message> tempMessageList;

@@ -458,8 +458,8 @@ void LeaderElectionObject::Run(void)
                         controller.LeaveSession();
                         QCC_DbgPrintf(("%s: Announcing self as non-leader after a successful overthrow", __func__));
                         controller.GetLampManager().DisconnectFromLamps();
-                        controller.SetIsLeader(false);
                         controller.SetAllowUpdates(false);
+                        controller.SetIsLeader(false);
                         isLeader = false;
                         g_IsLeader = false;
 
@@ -506,8 +506,8 @@ void LeaderElectionObject::Run(void)
                         controller.LeaveSession();
                         QCC_DbgPrintf(("%s: Announcing self as non-leader because I saw another leader announcement", __func__));
                         controller.GetLampManager().DisconnectFromLamps();
-                        controller.SetIsLeader(false);
                         controller.SetAllowUpdates(false);
+                        controller.SetIsLeader(false);
                         isLeader = false;
                         g_IsLeader = false;
 
@@ -613,21 +613,22 @@ void LeaderElectionObject::Run(void)
                     outGoingLeaderMutex.Unlock();
 
                     QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
-                    controller.SetIsLeader(true);
+                    controller.GetLampManager().ConnectToLamps();
                     controller.SetAllowUpdates(true);
+                    controller.SetIsLeader(true);
                     isLeader = true;
                     g_IsLeader = true;
                     okToSetAlarm = false;
                     electionAlarmMutex.Lock();
                     electionAlarm.SetAlarm(0);
                     electionAlarmMutex.Unlock();
-                    controller.GetLampManager().ConnectToLamps();
                 } else if (startElection) {
                     QCC_DbgPrintf(("%s: startElection", __func__));
                     startElection = false;
                     QCC_DbgPrintf(("%s: Announcing self as non-leader", __func__));
-                    controller.SetIsLeader(false);
                     controller.SetAllowUpdates(false);
+                    controller.GetLampManager().DisconnectFromLamps();
+                    controller.SetIsLeader(false);
                     electionAlarmMutex.Lock();
                     electionAlarm.SetAlarm(ELECTION_INTERVAL_IN_SECONDS);
                     electionAlarmMutex.Unlock();
@@ -733,15 +734,15 @@ void LeaderElectionObject::Run(void)
 
                             if (takeOverAsLeader) {
                                 QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
-                                controller.SetIsLeader(true);
+                                controller.GetLampManager().ConnectToLamps();
                                 controller.SetAllowUpdates(true);
+                                controller.SetIsLeader(true);
                                 isLeader = true;
                                 g_IsLeader = true;
                                 okToSetAlarm = false;
                                 electionAlarmMutex.Lock();
                                 electionAlarm.SetAlarm(0);
                                 electionAlarmMutex.Unlock();
-                                controller.GetLampManager().ConnectToLamps();
                             }
                         }
                     } else if (connectingToLeader) {
@@ -800,15 +801,15 @@ void LeaderElectionObject::Run(void)
                                 outGoingLeaderMutex.Unlock();
 
                                 QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
-                                controller.SetIsLeader(true);
+                                controller.GetLampManager().ConnectToLamps();
                                 controller.SetAllowUpdates(true);
+                                controller.SetIsLeader(true);
                                 isLeader = true;
                                 g_IsLeader = true;
                                 okToSetAlarm = false;
                                 electionAlarmMutex.Lock();
                                 electionAlarm.SetAlarm(0);
                                 electionAlarmMutex.Unlock();
-                                controller.GetLampManager().ConnectToLamps();
                             }
 
                             controllersMapMutex.Lock();
@@ -885,15 +886,15 @@ void LeaderElectionObject::Run(void)
                                             outGoingLeaderMutex.Unlock();
 
                                             QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
-                                            controller.SetIsLeader(true);
+                                            controller.GetLampManager().ConnectToLamps();
                                             controller.SetAllowUpdates(true);
+                                            controller.SetIsLeader(true);
                                             isLeader = true;
                                             g_IsLeader = true;
                                             okToSetAlarm = false;
                                             electionAlarmMutex.Lock();
                                             electionAlarm.SetAlarm(0);
                                             electionAlarmMutex.Unlock();
-                                            controller.GetLampManager().ConnectToLamps();
                                         }
                                     } else {
                                         // we don't need to wait for this

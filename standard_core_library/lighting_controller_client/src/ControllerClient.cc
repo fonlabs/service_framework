@@ -235,7 +235,8 @@ ControllerClient::ControllerClient(
     lampGroupManagerPtr(NULL),
     presetManagerPtr(NULL),
     sceneManagerPtr(NULL),
-    masterSceneManagerPtr(NULL)
+    masterSceneManagerPtr(NULL),
+    exiting(false)
 {
     currentLeader.Clear();
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
@@ -245,16 +246,16 @@ ControllerClient::ControllerClient(
 
 ControllerClient::~ControllerClient()
 {
-    LSFString deviceName;
-    LSFString deviceID;
+    exiting = true;
+
     SessionId sessionId = 0;
 
     currentLeaderLock.Lock();
-    RemoveSignalHandlers();
-    sessionId = currentLeader.sessionId;
-    deviceName = currentLeader.controllerDetails.deviceName;
-    deviceID = currentLeader.controllerDetails.deviceID;
-    currentLeader.Clear();
+    if (currentLeader.sessionId) {
+        sessionId = currentLeader.sessionId;
+        RemoveSignalHandlers();
+        currentLeader.Clear();
+    }
     currentLeaderLock.Unlock();
 
     if (sessionId) {
@@ -448,6 +449,8 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
 
     bus.EnableConcurrentCallbacks();
 
+    bool leaveSession = false;
+
     ControllerEntry* joined = static_cast<ControllerEntry*>(context);
 
     LSFString deviceName;
@@ -458,19 +461,25 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
         currentLeaderLock.Lock();
 
         if (joined->deviceID == currentLeader.controllerDetails.deviceID) {
-            QCC_DbgPrintf(("%s: Response from the current leader", __func__));
-            if (status == ER_OK) {
-                currentLeader.proxyObject = ProxyBusObject(bus, currentLeader.controllerDetails.busName.c_str(), ControllerServiceObjectPath, sessionId);
-                currentLeader.proxyObject.IntrospectRemoteObject();
-                currentLeader.sessionId = sessionId;
-                AddMethodHandlers();
-                AddSignalHandlers();
-            }
             /*
              * This is to account for the case when the device name of Controller Service changes when a
              * Join Session with the Controller Service is in progress
              */
             deviceName = currentLeader.controllerDetails.deviceName;
+
+            QCC_DbgPrintf(("%s: Response from the current leader", __func__));
+            if (status == ER_OK) {
+                currentLeader.proxyObject = ProxyBusObject(bus, currentLeader.controllerDetails.busName.c_str(), ControllerServiceObjectPath, sessionId);
+                status = currentLeader.proxyObject.IntrospectRemoteObject();
+                if (status == ER_OK) {
+                    currentLeader.sessionId = sessionId;
+                    AddMethodHandlers();
+                    AddSignalHandlers();
+                } else {
+                    QCC_LogError(status, ("%s: IntrospectRemoteObject failed", __func__));
+                    leaveSession = true;
+                }
+            }
         }
 
         currentLeaderLock.Unlock();
@@ -494,7 +503,15 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                 currentLeaderLock.Lock();
                 currentLeader.Clear();
                 currentLeaderLock.Unlock();
+                if (leaveSession) {
+                    DoLeaveSessionAsync(sessionId);
+                }
                 while (!(JoinSessionWithAnotherLeader(joined->rank))) ;
+            }
+        } else {
+            if (status == ER_OK) {
+                QCC_DbgPrintf(("%s: Got a JoinSessionCB from someone whom we don't think is the current leader", __func__));
+                DoLeaveSessionAsync(sessionId);
             }
         }
 
@@ -507,7 +524,9 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu", __func__, port, busName, deviceID, deviceName, rank));
 
     bool nameChanged = false;
-    bool noLeaderDetected = false;
+    ajn::SessionId sessionId = 0;
+
+    uint64_t currentLeaderRank = 0;
 
     ControllerEntry entry;
     entry.port = port;
@@ -518,6 +537,8 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
 
     currentLeaderLock.Lock();
     // if the name of the current CS has changed...
+    currentLeaderRank = currentLeader.controllerDetails.rank;
+    sessionId = currentLeader.sessionId;
     if (deviceID == currentLeader.controllerDetails.deviceID) {
         QCC_DbgPrintf(("%s: Same deviceID as current leader %s", __func__, deviceID));
         if (deviceName != currentLeader.controllerDetails.deviceName) {
@@ -527,8 +548,6 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             }
             QCC_DbgPrintf(("%s: Current leader name change", __func__));
         }
-    } else if (currentLeader.controllerDetails.rank == 0) {
-        noLeaderDetected = true;
     }
     currentLeaderLock.Unlock();
 
@@ -543,8 +562,18 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     }
     leadersMapLock.Unlock();
 
-    if (noLeaderDetected) {
+    if (currentLeaderRank == 0) {
         while (!(JoinSessionWithAnotherLeader())) ;
+    } else if (currentLeaderRank < rank) {
+        if (sessionId) {
+            DoLeaveSessionAsync(sessionId);
+            OnSessionLost(sessionId);
+        } else {
+            currentLeaderLock.Lock();
+            currentLeader.Clear();
+            currentLeaderLock.Unlock();
+            while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+        }
     }
 }
 
@@ -610,6 +639,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message& message, void* context)
 {
+    if (exiting) {
+        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+        return;
+    }
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
@@ -680,6 +713,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& message, void* context)
 {
+    if (exiting) {
+        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+        return;
+    }
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
@@ -745,6 +782,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& message, void* context)
 {
+    if (exiting) {
+        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+        return;
+    }
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
@@ -808,6 +849,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithUint32Value(
 
 void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, void* context)
 {
+    if (exiting) {
+        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+        return;
+    }
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();
@@ -867,6 +912,10 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Message& message, void* context)
 {
+    if (exiting) {
+        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+        return;
+    }
     if (context) {
         QCC_DbgPrintf(("%s: Method Reply for %s:%s", __func__, ((LSFString*)context)->c_str(), (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
         bus.EnableConcurrentCallbacks();

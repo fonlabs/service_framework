@@ -732,8 +732,10 @@ void MasterSceneManager::ReadWriteFile()
 
     if (status) {
         WriteFileWithChecksumAndTimestamp(output, checksum, timestamp);
-        uint64_t currentTime = GetTimestamp64();
-        controllerService.SendBlobUpdate(LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
+        if (timestamp != 0UL) {
+            uint64_t currentTime = GetTimestamp64();
+            controllerService.SendBlobUpdate(LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
+        }
     }
 
     std::list<ajn::Message> tempMessageList;

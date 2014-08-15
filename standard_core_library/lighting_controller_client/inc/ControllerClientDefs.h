@@ -48,7 +48,9 @@ typedef enum _ErrorCode {
     /**< Irrecoverable error */
     ERROR_IRRECOVERABLE = 4,
     /**< Disconnected from the AllJoyn Bus */
-    ERROR_DISCONNECTED_FROM_BUS = 5
+    ERROR_DISCONNECTED_FROM_BUS = 5,
+    /**< Controller Client is exiting */
+    ERROR_CONTROLLER_CLIENT_EXITING = 6
 } ErrorCode;
 
 typedef std::list<ErrorCode> ErrorCodeList;

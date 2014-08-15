@@ -182,19 +182,15 @@ static const char* interfaces[] =
 QStatus LampClients::Start(const char* keyStoreFileLocation)
 {
     QCC_DbgTrace(("%s", __func__));
-    // to receive About data
-    QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-    QCC_DbgPrintf(("RegisterAnnounceHandler(): %s\n", QCC_StatusText(status)));
-    if (ER_OK == status) {
-        QCC_DbgPrintf(("%s: KeyStore location = %s", __func__, keyStoreFileLocation));
-        status = controllerService.GetBusAttachment().EnablePeerSecurity("ALLJOYN_PIN_KEYX ALLJOYN_ECDHE_PSK", &keyListener, keyStoreFileLocation);
-        QCC_DbgPrintf(("EnablePeerSecurity(): %s\n", QCC_StatusText(status)));
 
-        if (ER_OK == status) {
-            isRunning = true;
-            status = Thread::Start();
-            QCC_DbgPrintf(("%s: Thread::Start(): %s\n", __func__, QCC_StatusText(status)));
-        }
+    QCC_DbgPrintf(("%s: KeyStore location = %s", __func__, keyStoreFileLocation));
+    QStatus status = controllerService.GetBusAttachment().EnablePeerSecurity("ALLJOYN_PIN_KEYX ALLJOYN_ECDHE_PSK", &keyListener, keyStoreFileLocation);
+    QCC_DbgPrintf(("EnablePeerSecurity(): %s\n", QCC_StatusText(status)));
+
+    if (ER_OK == status) {
+        isRunning = true;
+        status = Thread::Start();
+        QCC_DbgPrintf(("%s: Thread::Start(): %s\n", __func__, QCC_StatusText(status)));
     }
 
     return status;
@@ -1165,6 +1161,30 @@ void LampClients::PingCB(QStatus status, void* context)
     } else {
         QCC_DbgPrintf(("%s: context is NULL", __func__));
     }
+}
+
+QStatus LampClients::UnregisterAnnounceHandler(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
+    QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
+    if (ER_OK == status) {
+        QCC_DbgPrintf(("%s: UnRegisterAnnounceHandler successful", __func__));
+    } else {
+        QCC_LogError(status, ("%s: UnRegisterAnnounceHandler unsuccessful", __func__));
+    }
+    return status;
+}
+
+QStatus LampClients::RegisterAnnounceHandler(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
+    QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(controllerService.GetBusAttachment(), *serviceHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
+    if (ER_OK == status) {
+        QCC_DbgPrintf(("%s: RegisterAnnounceHandler successful", __func__));
+    } else {
+        QCC_LogError(status, ("%s: RegisterAnnounceHandler unsuccessful", __func__));
+    }
+    return status;
 }
 
 void LampClients::Run(void)

@@ -633,7 +633,13 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
     return AJ_OK;
 }
 
-// "?ApplyPulseEffect FromState<a{sv} ToState<a{sv} period<u ratio<y numPulses<u timestamp<t LampResponseCode>u"
+/*
+ * The Apply Pulse Effect accepts two parameters - the From State and the To State.
+ * If the user wants the Lamp to pulse from the Lamp's current state to a another
+ * state, the From State is specified as a NULL dictionary.  When the From State
+ * is specified as NULL, the Lamp Service sets the state to the current state of
+ * the Lamp and passes it on the OEM layer.
+ */
 static AJ_Status ApplyPulseEffect(AJ_Message* msg)
 {
     LampResponseCode responseCode = LAMP_OK;

@@ -259,6 +259,10 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void DisconnectFromLamps(void);
 
+    QStatus UnregisterAnnounceHandler(void);
+
+    QStatus RegisterAnnounceHandler(void);
+
   private:
 
     void* LampClientsThread(void* data);

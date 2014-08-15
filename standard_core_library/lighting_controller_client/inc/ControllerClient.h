@@ -24,6 +24,7 @@
 
 #include <map>
 #include <list>
+#include <signal.h>
 
 #include <alljoyn/BusAttachment.h>
 #include <alljoyn/InterfaceDescription.h>
@@ -348,13 +349,15 @@ class ControllerClient : public ajn::MessageReceiver {
 
         void MessageHandler(ajn::Message& message, void* context)
         {
-            controllerClientPtr->bus.EnableConcurrentCallbacks();
-            if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
-                (receiver->*(handler))(message);
-            } else {
-                ErrorCodeList errorList;
-                errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
-                controllerClientPtr->callback.ControllerClientErrorCB(errorList);
+            if (!controllerClientPtr->exiting) {
+                controllerClientPtr->bus.EnableConcurrentCallbacks();
+                if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
+                    (receiver->*(handler))(message);
+                } else {
+                    ErrorCodeList errorList;
+                    errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+                    controllerClientPtr->callback.ControllerClientErrorCB(errorList);
+                }
             }
             // nothing owns this object so we need to clean it up here
             delete this;
@@ -687,6 +690,8 @@ class ControllerClient : public ajn::MessageReceiver {
         }
         methodReplyWithResponseCodeAndIDHandlers.clear();
     }
+
+    volatile sig_atomic_t exiting;
 };
 
 template <typename OBJ>

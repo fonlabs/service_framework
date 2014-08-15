@@ -271,10 +271,12 @@ class LampManager : public Manager {
     uint32_t GetControllerServiceLampInterfaceVersion(void);
 
     void ConnectToLamps(void) {
+        lampClients.RegisterAnnounceHandler();
         lampClients.ConnectToLamps();
     }
 
     void DisconnectFromLamps(void) {
+        lampClients.UnregisterAnnounceHandler();
         lampClients.DisconnectFromLamps();
     }
 
