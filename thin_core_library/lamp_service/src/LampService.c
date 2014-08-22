@@ -26,6 +26,7 @@
 #include <aj_msg.h>
 #include <aj_version.h>
 #include <aj_about.h>
+#include <OEM_LS_Provisioning.h>
 
 #ifdef ONBOARDING_SERVICE
 #include <alljoyn/onboarding/OnboardingService.h>
@@ -306,6 +307,7 @@ void LAMP_RunService(void)
     LAMP_RunServiceWithCallback(DEFAULT_TIMEOUT, NULL);
 }
 
+#define MIN_ROUTER_VERSION 10
 
 static AJ_Status ConnectToRouter(void)
 {
@@ -315,6 +317,9 @@ static AJ_Status ConnectToRouter(void)
     AJ_InfoPrintf(("%s:\n", __func__));
 
     AJ_InitTimer(&timer);
+
+    // we don't want to connect to routers older than version 9
+    AJ_SetMinProtoVersion(MIN_ROUTER_VERSION);
 
     do {
         if (AJ_GetElapsedTime(&timer, TRUE) > CONNECT_TIMEOUT) {
@@ -436,6 +441,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
         if (AJ_ERR_TIMEOUT == status && AJ_ERR_LINK_TIMEOUT == AJ_BusLinkStateProc(&Bus)) {
             status = AJ_ERR_READ;
         }
+        AJ_InfoPrintf(("%s: Got Message /Timed out. status = %d\n", __func__, status));
 
         if (status == AJ_OK) {
             switch (msg.msgId) {
@@ -463,6 +469,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
             case AJ_METHOD_ACCEPT_SESSION:
                 {
+                    AJ_InfoPrintf(("%s: Got Accept Session\n", __func__));
                     uint16_t port;
                     char* joiner;
                     AJ_UnmarshalArgs(&msg, "qus", &port, &ControllerSessionID, &joiner);

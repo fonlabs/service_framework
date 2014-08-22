@@ -366,7 +366,7 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
             sync->numWaiting = storesToFetch.size();
             QCC_DbgPrintf(("Going to synchronize %d types", sync->numWaiting));
 
-            bool methodCallFailCount = 0;
+            uint8_t methodCallFailCount = 0;
 
             for (std::list<LSFBlobType>::iterator it = storesToFetch.begin(); it != storesToFetch.end(); ++it) {
                 LSFBlobType type = *it;

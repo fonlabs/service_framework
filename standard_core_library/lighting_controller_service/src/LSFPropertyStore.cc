@@ -462,7 +462,7 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
                     it->second = newProperty;
                     ++it;
                 } else {
-                    it = properties.erase(it);
+                    properties.erase(it++);
                 }
 
                 deleted = true;

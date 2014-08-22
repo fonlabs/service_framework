@@ -41,6 +41,12 @@ typedef enum {
     LSF_RESPONSE_CODE_LAST  = LAMP_RESPONSE_CODE_LAST + 4     /**< The last LSF response code */
 } LSFResponseCode;
 
+/*
+ * Return a descriptive text corresponding to the responseCode
+ *
+ * @param  responseCode Response Code
+ * @return Descriptive text corresponding to responseCode
+ */
 const char* LSFResponseCodeText(LSFResponseCode responseCode);
 
 }

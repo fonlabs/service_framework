@@ -18,6 +18,7 @@
 #include <qcc/StringUtil.h>
 #include <qcc/Debug.h>
 #include <LSFTypes.h>
+#include <OEM_CS_Config.h>
 
 #include <ControllerService.h>
 #include <ServiceDescription.h>
@@ -26,9 +27,11 @@
 
 #include <alljoyn/notification/NotificationService.h>
 #include <string>
+#include <alljoyn/services_common/GuidUtil.h>
 
 using namespace lsf;
 using namespace ajn;
+using namespace services;
 
 #define QCC_MODULE "CONTROLLER_SERVICE"
 
@@ -95,20 +98,28 @@ class ControllerService::ControllerListener :
         QCC_DbgTrace(("%s:version=%d, port=%d, busName=%s", __func__, version, port, busName));
         controller->bus.EnableConcurrentCallbacks();
         ObjectDescriptions::const_iterator it = objectDescs.find(OnboardingServiceObjectPath);
+        LSFString lampID;
         if (it != objectDescs.end()) {
-            // this implements an onboarding service
-            // we need to determine whether it's on the same routing node
+            AboutData::const_iterator ait = aboutData.find("DeviceId");
+            if (ait != aboutData.end()) {
+                const char* uniqueId;
+                ait->second.Get("s", &uniqueId);
+                lampID = uniqueId;
+            }
 
-            qcc::String myName = controller->bus.GetUniqueName();
-            size_t idx = myName.find_first_of('.');
-            myName = myName.substr(0, idx);
+            QCC_DbgPrintf(("%s: About Data Dump", __func__));
+            for (ait = aboutData.begin(); ait != aboutData.end(); ait++) {
+                QCC_DbgPrintf(("%s: %s", ait->first.c_str(), ait->second.ToString().c_str()));
+            }
 
-            qcc::String name = busName;
-            size_t idx2 = name.find_first_of('.');
-            name = name.substr(0, idx2);
+            qcc::String deviceId;
+            GuidUtil::GetInstance()->GetDeviceIdString(&deviceId);
 
-            if (name == myName) {
+            if (0 == strcmp(lampID.c_str(), deviceId.c_str())) {
+                QCC_DbgPrintf(("%s: Found on-boarding daemon", __func__));
                 controller->FoundLocalOnboardingService(busName, port);
+            } else {
+                QCC_DbgPrintf(("%s: Ignoring about with onboarding interface as it is not from the on-boarding daemon", __func__));
             }
         }
     }
@@ -1167,7 +1178,7 @@ bool ControllerService::IsRunning()
 
 void ControllerService::DoLeaveSessionAsync(ajn::SessionId sessionId)
 {
-    QCC_DbgPrintf(("%s: sessionId(%d)", __func__, sessionId));
+    QCC_DbgPrintf(("%s: sessionId(%u)", __func__, sessionId));
     MsgArg arg("u", sessionId);
 
     bus.GetAllJoynProxyObj().MethodCallAsync(
@@ -1176,7 +1187,9 @@ void ControllerService::DoLeaveSessionAsync(ajn::SessionId sessionId)
         this,
         static_cast<ajn::MessageReceiver::ReplyHandler>(&ControllerService::LeaveSessionAsyncReplyHandler),
         &arg,
-        1);
+        1,
+        NULL,
+        LAMP_METHOD_CALL_TIMEOUT);
 }
 
 void ControllerService::LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context)

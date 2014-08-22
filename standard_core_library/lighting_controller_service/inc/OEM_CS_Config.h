@@ -38,12 +38,17 @@ namespace lsf {
 /*
  * Timeout for NGNS Pings
  */
-#define NGNS_PING_TIMEOUT_IN_MS 1500
+#define NGNS_PING_TIMEOUT_IN_MS 3000
 
 /*
  * Timeout for Pings
  */
-#define SESSION_PING_TIMEOUT_IN_MS 500
+#define SESSION_PING_TIMEOUT_IN_MS 1000
+
+/*
+ * Timeout for Lamp Method Calls
+ */
+#define LAMP_METHOD_CALL_TIMEOUT 250
 
 /*
  * Link timeout in seconds

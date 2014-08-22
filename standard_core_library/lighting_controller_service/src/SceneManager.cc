@@ -37,7 +37,7 @@ const char* applySceneId = "ApplyScene";
 const char* applySceneDescription[] = { "Apply Scene " };
 
 SceneObject::SceneObject(SceneManager& sceneMgr, LSFString& sceneid, Scene& tempScene, LSFString& name) :
-    BusObject((LSFString(ApplySceneEventActionObjectPath) + sceneid).c_str()), sceneManager(sceneMgr), sceneId(sceneid), scene(tempScene), sceneName(name)
+    BusObject((LSFString(ApplySceneEventActionObjectPath) + sceneid).c_str()), sceneManager(sceneMgr), sceneId(sceneid), scene(tempScene), sceneName(name), appliedSceneMember(NULL)
 {
     QCC_DbgPrintf(("%s", __func__));
     InterfaceDescription* intf = NULL;
@@ -133,9 +133,13 @@ void SceneObject::SendSceneAppliedSignal(void)
 {
     QCC_DbgPrintf(("%s", __func__));
     uint8_t flags = ALLJOYN_FLAG_GLOBAL_BROADCAST | ALLJOYN_FLAG_SESSIONLESS;
-    QStatus status = Signal(NULL, 0, *appliedSceneMember, NULL, 0, 0, flags);
-    if (ER_OK != status) {
-        QCC_LogError(status, ("%s: Unable to send the applied scene event"));
+    if (appliedSceneMember) {
+        QStatus status = Signal(NULL, 0, *appliedSceneMember, NULL, 0, 0, flags);
+        if (ER_OK != status) {
+            QCC_LogError(status, ("%s: Unable to send the applied scene event", __func__));
+        }
+    } else {
+        QCC_LogError(ER_FAIL, ("%s: appliedSceneMember not initialized", __func__));
     }
 }
 

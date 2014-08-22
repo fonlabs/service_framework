@@ -23,19 +23,37 @@
 
 namespace lsf {
 
+/*
+ * Class that implements a Semaphore
+ */
 class LSFSemaphore {
   public:
 
+    /*
+     * Constructor
+     */
     LSFSemaphore();
 
+    /*
+     * Destrctor
+     */
     ~LSFSemaphore();
 
+    /*
+     * Wait on a Semaphore
+     */
     void Wait(void);
 
+    /*
+     * Post to a Semaphore
+     */
     void Post(void);
 
   private:
 
+    /*
+     * Mutex associated with the Semaphore
+     */
     sem_t mutex;
 };
 

@@ -65,7 +65,6 @@ const char* AboutIconInterfaceName = "org.alljoyn.Icon";
 
 const char* LeaderElectionAndStateSyncObjectPath = "/org/allseen/LeaderElectionAndStateSync";
 const char* LeaderElectionAndStateSyncInterfaceName = "org.allseen.LeaderElectionAndStateSync";
-ajn::SessionPort LeaderElectionAndStateSyncSessionPort = 44;
 
 const char* ApplySceneEventActionInterfaceName = "org.allseen.LSF.ControllerService.ApplySceneEventAction.";
 
@@ -99,10 +98,10 @@ void CreateUniqueList(LSFStringList& uniqueList, ajn::MsgArg* idsArray, size_t i
 
 }
 
-char* strdupnew(const char*s) {
-    char* d = new char[strlen(s) + 1];
+char* strdupnew(const char* str) {
+    char* d = new char[strlen(str) + 1];
     if (d) {
-        strcpy(d, s);
+        strcpy(d, str);
     }
     return d;
 }
