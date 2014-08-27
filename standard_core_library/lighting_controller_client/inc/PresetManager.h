@@ -27,6 +27,9 @@ namespace lsf {
 
 class ControllerClient;
 
+/**
+ * a callback class which object delivered to the PresentManager and its object and methods delivered as a handle to get method replies and signals related to presence of the lamps.
+ */
 class PresetManagerCallback {
   public:
     virtual ~PresetManagerCallback() { }
@@ -138,7 +141,9 @@ class PresetManagerCallback {
     virtual void DefaultLampStateChangedCB(void) { }
 };
 
-
+/**
+ * a class manage the status of the lamps
+ */
 class PresetManager : public Manager {
 
     friend class ControllerClient;

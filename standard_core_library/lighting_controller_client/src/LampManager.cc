@@ -130,6 +130,20 @@ ControllerClientStatus LampManager::GetLampParameters(const LSFString& lampID)
                1);
 }
 
+ControllerClientStatus LampManager::PingLamp(const LSFString& lampID)
+{
+    QCC_DbgPrintf(("\n%s: %s\n", __func__, lampID.c_str()));
+
+    MsgArg arg;
+    arg.Set("s", lampID.c_str());
+
+    return controllerClient.MethodCallAsyncForReplyWithResponseCodeAndID(
+               ControllerServiceLampInterfaceName,
+               "PingLamp",
+               &arg,
+               1);
+}
+
 void LampManager::GetLampParametersReply(Message& message)
 {
     QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));

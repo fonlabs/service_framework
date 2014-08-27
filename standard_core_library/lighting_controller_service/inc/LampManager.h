@@ -54,7 +54,9 @@ class LampsAndPreset {
     LSFString presetID;
     uint32_t transitionPeriod;
 };
-
+/**
+ * a class that contains a list of lamps and the new state wanted for them.
+ */
 class LampsAndStateField {
   public:
     LampsAndStateField(LSFStringList lampList, LSFString fieldName, ajn::MsgArg arg, uint32_t period) :
@@ -177,6 +179,13 @@ class LampManager : public Manager {
      * @param message   The params
      */
     void GetLampName(ajn::Message& message);
+
+    /**
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.PingLamp
+     *
+     * @param message   The params
+     */
+    void PingLamp(ajn::Message& message);
 
     /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.SetLampName

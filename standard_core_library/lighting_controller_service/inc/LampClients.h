@@ -33,73 +33,106 @@
 #define INITIAL_PASSCODE "000000"
 
 namespace lsf {
-
+/**
+ * struct is used to contain a list of lamps and the requested field state details
+ */
 typedef struct _TransitionStateFieldParams {
+    /**
+     * _TransitionStateFieldParams CTOR
+     */
     _TransitionStateFieldParams(LSFStringList& lampList, uint64_t& timeStamp, const char* fieldName, ajn::MsgArg& fieldValue, uint32_t& transPeriod) :
         lamps(lampList), timestamp(timeStamp), field(fieldName), value(fieldValue), period(transPeriod) { }
 
-    LSFStringList lamps;
-    uint64_t timestamp;
-    const char* field;
-    ajn::MsgArg value;
-    uint32_t period;
+    LSFStringList lamps;    /**< List of lamps */
+    uint64_t timestamp;     /**< time for the transition */
+    const char* field;      /**< field to act on */
+    ajn::MsgArg value;      /**< value to move to */
+    uint32_t period;        /**< period of time */
 } TransitionStateFieldParams;
 
+/**
+ * struct is used to contain a list of lamps and the requested state details
+ */
 typedef struct _TransitionStateParams {
+    /**
+     * _TransitionStateParams CTOR
+     */
     _TransitionStateParams(LSFStringList& lampList, uint64_t& timeStamp, ajn::MsgArg& lampState, uint32_t& transPeriod) :
         lamps(lampList), timestamp(timeStamp), state(lampState), period(transPeriod) { }
 
-    LSFStringList lamps;
-    uint64_t timestamp;
-    ajn::MsgArg state;
-    uint32_t period;
+    LSFStringList lamps;    /**< List of lamps */
+    uint64_t timestamp;     /**< time for the transition */
+    ajn::MsgArg state;      /**< new state to transit to */
+    uint32_t period;        /**< period of time */
 } TransitionStateParams;
 
+/**
+ * struct is used to contain requested pulse state parameters
+ */
 typedef struct _PulseStateParams {
+    /**
+     * CTOR to struct PulseStateParams
+     * @param   lampList
+     * @param   oldLampState
+     * @param   newLampState
+     * @param   pulsePeriod
+     * @param   pulseDuration
+     * @param   numPul
+     * @param   timeStamp
+     */
     _PulseStateParams(LSFStringList& lampList, ajn::MsgArg& oldLampState, ajn::MsgArg& newLampState, uint32_t& pulsePeriod, uint32_t& pulseDuration, uint32_t& numPul, uint64_t& timeStamp) :
         lamps(lampList), oldState(oldLampState), newState(newLampState), period(pulsePeriod), duration(pulseDuration), numPulses(numPul), timestamp(timeStamp) { }
 
-    LSFStringList lamps;
-    ajn::MsgArg oldState;
-    ajn::MsgArg newState;
-    uint32_t period;
-    uint32_t duration;
-    uint32_t numPulses;
-    uint64_t timestamp;
+    LSFStringList lamps;    /**< List of lamps */
+    ajn::MsgArg oldState;   /**< Old state */
+    ajn::MsgArg newState;   /**< New state */
+    uint32_t period;        /**< period of pulse time */
+    uint32_t duration;      /**< duration of pulse time */
+    uint32_t numPulses;     /**< number of pulses */
+    uint64_t timestamp;     /**< time for the pulse */
 } PulseStateParams;
 
 typedef std::list<TransitionStateFieldParams> TransitionStateFieldParamsList;
 typedef std::list<TransitionStateParams> TransitionStateParamsList;
 typedef std::list<PulseStateParams> PulseStateParamsList;
 
+/**
+ * class is used as clietn side to the lamp service
+ */
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener,
     public ajn::ProxyBusObject::Listener, public lsf::Thread, public BusAttachment::PingAsyncCB {
   public:
-
+    /**
+     * LampClients constructor
+     */
     LampClients(ControllerService& controllerSvc);
-
+    /**
+     * LampClients destructor
+     */
     ~LampClients();
-
+    /**
+     * request all lamp ids
+     */
     void RequestAllLampIDs(ajn::Message& message);
-
     /**
      * Start the Lamp Clients
      *
-     * @param   None
+     * @param   keyStoreFileLocation - key for the security
      * @return  ER_OK if successful, error otherwise
      */
     QStatus Start(const char* keyStoreFileLocation);
-
+    /**
+     * Run thread method
+     */
     void Run(void);
 
     /**
      * Stop the Lamp Clients
-     *
-     * @param   None
-     * @return  ER_OK if successful, error otherwise
      */
     void Stop(void);
-
+    /**
+     * Join thread method
+     */
     void Join(void);
 
     /**
@@ -124,15 +157,25 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * Get the Lamp name
      *
      * @param lampID    The lamp id
+     * @param language  The language of the requested information
      * @param msg   The original message
      */
     void GetLampName(const LSFString& lampID, const LSFString& language, ajn::Message& msg);
+
+    /**
+     * Ping a Lamp
+     *
+     * @param lampID    The lamp id
+     * @param inMsg   The original message
+     */
+    void PingLamp(const LSFString& lampID, Message& inMsg);
 
     /**
      * Set the Lamp name
      *
      * @param lampID    The lamp id
      * @param name      The new name
+     * @param language  The language of the given information
      * @param inMsg     The original message
      */
     void SetLampName(const LSFString& lampID, const LSFString& name, const LSFString& language, ajn::Message& inMsg);
@@ -141,6 +184,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * Get the Lamp manufacturer
      *
      * @param lampID    The lamp id
+     * @param language  the language of the requested information
      * @param msg   The original message
      */
     void GetLampManufacturer(const LSFString& lampID, const LSFString& language, ajn::Message& msg);
@@ -220,6 +264,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     void GetLampParametersField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
 
+    /**
+     * change lamp state
+     */
     void ChangeLampState(const ajn::Message& inMsg, bool groupOperation, bool sceneOperation, TransitionStateParamsList& transitionStateParams,
                          TransitionStateFieldParamsList& transitionStateFieldparams, PulseStateParamsList& pulseParams, LSFString sceneOrMasterSceneID = LSFString());
 
@@ -236,12 +283,16 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     void GetLampFaults(const LSFString& lampID, ajn::Message& inMsg);
 
+    /**
+     * Get lamp version
+     */
     void GetLampVersion(const LSFString& lampID, ajn::Message& inMsg);
 
     /**
      * Clear the given lamp fault specified in inMsg
      *
      * @param lampID    The lamp id
+     * @param faultCode  The lamp code to clear
      * @param inMsg     The original message that led to this call
      *
      * @return          LSF_OK if the request was sent
@@ -251,16 +302,30 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     void ClearLampFault(const LSFString& lampID, LampFaultCode faultCode, ajn::Message& inMsg);
 
+    /**
+     * Get all lamps
+     */
     void GetAllLamps(LampNameMap& lamps);
 
+    /**
+     * introspect callback
+     */
     void IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* context);
-
+    /**
+     * connect to lamps
+     */
     void ConnectToLamps(void);
-
+    /**
+     * disconnect from lamps
+     */
     void DisconnectFromLamps(void);
-
+    /**
+     * unregister announce handler
+     */
     QStatus UnregisterAnnounceHandler(void);
-
+    /**
+     * register announce handler
+     */
     QStatus RegisterAnnounceHandler(void);
 
   private:

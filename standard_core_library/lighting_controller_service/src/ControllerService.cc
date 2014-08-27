@@ -216,6 +216,7 @@ ControllerService::ControllerService(
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
     BusObject(ControllerServiceObjectPath),
+    updatesAllowed(false),
     bus("LightingServiceController", true),
     elector(*this),
     serviceSession(0),
@@ -235,8 +236,8 @@ ControllerService::ControllerService(
     isObsObjectReady(false),
     isRunning(true),
     fileWriterThread(*this),
-    firstAnnouncementSent(false),
-    updatesAllowed(false)
+    firstAnnouncementSent(false)
+
 {
     QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
 }
@@ -249,6 +250,7 @@ ControllerService::ControllerService(
     const std::string& sceneFile,
     const std::string& masterSceneFile) :
     BusObject(ControllerServiceObjectPath),
+    updatesAllowed(false),
     bus("LightingServiceController", true),
     elector(*this),
     serviceSession(0),
@@ -268,8 +270,7 @@ ControllerService::ControllerService(
     isObsObjectReady(false),
     isRunning(true),
     fileWriterThread(*this),
-    firstAnnouncementSent(false),
-    updatesAllowed(false)
+    firstAnnouncementSent(false)
 {
     QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
     internalPropertyStore.Initialize();
@@ -309,6 +310,7 @@ void ControllerService::Initialize()
     AddMethodHandler("GetLampSupportedLanguages", &lampManager, &LampManager::GetLampSupportedLanguages);
     AddMethodHandler("GetLampManufacturer", &lampManager, &LampManager::GetLampManufacturer);
     AddMethodHandler("GetLampName", &lampManager, &LampManager::GetLampName);
+    AddMethodHandler("PingLamp", &lampManager, &LampManager::PingLamp);
     AddMethodHandler("SetLampName", &lampManager, &LampManager::SetLampName);
     AddMethodHandler("GetLampDetails", &lampManager, &LampManager::GetLampDetails);
     AddMethodHandler("GetLampParameters", &lampManager, &LampManager::GetLampParameters);
@@ -464,6 +466,7 @@ QStatus ControllerService::RegisterMethodHandlers(void)
         { controllerServiceLampInterface->GetMember("GetLampSupportedLanguages"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampManufacturer"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
+        { controllerServiceLampInterface->GetMember("PingLamp"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("SetLampName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampDetails"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampParameters"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },

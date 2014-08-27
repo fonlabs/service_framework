@@ -200,6 +200,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     QStatus CreateAndAddInterfaces(const InterfaceEntry* entries, size_t numEntries);
 
+    Mutex updatesAllowedLock;
+    bool updatesAllowed;
     ajn::BusAttachment bus;
     LeaderElectionObject elector;
     lsf::Mutex serviceSessionMutex;
@@ -296,11 +298,10 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     PersistenceThread fileWriterThread;
     bool firstAnnouncementSent;
-
-    bool updatesAllowed;
-    Mutex updatesAllowedLock;
 };
-
+/**
+ * controller service management class
+ */
 class ControllerServiceManager {
   public:
     ControllerServiceManager(

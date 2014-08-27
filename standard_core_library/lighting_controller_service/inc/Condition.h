@@ -21,7 +21,9 @@
 namespace lsf {
 
 class Mutex;
-
+/**
+ * abstraction of posix pthread_cond_t
+ */
 class Condition {
   public:
 

@@ -477,6 +477,26 @@ class LampManagerCallbackHandler : public LampManagerCallback {
             gotSignal = true;
         }
     }
+
+    void LampsFoundCB(const LSFStringList& lampIDs) {
+        printf("\n%s(): listsize=%d", __func__, lampIDs.size());
+        LSFStringList::const_iterator it = lampIDs.begin();
+        uint8_t count = 1;
+        for (; it != lampIDs.end(); ++it) {
+            printf("\n(%d)%s", count, (*it).c_str());
+            count++;
+        }
+        printf("\n");
+        lampList.clear();
+        lampList = lampIDs;
+    }
+
+    void PingLampReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID)
+    {
+        LSFString uniqueId = lampID;
+        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
+        gotReply = true;
+    }
 };
 
 class LampGroupManagerCallbackHandler : public LampGroupManagerCallback {
@@ -1226,6 +1246,7 @@ void PrintHelp() {
     printf("(86):  GetSceneDataSet\n");
     printf("(87):  GetMasterSceneDataSet\n");
     printf("(88):  Reset\n");
+    printf("(89):  PingLamp\n");
 }
 
 int main()
@@ -1982,6 +2003,11 @@ int main()
             } else if (cmd == "88") {
                 printf("\nInvoking Reset()");
                 client.Reset();
+            } else if (cmd == "89") {
+                String uniqueId = NextTok(line);
+                printf("\nInvoking PingLamp(%s)\n", uniqueId.c_str());
+                status = lampManager.PingLamp(uniqueId.c_str());
+                numRepliesToWait = 1;
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {

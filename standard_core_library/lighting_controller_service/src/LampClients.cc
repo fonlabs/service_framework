@@ -317,11 +317,6 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
             joinSessionInProgressList.erase(connection->lampId);
             joinSessionInProgressLock.Unlock();
 
-            if (status == ER_ALLJOYN_JOINSESSION_REPLY_ALREADY_JOINED) {
-                QCC_DbgPrintf(("%s: Attempting a Leave Session on session id = %d as we got ER_ALLJOYN_JOINSESSION_REPLY_ALREADY_JOINED as response", __func__, sessionId));
-                controllerService.DoLeaveSessionAsync(sessionId);
-            }
-
             QCC_DbgPrintf(("%s: Retrying Ping due to JoinSession failure", __func__));
             if (controllerService.GetBusAttachment().PingAsync(connection->busName.c_str(), NGNS_PING_TIMEOUT_IN_MS, this, connection) != ER_OK) {
                 QCC_LogError(status, ("%s: Sending PingAsync failed for Lamp ID = %s", __func__, connection->lampId.c_str()));
@@ -1010,6 +1005,11 @@ void LampClients::GetLampName(const LSFString& lampID, const LSFString& language
     QueueLampMethod(queuedCall);
 }
 
+void LampClients::PingLamp(const LSFString& lampID, Message& inMsg)
+{
+    QCC_DbgTrace(("%s", __func__));
+}
+
 void LampClients::GetLampManufacturer(const LSFString& lampID, const LSFString& language, ajn::Message& inMsg)
 {
     QCC_DbgTrace(("%s", __func__));
@@ -1553,6 +1553,10 @@ void LampClients::Run(void)
 
             std::list<LampConnection*> leaveSessionList;
             leaveSessionList.clear();
+
+            LSFStringList foundLamps;
+            foundLamps.clear();
+
             while (tempJoinList.size()) {
                 LampConnection* newConn = tempJoinList.front();
                 /*
@@ -1565,12 +1569,20 @@ void LampClients::Run(void)
                     joinSessionInProgressList.erase(newConn->lampId);
                     joinSessionInProgressLock.Unlock();
                     QCC_DbgPrintf(("%s: Added new connection for %s to activeLamps", __func__, newConn->lampId.c_str()));
+                    foundLamps.push_back(newConn->lampId);
                 } else {
                     QCC_DbgPrintf(("%s: No slot for connection with a new lamp", __func__));
                     leaveSessionList.push_back(newConn);
                     QCC_DbgPrintf(("%s: Added connection for %s to leaveSessionList", __func__, newConn->lampId.c_str()));
                 }
                 tempJoinList.pop_front();
+            }
+
+            /*
+             * Send the found lamps signal if required
+             */
+            if (foundLamps.size()) {
+                controllerService.SendSignal(ControllerServiceLampInterfaceName, "LampsFound", foundLamps);
             }
 
             /*

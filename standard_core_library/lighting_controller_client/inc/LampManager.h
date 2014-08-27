@@ -86,6 +86,21 @@ class LampManagerCallback {
     virtual void LampsNameChangedCB(const LSFStringList& lampIDs) { }
 
     /**
+     *  Indicates that the signal LampsFound has been received
+     *
+     *  @param lampIDs   The Lamp IDs
+     */
+    virtual void LampsFoundCB(const LSFStringList& lampIDs) { }
+
+    /**
+     * Indicates that a reply has been received for the PingLamp method call
+     *
+     * @param responseCode The response code
+     * @param lampID       The Lamp ID
+     */
+    virtual void PingLampReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+
+    /**
      * Indicates that a reply has been received for the GetLampDetails method call
      *
      * @param responseCode The response code
@@ -393,6 +408,14 @@ class LampManager : public Manager {
     ControllerClientStatus GetLampDetails(const LSFString& lampID);
 
     /**
+     * Ping a Lamp
+     * Return in LampManagerCallback::PingLampReplyCB
+     *
+     * @param lampID    The Lamp id
+     */
+    ControllerClientStatus PingLamp(const LSFString& lampID);
+
+    /**
      * Get the parameters of a given Lamp
      * Response in LampManagerCallback::GetLampParametersReplyCB
      *
@@ -690,8 +713,13 @@ class LampManager : public Manager {
     void LampsNameChanged(LSFStringList& idList) {
         callback.LampsNameChangedCB(idList);
     }
+
     void LampsStateChanged(LSFStringList& idList) {
         callback.LampsStateChangedCB(idList);
+    }
+
+    void LampsFound(LSFStringList& idList) {
+        callback.LampsFoundCB(idList);
     }
 
     // method reply handlers
@@ -716,6 +744,10 @@ class LampManager : public Manager {
 
     void ResetLampStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.ResetLampStateReplyCB(responseCode, lsfId);
+    }
+
+    void PingLampReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+        callback.PingLampReplyCB(responseCode, lsfId);
     }
 
     void ResetLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);

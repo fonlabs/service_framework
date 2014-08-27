@@ -24,7 +24,9 @@
 namespace lsf {
 
 class ControllerClient;
-
+/**
+ * a callback class that its instance and members are given to the MasterScene to get the methods reply and signals that are coming from the controller service.
+ */
 class MasterSceneManagerCallback {
   public:
     virtual ~MasterSceneManagerCallback() { }

@@ -359,6 +359,62 @@ static AJ_Status ConnectToRouter(void)
 
 static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status);
 
+static AJ_Status ParseOptions(AJ_SessionOpts* opts, AJ_Message* msg)
+{
+    AJ_Arg array1, struct1;
+    AJ_Status status = AJ_UnmarshalContainer(msg, &array1, AJ_ARG_ARRAY);
+
+    do {
+        char* field;
+        char* sig;
+
+        status = AJ_UnmarshalContainer(msg, &struct1, AJ_ARG_DICT_ENTRY);
+        if (status != AJ_OK) {
+            break;
+        }
+
+        status = AJ_UnmarshalArgs(msg, "s", &field);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("AJ_UnmarshalArgs: %s\n", AJ_StatusText(status)));
+            break;
+        }
+
+        // Process the field!
+        status = AJ_UnmarshalVariant(msg, (const char**) &sig);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("AJ_UnmarshalVariant: %s\n", AJ_StatusText(status)));
+            break;
+        }
+
+        if (0 == strcmp(field, "traf")) {
+            uint32_t traf;
+            status = AJ_UnmarshalArgs(msg, "y", &traf);
+            opts->traffic = traf;
+        } else if (0 == strcmp(field, "multi")) {
+            uint32_t multi;
+            status = AJ_UnmarshalArgs(msg, "b", &multi);
+            opts->isMultipoint = multi ? TRUE : FALSE;
+        } else if (0 == strcmp(field, "prox")) {
+            uint32_t prox;
+            status = AJ_UnmarshalArgs(msg, "y", &prox);
+            opts->proximity = prox;
+        } else if (0 == strcmp(field, "trans")) {
+            status = AJ_UnmarshalArgs(msg, "q", &opts->transports);
+        } else {
+            // don't print becuase this isn't really an error
+            AJ_SkipArg(msg);
+        }
+
+        status = AJ_UnmarshalCloseContainer(msg, &struct1);
+        // if field invalid, throw the whole thing out and return the error
+    } while (status == AJ_OK);
+
+    AJ_UnmarshalCloseContainer(msg, &array1);
+
+    return status;
+}
+
+
 void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 {
     AJ_Status status = AJ_OK;
@@ -471,11 +527,22 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
                 {
                     AJ_InfoPrintf(("%s: Got Accept Session\n", __func__));
                     uint16_t port;
+                    uint32_t session;
                     char* joiner;
-                    AJ_UnmarshalArgs(&msg, "qus", &port, &ControllerSessionID, &joiner);
+                    AJ_UnmarshalArgs(&msg, "qus", &port, &session, &joiner);
+
                     if (port == LSF_ServicePort) {
+                        AJ_SessionOpts opts;
+                        ParseOptions(&opts, &msg);
+
+                        if (opts.isMultipoint) {
+                            ControllerSessionID = session;
+                            AJ_InfoPrintf(("%s: Accepted multipoint session id=%u from joiner=%s\n", __func__, session, joiner));
+                        } else {
+                            AJ_InfoPrintf(("%s: Accepted session id=%u from joiner=%s\n", __func__, session, joiner));
+                        }
+
                         status = AJ_BusReplyAcceptSession(&msg, TRUE);
-                        AJ_InfoPrintf(("%s: Accepted session session_id=%u joiner=%s\n", __func__, ControllerSessionID, joiner));
                     } else {
                         status = AJ_BusReplyAcceptSession(&msg, FALSE);
                         AJ_InfoPrintf(("%s: Accepted rejected session_id=%u joiner=%s\n", __func__, ControllerSessionID, joiner));
@@ -489,11 +556,14 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
                     // this might not be an error.
                     uint32_t sessionId, reason;
                     AJ_UnmarshalArgs(&msg, "uu", &sessionId, &reason);
-                    ControllerSessionID = 0;
-                    // cancel signal
-                    SendStateChanged = FALSE;
+
+                    if (sessionId == ControllerSessionID) {
+                        // we don't care if a point-to-point session is lost
+                        ControllerSessionID = 0;
+                        SendStateChanged = FALSE;
+                        status = AJ_ERR_SESSION_LOST;
+                    }
                     AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u", __func__, sessionId, reason));
-                    status = AJ_ERR_SESSION_LOST;
                     break;
                 }
 
