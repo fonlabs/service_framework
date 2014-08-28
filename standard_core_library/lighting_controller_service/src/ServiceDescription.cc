@@ -195,6 +195,9 @@ const std::string ControllerServiceLampDescription =
     "    <signal name='LampsFound'>"
     "      <arg name='lampIDs' type='as' direction='out'/>"
     "    </signal>"
+    "    <signal name='LampsLost'>"
+    "      <arg name='lampIDs' type='as' direction='out'/>"
+    "    </signal>"
     "  </interface>"
     "</node>";
 

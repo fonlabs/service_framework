@@ -179,12 +179,14 @@ void Manager::ScheduleFileRead(Message& message)
 
 void Manager::TriggerUpdate(void)
 {
+    QCC_DbgTrace(("%s", __func__));
     sendUpdate = true;
     controllerService.ScheduleFileReadWrite(this);
 }
 
 void Manager::GetBlobInfoInternal(uint32_t& checksum, uint64_t& timestamp)
 {
+    QCC_DbgTrace(("%s", __func__));
     checksum = checkSum;
     timestamp = timeStamp;
 }

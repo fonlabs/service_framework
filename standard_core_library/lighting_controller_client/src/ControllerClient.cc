@@ -74,6 +74,7 @@ class ControllerClient::ControllerClientBusHandler :
         QCC_DbgPrintf(("BusDisconnected!"));
         ErrorCodeList errors;
         errors.push_back(ERROR_DISCONNECTED_FROM_BUS);
+        QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB\n", __func__));
         controllerClient.callback.ControllerClientErrorCB(errors);
     }
 
@@ -293,6 +294,7 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
     if (currentLeaderRank) {
         Leaders::iterator it = leadersMap.find(currentLeaderRank);
         if (it != leadersMap.end()) {
+            QCC_DbgPrintf(("%s: Removing entry for rank %llu from leadersMap", __func__, currentLeaderRank));
             leadersMap.erase(it);
         }
     }
@@ -307,6 +309,7 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
         ControllerEntry* context = new ControllerEntry;
         if (!context) {
             QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+            QCC_DbgPrintf(("%s: Returning true", __func__));
             return true;
         }
         *context = entry;
@@ -316,6 +319,7 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
         if (status != ER_OK) {
             QCC_LogError(status, ("%s: JoinSessionAsync failed", __func__));
             delete context;
+            QCC_DbgPrintf(("%s: calling to ConnectToControllerServiceFailedCB(deviceID=%s,deviceName=%s)\n", __func__, entry.deviceID.c_str(), entry.deviceName.c_str()));
             callback.ConnectToControllerServiceFailedCB(entry.deviceID, entry.deviceName);
 
             bool emptyList = false;
@@ -331,8 +335,10 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
             leadersMapLock.Unlock();
 
             if (emptyList) {
+                QCC_DbgPrintf(("%s: Returning true", __func__));
                 return true;
             } else {
+                QCC_DbgPrintf(("%s: Returning false", __func__));
                 return false;
             }
         } else {
@@ -340,9 +346,11 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
             currentLeaderLock.Lock();
             currentLeader.controllerDetails = entry;
             currentLeaderLock.Unlock();
+            QCC_DbgPrintf(("%s: Returning true", __func__));
             return true;
         }
     } else {
+        QCC_DbgPrintf(("%s: Returning true", __func__));
         return true;
     }
 }
@@ -392,11 +400,13 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
     currentLeaderLock.Unlock();
 
     if (!deviceID.empty()) {
+        QCC_DbgPrintf(("%s: calling to DisconnectedFromControllerServiceCB(deviceID=%s,deviceName=%s)\n", __func__,  deviceID.c_str(), deviceName.c_str()));
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 
     if (currentLeaderRank) {
         while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+        QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
     }
 }
 
@@ -495,10 +505,13 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                     currentLeader.Clear();
                     currentLeaderLock.Unlock();
                     while (!(JoinSessionWithAnotherLeader())) ;
+                    QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
                 } else {
+                    QCC_DbgPrintf(("%s: calling to ConnectedToControllerServiceCB(deviceId=%s,deviceName=%s)\n", __func__, joined->deviceID.c_str(), deviceName.c_str()));
                     callback.ConnectedToControllerServiceCB(joined->deviceID, deviceName);
                 }
             } else {
+                QCC_DbgPrintf(("%s:calling to ConnectToControllerServiceFailedCB(deviceId=%s,deviceName=%s)\n", __func__, joined->deviceID.c_str(), deviceName.c_str()));
                 callback.ConnectToControllerServiceFailedCB(joined->deviceID, deviceName);
                 currentLeaderLock.Lock();
                 currentLeader.Clear();
@@ -507,6 +520,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                     DoLeaveSessionAsync(sessionId);
                 }
                 while (!(JoinSessionWithAnotherLeader(joined->rank))) ;
+                QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
             }
         } else {
             if (status == ER_OK) {
@@ -552,7 +566,8 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     currentLeaderLock.Unlock();
 
     if (nameChanged) {
-        controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
+        QCC_DbgPrintf(("%s: calling to ControllerServiceNameChangedCB(%s, %s)\n", __func__, entry.deviceID.c_str(), entry.deviceName.c_str()));
+        controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB(entry.deviceID, entry.deviceName);
     }
 
     leadersMapLock.Lock();
@@ -564,6 +579,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
 
     if (currentLeaderRank == 0) {
         while (!(JoinSessionWithAnotherLeader())) ;
+        QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
     } else if (currentLeaderRank < rank) {
         if (sessionId) {
             DoLeaveSessionAsync(sessionId);
@@ -573,6 +589,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             currentLeader.Clear();
             currentLeaderLock.Unlock();
             while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+            QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
         }
     }
 }
@@ -676,6 +693,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s:calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -746,6 +764,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& m
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -812,6 +831,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& messa
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -875,6 +895,7 @@ void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, vo
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -950,6 +971,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -979,10 +1001,12 @@ void ControllerClient::Reset(void)
 
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
+        QCC_DbgPrintf(("%s: calling to DisconnectedFromControllerServiceCB(%s,%s)\n", __func__, deviceID.c_str(), deviceName.c_str()));
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 
     while (!(JoinSessionWithAnotherLeader())) ;
+    QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
 }
 
 void ControllerClient::AddMethodHandlers()
@@ -998,6 +1022,7 @@ void ControllerClient::AddMethodHandlers()
         AddSignalHandler("LampsNameChanged", lampManagerPtr, &LampManager::LampsNameChanged);
         AddSignalHandler("LampsStateChanged", lampManagerPtr, &LampManager::LampsStateChanged);
         AddSignalHandler("LampsFound", lampManagerPtr, &LampManager::LampsFound);
+        AddSignalHandler("LampsLost", lampManagerPtr, &LampManager::LampsLost);
 
         AddMethodReplyWithResponseCodeAndListOfIDsHandler("GetAllLampIDs", lampManagerPtr, &LampManager::GetAllLampIDsReply);
 
@@ -1110,6 +1135,7 @@ void ControllerClient::AddSignalHandlers()
         { controllerServiceLampInterface->GetMember("LampsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampInterface->GetMember("LampsStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampInterface->GetMember("LampsFound"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampsLost"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("LampGroupsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("LampGroupsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("LampGroupsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
@@ -1154,6 +1180,7 @@ void ControllerClient::RemoveSignalHandlers()
         { controllerServiceLampInterface->GetMember("LampsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampInterface->GetMember("LampsStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampInterface->GetMember("LampsFound"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampsLost"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("LampGroupsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("LampGroupsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("LampGroupsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },

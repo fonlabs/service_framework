@@ -697,9 +697,7 @@ QStatus ControllerService::Stop(void)
 {
     QCC_DbgPrintf(("%s", __func__));
 
-    isRunningLock.Lock();
     isRunning = false;
-    isRunningLock.Unlock();
 
     SessionId session = 0;
 
@@ -795,6 +793,7 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
 
     serviceSessionMutex.Lock();
     if (serviceSession != 0) {
+        QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
         if (signal) {
             status = Signal(NULL, serviceSession, *signal, &arg, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
@@ -820,6 +819,7 @@ QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const cha
     if (serviceSession != 0) {
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
         if (signal) {
+            QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
             status = Signal(NULL, serviceSession, *signal, NULL, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
         }
     }
@@ -852,9 +852,7 @@ void ControllerService::ObjectRegistered(void)
 QStatus ControllerService::Restart()
 {
     QCC_DbgPrintf(("Restarting\n"));
-    isRunningLock.Lock();
     isRunning = false;
-    isRunningLock.Unlock();
     return ER_OK;
 }
 
@@ -879,9 +877,7 @@ QStatus ControllerService::FactoryReset()
     internalPropertyStore.Reset();
 
     // the main thread will shut us down soon
-    isRunningLock.Lock();
     isRunning = false;
-    isRunningLock.Unlock();
     return ER_OK;
 }
 
@@ -899,6 +895,7 @@ void ControllerService::LeaveSession(void)
     serviceSessionMutex.Lock();
     sessionId = serviceSession;
     serviceSession = 0;
+    QCC_DbgPrintf(("%s: Cleared Session ID = %u", __func__, sessionId));
     serviceSessionMutex.Unlock();
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
@@ -913,6 +910,7 @@ void ControllerService::SessionJoined(SessionId sessionId, const char* joiner)
     // we are now serving up a multipoint session to the apps
     serviceSessionMutex.Lock();
     serviceSession = sessionId;
+    QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
     serviceSessionMutex.Unlock();
 }
 
@@ -922,6 +920,7 @@ void ControllerService::SessionLost(SessionId sessionId)
     // Or are we ok since there is only one multipoint session?
     QCC_DbgPrintf(("%s:%u", __func__, sessionId));
     serviceSessionMutex.Lock();
+    QCC_DbgPrintf(("%s: Cleared Session ID = %u", __func__, sessionId));
     serviceSession = 0;
     serviceSessionMutex.Unlock();
 }
@@ -1161,6 +1160,7 @@ QStatus ControllerService::SendBlobUpdate(LSFBlobType type, std::string blob, ui
     QCC_DbgTrace(("%s:type=%d blob=%s checksum=%d timestamp=%llu", __func__, type, blob.c_str(), checksum, timestamp));
     serviceSessionMutex.Lock();
     SessionId session = serviceSession;
+    QCC_DbgPrintf(("%s: Sending over Session ID = %u", __func__, session));
     serviceSessionMutex.Unlock();
     return elector.SendBlobUpdate(session, type, blob, checksum, timestamp);
 }
@@ -1173,9 +1173,7 @@ void ControllerService::SendGetBlobReply(ajn::Message& message, LSFBlobType type
 
 bool ControllerService::IsRunning()
 {
-    isRunningLock.Lock();
     bool b = isRunning;
-    isRunningLock.Unlock();
     return b;
 }
 
@@ -1192,7 +1190,7 @@ void ControllerService::DoLeaveSessionAsync(ajn::SessionId sessionId)
         &arg,
         1,
         NULL,
-        LAMP_METHOD_CALL_TIMEOUT);
+        LEAVE_SESSION_TIMEOUT);
 }
 
 void ControllerService::LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context)
@@ -1256,6 +1254,7 @@ void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, q
     std::vector<qcc::String> interfaces;
     interfaces.push_back(interface);
     aboutService->RemoveObjectDescription(path, interfaces);
+
     if (firstAnnouncementSent) {
         aboutService->Announce();
     }
@@ -1264,15 +1263,11 @@ void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, q
 void ControllerService::SetAllowUpdates(bool allow)
 {
     QCC_DbgPrintf(("ControllerService::SetAllowUpdates(%s)", (allow ? "true" : "false")));
-    updatesAllowedLock.Lock();
     updatesAllowed = allow;
-    updatesAllowedLock.Unlock();
 }
 
-bool ControllerService::UpdatesAllowed()
+bool ControllerService::UpdatesAllowed(void)
 {
-    updatesAllowedLock.Lock();
     bool allowed = updatesAllowed;
-    updatesAllowedLock.Unlock();
     return allowed;
 }

@@ -243,7 +243,7 @@ void LeaderElectionObject::OnGetBlobReply(ajn::Message& message, void* context)
     }
 
     Synchronization* sync = static_cast<Synchronization*>(context);
-    if (0 == qcc::DecrementAndFetch(&sync->numWaiting)) {
+    if (sync && (0 == qcc::DecrementAndFetch(&sync->numWaiting))) {
         // we're finished synchronizing!
         QCC_DbgPrintf(("Finished synchronizing!"));
         delete sync;
@@ -314,21 +314,27 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
                 break;
             }
 
-            if ((myTimestamp != 0) && ((timestamp == 0) || ((GetTimestamp64() - myTimestamp) < timestamp)) && (myChecksum != 0)) {
-                // need to call!
+            uint64_t currentTimeStamp = GetTimestamp64();
+            QCC_DbgPrintf(("%s: type=%d checksum=%u timestamp=%llu", __func__, type, checksum, timestamp));
+            QCC_DbgPrintf(("%s: type=%d myChecksum=%u myTimestamp=%llu GetTimestamp64=%llu", __func__, type, myChecksum, myTimestamp, currentTimeStamp));
+
+            if ((myTimestamp != 0) && ((timestamp == 0) || ((currentTimeStamp - myTimestamp) < timestamp)) && (myChecksum != 0)) {
+                QCC_DbgPrintf(("%s: Need to send a blob!", __func__));
                 storesToSend.push_back(type);
             } else {
-                QCC_DbgPrintf(("%s: No need to send blob", __func__));
+                QCC_DbgPrintf(("%s: No need to send blob!", __func__));
             }
 
-            myTimestamp = GetTimestamp64() - myTimestamp;
+            myTimestamp = currentTimeStamp - myTimestamp;
             if ((timestamp != 0) && (myTimestamp > timestamp) && (checksum != 0)) {
+                QCC_DbgPrintf(("%s: Need to fetch blob!", __func__));
                 storesToFetch.push_back(type);
             } else {
-                QCC_DbgPrintf(("%s: No need to fetch blob", __func__));
+                QCC_DbgPrintf(("%s: No need to fetch blob!", __func__));
             }
         }
 
+        QCC_DbgPrintf(("%s: Going to send blobs according to list of types I prepared", __func__));
         if (!storesToSend.empty()) {
             for (std::list<LSFBlobType>::iterator it = storesToSend.begin(); it != storesToSend.end(); ++it) {
                 switch (*it) {
@@ -357,6 +363,7 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
             QCC_DbgTrace(("%s: Nothing to send", __func__));
         }
 
+        QCC_DbgPrintf(("%s: Going to fetch blobs according to list of types I prepared", __func__));
         if (!storesToFetch.empty()) {
             Synchronization* sync = new Synchronization();
             if (!sync) {
@@ -428,6 +435,17 @@ void LeaderElectionObject::Run(void)
     while (isRunning) {
         wakeSem.Wait();
         QCC_DbgPrintf(("%s: wakeSem posted", __func__));
+
+        /*
+         * We are shutting down. So announce self as non-leader before going away
+         */
+        if (!isRunning && isLeader) {
+            isLeader = false;
+            g_IsLeader = false;
+            QCC_DbgPrintf(("%s: Announcing self as non-leader as we are stopping", __func__));
+            controller.SetIsLeader(false);
+            goto _Exit;
+        }
 
         bool loopBack = true;
 
@@ -1053,6 +1071,7 @@ void LeaderElectionObject::Run(void)
         }
     }
 
+_Exit:
     QCC_DbgPrintf(("%s: Exiting", __func__));
 }
 

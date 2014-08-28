@@ -44,6 +44,7 @@ class MasterSceneManagerCallback {
      *
      * @param responseCode    The response code
      * @param masterSceneID    The masterScene id
+     * @param language
      * @param masterSceneName  The masterScene masterSceneName
      */
     virtual void GetMasterSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const LSFString& language, const LSFString& masterSceneName) { }
@@ -53,13 +54,14 @@ class MasterSceneManagerCallback {
      *
      * @param responseCode    The response code
      * @param masterSceneID    The Lamp masterScene id
+     * @param language
      */
     virtual void SetMasterSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const LSFString& language) { }
 
     /**
      * A masterScene has had its masterSceneName set
      *
-     * @param masterSceneID    The masterScene id
+     * @param masterSceneIDs    The masterScene id
      */
     virtual void MasterScenesNameChangedCB(const LSFStringList& masterSceneIDs) { }
 
@@ -68,14 +70,14 @@ class MasterSceneManagerCallback {
      *
      * @param responseCode    The response code
      * @param masterSceneID    The Lamp masterScene id
-     * @param masterScene The Lamp masterScene
+     * @param masterSceneID The Lamp masterScene
      */
     virtual void CreateMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID) { }
 
     /**
      *  A masterScene has been created
      *
-     *  @param masterSceneID   The masterScene id
+     *  @param masterSceneIDs   The masterScene id
      */
     virtual void MasterScenesCreatedCB(const LSFStringList& masterSceneIDs) { }
 
@@ -84,7 +86,7 @@ class MasterSceneManagerCallback {
      *
      * @param responseCode    The response code
      * @param masterSceneID    The Lamp masterScene id
-     * @parma masterScene The GroupID
+     * @param masterScene The GroupID
      */
     virtual void GetMasterSceneReplyCB(const LSFResponseCode& responseCode, const LSFString& masterSceneID, const MasterScene& masterScene) { }
 
@@ -99,7 +101,7 @@ class MasterSceneManagerCallback {
     /**
      *  A masterScene has been deleted
      *
-     *  @param masterSceneID   The masterScene id
+     *  @param masterSceneIDs   The masterScene id
      */
     virtual void MasterScenesDeletedCB(const LSFStringList& masterSceneIDs) { }
 
@@ -114,7 +116,7 @@ class MasterSceneManagerCallback {
     /**
      * A Lamp masterScene has been updated
      *
-     * @param masterSceneID    The id of the Lamp masterScene
+     * @param masterSceneIDs    The id of the Lamp masterScene
      */
     virtual void MasterScenesUpdatedCB(const LSFStringList& masterSceneIDs) { }
 
@@ -129,17 +131,22 @@ class MasterSceneManagerCallback {
     /**
      * A scene masterScene has been applied
      *
-     * @param masterSceneID    The id of the scene masterScene
+     * @param masterSceneIDs    The id of the scene masterScene
      */
     virtual void MasterScenesAppliedCB(const LSFStringList& masterSceneIDs) { }
 };
 
-
+/**
+ * Master Scene Manager
+ */
 class MasterSceneManager : public Manager {
 
     friend class ControllerClient;
 
   public:
+    /**
+     * MasterSceneManager constructor
+     */
     MasterSceneManager(ControllerClient& controller, MasterSceneManagerCallback& callback);
 
     /**
@@ -153,6 +160,7 @@ class MasterSceneManager : public Manager {
      * Response in MasterSceneManagerCallback::GetMasterSceneNameCB
      *
      * @param masterSceneID    The masterScene id
+     * @param language
      */
     ControllerClientStatus GetMasterSceneName(const LSFString& masterSceneID, const LSFString& language = LSFString("en"));
 
@@ -162,6 +170,7 @@ class MasterSceneManager : public Manager {
      *
      * @param masterSceneID    The id of the masterScene
      * @param masterSceneName  The Master Scene Name
+     * @param language
      */
     ControllerClientStatus SetMasterSceneName(const LSFString& masterSceneID, const LSFString& masterSceneName, const LSFString& language = LSFString("en"));
 
@@ -177,8 +186,7 @@ class MasterSceneManager : public Manager {
      * Response in MasterSceneManagerCallback::UpdateMasterSceneReplyCB
      *
      * @param masterSceneID    The id of the masterScene to modify
-     * @param lgids   The list of Lamp ID's that will be in the masterScene
-     * @param gids  The list of masterSceneList to add to this masterScene
+     * @param masterScene
      */
     ControllerClientStatus UpdateMasterScene(const LSFString& masterSceneID, const MasterScene& masterScene);
 
@@ -210,6 +218,7 @@ class MasterSceneManager : public Manager {
      * Get the Master Scene Info and Name
      *
      * @param masterSceneID    The ID of the master scene
+     * @param language
      */
     ControllerClientStatus GetMasterSceneDataSet(const LSFString& masterSceneID, const LSFString& language = LSFString("en"));
 
