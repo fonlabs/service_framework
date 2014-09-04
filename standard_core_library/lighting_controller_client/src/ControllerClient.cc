@@ -294,6 +294,7 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
     if (currentLeaderRank) {
         Leaders::iterator it = leadersMap.find(currentLeaderRank);
         if (it != leadersMap.end()) {
+            QCC_DbgPrintf(("%s: Removing entry for rank %llu from leadersMap", __func__, currentLeaderRank));
             leadersMap.erase(it);
         }
     }
@@ -308,6 +309,7 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
         ControllerEntry* context = new ControllerEntry;
         if (!context) {
             QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+            QCC_DbgPrintf(("%s: Returning true", __func__));
             return true;
         }
         *context = entry;
@@ -333,8 +335,10 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
             leadersMapLock.Unlock();
 
             if (emptyList) {
+                QCC_DbgPrintf(("%s: Returning true", __func__));
                 return true;
             } else {
+                QCC_DbgPrintf(("%s: Returning false", __func__));
                 return false;
             }
         } else {
@@ -342,9 +346,11 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
             currentLeaderLock.Lock();
             currentLeader.controllerDetails = entry;
             currentLeaderLock.Unlock();
+            QCC_DbgPrintf(("%s: Returning true", __func__));
             return true;
         }
     } else {
+        QCC_DbgPrintf(("%s: Returning true", __func__));
         return true;
     }
 }
@@ -400,6 +406,7 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
 
     if (currentLeaderRank) {
         while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+        QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
     }
 }
 
@@ -498,6 +505,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                     currentLeader.Clear();
                     currentLeaderLock.Unlock();
                     while (!(JoinSessionWithAnotherLeader())) ;
+                    QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
                 } else {
                     QCC_DbgPrintf(("%s: calling to ConnectedToControllerServiceCB(deviceId=%s,deviceName=%s)\n", __func__, joined->deviceID.c_str(), deviceName.c_str()));
                     callback.ConnectedToControllerServiceCB(joined->deviceID, deviceName);
@@ -512,6 +520,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                     DoLeaveSessionAsync(sessionId);
                 }
                 while (!(JoinSessionWithAnotherLeader(joined->rank))) ;
+                QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
             }
         } else {
             if (status == ER_OK) {
@@ -570,6 +579,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
 
     if (currentLeaderRank == 0) {
         while (!(JoinSessionWithAnotherLeader())) ;
+        QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
     } else if (currentLeaderRank < rank) {
         if (sessionId) {
             DoLeaveSessionAsync(sessionId);
@@ -579,6 +589,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             currentLeader.Clear();
             currentLeaderLock.Unlock();
             while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+            QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
         }
     }
 }
@@ -995,6 +1006,7 @@ void ControllerClient::Reset(void)
     }
 
     while (!(JoinSessionWithAnotherLeader())) ;
+    QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
 }
 
 void ControllerClient::AddMethodHandlers()

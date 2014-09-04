@@ -436,6 +436,17 @@ void LeaderElectionObject::Run(void)
         wakeSem.Wait();
         QCC_DbgPrintf(("%s: wakeSem posted", __func__));
 
+        /*
+         * We are shutting down. So announce self as non-leader before going away
+         */
+        if (!isRunning && isLeader) {
+            isLeader = false;
+            g_IsLeader = false;
+            QCC_DbgPrintf(("%s: Announcing self as non-leader as we are stopping", __func__));
+            controller.SetIsLeader(false);
+            goto _Exit;
+        }
+
         bool loopBack = true;
 
         while (loopBack) {
@@ -1060,6 +1071,7 @@ void LeaderElectionObject::Run(void)
         }
     }
 
+_Exit:
     QCC_DbgPrintf(("%s: Exiting", __func__));
 }
 

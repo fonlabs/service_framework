@@ -695,9 +695,7 @@ QStatus ControllerService::Stop(void)
 {
     QCC_DbgPrintf(("%s", __func__));
 
-    isRunningLock.Lock();
     isRunning = false;
-    isRunningLock.Unlock();
 
     SessionId session = 0;
 
@@ -852,9 +850,7 @@ void ControllerService::ObjectRegistered(void)
 QStatus ControllerService::Restart()
 {
     QCC_DbgPrintf(("Restarting\n"));
-    isRunningLock.Lock();
     isRunning = false;
-    isRunningLock.Unlock();
     return ER_OK;
 }
 
@@ -879,9 +875,7 @@ QStatus ControllerService::FactoryReset()
     internalPropertyStore.Reset();
 
     // the main thread will shut us down soon
-    isRunningLock.Lock();
     isRunning = false;
-    isRunningLock.Unlock();
     return ER_OK;
 }
 
@@ -1189,9 +1183,7 @@ void ControllerService::SendGetBlobReply(ajn::Message& message, LSFBlobType type
 
 bool ControllerService::IsRunning()
 {
-    isRunningLock.Lock();
     bool b = isRunning;
-    isRunningLock.Unlock();
     return b;
 }
 
@@ -1272,6 +1264,7 @@ void ControllerService::RemoveObjDescriptionFromAnnouncement(qcc::String path, q
     std::vector<qcc::String> interfaces;
     interfaces.push_back(interface);
     aboutService->RemoveObjectDescription(path, interfaces);
+
     if (firstAnnouncementSent) {
         aboutService->Announce();
     }

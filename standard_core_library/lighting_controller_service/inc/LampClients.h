@@ -311,10 +311,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      * disconnect from lamps
      */
     void DisconnectFromLamps(void);
-    /**
-     * unregister announce handler
-     */
-    QStatus UnregisterAnnounceHandler(void);
+
     /**
      * register announce handler
      */
@@ -324,7 +321,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void* LampClientsThread(void* data);
 
-    void HandleAboutAnnounce(const LSFString lampID, const LSFString& lampName, uint16_t port, const char* busName);
+    void HandleAboutAnnounce(LSFString& lampID, LSFString& lampName, uint16_t& port, LSFString& busName);
 
     void LampStateChangedSignalHandler(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
@@ -378,7 +375,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     struct QueuedMethodCall {
         QueuedMethodCall(const ajn::Message& msg, ajn::MessageReceiver::ReplyHandler replyHandler) :
-            inMsg(msg), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter() {
+            inMsg(msg), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter(), methodCallCount(0) {
         }
 
         void AddMethodCallElement(QueuedMethodCallElement& element) {
@@ -396,11 +393,12 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     struct QueuedMethodCallContext {
         QueuedMethodCallContext(LSFString lampId, QueuedMethodCall* qCallPtr, LSFString met) :
-            lampID(lampId), queuedCallPtr(qCallPtr), method(met) { }
+            lampID(lampId), queuedCallPtr(qCallPtr), method(met), timeSent(0) { }
 
         LSFString lampID;
         QueuedMethodCall* queuedCallPtr;
         LSFString method;
+        uint64_t timeSent;
     };
 
     void SendMethodReply(LSFResponseCode responseCode, ajn::Message msg, std::list<ajn::MsgArg>& stdArgs, std::list<ajn::MsgArg>& custArgs);
@@ -418,7 +416,66 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void PingCB(QStatus status, void* context);
 
+    typedef enum _LampConnectionState {
+        DISCONNECTED = 0,
+        JOIN_SESSION_IN_PROGRESS,
+        CONNECTED,
+        BLACKLISTED
+    } LampConnectionState;
+
     struct LampConnection {
+        LampConnection() {
+            lampId = "";
+            busName = "";
+            name = "";
+            port = 0;
+            ClearSessionAndObjects();
+        }
+
+        void Set(LSFString& lampid, LSFString& busname, LSFString& lampName, uint16_t& sessionPort) {
+            lampId = lampid;
+            busName = busname;
+            name = lampName;
+            port = sessionPort;
+        }
+
+        void ClearSessionAndObjects(void) {
+            sessionID = 0;
+            pendingMethodCallCount = 0;
+            object = ajn::ProxyBusObject();
+            configObject = ajn::ProxyBusObject();
+            aboutObject = ajn::ProxyBusObject();
+            connectionState = DISCONNECTED;
+        }
+
+        void Clear(void) {
+            lampId = "";
+            busName = "";
+            name = "";
+            port = 0;
+            ClearSessionAndObjects();
+            delete this;
+        }
+
+        void InitializeSessionAndObjects(ajn::BusAttachment& bus, ajn::SessionId sessionId) {
+            sessionID = sessionId;
+            object = ProxyBusObject(bus, busName.c_str(), LampServiceObjectPath, sessionId);
+            configObject = ProxyBusObject(bus, busName.c_str(), ConfigServiceObjectPath, sessionId);
+            aboutObject = ProxyBusObject(bus, busName.c_str(), AboutObjectPath, sessionId);
+        }
+
+        bool IsConnected(void) {
+            return (connectionState == CONNECTED);
+        }
+
+        bool JoinSessionInProgress(void) {
+            return (connectionState == JOIN_SESSION_IN_PROGRESS);
+        }
+
+        bool IsDisconnected(void) {
+            return (connectionState == DISCONNECTED);
+        }
+
         LSFString lampId;
         ajn::ProxyBusObject object;
         ajn::ProxyBusObject configObject;
@@ -427,7 +484,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         LSFString name;
         uint16_t port;
         ajn::SessionId sessionID;
-        uint32_t methodCallCount;
+        uint32_t pendingMethodCallCount;
+        LampConnectionState connectionState;
     };
 
     typedef std::map<LSFString, LampConnection*> LampMap;
@@ -436,7 +494,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     LampMap aboutsList;
     Mutex aboutsListLock;
 
-    std::list<LampConnection*> joinSessionCBList;
+    typedef std::map<LSFString, QStatus> JoinSessionReplyMap;
+
+    JoinSessionReplyMap joinSessionCBList;
     Mutex joinSessionCBListLock;
 
     std::set<uint32_t> lostSessionList;
@@ -460,13 +520,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     std::list<ajn::Message> getAllLampIDsRequests;
     Mutex getAllLampIDsLock;
 
-    Mutex joinSessionInProgressLock;
-    std::set<LSFString> joinSessionInProgressList;
-
     LSFSemaphore wakeUp;
 
-    Mutex connectToLampsLock;
-    bool connectToLamps;
+    volatile sig_atomic_t connectToLamps;
 
     typedef struct _PingCtx {
         _PingCtx(uint32_t count, LSFString lampId) :

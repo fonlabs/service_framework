@@ -303,8 +303,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     bool isObsObjectReady;
     Mutex obsObjectLock;
 
-    bool isRunning;
-    Mutex isRunningLock;
+    volatile sig_atomic_t isRunning;
 
     // Interface for ajn::services::ConfigService::Listener
     QStatus Restart();

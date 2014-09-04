@@ -309,14 +309,12 @@ class LampManager : public Manager {
      * connect to lamps
      */
     void ConnectToLamps(void) {
-        lampClients.RegisterAnnounceHandler();
         lampClients.ConnectToLamps();
     }
     /**
      * Disconnect from lamps
      */
     void DisconnectFromLamps(void) {
-        lampClients.UnregisterAnnounceHandler();
         lampClients.DisconnectFromLamps();
     }
 
