@@ -163,14 +163,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     void GetLampName(const LSFString& lampID, const LSFString& language, ajn::Message& msg);
 
     /**
-     * Ping a Lamp
-     *
-     * @param lampID    The lamp id
-     * @param inMsg   The original message
-     */
-    void PingLamp(const LSFString& lampID, Message& inMsg);
-
-    /**
      * Set the Lamp name
      *
      * @param lampID    The lamp id
@@ -399,6 +391,16 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         LSFString responseID;
         ResponseCounter responseCounter;
         QueuedMethodCallElementList methodCallElements;
+        uint32_t methodCallCount;
+    };
+
+    struct QueuedMethodCallContext {
+        QueuedMethodCallContext(LSFString lampId, QueuedMethodCall* qCallPtr, LSFString met) :
+            lampID(lampId), queuedCallPtr(qCallPtr), method(met) { }
+
+        LSFString lampID;
+        QueuedMethodCall* queuedCallPtr;
+        LSFString method;
     };
 
     void SendMethodReply(LSFResponseCode responseCode, ajn::Message msg, std::list<ajn::MsgArg>& stdArgs, std::list<ajn::MsgArg>& custArgs);
@@ -414,8 +416,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
 
-    void SessionPingCB(Message& message, void* context);
-
     void PingCB(QStatus status, void* context);
 
     struct LampConnection {
@@ -427,6 +427,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         LSFString name;
         uint16_t port;
         ajn::SessionId sessionID;
+        uint32_t methodCallCount;
     };
 
     typedef std::map<LSFString, LampConnection*> LampMap;
@@ -464,13 +465,15 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFSemaphore wakeUp;
 
-    uint8_t sentSessionPings;
-    uint8_t receivedSessionPingResponses;
-    LSFStringList lostLamps;
-    Mutex sessionPingResponseLock;
-
     Mutex connectToLampsLock;
     bool connectToLamps;
+
+    typedef struct _PingCtx {
+        _PingCtx(uint32_t count, LSFString lampId) :
+            callCount(count), lampID(lampId) { }
+        uint32_t callCount;
+        LSFString lampID;
+    } PingCtx;
 };
 
 }

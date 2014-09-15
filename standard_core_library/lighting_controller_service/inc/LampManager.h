@@ -181,13 +181,6 @@ class LampManager : public Manager {
     void GetLampName(ajn::Message& message);
 
     /**
-     * Process an AllJoyn call to org.allseen.LSF.ControllerService.PingLamp
-     *
-     * @param message   The params
-     */
-    void PingLamp(ajn::Message& message);
-
-    /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.SetLampName
      * @param message   The params
      */

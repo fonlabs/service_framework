@@ -93,12 +93,11 @@ class LampManagerCallback {
     virtual void LampsFoundCB(const LSFStringList& lampIDs) { }
 
     /**
-     * Indicates that a reply has been received for the PingLamp method call
+     *  Indicates that the signal LampsLost has been received
      *
-     * @param responseCode The response code
-     * @param lampID       The Lamp ID
+     *  @param lampIDs   The Lamp IDs
      */
-    virtual void PingLampReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
+    virtual void LampsLostCB(const LSFStringList& lampIDs) { }
 
     /**
      * Indicates that a reply has been received for the GetLampDetails method call
@@ -408,14 +407,6 @@ class LampManager : public Manager {
     ControllerClientStatus GetLampDetails(const LSFString& lampID);
 
     /**
-     * Ping a Lamp
-     * Return in LampManagerCallback::PingLampReplyCB
-     *
-     * @param lampID    The Lamp id
-     */
-    ControllerClientStatus PingLamp(const LSFString& lampID);
-
-    /**
      * Get the parameters of a given Lamp
      * Response in LampManagerCallback::GetLampParametersReplyCB
      *
@@ -722,6 +713,10 @@ class LampManager : public Manager {
         callback.LampsFoundCB(idList);
     }
 
+    void LampsLost(LSFStringList& idList) {
+        callback.LampsLostCB(idList);
+    }
+
     // method reply handlers
     void GetAllLampIDsReply(LSFResponseCode& responseCode, LSFStringList& idList) {
         callback.GetAllLampIDsReplyCB(responseCode, idList);
@@ -744,10 +739,6 @@ class LampManager : public Manager {
 
     void ResetLampStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
         callback.ResetLampStateReplyCB(responseCode, lsfId);
-    }
-
-    void PingLampReply(LSFResponseCode& responseCode, LSFString& lsfId) {
-        callback.PingLampReplyCB(responseCode, lsfId);
     }
 
     void ResetLampStateFieldReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& lsfName);
