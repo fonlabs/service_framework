@@ -151,19 +151,6 @@ void LampManager::GetLampName(Message& message)
     lampClients.GetLampName(lampID, language, message);
 }
 
-void LampManager::PingLamp(Message& message)
-{
-    QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));
-    size_t numArgs;
-    const MsgArg* args;
-    message->GetArgs(numArgs, args);
-    LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
-
-    QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
-
-    lampClients.PingLamp(lampID, message);
-}
-
 void LampManager::SetLampName(ajn::Message& message)
 {
     QCC_DbgPrintf(("%s: %s", __func__, message->ToString().c_str()));

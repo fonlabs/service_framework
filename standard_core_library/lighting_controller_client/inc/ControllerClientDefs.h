@@ -52,9 +52,13 @@ typedef enum _ErrorCode {
     /**< Controller Client is exiting */
     ERROR_CONTROLLER_CLIENT_EXITING = 6
 } ErrorCode;
-
+/**
+ * List of enum error codes
+ */
 typedef std::list<ErrorCode> ErrorCodeList;
-
+/**
+ * convert error code enum type to string type
+ */
 const char* ControllerClientErrorText(ErrorCode errorCode);
 
 /**

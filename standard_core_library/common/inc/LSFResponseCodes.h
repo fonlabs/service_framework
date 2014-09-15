@@ -18,7 +18,9 @@
 #include <LampResponseCodes.h>
 
 namespace lsf {
-
+/**
+ * Response code types
+ */
 typedef enum {
     LSF_OK                  = LAMP_OK,                        /**< Success status */
     LSF_ERR_NULL            = LAMP_ERR_NULL,                  /**< Unexpected NULL pointer */
@@ -41,7 +43,7 @@ typedef enum {
     LSF_RESPONSE_CODE_LAST  = LAMP_RESPONSE_CODE_LAST + 4     /**< The last LSF response code */
 } LSFResponseCode;
 
-/*
+/**
  * Return a descriptive text corresponding to the responseCode
  *
  * @param  responseCode Response Code

@@ -27,42 +27,95 @@
 namespace lsf {
 
 class SceneManager;
-
+/**
+ * class manages the present of the lamps
+ */
 class PresetManager : public Manager {
     friend class LampManager;
   public:
-
+    /**
+     * class constructor
+     */
     PresetManager(ControllerService& controllerSvc, SceneManager* sceneMgrPtr, const std::string& presetFile);
-
+    /**
+     * reset the object
+     */
     LSFResponseCode Reset(void);
+    /**
+     * Reset to default state
+     */
     LSFResponseCode ResetDefaultState(void);
-
+    /**
+     * Get all present ids
+     */
     void GetAllPresetIDs(ajn::Message& msg);
+    /**
+     * Get present name
+     */
     void GetPresetName(ajn::Message& msg);
+    /**
+     * Set present name
+     */
     void SetPresetName(ajn::Message& msg);
+    /**
+     * Create present
+     */
     void CreatePreset(ajn::Message& msg);
+    /**
+     * Update present
+     */
     void UpdatePreset(ajn::Message& msg);
+    /**
+     * Delete present
+     */
     void DeletePreset(ajn::Message& msg);
+    /**
+     * Get present
+     */
     void GetPreset(ajn::Message& msg);
-
+    /**
+     * Get present internal
+     */
     LSFResponseCode GetPresetInternal(const LSFString& presetID, LampState& state);
-
+    /**
+     * Get default lamp state
+     */
     void GetDefaultLampState(ajn::Message& msg);
+    /**
+     * Set default lamp state
+     */
     void SetDefaultLampState(ajn::Message& msg);
-
+    /**
+     * Get all presents
+     */
     LSFResponseCode GetAllPresets(PresetMap& presetMap);
-
+    /**
+     * Get default lamp state internal
+     */
     LSFResponseCode GetDefaultLampStateInternal(LampState& state);
-
+    /**
+     * Read saved data
+     */
     void ReadSavedData(void);
+    /**
+     * Read write file
+     */
     void ReadWriteFile(void);
-
+    /**
+     * Hansled received blob
+     */
     void HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp);
-
+    /**
+     * Get Controller Service Preset Interface Version
+     */
     uint32_t GetControllerServicePresetInterfaceVersion(void);
-
+    /**
+     * Get string
+     */
     virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
-
+    /**
+     * Get blob info
+     */
     void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
         presetsLock.Lock();
         GetBlobInfoInternal(checksum, timestamp);

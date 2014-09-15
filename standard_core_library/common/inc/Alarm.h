@@ -48,34 +48,34 @@ class AlarmListener {
 class Alarm : public Thread {
   public:
 
-    /*
+    /**
      * Contructor that accepts an alarmListener
      */
     Alarm(AlarmListener* alarmListener);
 
-    /*
+    /**
      * Destructor
      */
     ~Alarm();
 
-    /*
+    /**
      * Set an Alarm
      *
      * @param timeInSecs Alarm time in seconds
      */
     void SetAlarm(uint8_t timeInSecs);
 
-    /*
+    /**
      * Start the Alarm thread
      */
     void Run(void);
 
-    /*
+    /**
      * Stop the Alarm thread
      */
     void Stop(void);
 
-    /*
+    /**
      * Join the Alarm thread
      */
     void Join(void);

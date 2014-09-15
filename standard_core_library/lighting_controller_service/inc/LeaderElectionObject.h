@@ -27,33 +27,67 @@
 namespace lsf {
 
 class ControllerService;
-
+/**
+ * LeaderElectionObject class
+ * Implementing the algorithm of leader election
+ * Implementing the election behavior of the entity as a leader and also as a follower
+ */
 class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmListener {
   public:
-
+    /**
+     * constructor
+     */
     LeaderElectionObject(ControllerService& controller);
-
+    /**
+     * destructor
+     */
     ~LeaderElectionObject();
-
+    /**
+     * On announcement callback
+     */
     void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId);
-
+    /**
+     * Start threads
+     */
     QStatus Start(void);
-
+    /**
+     * Stop threads
+     */
     void Stop(void);
-
+    /**
+     * Join threads
+     */
     void Join(void);
-
+    /**
+     * get blob reply
+     * Get data and metadata about lamps
+     */
     void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
+    /**
+     * Send blob update
+     * Get data and metadata about lamps
+     */
     QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
-
+    /**
+     * send blob update
+     * Send data and metadata about lamps
+     */
     QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
-
+    /**
+     * On session member removed
+     */
     void OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName);
-
+    /**
+     * Run thread
+     */
     void Run(void);
-
+    /**
+     * Alarm triggered callback
+     */
     void AlarmTriggered(void);
-
+    /**
+     * Get my rank
+     */
     uint64_t GetRank(void) {
         return myRank;
     }

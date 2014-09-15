@@ -35,57 +35,81 @@ namespace lsf {
 class ControllerService;
 
 uint64_t GetTimestamp64(void);
-
+/**
+ * a base class to derive by manager types of classes
+ */
 class Manager : public ajn::MessageReceiver {
 
     static const size_t ID_STR_LEN = 8;
 
   protected:
-    static const size_t MAX_FILE_LEN = 1024 * 127;
+    static const size_t MAX_FILE_LEN = 1024 * 127; /**< Max file len */
 
   public:
-
+    /**
+     * Manager constructor
+     */
     Manager(ControllerService& controllerSvc, const std::string& filePath = "");
-
+    /**
+     * Schedule File Read
+     */
     void ScheduleFileRead(ajn::Message& message);
-
+    /**
+     * Trigger update for persistent data
+     */
     void TriggerUpdate(void);
-
+    /**
+     * Schedule File Write
+     */
     void ScheduleFileWrite(bool blobUpdate = false, bool initState = false);
 
     //protected:
-
+    /**
+     * Generate GUID Id
+     */
     LSFString GenerateUniqueID(const LSFString& prefix) const;
 
-    ControllerService& controllerService;
+    ControllerService& controllerService; /**< controller service reference */
 
-    bool updated;
+    bool updated; /**< true after ScheduleFileWrite */
 
-    Mutex readMutex;
-    bool read;
+    Mutex readMutex; /**< read mutex */
+    bool read; /**< true after ScheduleFileRead */
 
-    const std::string filePath;
-
+    const std::string filePath; /**< the file location */
+    /**
+     * Reading from file
+     */
     bool ValidateFileAndRead(std::istringstream& filestream);
-
+    /**
+     * Reading from file
+     */
     bool ValidateFileAndReadInternal(uint32_t& checksum, uint64_t& timestamp, std::istringstream& filestream);
-
+    /**
+     * Get checksum of file
+     */
     uint32_t GetChecksum(const std::string& str);
-
+    /**
+     * Get string from file
+     */
     virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp) { return false; };
-
+    /**
+     * Get file information
+     */
     void GetBlobInfoInternal(uint32_t& checksum, uint64_t& time);
-
+    /**
+     * Write File With Checksum And Timestamp
+     */
     void WriteFileWithChecksumAndTimestamp(const std::string& str, uint32_t checksum, uint64_t timestamp);
 
-    uint32_t checkSum;
-    uint64_t timeStamp;
-    bool blobUpdateCycle;
-    bool initialState;
+    uint32_t checkSum; /**< checkSum of the file */
+    uint64_t timeStamp; /**< timestamp of the file */
+    bool blobUpdateCycle; /**< blob Update Cycle */
+    bool initialState; /**< initial state */
 
-    std::list<ajn::Message> readBlobMessages;
+    std::list<ajn::Message> readBlobMessages; /**< Read blob messages */
 
-    volatile sig_atomic_t sendUpdate;
+    volatile sig_atomic_t sendUpdate; /**< send update */
 };
 
 }

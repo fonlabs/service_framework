@@ -136,8 +136,10 @@ class ControllerServiceManagerCallbackHandler : public ControllerServiceManagerC
         gotSignal = true;
     }
 
-    void ControllerServiceNameChangedCB(void) {
-        printf("\n%s", __func__);
+    void ControllerServiceNameChangedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
+        LSFString uniqueId = controllerServiceDeviceID;
+        LSFString name = controllerServiceName;
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __func__, uniqueId.c_str(), name.c_str());
         gotSignal = true;
     }
 };
@@ -491,11 +493,17 @@ class LampManagerCallbackHandler : public LampManagerCallback {
         lampList = lampIDs;
     }
 
-    void PingLampReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID)
-    {
-        LSFString uniqueId = lampID;
-        printf("\n%s: responseCode = %s lampID = %s", __func__, LSFResponseCodeText(responseCode), uniqueId.c_str());
-        gotReply = true;
+    void LampsLostCB(const LSFStringList& lampIDs) {
+        printf("\n%s(): listsize=%d", __func__, lampIDs.size());
+        LSFStringList::const_iterator it = lampIDs.begin();
+        uint8_t count = 1;
+        for (; it != lampIDs.end(); ++it) {
+            printf("\n(%d)%s", count, (*it).c_str());
+            count++;
+        }
+        printf("\n");
+        lampList.clear();
+        lampList = lampIDs;
     }
 };
 
@@ -1246,7 +1254,6 @@ void PrintHelp() {
     printf("(86):  GetSceneDataSet\n");
     printf("(87):  GetMasterSceneDataSet\n");
     printf("(88):  Reset\n");
-    printf("(89):  PingLamp\n");
 }
 
 int main()
@@ -2003,11 +2010,6 @@ int main()
             } else if (cmd == "88") {
                 printf("\nInvoking Reset()");
                 client.Reset();
-            } else if (cmd == "89") {
-                String uniqueId = NextTok(line);
-                printf("\nInvoking PingLamp(%s)\n", uniqueId.c_str());
-                status = lampManager.PingLamp(uniqueId.c_str());
-                numRepliesToWait = 1;
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {
@@ -2033,6 +2035,7 @@ int main()
                         if (waitForSignal) {
                             while (!gotSignal) ;
                         }
+                        sleep(3);
                     }
                 } else {
                     printf("\nCommand send failed\n");

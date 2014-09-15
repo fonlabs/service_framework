@@ -36,7 +36,9 @@ namespace lsf {
 class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
 
   public:
-
+    /**
+     * Property store keys
+     */
     typedef enum {
         DEVICE_ID = 0,
         DEVICE_NAME,
@@ -80,7 +82,6 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
   public:
     /**
      * PropertyStoreImpl - constructor
-     * @param obsConfigFile
      * @param factoryConfigFile
      * @param configFile
      */
@@ -126,16 +127,29 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      * method Initialize
      */
     void Initialize();
-
+    /**
+     * Get the controller rank
+     */
     uint64_t GetRank();
-
+    /**
+     * Is this controller is a leader?
+     */
     bool IsLeader();
-
+    /**
+     * Stop all threads
+     */
     virtual void Stop();
+    /**
+     * join the stopping threads
+     */
     virtual void Join();
-
+    /**
+     * set true if that controller is a leader
+     */
     void SetIsLeader(bool leader);
-
+    /**
+     * Set the rank of the current controller
+     */
     void SetRank(uint64_t rank);
 
   private:

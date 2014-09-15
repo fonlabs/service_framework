@@ -28,6 +28,9 @@ using namespace ajn;
 
 #define QCC_MODULE "LAMP_CLIENTS"
 
+lsf::Mutex l_methodCallCountMutex;
+uint32_t l_methodCallCount = 0;
+
 class LampClients::ServiceHandler : public services::AnnounceHandler {
   public:
     ServiceHandler(LampClients& mgr) : manager(mgr) { }
@@ -125,8 +128,6 @@ LampClients::LampClients(ControllerService& controllerSvc)
     serviceHandler(new ServiceHandler(*this)),
     isRunning(false),
     lampStateChangedSignalHandlerRegistered(false),
-    sentSessionPings(0),
-    receivedSessionPingResponses(0),
     connectToLamps(false)
 {
     QCC_DbgTrace(("%s", __func__));
@@ -137,7 +138,6 @@ LampClients::LampClients(ControllerService& controllerSvc)
     joinSessionCBList.clear();
     lostSessionList.clear();
     getAllLampIDsRequests.clear();
-    lostLamps.clear();
     joinSessionInProgressList.clear();
 }
 
@@ -228,6 +228,7 @@ void LampClients::HandleAboutAnnounce(const LSFString lampID, const LSFString& l
         connection->busName = busName;
         connection->name = lampName;
         connection->port = port;
+        connection->methodCallCount = 0;
 
         QStatus status = aboutsListLock.Lock();
         if (ER_OK != status) {
@@ -293,12 +294,12 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
     QCC_DbgTrace(("%s:status=%s sessionId=%u", __func__, QCC_StatusText(status), sessionId));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
 
-    LampConnection* connection = static_cast<LampConnection*>(context);
-
-    if (!connection) {
+    if (!context) {
         QCC_LogError(ER_FAIL, ("%s: No context", __func__));
         return;
     }
+
+    LampConnection* connection = static_cast<LampConnection*>(context);
 
     QStatus tempStatus = ER_OK;
 
@@ -316,12 +317,7 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
             joinSessionInProgressLock.Lock();
             joinSessionInProgressList.erase(connection->lampId);
             joinSessionInProgressLock.Unlock();
-
-            QCC_DbgPrintf(("%s: Retrying Ping due to JoinSession failure", __func__));
-            if (controllerService.GetBusAttachment().PingAsync(connection->busName.c_str(), NGNS_PING_TIMEOUT_IN_MS, this, connection) != ER_OK) {
-                QCC_LogError(status, ("%s: Sending PingAsync failed for Lamp ID = %s", __func__, connection->lampId.c_str()));
-                delete connection;
-            }
+            delete connection;
             return;
         }
 
@@ -347,16 +343,7 @@ void LampClients::JoinSessionCB(QStatus status, SessionId sessionId, const Sessi
         connection->object = ProxyBusObject();
         connection->configObject = ProxyBusObject();
         connection->aboutObject = ProxyBusObject();
-        if (tempConnectToLamps) {
-            QCC_DbgPrintf(("%s: Retrying Ping due to IntrospectRemoteObjectAsync method call failure", __func__));
-            if (controllerService.GetBusAttachment().PingAsync(connection->busName.c_str(), NGNS_PING_TIMEOUT_IN_MS, this, connection) != ER_OK) {
-                QCC_LogError(status, ("%s: Sending PingAsync failed for Lamp ID = %s", __func__, connection->lampId.c_str()));
-                delete connection;
-            }
-        } else {
-            delete connection;
-        }
-
+        delete connection;
     }
 }
 
@@ -437,6 +424,16 @@ void LampClients::QueueLampMethod(QueuedMethodCall* queuedCall)
             responseCode = LSF_ERR_BUSY;
         } else {
             if (methodQueue.size() < MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE) {
+                queuedCall->methodCallCount = 0;
+
+                l_methodCallCountMutex.Lock();
+                l_methodCallCount++;
+                queuedCall->methodCallCount = l_methodCallCount;
+                l_methodCallCountMutex.Unlock();
+
+
+                QCC_DbgPrintf(("%s: Queuing Method call %s with method call count %u", __func__, queuedCall->inMsg->GetMemberName(), queuedCall->methodCallCount));
+
                 methodQueue.push_back(queuedCall);
             } else {
                 responseCode = LSF_ERR_NO_SLOT;
@@ -474,6 +471,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
     uint32_t notFound = 0;
     uint32_t failures = 0;
     QueuedMethodCallElementList elementList = queuedCall->methodCallElements;
+    QueuedMethodCallContext* ctx = NULL;
 
     while (elementList.size()) {
         QueuedMethodCallElement element = elementList.front();
@@ -486,44 +484,71 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                 QCC_DbgPrintf(("%s: Found Lamp", __func__));
                 if (0 == strcmp(element.interface.c_str(), ConfigServiceInterfaceName)) {
                     QCC_DbgPrintf(("%s: Config Call", __func__));
-                    status = lit->second->configObject.MethodCallAsync(
-                        element.interface.c_str(),
-                        element.method.c_str(),
-                        this,
-                        queuedCall->replyFunc,
-                        &element.args[0],
-                        element.args.size(),
-                        queuedCall,
-                        LAMP_METHOD_CALL_TIMEOUT
-                        );
+                    ctx = new QueuedMethodCallContext(*it, queuedCall, element.method);
+                    if (!ctx) {
+                        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for context", __func__));
+                        status = ER_FAIL;
+                    } else {
+                        QCC_DbgPrintf(("%s: Calling %s on lamp %s for method call %s and count %u", __func__,
+                                       element.method.c_str(), (*it).c_str(), queuedCall->inMsg->GetMemberName(), queuedCall->methodCallCount));
+                        status = lit->second->configObject.MethodCallAsync(
+                            element.interface.c_str(),
+                            element.method.c_str(),
+                            this,
+                            queuedCall->replyFunc,
+                            &element.args[0],
+                            element.args.size(),
+                            ctx,
+                            LAMP_METHOD_CALL_TIMEOUT
+                            );
+                    }
                 } else if (0 == strcmp(element.interface.c_str(), AboutInterfaceName)) {
                     QCC_DbgPrintf(("%s: About Call", __func__));
-                    status = lit->second->aboutObject.MethodCallAsync(
-                        element.interface.c_str(),
-                        element.method.c_str(),
-                        this,
-                        queuedCall->replyFunc,
-                        &element.args[0],
-                        element.args.size(),
-                        queuedCall,
-                        LAMP_METHOD_CALL_TIMEOUT
-                        );
+                    ctx = new QueuedMethodCallContext(*it, queuedCall, element.method);
+                    if (!ctx) {
+                        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for context", __func__));
+                        status = ER_FAIL;
+                    } else {
+                        QCC_DbgPrintf(("%s: Calling %s on lamp %s for method call %s and count %u", __func__,
+                                       element.method.c_str(), (*it).c_str(), queuedCall->inMsg->GetMemberName(), queuedCall->methodCallCount));
+                        status = lit->second->aboutObject.MethodCallAsync(
+                            element.interface.c_str(),
+                            element.method.c_str(),
+                            this,
+                            queuedCall->replyFunc,
+                            &element.args[0],
+                            element.args.size(),
+                            ctx,
+                            LAMP_METHOD_CALL_TIMEOUT
+                            );
+                    }
                 } else {
                     QCC_DbgPrintf(("%s: LampService Call", __func__));
-                    status = lit->second->object.MethodCallAsync(
-                        element.interface.c_str(),
-                        element.method.c_str(),
-                        this,
-                        queuedCall->replyFunc,
-                        &element.args[0],
-                        element.args.size(),
-                        queuedCall,
-                        LAMP_METHOD_CALL_TIMEOUT
-                        );
+                    ctx = new QueuedMethodCallContext(*it, queuedCall, element.method);
+                    if (!ctx) {
+                        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for context", __func__));
+                        status = ER_FAIL;
+                    } else {
+                        QCC_DbgPrintf(("%s: Calling %s on lamp %s for method call %s and count %u", __func__,
+                                       element.method.c_str(), (*it).c_str(), queuedCall->inMsg->GetMemberName(), queuedCall->methodCallCount));
+                        status = lit->second->object.MethodCallAsync(
+                            element.interface.c_str(),
+                            element.method.c_str(),
+                            this,
+                            queuedCall->replyFunc,
+                            &element.args[0],
+                            element.args.size(),
+                            ctx,
+                            LAMP_METHOD_CALL_TIMEOUT
+                            );
+                    }
                 }
 
                 if (status != ER_OK) {
                     QCC_LogError(status, ("%s: MethodCallAsync failed", __func__));
+                    if (ctx) {
+                        delete ctx;
+                    }
                     failures++;
                 }
             } else {
@@ -631,12 +656,18 @@ void LampClients::HandleGetReply(ajn::Message& message, void* context)
 {
     QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
+    QueuedMethodCallContext* ctx = static_cast<QueuedMethodCallContext*>(context);
 
-    if (queuedCall == NULL) {
+    if (ctx == NULL) {
         QCC_LogError(ER_FAIL, ("%s: Received NULL context", __func__));
         return;
     }
+
+    QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
+
+    QCC_DbgPrintf(("%s: Got %s for method call %s from lamp %s for lamp method call %s and count %u", __func__,
+                   ((MESSAGE_METHOD_RET == message->GetType()) ? "REPLY" : "ERROR"), queuedCall->inMsg->GetMemberName(), ctx->lampID.c_str(), ctx->method.c_str(),
+                   queuedCall->methodCallCount));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         size_t numArgs;
@@ -651,6 +682,8 @@ void LampClients::HandleGetReply(ajn::Message& message, void* context)
     } else {
         DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
+
+    delete ctx;
 }
 
 void LampClients::ChangeLampState(const ajn::Message& inMsg, bool groupOperation, bool sceneOperation, TransitionStateParamsList& transitionStateParams,
@@ -805,6 +838,8 @@ void LampClients::DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, 
         if (strstr(queuedCall->inMsg->GetInterface(), ApplySceneEventActionInterfaceName)) {
             QCC_DbgPrintf(("%s: Skipping the sending of reply because interface = %s", __func__, queuedCall->inMsg->GetInterface()));
         } else {
+            QCC_DbgPrintf(("%s: Sending reply %s for method call %s and count %u", __func__,
+                           LSFResponseCodeText(responseCode), queuedCall->inMsg->GetMemberName(), queuedCall->methodCallCount));
             SendMethodReply(responseCode, queuedCall->inMsg, responseCounter.standardReplyArgs, responseCounter.customReplyArgs);
         }
 
@@ -824,7 +859,18 @@ void LampClients::HandleReplyWithLampResponseCode(Message& message, void* contex
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
+    QueuedMethodCallContext* ctx = static_cast<QueuedMethodCallContext*>(context);
+
+    if (ctx == NULL) {
+        QCC_LogError(ER_FAIL, ("%s: Received NULL context", __func__));
+        return;
+    }
+
+    QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
+
+    QCC_DbgPrintf(("%s: Got %s for method call %s from lamp %s for lamp method call %s and count %u", __func__,
+                   ((MESSAGE_METHOD_RET == message->GetType()) ? "REPLY" : "ERROR"), queuedCall->inMsg->GetMemberName(), ctx->lampID.c_str(), ctx->method.c_str(),
+                   queuedCall->methodCallCount));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         size_t numArgs;
@@ -847,6 +893,8 @@ void LampClients::HandleReplyWithLampResponseCode(Message& message, void* contex
     } else {
         DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
+
+    delete ctx;
 }
 
 void LampClients::GetLampFaults(const LSFString& lampID, ajn::Message& inMsg)
@@ -887,7 +935,18 @@ void LampClients::HandleReplyWithVariant(ajn::Message& message, void* context)
 {
     QCC_DbgTrace(("%s", __func__));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
+    QueuedMethodCallContext* ctx = static_cast<QueuedMethodCallContext*>(context);
+
+    if (ctx == NULL) {
+        QCC_LogError(ER_FAIL, ("%s: Received NULL context", __func__));
+        return;
+    }
+
+    QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
+
+    QCC_DbgPrintf(("%s: Got %s for method call %s from lamp %s for lamp method call %s and count %u", __func__,
+                   ((MESSAGE_METHOD_RET == message->GetType()) ? "REPLY" : "ERROR"), queuedCall->inMsg->GetMemberName(), ctx->lampID.c_str(), ctx->method.c_str(),
+                   queuedCall->methodCallCount));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         size_t numArgs;
@@ -901,6 +960,8 @@ void LampClients::HandleReplyWithVariant(ajn::Message& message, void* context)
     } else {
         DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
+
+    delete ctx;
 }
 
 void LampClients::ClearLampFault(const LSFString& lampID, LampFaultCode faultCode, ajn::Message& inMsg)
@@ -960,7 +1021,18 @@ void LampClients::HandleReplyWithKeyValuePairs(Message& message, void* context)
 {
     QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-    QueuedMethodCall* queuedCall = static_cast<QueuedMethodCall*>(context);
+    QueuedMethodCallContext* ctx = static_cast<QueuedMethodCallContext*>(context);
+
+    if (ctx == NULL) {
+        QCC_LogError(ER_FAIL, ("%s: Received NULL context", __func__));
+        return;
+    }
+
+    QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
+
+    QCC_DbgPrintf(("%s: Got %s for method call %s from lamp %s for lamp method call %s and count %u", __func__,
+                   ((MESSAGE_METHOD_RET == message->GetType()) ? "REPLY" : "ERROR"), queuedCall->inMsg->GetMemberName(), ctx->lampID.c_str(), ctx->method.c_str(),
+                   queuedCall->methodCallCount));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         const MsgArg* args;
@@ -986,6 +1058,8 @@ void LampClients::HandleReplyWithKeyValuePairs(Message& message, void* context)
     } else {
         DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
+
+    delete ctx;
 }
 
 void LampClients::GetLampName(const LSFString& lampID, const LSFString& language, Message& inMsg)
@@ -1003,11 +1077,6 @@ void LampClients::GetLampName(const LSFString& lampID, const LSFString& language
     queuedCall->responseCounter.standardReplyArgs.push_back(MsgArg("s", language.c_str()));
     queuedCall->responseCounter.customReplyArgs.push_back(MsgArg("s", "<ERROR>"));
     QueueLampMethod(queuedCall);
-}
-
-void LampClients::PingLamp(const LSFString& lampID, Message& inMsg)
-{
-    QCC_DbgTrace(("%s", __func__));
 }
 
 void LampClients::GetLampManufacturer(const LSFString& lampID, const LSFString& language, ajn::Message& inMsg)
@@ -1054,6 +1123,11 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
 {
     QCC_DbgPrintf(("%s: status = %s", __func__, QCC_StatusText(status)));
 
+    if (!context) {
+        QCC_LogError(ER_FAIL, ("%s: No context", __func__));
+        return;
+    }
+
     LampConnection* connection = static_cast<LampConnection*>(context);
 
     bool tempConnectToLamps = false;
@@ -1068,11 +1142,8 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
     }
 
     if (ER_OK != status) {
-        QCC_DbgPrintf(("%s: Retrying Ping due to IntrospectCB failure", __func__));
-        if (controllerService.GetBusAttachment().PingAsync(connection->busName.c_str(), NGNS_PING_TIMEOUT_IN_MS, this, connection) != ER_OK) {
-            QCC_LogError(status, ("%s: Sending PingAsync failed for Lamp ID = %s", __func__, connection->lampId.c_str()));
-            delete connection;
-        }
+        QCC_DbgPrintf(("%s: status != ER_OK", __func__));
+        delete connection;
         return;
     }
 
@@ -1120,47 +1191,12 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
     }
 
     if (ER_OK != tempStatus) {
+        QCC_LogError(status, ("%s: IntrospectCB failed for lamp with ID = %s", __func__, connection->lampId.c_str()));
+        joinSessionInProgressLock.Lock();
+        joinSessionInProgressList.erase(connection->lampId);
+        joinSessionInProgressLock.Unlock();
         controllerService.DoLeaveSessionAsync(connection->sessionID);
-        connection->sessionID = 0;
-        connection->object = ProxyBusObject();
-        connection->configObject = ProxyBusObject();
-        connection->aboutObject = ProxyBusObject();
-        QCC_DbgPrintf(("%s: Retrying Ping due to ProxyBusObject setup failure", __func__));
-        if (controllerService.GetBusAttachment().PingAsync(connection->busName.c_str(), NGNS_PING_TIMEOUT_IN_MS, this, connection) != ER_OK) {
-            QCC_LogError(status, ("%s: Sending PingAsync failed for Lamp ID = %s", __func__, connection->lampId.c_str()));
-            delete connection;
-        }
-    }
-}
-
-void LampClients::SessionPingCB(Message& reply, void* context)
-{
-    QCC_DbgPrintf(("%s", __func__));
-    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-
-    bool tempConnectToLamps = false;
-    connectToLampsLock.Lock();
-    tempConnectToLamps = connectToLamps;
-    connectToLampsLock.Unlock();
-
-    if (context && tempConnectToLamps) {
-        sessionPingResponseLock.Lock();
-        if (reply->GetType() == MESSAGE_ERROR) {
-            QCC_LogError(ER_FAIL, ("%s: Session Ping un-successful for Lamp ID = %s", __func__, ((LSFString*)context)->c_str()));
-            LSFString tempString = *((LSFString*)context);
-            lostLamps.push_back(tempString);
-        } else {
-            QCC_DbgPrintf(("%s: Session Ping successful for Lamp ID = %s", __func__, ((LSFString*)context)->c_str()));
-        }
-        receivedSessionPingResponses++;
-        sessionPingResponseLock.Unlock();
-        wakeUp.Post();
-    } else {
-        QCC_DbgPrintf(("%s: connectToLamps is false or context is NULL", __func__));
-    }
-
-    if (context) {
-        delete ((LSFString*)context);
+        delete connection;
     }
 }
 
@@ -1168,60 +1204,6 @@ void LampClients::PingCB(QStatus status, void* context)
 {
     QCC_DbgPrintf(("%s: status=%s", __func__, QCC_StatusText(status)));
     controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-
-    bool tempConnectToLamps = false;
-    connectToLampsLock.Lock();
-    tempConnectToLamps = connectToLamps;
-    connectToLampsLock.Unlock();
-
-    LampConnection* connection = static_cast<LampConnection*>(context);
-
-    if (connection) {
-        if (!tempConnectToLamps) {
-            delete connection;
-            return;
-        } else {
-            if (ER_OK == status) {
-                QCC_DbgPrintf(("%s: Ping successful for Lamp ID = %s", __func__, connection->lampId.c_str()));
-                QStatus tempStatus = aboutsListLock.Lock();
-                if (ER_OK != tempStatus) {
-                    QCC_LogError(tempStatus, ("%s: aboutsListLock.Lock() failed", __func__));
-                    delete connection;
-                    return;
-                }
-                LampMap::iterator it = aboutsList.find(connection->lampId);
-                if (it == aboutsList.end()) {
-                    if (aboutsList.size() < (MAX_SUPPORTED_LAMPS + 25)) {
-                        aboutsList.insert(std::make_pair(connection->lampId, connection));
-                        wakeUp.Post();
-                    } else {
-                        QCC_LogError(status, ("%s: Controller Service can cache only a maximum of %d announcements. Max'ed out on the capacity. Ignoring the successful ping to announcement", __func__, (MAX_SUPPORTED_LAMPS + 25)));
-                        delete connection;
-                    }
-                } else {
-                    QCC_DbgPrintf(("%s: Entry already exists for Lamp ID = %s", __func__, connection->lampId.c_str()));
-                    delete connection;
-                }
-                tempStatus = aboutsListLock.Unlock();
-                if (ER_OK != tempStatus) {
-                    QCC_LogError(tempStatus, ("%s: aboutsListLock.Unlock() failed", __func__));
-                }
-            } else {
-                if (ER_ALLJOYN_PING_REPLY_TIMEOUT == status) {
-                    QCC_DbgPrintf(("%s: Retrying Ping due to timeout", __func__));
-                    if (controllerService.GetBusAttachment().PingAsync(connection->busName.c_str(), NGNS_PING_TIMEOUT_IN_MS, this, connection) != ER_OK) {
-                        QCC_LogError(status, ("%s: Sending PingAsync failed for Lamp ID = %s", __func__, connection->lampId.c_str()));
-                        delete connection;
-                    }
-                } else {
-                    QCC_LogError(status, ("%s: Ping un-successful for Lamp ID = %s", __func__, connection->lampId.c_str()));
-                    delete connection;
-                }
-            }
-        }
-    } else {
-        QCC_DbgPrintf(("%s: context is NULL", __func__));
-    }
 }
 
 QStatus LampClients::UnregisterAnnounceHandler(void)
@@ -1301,105 +1283,24 @@ void LampClients::Run(void)
                 }
             }
 
-            bool sendPings = false;
-            if (!sentSessionPings) {
-                status = getAllLampIDsLock.Lock();
-                if (ER_OK != status) {
-                    QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Lock() failed", __func__));
-                } else {
-                    if (getAllLampIDsRequests.size()) {
-                        sendPings = true;
-                    }
-                    status = getAllLampIDsLock.Unlock();
-                    if (ER_OK != status) {
-                        QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Unlock() failed", __func__));
-                    }
-                }
-            }
-
-            LampMap sendNGNSPings;
-            sendNGNSPings.clear();
-
-            if (sendPings) {
-                for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end();) {
-                    LSFString* lampId = new LSFString(it->first);
-
-                    status = it->second->object.MethodCallAsync(
-                        org::freedesktop::DBus::Peer::InterfaceName,
-                        "Ping",
-                        this,
-                        static_cast<MessageReceiver::ReplyHandler>(&LampClients::SessionPingCB),
-                        NULL, 0,
-                        lampId,
-                        SESSION_PING_TIMEOUT_IN_MS
-                        );
-
-                    if (status != ER_OK) {
-                        QCC_LogError(status, ("%s: Sending Session Ping failed", __func__));
-                        controllerService.DoLeaveSessionAsync(it->second->sessionID);
-                        LampMap::iterator lit = sendNGNSPings.find(it->first);
-                        if (lit == sendNGNSPings.end()) {
-                            sendNGNSPings.insert(std::make_pair(it->first, it->second));
-                        }
-                        activeLamps.erase(it++);
-                        delete lampId;
-                    } else {
-                        QCC_DbgPrintf(("%s: Successfully sent a Session Ping", __func__));
-                        sentSessionPings++;
-                        ++it;
-                    }
-                }
-            }
-
-            LSFStringList lostLampsList;
-            lostLampsList.clear();
-
-            if (sentSessionPings) {
-                sessionPingResponseLock.Lock();
-                lostLampsList = lostLamps;
-                lostLamps.clear();
-                if (receivedSessionPingResponses == sentSessionPings) {
-                    sentSessionPings = 0;
-                    receivedSessionPingResponses = 0;
-                }
-                sessionPingResponseLock.Unlock();
-            }
-
-            /*
-             * Clean up all Lamps to which Pings did not succeed
-             */
-            while (lostLampsList.size()) {
-                LampMap::iterator it = activeLamps.find(lostLampsList.front());
-                if (it != activeLamps.end()) {
-                    LampConnection* connection = it->second;
-                    controllerService.DoLeaveSessionAsync(connection->sessionID);
-                    LampMap::iterator lit = sendNGNSPings.find(it->first);
-                    if (lit == sendNGNSPings.end()) {
-                        sendNGNSPings.insert(std::make_pair(it->first, it->second));
-                    }
-                    activeLamps.erase(it);
-                }
-                lostLampsList.pop_front();
-            }
-
             /*
              * Send all GetAllLampIDs responses
              */
-            if (!sentSessionPings) {
-                std::list<Message> tempGetAllLampIDsRequests;
-                tempGetAllLampIDsRequests.clear();
-                status = getAllLampIDsLock.Lock();
+            std::list<Message> tempGetAllLampIDsRequests;
+            tempGetAllLampIDsRequests.clear();
+            status = getAllLampIDsLock.Lock();
+            if (ER_OK != status) {
+                QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Lock() failed", __func__));
+            } else {
+                tempGetAllLampIDsRequests = getAllLampIDsRequests;
+                getAllLampIDsRequests.clear();
+                status = getAllLampIDsLock.Unlock();
                 if (ER_OK != status) {
-                    QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Lock() failed", __func__));
-                } else {
-                    tempGetAllLampIDsRequests = getAllLampIDsRequests;
-                    getAllLampIDsRequests.clear();
-                    status = getAllLampIDsLock.Unlock();
-                    if (ER_OK != status) {
-                        QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Unlock() failed", __func__));
-                    }
+                    QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Unlock() failed", __func__));
                 }
+            }
 
+            if (tempGetAllLampIDsRequests.size()) {
                 LSFStringList idList;
                 idList.clear();
                 LSFResponseCode responseCode = LSF_OK;
@@ -1418,44 +1319,27 @@ void LampClients::Run(void)
             }
 
             /*
-             * Send the required NGNS pings
-             */
-            for (LampMap::iterator nit = sendNGNSPings.begin(); nit != sendNGNSPings.end();) {
-                if (controllerService.GetBusAttachment().PingAsync(nit->second->busName.c_str(), NGNS_PING_TIMEOUT_IN_MS, this, nit->second) != ER_OK) {
-                    QCC_LogError(ER_FAIL, ("%s: NGNS Ping Async unsuccessful for Lamp ID %s", __func__, nit->first.c_str()));
-                    delete nit->second;
-                    sendNGNSPings.erase(nit++);
-                } else {
-                    ++nit;
-                }
-            }
-
-            /*
              * Handle all received About Announcements as appropriate
              */
             LampMap tempAboutList;
             tempAboutList.clear();
 
             /*
-             * Only handle announcements when Session Pings are not in progress
+             * Only handle announcements
              */
-            if (!sentSessionPings) {
-                status = aboutsListLock.Lock();
-                if (ER_OK != status) {
-                    QCC_LogError(status, ("%s: aboutsListLock.Lock() failed", __func__));
-                } else {
-                    /*
-                     * Make a local copy of aboutsList and release the list for use by the About Handler
-                     */
-                    tempAboutList = aboutsList;
-                    aboutsList.clear();
-                    status = aboutsListLock.Unlock();
-                    if (ER_OK != status) {
-                        QCC_LogError(status, ("%s: aboutsListLock.Unlock() failed", __func__));
-                    }
-                }
+            status = aboutsListLock.Lock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: aboutsListLock.Lock() failed", __func__));
             } else {
-                QCC_DbgPrintf(("%s: Skip handling of About announcements as session pings are in progress", __func__));
+                /*
+                 * Make a local copy of aboutsList and release the list for use by the About Handler
+                 */
+                tempAboutList = aboutsList;
+                aboutsList.clear();
+                status = aboutsListLock.Unlock();
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("%s: aboutsListLock.Unlock() failed", __func__));
+                }
             }
 
             LSFStringList nameChangedList;
@@ -1530,25 +1414,21 @@ void LampClients::Run(void)
             tempJoinList.clear();
 
             /*
-             * Update the active lamps list only when session pings are not in progress
+             * Update the active lamps list
              */
-            if (!sentSessionPings) {
-                status = joinSessionCBListLock.Lock();
-                if (ER_OK != status) {
-                    QCC_LogError(status, ("%s: joinSessionCBListLock.Lock() failed", __func__));
-                } else {
-                    /*
-                     * Make a local copy of joinSessionCBList and release the list for use by the Join Session callbacks
-                     */
-                    tempJoinList = joinSessionCBList;
-                    joinSessionCBList.clear();
-                    status = joinSessionCBListLock.Unlock();
-                    if (ER_OK != status) {
-                        QCC_LogError(status, ("%s: joinSessionCBListLock.Unlock() failed", __func__));
-                    }
-                }
+            status = joinSessionCBListLock.Lock();
+            if (ER_OK != status) {
+                QCC_LogError(status, ("%s: joinSessionCBListLock.Lock() failed", __func__));
             } else {
-                QCC_DbgPrintf(("%s: Skip handling of JoinSession replies as session pings are in progress", __func__));
+                /*
+                 * Make a local copy of joinSessionCBList and release the list for use by the Join Session callbacks
+                 */
+                tempJoinList = joinSessionCBList;
+                joinSessionCBList.clear();
+                status = joinSessionCBListLock.Unlock();
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("%s: joinSessionCBListLock.Unlock() failed", __func__));
+                }
             }
 
             std::list<LampConnection*> leaveSessionList;
@@ -1683,9 +1563,6 @@ void LampClients::Run(void)
                 QCC_LogError(status, ("%s: lostSessionListLock.Unlock() failed", __func__));
             }
 
-            sentSessionPings = 0;
-            QCC_DbgPrintf(("%s: Cleared pings", __func__));
-
             status = getAllLampIDsLock.Lock();
             if (ER_OK != status) {
                 QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Lock() failed", __func__));
@@ -1697,12 +1574,6 @@ void LampClients::Run(void)
                     QCC_LogError(ER_FAIL, ("%s: getAllLampIDsLock.Unlock() failed", __func__));
                 }
             }
-
-            sessionPingResponseLock.Lock();
-            lostLamps.clear();
-            receivedSessionPingResponses = 0;
-            QCC_DbgPrintf(("%s: Cleared lostLamps", __func__));
-            sessionPingResponseLock.Unlock();
 
             status = aboutsListLock.Lock();
             if (ER_OK != status) {

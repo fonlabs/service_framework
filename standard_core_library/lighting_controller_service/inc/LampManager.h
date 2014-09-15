@@ -27,9 +27,14 @@
 #include <algorithm>
 
 namespace lsf {
-
+/**
+ * Lamps and state details
+ */
 class LampsAndState {
   public:
+    /**
+     * LampsAndState constructor
+     */
     LampsAndState(LSFStringList lampList, LampState lampState, uint32_t period) :
         state(lampState), transitionPeriod(period) {
         for (LSFStringList::iterator it = lampList.begin(); it != lampList.end(); it++) {
@@ -40,58 +45,76 @@ class LampsAndState {
         }
     }
 
-    LSFStringList lamps;
-    LampState state;
-    uint32_t transitionPeriod;
+    LSFStringList lamps; /**< list of lamps */
+    LampState state; /**< state of lamps */
+    uint32_t transitionPeriod; /**< transition period */
 };
-
+/**
+ * lamps and present details
+ */
 class LampsAndPreset {
   public:
+    /**
+     * LampsAndPreset constructor
+     */
     LampsAndPreset(LSFStringList lampList, LSFString presetID, uint32_t period) :
         lamps(lampList), presetID(presetID), transitionPeriod(period) { }
 
-    LSFStringList lamps;
-    LSFString presetID;
-    uint32_t transitionPeriod;
+    LSFStringList lamps; /**< list of lamps */
+    LSFString presetID; /**< present ID */
+    uint32_t transitionPeriod; /**< transition period */
 };
 /**
  * a class that contains a list of lamps and the new state wanted for them.
  */
 class LampsAndStateField {
   public:
+    /**
+     * LampsAndStateField constructor
+     */
     LampsAndStateField(LSFStringList lampList, LSFString fieldName, ajn::MsgArg arg, uint32_t period) :
         lamps(lampList), stateFieldName(fieldName), stateFieldValue(arg), transitionPeriod(period) { }
 
-    LSFStringList lamps;
-    LSFString stateFieldName;
-    ajn::MsgArg stateFieldValue;
-    uint32_t transitionPeriod;
+    LSFStringList lamps; /**< list of lamps */
+    LSFString stateFieldName; /**< state field name */
+    ajn::MsgArg stateFieldValue; /**< state field value */
+    uint32_t transitionPeriod; /**< transition period */
 };
-
+/**
+ * pulse lamp details
+ */
 class PulseLampsWithState {
   public:
+    /**
+     * pulse lamps with state constructor
+     */
     PulseLampsWithState(LSFStringList lampList, LampState fromLampState, LampState toLampState, uint32_t period, uint32_t duration, uint32_t numPulses) :
         lamps(lampList), fromState(fromLampState), toState(toLampState), period(period), duration(duration), numPulses(numPulses) { }
 
-    LSFStringList lamps;
-    LampState fromState;
-    LampState toState;
-    uint32_t period;
-    uint32_t duration;
-    uint32_t numPulses;
+    LSFStringList lamps; /**< list of lamps */
+    LampState fromState; /**< from state */
+    LampState toState; /**< to state */
+    uint32_t period; /**< period of time */
+    uint32_t duration; /**< duration of time */
+    uint32_t numPulses; /**< number of pulses */
 };
-
+/**
+ * pulse lamps details
+ */
 class PulseLampsWithPreset {
   public:
+    /**
+     * PulseLampsWithPreset constructor
+     */
     PulseLampsWithPreset(LSFStringList lampList, LSFString fromPreset, LSFString toPreset, uint32_t period, uint32_t duration, uint32_t numPulses) :
         lamps(lampList), fromPreset(fromPreset), toPreset(toPreset), period(period), duration(duration), numPulses(numPulses) { }
 
-    LSFStringList lamps;
-    LSFString fromPreset;
-    LSFString toPreset;
-    uint32_t period;
-    uint32_t duration;
-    uint32_t numPulses;
+    LSFStringList lamps; /**< list of lamps */
+    LSFString fromPreset; /**< from present */
+    LSFString toPreset; /**< to present */
+    uint32_t period; /**< period of time */
+    uint32_t duration; /**< duration of time */
+    uint32_t numPulses; /**< number of pulses */
 };
 
 typedef std::list<LampsAndState> LampsAndStateList;
@@ -99,31 +122,38 @@ typedef std::list<LampsAndPreset> LampsAndPresetList;
 typedef std::list<LampsAndStateField> LampsAndStateFieldList;
 typedef std::list<PulseLampsWithState> PulseLampsWithStateList;
 typedef std::list<PulseLampsWithPreset> PulseLampsWithPresetList;
-
+/**
+ * lamp management class
+ */
 class LampManager : public Manager {
   public:
     friend class LampGroupManager;
-
+    /**
+     * LampManager constructor
+     */
     LampManager(ControllerService& controllerSvc, PresetManager& presetMgr);
-
+    /**
+     * Lamp manager destructor
+     */
     ~LampManager();
 
-    /*
+    /**
      * Start the Lamp Manager
      *
-     * @param   None
+     * @param   keyStoreFileLocation
      * @return  ER_OK if successful, error otherwise
      */
     QStatus Start(const char* keyStoreFileLocation);
 
-    /*
+    /**
      * Stop the Lamp Manager
      *
-     * @param   None
      * @return  ER_OK if successful, error otherwise
      */
     void Stop(void);
-
+    /**
+     * join thread
+     */
     void Join(void);
 
     /**
@@ -132,7 +162,9 @@ class LampManager : public Manager {
      * @param message   The params
      */
     void GetAllLampIDs(ajn::Message& message);
-
+    /**
+     * Get all lamps
+     */
     void GetAllLamps(LampNameMap& lamps) {
         lampClients.GetAllLamps(lamps);
     }
@@ -179,13 +211,6 @@ class LampManager : public Manager {
      * @param message   The params
      */
     void GetLampName(ajn::Message& message);
-
-    /**
-     * Process an AllJoyn call to org.allseen.LSF.ControllerService.PingLamp
-     *
-     * @param message   The params
-     */
-    void PingLamp(ajn::Message& message);
 
     /**
      * Process an AllJoyn call to org.allseen.LSF.ControllerService.SetLampName
@@ -276,14 +301,20 @@ class LampManager : public Manager {
      * @param message   The params
      */
     void ResetLampStateField(ajn::Message& message);
-
+    /**
+     * Get interface version
+     */
     uint32_t GetControllerServiceLampInterfaceVersion(void);
-
+    /**
+     * connect to lamps
+     */
     void ConnectToLamps(void) {
         lampClients.RegisterAnnounceHandler();
         lampClients.ConnectToLamps();
     }
-
+    /**
+     * Disconnect from lamps
+     */
     void DisconnectFromLamps(void) {
         lampClients.UnregisterAnnounceHandler();
         lampClients.DisconnectFromLamps();

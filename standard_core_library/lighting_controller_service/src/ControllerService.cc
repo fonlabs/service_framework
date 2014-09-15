@@ -310,7 +310,6 @@ void ControllerService::Initialize()
     AddMethodHandler("GetLampSupportedLanguages", &lampManager, &LampManager::GetLampSupportedLanguages);
     AddMethodHandler("GetLampManufacturer", &lampManager, &LampManager::GetLampManufacturer);
     AddMethodHandler("GetLampName", &lampManager, &LampManager::GetLampName);
-    AddMethodHandler("PingLamp", &lampManager, &LampManager::PingLamp);
     AddMethodHandler("SetLampName", &lampManager, &LampManager::SetLampName);
     AddMethodHandler("GetLampDetails", &lampManager, &LampManager::GetLampDetails);
     AddMethodHandler("GetLampParameters", &lampManager, &LampManager::GetLampParameters);
@@ -466,7 +465,6 @@ QStatus ControllerService::RegisterMethodHandlers(void)
         { controllerServiceLampInterface->GetMember("GetLampSupportedLanguages"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampManufacturer"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
-        { controllerServiceLampInterface->GetMember("PingLamp"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("SetLampName"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampDetails"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
         { controllerServiceLampInterface->GetMember("GetLampParameters"), static_cast<MessageReceiver::MethodHandler>(&ControllerService::MethodCallDispatcher) },
@@ -795,6 +793,7 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
 
     serviceSessionMutex.Lock();
     if (serviceSession != 0) {
+        QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
         if (signal) {
             status = Signal(NULL, serviceSession, *signal, &arg, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
@@ -820,6 +819,7 @@ QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const cha
     if (serviceSession != 0) {
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
         if (signal) {
+            QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
             status = Signal(NULL, serviceSession, *signal, NULL, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
         }
     }
@@ -899,6 +899,7 @@ void ControllerService::LeaveSession(void)
     serviceSessionMutex.Lock();
     sessionId = serviceSession;
     serviceSession = 0;
+    QCC_DbgPrintf(("%s: Cleared Session ID = %u", __func__, sessionId));
     serviceSessionMutex.Unlock();
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
@@ -913,6 +914,7 @@ void ControllerService::SessionJoined(SessionId sessionId, const char* joiner)
     // we are now serving up a multipoint session to the apps
     serviceSessionMutex.Lock();
     serviceSession = sessionId;
+    QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
     serviceSessionMutex.Unlock();
 }
 
@@ -922,6 +924,7 @@ void ControllerService::SessionLost(SessionId sessionId)
     // Or are we ok since there is only one multipoint session?
     QCC_DbgPrintf(("%s:%u", __func__, sessionId));
     serviceSessionMutex.Lock();
+    QCC_DbgPrintf(("%s: Cleared Session ID = %u", __func__, sessionId));
     serviceSession = 0;
     serviceSessionMutex.Unlock();
 }
@@ -981,11 +984,23 @@ void ControllerService::GetControllerServiceVersion(Message& msg)
     SendMethodReplyWithUint32Value(msg, version);
 }
 
+lsf::Mutex methodCallCountMutex;
+uint32_t methodCallCount = 0;
+
 void ControllerService::MethodCallDispatcher(const InterfaceDescription::Member* member, Message& msg)
 {
     bus.EnableConcurrentCallbacks();
 
     QCC_DbgPrintf(("%s: Received Method call %s from interface %s", __func__, msg->GetMemberName(), msg->GetInterface()));
+    uint32_t tempMethodCallCount = 0;
+
+    methodCallCountMutex.Lock();
+    methodCallCount++;
+    tempMethodCallCount = methodCallCount;
+    methodCallCountMutex.Unlock();
+
+
+    QCC_DbgPrintf(("%s: Received Method call %s with method call count %u", __func__, msg->GetMemberName(), tempMethodCallCount));
 
     MethodHandlerBase* handler = NULL;
 
@@ -1161,6 +1176,7 @@ QStatus ControllerService::SendBlobUpdate(LSFBlobType type, std::string blob, ui
     QCC_DbgTrace(("%s:type=%d blob=%s checksum=%d timestamp=%llu", __func__, type, blob.c_str(), checksum, timestamp));
     serviceSessionMutex.Lock();
     SessionId session = serviceSession;
+    QCC_DbgPrintf(("%s: Sending over Session ID = %u", __func__, session));
     serviceSessionMutex.Unlock();
     return elector.SendBlobUpdate(session, type, blob, checksum, timestamp);
 }

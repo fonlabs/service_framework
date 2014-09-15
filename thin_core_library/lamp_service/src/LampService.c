@@ -451,6 +451,12 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
     while (TRUE) {
         AJ_Message msg;
 
+        /**
+         * First, connect to WIFI.  We don't want to continue the main loop
+         * unless we are connected to an AP or are acting as a soft AP with a client connected.
+         * AJOBS_EstablishWiFi will attempt to connect to a saved AP or will go to soft-AP mode
+         * and wait for a connection.
+         */
 #ifdef ONBOARDING_SERVICE
         // if not connected to wifi, attempt to connect or start
         // a soft AP for onboarding
@@ -464,6 +470,10 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
         }
 #endif
 
+        /**
+         * If we are not connected to a routing node, attempt to find one and connect.
+         * We won't get past this loop until we are connected to a routing node.
+         */
         if (!connected) {
             status = ConnectToRouter();
 

@@ -22,20 +22,34 @@
 namespace lsf {
 
 class ControllerService;
-
+/**
+ * Thread dedicated for persisted data
+ */
 class PersistenceThread : public Thread {
   public:
-
+    /**
+     * class constructor
+     */
     PersistenceThread(ControllerService& service);
-
+    /**
+     * class destructor
+     */
     virtual ~PersistenceThread();
-
+    /**
+     * Signal to the thread to be active
+     */
     void SignalReadWrite();
-
+    /**
+     * Thread run method
+     */
     virtual void Run();
-
+    /**
+     * Stop thread
+     */
     virtual void Stop();
-
+    /**
+     * Join thread after stopped
+     */
     virtual void Join();
 
   private:

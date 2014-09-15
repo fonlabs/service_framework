@@ -63,7 +63,7 @@ class ControllerServiceManagerCallback {
     /**
      * Indicates that a ControllerServiceNameChanged signal has been received
      */
-    virtual void ControllerServiceNameChangedCB(void) { }
+    virtual void ControllerServiceNameChangedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) { }
 };
 
 
@@ -82,7 +82,6 @@ class ControllerServiceManager : public Manager {
      * Get the version of the Controller Service to which the Controller Client is currently connected to.
      * The response will come in ControllerServiceManagerCallback::GetControllerServiceVersionReplyCB
      *
-     * @param  None
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -93,7 +92,6 @@ class ControllerServiceManager : public Manager {
      * Make the ControllerService perform a lighting reset
      * The reply will come in the form of ControllerServiceManagerCallback::LightingResetControllerServiceReplyCB
      *
-     * @param None
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
