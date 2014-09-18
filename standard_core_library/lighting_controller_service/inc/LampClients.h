@@ -340,7 +340,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     struct ResponseCounter {
         ResponseCounter() :
-            numWaiting(0), successCount(0), failCount(0), notFoundCount(0), busyCount(0), total(0) {
+            numWaiting(0), successCount(0), failCount(0), notFoundCount(0), total(0) {
             sceneOrMasterSceneID.clear();
         }
 
@@ -354,7 +354,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         volatile uint32_t successCount;
         volatile uint32_t failCount;
         volatile uint32_t notFoundCount;
-        volatile uint32_t busyCount;
         uint32_t total;
 
         std::list<ajn::MsgArg> standardReplyArgs;
@@ -421,7 +420,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     void HandleReplyWithVariant(ajn::Message& msg, void* context);
     void HandleReplyWithKeyValuePairs(ajn::Message& msg, void* context);
 
-    void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, uint32_t busyCount = 0, const ajn::MsgArg* arg = NULL);
+    void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
 
     void SessionPingCB(Message& message, void* context);
 

@@ -48,7 +48,7 @@ namespace lsf {
 /*
  * Timeout for Lamp Method Calls
  */
-#define LAMP_METHOD_CALL_TIMEOUT 500
+#define LAMP_METHOD_CALL_TIMEOUT 250
 
 /*
  * Leave Session Timeout
