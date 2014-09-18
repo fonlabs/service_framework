@@ -51,11 +51,6 @@ namespace lsf {
 #define LAMP_METHOD_CALL_TIMEOUT 250
 
 /*
- * Leave Session Timeout
- */
-#define LEAVE_SESSION_TIMEOUT 100
-
-/*
  * Link timeout in seconds
  */
 #define LINK_TIMEOUT 5

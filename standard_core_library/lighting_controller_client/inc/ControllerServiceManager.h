@@ -63,7 +63,7 @@ class ControllerServiceManagerCallback {
     /**
      * Indicates that a ControllerServiceNameChanged signal has been received
      */
-    virtual void ControllerServiceNameChangedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) { }
+    virtual void ControllerServiceNameChangedCB(void) { }
 };
 
 

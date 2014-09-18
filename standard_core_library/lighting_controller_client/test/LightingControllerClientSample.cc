@@ -136,10 +136,8 @@ class ControllerServiceManagerCallbackHandler : public ControllerServiceManagerC
         gotSignal = true;
     }
 
-    void ControllerServiceNameChangedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
-        LSFString uniqueId = controllerServiceDeviceID;
-        LSFString name = controllerServiceName;
-        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __func__, uniqueId.c_str(), name.c_str());
+    void ControllerServiceNameChangedCB(void) {
+        printf("\n%s", __func__);
         gotSignal = true;
     }
 };
@@ -481,19 +479,6 @@ class LampManagerCallbackHandler : public LampManagerCallback {
     }
 
     void LampsFoundCB(const LSFStringList& lampIDs) {
-        printf("\n%s(): listsize=%d", __func__, lampIDs.size());
-        LSFStringList::const_iterator it = lampIDs.begin();
-        uint8_t count = 1;
-        for (; it != lampIDs.end(); ++it) {
-            printf("\n(%d)%s", count, (*it).c_str());
-            count++;
-        }
-        printf("\n");
-        lampList.clear();
-        lampList = lampIDs;
-    }
-
-    void LampsLostCB(const LSFStringList& lampIDs) {
         printf("\n%s(): listsize=%d", __func__, lampIDs.size());
         LSFStringList::const_iterator it = lampIDs.begin();
         uint8_t count = 1;
@@ -2022,7 +2007,7 @@ int main()
                 String uniqueId = NextTok(line);
                 printf("\nInvoking PingLamp(%s)\n", uniqueId.c_str());
                 status = lampManager.PingLamp(uniqueId.c_str());
-                waitForReply = true;
+                numRepliesToWait = 1;
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {

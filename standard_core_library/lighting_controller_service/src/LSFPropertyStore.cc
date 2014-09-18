@@ -25,7 +25,6 @@
 #include <qcc/StringUtil.h>
 #include <alljoyn/about/AboutServiceApi.h>
 #include <alljoyn/services_common/GuidUtil.h>
-#include <alljoyn/version.h>
 
 #define QCC_MODULE "LSF_PROPSTORE"
 
@@ -48,9 +47,6 @@ LSFPropertyStore::LSFPropertyStore(const std::string& factoryConfigFile, const s
     running(true)
 {
     QCC_DbgTrace(("%s", __func__));
-
-    setProperty(AJ_SOFTWARE_VERSION, ajn::GetVersion(), true, false, false);
-
     Start();
 }
 
@@ -114,16 +110,6 @@ void LSFPropertyStore::ReadFactoryConfiguration()
     iter = factorySettings.find("AppName");
     if (iter != factorySettings.end()) {
         setProperty(APP_NAME, iter->second, true, false, true);
-    }
-
-    iter = factorySettings.find(PropertyStoreName[MODEL_NUMBER]);
-    if (iter != factorySettings.end()) {
-        setProperty(MODEL_NUMBER, iter->second, true, false, true);
-    }
-
-    iter = factorySettings.find(PropertyStoreName[SOFTWARE_VERSION]);
-    if (iter != factorySettings.end()) {
-        setProperty(SOFTWARE_VERSION, iter->second, true, false, false);
     }
 
     iter = factorySettings.find(PropertyStoreName[APP_ID]);
@@ -723,7 +709,6 @@ bool LSFPropertyStore::IsLeader()
     }
 
     propsLock.Unlock();
-    QCC_DbgTrace(("%s: return %d\n", __func__, leader));
     return leader;
 }
 

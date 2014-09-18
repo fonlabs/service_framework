@@ -26,9 +26,6 @@ namespace lsf {
 
 class ControllerClient;
 
-/**
- * scene callback class
- */
 class SceneManagerCallback {
   public:
     virtual ~SceneManagerCallback() { }
@@ -46,7 +43,6 @@ class SceneManagerCallback {
      *
      * @param responseCode    The response code
      * @param sceneID    The id of the scene
-     * @param language   The language of the scene name
      * @param sceneName  The name of the scene
      */
     virtual void GetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language, const LSFString& sceneName) { }
@@ -56,7 +52,6 @@ class SceneManagerCallback {
      *
      * @param responseCode    The response code
      * @param sceneID    The id of the scene whose name was changed
-     * @param language   language of the scene
      */
     virtual void SetSceneNameReplyCB(const LSFResponseCode& responseCode, const LSFString& sceneID, const LSFString& language) { }
 
@@ -93,7 +88,7 @@ class SceneManagerCallback {
     /**
      * A scene has been updated
      *
-     * @param sceneIDs    The id of the updated scene
+     * @param sceneID    The id of the updated scene
      */
     virtual void ScenesUpdatedCB(const LSFStringList& sceneIDs) { }
 
@@ -108,7 +103,7 @@ class SceneManagerCallback {
     /**
      * A scene has been deleted
      *
-     * @param sceneIDs    The id of the deleted scene
+     * @param sceneID    The id of the deleted scene
      */
     virtual void ScenesDeletedCB(const LSFStringList& sceneIDs) { }
 
@@ -138,17 +133,13 @@ class SceneManagerCallback {
 };
 
 
-/**
- * scene management class
- */
+
+
 class SceneManager : public Manager {
 
     friend class ControllerClient;
 
   public:
-    /**
-     * SceneManager CTOR
-     */
     SceneManager(ControllerClient& controller, SceneManagerCallback& callback);
 
     /**
@@ -162,7 +153,6 @@ class SceneManager : public Manager {
      * Response in SceneManagerCallback::GetSceneNameReplyCB
      *
      * @param sceneID    The id of the scene
-     * @param language   The requested language
      */
     ControllerClientStatus GetSceneName(const LSFString& sceneID, const LSFString& language = LSFString("en"));
 
@@ -172,7 +162,6 @@ class SceneManager : public Manager {
      *
      * @param sceneID    The id of the scene to modify
      * @param sceneName  The new scene name
-     * @param language   The requested language
      */
     ControllerClientStatus SetSceneName(const LSFString& sceneID, const LSFString& sceneName, const LSFString& language = LSFString("en"));
 
@@ -181,8 +170,6 @@ class SceneManager : public Manager {
      *  Response in SceneManagerCallback::CreateSceneReplyCB
      *
      * @param scene The scene data
-     * @param sceneName  The scene name
-     * @param language   The scene language
      */
     ControllerClientStatus CreateScene(const Scene& scene, const LSFString& sceneName, const LSFString& language = LSFString("en"));
 
@@ -223,7 +210,6 @@ class SceneManager : public Manager {
      * Get the Scene Info and Name
      *
      * @param sceneID    The ID of the master scene
-     * @param language   The requested language
      */
     ControllerClientStatus GetSceneDataSet(const LSFString& sceneID, const LSFString& language = LSFString("en"));
 

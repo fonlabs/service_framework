@@ -28,13 +28,13 @@ using namespace ajn;
 #define QCC_MODULE "SCENE_MANAGER"
 
 const char* sceneEventActionObjId = "LightingControllerServiceObject";
-const char* sceneEventActionObjDescription[] = { "This is the LSF EventAction object for scene " };
+const char* sceneEventActionObjDescription[] = { "This is the LSF EventAction object" };
 const char* sceneEventActionInterfaceId = "SceneEventActionInterface";
-const char* sceneEventActionInterfaceDescription[] = { "This is the LSF EventAction interface for scene " };
+const char* sceneEventActionInterfaceDescription[] = { "This is the LSF EventAction interface for Scene " };
 const char* sceneAppliedId = "SceneApplied";
-const char* sceneAppliedDescription[2] = { "When the scene ", " is executed" };
+const char* sceneAppliedDescription[] = { "Applied Scene " };
 const char* applySceneId = "ApplyScene";
-const char* applySceneDescription[] = { "Apply the scene " };
+const char* applySceneDescription[] = { "Apply Scene " };
 
 SceneObject::SceneObject(SceneManager& sceneMgr, LSFString& sceneid, Scene& tempScene, LSFString& name) :
     BusObject((LSFString(ApplySceneEventActionObjectPath) + sceneid).c_str()), sceneManager(sceneMgr), sceneId(sceneid), scene(tempScene), sceneName(name), appliedSceneMember(NULL)
@@ -103,18 +103,17 @@ const char* SceneObject::Translate(const char* sourceLanguage, const char* targe
         if (0 == strcmp(source, sceneEventActionObjId)) {
             buffer = sceneEventActionObjDescription[0];
         } else if (0 == strcmp(source, sceneEventActionInterfaceId)) {
-            buffer = sceneEventActionInterfaceDescription[0];
+            buffer = sceneEventActionObjDescription[0];
             sceneNameMutex.Lock();
             buffer.append(sceneName.c_str());
             sceneNameMutex.Unlock();
         } else if (0 == strcmp(source, sceneAppliedId)) {
-            buffer = sceneAppliedDescription[0];
+            buffer = sceneEventActionObjDescription[0];
             sceneNameMutex.Lock();
             buffer.append(sceneName.c_str());
             sceneNameMutex.Unlock();
-            buffer.append(sceneAppliedDescription[1]);
         } else if (0 == strcmp(source, applySceneId)) {
-            buffer = applySceneDescription[0];
+            buffer = sceneEventActionObjDescription[0];
             sceneNameMutex.Lock();
             buffer.append(sceneName.c_str());
             sceneNameMutex.Unlock();

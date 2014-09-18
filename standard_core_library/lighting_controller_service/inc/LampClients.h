@@ -386,7 +386,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     struct QueuedMethodCall {
         QueuedMethodCall(const ajn::Message& msg, ajn::MessageReceiver::ReplyHandler replyHandler) :
-            inMsg(msg), replyFunc(replyHandler), responseCounter() {
+            inMsg(msg), replyFunc(replyHandler), responseID(qcc::RandHexString(8).c_str()), responseCounter() {
         }
 
         void AddMethodCallElement(QueuedMethodCallElement& element) {
@@ -396,17 +396,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
         ajn::Message inMsg;
         ajn::MessageReceiver::ReplyHandler replyFunc;
-        Mutex responseCounterMutex;
+        LSFString responseID;
         ResponseCounter responseCounter;
         QueuedMethodCallElementList methodCallElements;
-    };
-
-    struct QueuedMethodCallContext {
-        QueuedMethodCallContext(LSFString lampId, QueuedMethodCall* qCallPtr) :
-            lampID(lampId), queuedCallPtr(qCallPtr) { }
-
-        LSFString lampID;
-        QueuedMethodCall* queuedCallPtr;
     };
 
     void SendMethodReply(LSFResponseCode responseCode, ajn::Message msg, std::list<ajn::MsgArg>& stdArgs, std::list<ajn::MsgArg>& custArgs);
@@ -426,8 +418,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void PingCB(QStatus status, void* context);
 
-    void SendPingReply(LSFString lampID, LSFResponseCode responseCode, bool decrementMethodCallCount = true);
-
     struct LampConnection {
         LSFString lampId;
         ajn::ProxyBusObject object;
@@ -437,8 +427,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         LSFString name;
         uint16_t port;
         ajn::SessionId sessionID;
-        uint8_t methodCallPendingCount;
-        bool reportAvailableForGetAllLampIDs;
     };
 
     typedef std::map<LSFString, LampConnection*> LampMap;
@@ -453,6 +441,10 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     std::set<uint32_t> lostSessionList;
     Mutex lostSessionListLock;
 
+    typedef std::map<LSFString, ResponseCounter> ResponseMap;
+    ResponseMap responseMap;
+    Mutex responseLock;
+
     class ServiceHandler;
     ServiceHandler* serviceHandler;
 
@@ -460,7 +452,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     Mutex queueLock;
     std::list<QueuedMethodCall*> methodQueue;
-    volatile sig_atomic_t isRunning;
+    bool isRunning;
 
     bool lampStateChangedSignalHandlerRegistered;
 
@@ -472,22 +464,13 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFSemaphore wakeUp;
 
+    uint8_t sentSessionPings;
+    uint8_t receivedSessionPingResponses;
     LSFStringList lostLamps;
-    Mutex lostLampsLock;
-
-    typedef std::map<LSFString, uint8_t> MethodRepliesCountMap;
-    MethodRepliesCountMap methodRepliesReceived;
-    Mutex methodRepliesReceivedLock;
-
-    Mutex sentNGNSPingsLock;
-    LampMap sentNGNSPings;
+    Mutex sessionPingResponseLock;
 
     Mutex connectToLampsLock;
     bool connectToLamps;
-
-    Mutex pingMapLock;
-    typedef std::map<LSFString, std::list<ajn::Message> > PingMap;
-    PingMap pingMap;
 };
 
 }

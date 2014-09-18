@@ -47,9 +47,7 @@
 #include <LampClients.h>
 
 namespace lsf {
-/**
- * controller service version
- */
+
 #define CONTROLLER_SERVICE_VERSION 1
 
 /**
@@ -73,9 +71,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
         const std::string& presetFile,
         const std::string& sceneFile,
         const std::string& masterSceneFile);
-    /**
-     * Constructor
-     */
+
     ControllerService(
         ajn::services::PropertyStore& propStore,
         const std::string& factoryConfigFile,
@@ -93,151 +89,87 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     /**
      * Starts the ControllerService
      *
-     * @param  keyStoreFileLocation
+     * @param  None
      * @return ER_OK if successful, error otherwise
      */
     QStatus Start(const char* keyStoreFileLocation);
-    /**
-     * Register Method Handlers
-     */
+
     QStatus RegisterMethodHandlers(void);
 
     /**
      * Stops the ControllerService
      *
+     * @param  None
      * @return ER_OK if successful, error otherwise
      */
     QStatus Stop(void);
-    /**
-     * join thread
-     */
+
     QStatus Join(void);
 
     /**
      * Returns a reference to the AllJoyn BusAttachment
      *
+     * @param  None
      * @return reference to the AllJoyn BusAttachment
      */
     ajn::BusAttachment& GetBusAttachment(void) { return bus; }
-    /**
-     * Get Lamp Manager
-     */
+
     LampManager& GetLampManager(void) { return lampManager; };
-    /**
-     * Get Lamp Group Manager
-     */
     LampGroupManager& GetLampGroupManager(void) { return lampGroupManager; };
-    /**
-     * Get Preset Manager
-     */
     PresetManager& GetPresetManager(void) { return presetManager; };
-    /**
-     * Get Scene Manager
-     */
     SceneManager& GetSceneManager(void) { return sceneManager; };
-    /**
-     * Get Master Scene Manager
-     */
     MasterSceneManager& GetMasterSceneManager(void) { return masterSceneManager; };
-    /**
-     * Send Method Reply
-     */
+
     void SendMethodReply(const ajn::Message& msg, const ajn::MsgArg* args = NULL, size_t numArgs = 0);
-    /**
-     * Send Method Reply With Response Code And List Of IDs
-     */
+
     void SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode responseCode, const LSFStringList& idList);
-    /**
-     * Send Method Reply With Response Code ID And Name
-     */
+
     void SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& lsfName);
-    /**
-     * Send Method Reply With Response Code And ID
-     */
+
     void SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId);
-    /**
-     * Send Method Reply With Uint32 Value
-     */
+
     void SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t value);
-    /**
-     * Send Method Reply With Response Code ID Language And Name
-     */
+
     void SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& language, const LSFString& name);
-    /**
-     * Send Signal
-     */
+
     QStatus SendSignal(const char* ifaceName, const char* methodName, const LSFStringList& idList);
-    /**
-     * Send Signal Without Arg
-     */
+
     QStatus SendSignalWithoutArg(const char* ifaceName, const char* signalName);
-    /**
-     * Send Scene Or Master Scene Applied Signal
-     */
+
     void SendSceneOrMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId) {
         sceneManager.SendSceneOrMasterSceneAppliedSignal(sceneorMasterSceneId);
     }
-    /**
-     * Schedule File Read Write
-     */
+
     void ScheduleFileReadWrite(Manager* manager);
-    /**
-     * Send Blob Update
-     */
+
     QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
-    /**
-     * Send Get Blob Reply
-     */
+
     void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
-    /**
-     * Is Running
-     */
+
     bool IsRunning();
-    /**
-     * Get Rank
-     */
+
     uint64_t GetRank();
-    /**
-     * Is Leader
-     */
+
     bool IsLeader();
-    /**
-     * Set Is Leader
-     */
+
     void SetIsLeader(bool val);
-    /**
-     * Add Obj Description To Announcement
-     */
+
     void AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface);
-    /**
-     * Remove Obj Description From Announcement
-     */
+
     void RemoveObjDescriptionFromAnnouncement(qcc::String path, qcc::String interface);
-    /**
-     * Set Allow Updates
-     */
+
     void SetAllowUpdates(bool allow);
-    /**
-     * Updates Allowed
-     */
-    bool UpdatesAllowed(void);
-    /**
-     * Do Leave Session Async
-     */
+
+    bool UpdatesAllowed();
+
     void DoLeaveSessionAsync(ajn::SessionId sessionId);
-    /**
-     * Leave Session Async Reply Handler
-     */
+
     void LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context);
-    /**
-     * Override Rank
-     */
+
     void OverrideRank(uint64_t rank) {
         internalPropertyStore.SetRank(rank);
     }
-    /**
-     * Get Leader Election Obj
-     */
+
     LeaderElectionObject& GetLeaderElectionObj(void) {
         return elector;
     }
@@ -268,7 +200,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     QStatus CreateAndAddInterfaces(const InterfaceEntry* entries, size_t numEntries);
 
-    volatile sig_atomic_t updatesAllowed;
+    Mutex updatesAllowedLock;
+    bool updatesAllowed;
     ajn::BusAttachment bus;
     LeaderElectionObject elector;
     lsf::Mutex serviceSessionMutex;
@@ -302,7 +235,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     bool isObsObjectReady;
     Mutex obsObjectLock;
 
-    volatile sig_atomic_t isRunning;
+    bool isRunning;
+    Mutex isRunningLock;
 
     // Interface for ajn::services::ConfigService::Listener
     QStatus Restart();
@@ -370,9 +304,6 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
  */
 class ControllerServiceManager {
   public:
-    /**
-     * ControllerServiceManager constructor
-     */
     ControllerServiceManager(
         const std::string& factoryConfigFile,
         const std::string& configFile,
@@ -383,9 +314,7 @@ class ControllerServiceManager {
         controllerService(factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
 
     }
-    /**
-     * ControllerServiceManager constructor
-     */
+
     ControllerServiceManager(
         ajn::services::PropertyStore& propStore,
         const std::string& factoryConfigFile,
@@ -397,9 +326,7 @@ class ControllerServiceManager {
         controllerService(propStore, factoryConfigFile, configFile, lampGroupFile, presetFile, sceneFile, masterSceneFile) {
 
     }
-    /**
-     * ControllerServiceManager destructor
-     */
+
     ~ControllerServiceManager() {
     }
     /**
@@ -417,30 +344,23 @@ class ControllerServiceManager {
     /**
      * Stops the ControllerService
      *
+     * @param  None
      * @return ER_OK if successful, error otherwise
      */
     QStatus Stop(void) {
         return controllerService.Stop();
     }
-    /**
-     * join thread
-     */
+
     QStatus Join(void) {
         return controllerService.Join();
     }
-    /**
-     * is running
-     */
+
     bool IsRunning() {
         return controllerService.IsRunning();
     }
-    /**
-     * Get Controller Service
-     */
+
     ControllerService& GetControllerService(void) { return controllerService; };
-    /**
-     * Override Rank
-     */
+
     void OverrideRank(uint64_t rank) {
         controllerService.OverrideRank(rank);
     }

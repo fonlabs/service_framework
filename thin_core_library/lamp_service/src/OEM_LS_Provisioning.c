@@ -106,8 +106,8 @@ extern const char FirmwareVersion[];
 static const char* DEFAULT_SOFTWARE_VERSIONS[] = { FirmwareVersion };
 static const char* DEFAULT_HARDWARE_VERSIONS[] = { HardwareVersion };
 
-static const char DEFAULT_SUPPORT_URL_LANG1[] = "http://www.company_a.com";
-static const char DEFAULT_SUPPORT_URL_LANG2[] = "http://www.company_a.com";
+static const char DEFAULT_SUPPORT_URL_LANG1[] = "www.company_a.com";
+static const char DEFAULT_SUPPORT_URL_LANG2[] = "www.company_a.com/de-AT";
 static const char* DEFAULT_SUPPORT_URLS[] = { DEFAULT_SUPPORT_URL_LANG1, DEFAULT_SUPPORT_URL_LANG2 };
 
 

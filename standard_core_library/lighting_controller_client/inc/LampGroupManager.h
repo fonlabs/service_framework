@@ -60,7 +60,6 @@ class LampGroupManagerCallback {
      *
      * @param responseCode   The response code
      * @param lampGroupID    The Lamp Group ID
-     * @param language
      * @param lampGroupName  The Lamp Group Name
      */
     virtual void GetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language, const LSFString& lampGroupName) { }
@@ -70,7 +69,6 @@ class LampGroupManagerCallback {
      *
      * @param responseCode   The response code
      * @param lampGroupID    The Lamp Group ID
-     * @param language
      */
     virtual void SetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language) { }
 
@@ -101,7 +99,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
-     * @param lampGroup       The Lamp Group
+     * @parma lampGroup       The Lamp Group
      */
     virtual void GetLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LampGroup& lampGroup) { }
 
@@ -149,6 +147,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void TransitionLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -157,6 +156,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void TransitionLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -165,6 +165,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void TransitionLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -173,6 +174,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void TransitionLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -181,6 +183,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void TransitionLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -197,6 +200,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void ResetLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -205,6 +209,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void ResetLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -213,6 +218,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void ResetLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -221,6 +227,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void ResetLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -229,6 +236,7 @@ class LampGroupManagerCallback {
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
+     * @param stateFieldName
      */
     virtual void ResetLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
@@ -286,7 +294,6 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::GetLampGroupNameCB
      *
      * @param lampGroupID    The Lamp Group ID
-     * @param language
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -300,7 +307,6 @@ class LampGroupManager : public Manager {
      *
      * @param lampGroupID The Lamp Group ID
      * @param lampGroupName        The Lamp Group Name
-     * @param language
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -313,8 +319,6 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::CreateLampGroupReplyCB
      *
      * @param lampGroup   Lamp Group
-     * @param lampGroupName
-     * @param language
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -365,8 +369,6 @@ class LampGroupManager : public Manager {
      *
      * @param lampGroupID    The Lamp Group ID
      * @param lampGroupState The new state
-     * @param transitionPeriod
-     *
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -377,12 +379,18 @@ class LampGroupManager : public Manager {
     /**
      * Transition the LampGroup to a given state
      * Response in LampGroupManagerCallback::TransitionLampGroupStateReplyCB
+     *
+     * @param lampGroupID    The LampGroup id
+     * @param lampGroupState The new LampGroup state
      */
     ControllerClientStatus PulseLampGroupWithState(const LSFString& lampGroupID, const LampState& toLampGroupState, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LampState& fromLampGroupState = LampState());
 
     /**
      * Transition the LampGroup to a given state
      * Response in LampGroupManagerCallback::TransitionLSFStringReplyCB
+     *
+     * @param lampGroupID    The LampGroup id
+     * @param lampGroupPreset The new LampGroup state
      */
     ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = CurrentStateIdentifier);
 
@@ -391,7 +399,8 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
-     * @param onOff
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -406,6 +415,9 @@ class LampGroupManager : public Manager {
      * Transition a Lamp Group's field to a given value
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      *
+     * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -420,6 +432,9 @@ class LampGroupManager : public Manager {
      * Transition a Lamp Group's field to a given value
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      *
+     * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -433,6 +448,14 @@ class LampGroupManager : public Manager {
     /**
      * Transition a Lamp Group's field to a given value
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
+     *
+     * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
+     * @return
+     *      - CONTROLLER_CLIENT_OK if successful
+     *      - An error status otherwise
+     *
      */
     ControllerClientStatus TransitionLampGroupStateBrightnessField(const LSFString& lampGroupID, const uint32_t& brightness, const uint32_t& transitionPeriod = 0) {
         LSFString name("Brightness");
@@ -442,6 +465,14 @@ class LampGroupManager : public Manager {
     /**
      * Transition a Lamp Group's field to a given value
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
+     *
+     * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
+     * @return
+     *      - CONTROLLER_CLIENT_OK if successful
+     *      - An error status otherwise
+     *
      */
     ControllerClientStatus TransitionLampGroupStateColorTempField(const LSFString& lampGroupID, const uint32_t& colorTemp, const uint32_t& transitionPeriod = 0) {
         LSFString name("ColorTemp");
@@ -454,7 +485,6 @@ class LampGroupManager : public Manager {
      *
      * @param lampGroupID    The Lamp Group ID
      * @param presetID   The Preset ID
-     * @param transitionPeriod
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -479,6 +509,8 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -494,6 +526,8 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -509,6 +543,8 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -524,6 +560,8 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -539,6 +577,8 @@ class LampGroupManager : public Manager {
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
+     * @param stateFieldName The name of the state stateFieldName to transition
+     * @param value          The new value of the state stateFieldName
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
      *      - An error status otherwise
@@ -552,8 +592,7 @@ class LampGroupManager : public Manager {
     /**
      * Get the Lamp Group Info and Name
      *
-     * @param lampGroupID    The ID of the group
-     * @param language
+     * @param presetID    The ID of the master preset
      */
     ControllerClientStatus GetLampGroupDataSet(const LSFString& lampGroupID, const LSFString& language = LSFString("en"));
 

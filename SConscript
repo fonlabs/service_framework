@@ -81,6 +81,7 @@ lsf_service_env['service_objs'] = lsf_service_env.Object(lsf_service_env['servic
 lighting_controller_service = lsf_service_env.Program('$LSF_SERVICE_DISTDIR/bin/lighting_controller_service', ['standard_core_library/lighting_controller_service/src/Main.cc'] + lsf_service_env['service_objs'] + lsf_env['common_objs'])
 lsf_service_env.Install('$LSF_SERVICE_DISTDIR/bin', lsf_service_env['service_objs'])
 lsf_service_env.Install('$LSF_SERVICE_DISTDIR/bin', lsf_env['common_objs'])
+lsf_service_env.Install('$LSF_SERVICE_DISTDIR/bin', 'standard_core_library/lighting_controller_service/src/OEMConfig.ini')
 
 #Build Lamp Service
 lamp_service_env = SConscript('../ajtcl/SConscript')
