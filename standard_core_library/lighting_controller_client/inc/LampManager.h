@@ -663,10 +663,6 @@ class LampManager : public Manager {
         callback.LampsLostCB(idList);
     }
 
-    void LampsLost(LSFStringList& idList) {
-        callback.LampsLostCB(idList);
-    }
-
     // method reply handlers
     void GetAllLampIDsReply(LSFResponseCode& responseCode, LSFStringList& idList) {
         callback.GetAllLampIDsReplyCB(responseCode, idList);
