@@ -327,6 +327,25 @@ void LampParameters::Get(ajn::MsgArg* arg, bool ownership) const
 LampDetails::LampDetails()
 {
     QCC_DbgPrintf(("%s: %s", __func__, this->c_str()));
+    make = MAKE_INVALID;
+    model = MODEL_INVALID;
+    type = TYPE_INVALID;
+    lampType = LAMPTYPE_INVALID;
+    lampBaseType = BASETYPE_INVALID;
+    lampBeamAngle = 0;
+    dimmable = false;
+    color = false;
+    variableColorTemp = false;
+    hasEffects = false;
+    maxVoltage = 0;
+    minVoltage = 0;
+    wattage = 0;
+    incandescentEquivalent = 0;
+    maxLumens = 0;
+    minTemperature = 0;
+    maxTemperature = 0;
+    colorRenderingIndex = 0;
+    lampID = LSFString();
 }
 
 LampDetails::LampDetails(const ajn::MsgArg& arg)

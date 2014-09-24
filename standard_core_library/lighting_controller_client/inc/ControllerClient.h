@@ -41,7 +41,9 @@
 #include <ControllerServiceManager.h>
 
 namespace lsf {
-
+/**
+ * controller client version
+ */
 #define CONTROLLER_CLIENT_VERSION 1
 
 /**
@@ -113,7 +115,6 @@ class ControllerClient : public ajn::MessageReceiver {
     /**
      *  Get the version of the Lighting Controller Client
      *
-     *  @param  None
      *  @return The Lighting Controller Client version
      */
     uint32_t GetVersion(void);
@@ -123,9 +124,6 @@ class ControllerClient : public ajn::MessageReceiver {
      *  Controller Client to tear-down any existent session with
      *  a Controller Service and re-attemp a connect with a
      *  Controller Service
-     *
-     *  @param  None
-     *  @return None
      */
     void Reset(void);
 

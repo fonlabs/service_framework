@@ -314,21 +314,27 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
                 break;
             }
 
-            if ((myTimestamp != 0) && ((timestamp == 0) || ((GetTimestamp64() - myTimestamp) < timestamp)) && (myChecksum != 0)) {
-                // need to call!
+            uint64_t currentTimeStamp = GetTimestamp64();
+            QCC_DbgPrintf(("%s: type=%d checksum=%u timestamp=%llu", __func__, type, checksum, timestamp));
+            QCC_DbgPrintf(("%s: type=%d myChecksum=%u myTimestamp=%llu GetTimestamp64=%llu", __func__, type, myChecksum, myTimestamp, currentTimeStamp));
+
+            if ((myTimestamp != 0) && ((timestamp == 0) || ((currentTimeStamp - myTimestamp) < timestamp)) && (myChecksum != 0)) {
+                QCC_DbgPrintf(("%s: Need to send a blob!", __func__));
                 storesToSend.push_back(type);
             } else {
-                QCC_DbgPrintf(("%s: No need to send blob", __func__));
+                QCC_DbgPrintf(("%s: No need to send blob!", __func__));
             }
 
-            myTimestamp = GetTimestamp64() - myTimestamp;
+            myTimestamp = currentTimeStamp - myTimestamp;
             if ((timestamp != 0) && (myTimestamp > timestamp) && (checksum != 0)) {
+                QCC_DbgPrintf(("%s: Need to fetch blob!", __func__));
                 storesToFetch.push_back(type);
             } else {
-                QCC_DbgPrintf(("%s: No need to fetch blob", __func__));
+                QCC_DbgPrintf(("%s: No need to fetch blob!", __func__));
             }
         }
 
+        QCC_DbgPrintf(("%s: Going to send blobs according to list of types I prepared", __func__));
         if (!storesToSend.empty()) {
             for (std::list<LSFBlobType>::iterator it = storesToSend.begin(); it != storesToSend.end(); ++it) {
                 switch (*it) {
@@ -357,6 +363,7 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
             QCC_DbgTrace(("%s: Nothing to send", __func__));
         }
 
+        QCC_DbgPrintf(("%s: Going to fetch blobs according to list of types I prepared", __func__));
         if (!storesToFetch.empty()) {
             Synchronization* sync = new Synchronization();
             if (!sync) {

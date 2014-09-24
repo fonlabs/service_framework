@@ -21,19 +21,34 @@
 #include <alljoyn/Status.h>
 
 namespace lsf {
-
+/**
+ * abstraction class to thread
+ */
 class Thread {
   public:
-
+    /**
+     * class constructor
+     */
     Thread();
-
+    /**
+     * class destructor
+     */
     virtual ~Thread();
-
+    /**
+     * run relevant threads
+     */
     virtual void Run() = 0;
+    /**
+     * Stop running threads
+     */
     virtual void Stop() = 0;
-
+    /**
+     * Start running threads
+     */
     QStatus Start();
-
+    /**
+     * Join running threads
+     */
     void Join();
 
   private:

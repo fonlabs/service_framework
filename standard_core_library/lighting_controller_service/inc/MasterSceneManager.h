@@ -26,41 +26,91 @@
 #include <map>
 
 namespace lsf {
-
+/**
+ * Master Scene Manager
+ */
 class MasterSceneManager : public Manager {
 
   public:
+    /**
+     * MasterSceneManager constructor
+     */
     MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const std::string& masterSceneFile);
-
+    /**
+     * Reset object
+     */
     LSFResponseCode Reset(void);
+    /**
+     * Is Dependent On Scene
+     */
     LSFResponseCode IsDependentOnScene(LSFString& sceneID);
-
+    /**
+     * Get All Master Scene IDs
+     */
     void GetAllMasterSceneIDs(ajn::Message& message);
+    /**
+     * Get Master Scene Name
+     */
     void GetMasterSceneName(ajn::Message& message);
+    /**
+     * Set Master Scene Name
+     */
     void SetMasterSceneName(ajn::Message& message);
+    /**
+     * Delete Master Scene
+     */
     void DeleteMasterScene(ajn::Message& message);
+    /**
+     * Create Master Scene
+     */
     void CreateMasterScene(ajn::Message& message);
+    /**
+     * Update Master Scene
+     */
     void UpdateMasterScene(ajn::Message& message);
+    /**
+     * Get Master Scene
+     */
     void GetMasterScene(ajn::Message& message);
+    /**
+     * Apply Master Scene
+     */
     void ApplyMasterScene(ajn::Message& message);
-
+    /**
+     * Send Master Scene Applied Signal
+     */
     void SendMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId);
-
+    /**
+     * Get All Master Scenes
+     */
     LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
-
+    /**
+     * Read Saved Data
+     */
     void ReadSavedData();
+    /**
+     * Read Write File
+     */
     void ReadWriteFile();
-
+    /**
+     * Get Controller Service Master Scene Interface Version
+     */
     uint32_t GetControllerServiceMasterSceneInterfaceVersion(void);
-
+    /**
+     * Get String
+     */
     virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
-
+    /**
+     * Get Blob Info
+     */
     void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
         masterScenesLock.Lock();
         GetBlobInfoInternal(checksum, timestamp);
         masterScenesLock.Unlock();
     }
-
+    /**
+     * Handle Received Blob
+     */
     void HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp);
 
   private:

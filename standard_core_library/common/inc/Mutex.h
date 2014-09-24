@@ -21,17 +21,30 @@
 #include <alljoyn/Status.h>
 
 namespace lsf {
-
+/**
+ * a wrapper class to mutex
+ */
 class Mutex {
   public:
+    /**
+     * Mutex constructor
+     */
     Mutex();
-
+    /**
+     * Mutex destructor
+     */
     ~Mutex();
-
+    /**
+     * Lock mutex
+     */
     QStatus Lock();
-
+    /**
+     * Unlock mutex
+     */
     QStatus Unlock();
-
+    /**
+     * Get mutex object
+     */
     pthread_mutex_t* GetMutex() { return &mutex; }
 
   private:

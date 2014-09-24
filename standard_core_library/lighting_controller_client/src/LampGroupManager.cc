@@ -336,3 +336,78 @@ ControllerClientStatus LampGroupManager::GetLampGroupDataSet(const LSFString& la
 
     return status;
 }
+
+void LampGroupManager::LampGroupsNameChanged(LSFStringList& idList) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.LampGroupsNameChangedCB(idList);
+}
+
+void LampGroupManager::LampGroupsCreated(LSFStringList& idList) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.LampGroupsCreatedCB(idList);
+}
+
+void LampGroupManager::LampGroupsDeleted(LSFStringList& idList) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.LampGroupsDeletedCB(idList);
+}
+
+void LampGroupManager::LampGroupsUpdated(LSFStringList& idList) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.LampGroupsUpdatedCB(idList);
+}
+
+void LampGroupManager::GetAllLampGroupIDsReply(LSFResponseCode& responseCode, LSFStringList& idList) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.GetAllLampGroupIDsReplyCB(responseCode, idList);
+}
+
+void LampGroupManager::GetLampGroupNameReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language, LSFString& lsfName) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.GetLampGroupNameReplyCB(responseCode, lsfId, language, lsfName);
+}
+
+void LampGroupManager::SetLampGroupNameReply(LSFResponseCode& responseCode, LSFString& lsfId, LSFString& language) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.SetLampGroupNameReplyCB(responseCode, lsfId, language);
+}
+
+void LampGroupManager::CreateLampGroupReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.CreateLampGroupReplyCB(responseCode, lsfId);
+}
+
+void LampGroupManager::UpdateLampGroupReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.UpdateLampGroupReplyCB(responseCode, lsfId);
+}
+
+void LampGroupManager::DeleteLampGroupReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.DeleteLampGroupReplyCB(responseCode, lsfId);
+}
+
+void LampGroupManager::ResetLampGroupStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.ResetLampGroupStateReplyCB(responseCode, lsfId);
+}
+
+void LampGroupManager::TransitionLampGroupStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.TransitionLampGroupStateReplyCB(responseCode, lsfId);
+}
+
+void LampGroupManager::PulseLampGroupWithStateReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.PulseLampGroupWithStateReplyCB(responseCode, lsfId);
+}
+
+void LampGroupManager::PulseLampGroupWithPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.PulseLampGroupWithPresetReplyCB(responseCode, lsfId);
+}
+
+void LampGroupManager::TransitionLampGroupStateToPresetReply(LSFResponseCode& responseCode, LSFString& lsfId) {
+    QCC_DbgTrace(("%s", __func__));
+    callback.TransitionLampGroupStateToPresetReplyCB(responseCode, lsfId);
+}

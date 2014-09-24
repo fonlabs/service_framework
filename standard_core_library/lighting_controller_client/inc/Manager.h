@@ -22,13 +22,19 @@
 namespace lsf {
 
 class ControllerClient;
-
+/**
+ * Manager base class for managers
+ */
 class Manager : public ajn::MessageReceiver {
 
   protected:
-
+    /**
+     * manager constructor
+     */
     Manager(ControllerClient& controllerClient);
-
+    /**
+     * controller client reference
+     */
     ControllerClient& controllerClient;
 
   private:

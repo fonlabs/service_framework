@@ -74,6 +74,7 @@ class ControllerClient::ControllerClientBusHandler :
         QCC_DbgPrintf(("BusDisconnected!"));
         ErrorCodeList errors;
         errors.push_back(ERROR_DISCONNECTED_FROM_BUS);
+        QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB\n", __func__));
         controllerClient.callback.ControllerClientErrorCB(errors);
     }
 
@@ -316,6 +317,7 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
         if (status != ER_OK) {
             QCC_LogError(status, ("%s: JoinSessionAsync failed", __func__));
             delete context;
+            QCC_DbgPrintf(("%s: calling to ConnectToControllerServiceFailedCB(deviceID=%s,deviceName=%s)\n", __func__, entry.deviceID.c_str(), entry.deviceName.c_str()));
             callback.ConnectToControllerServiceFailedCB(entry.deviceID, entry.deviceName);
 
             bool emptyList = false;
@@ -392,6 +394,7 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
     currentLeaderLock.Unlock();
 
     if (!deviceID.empty()) {
+        QCC_DbgPrintf(("%s: calling to DisconnectedFromControllerServiceCB(deviceID=%s,deviceName=%s)\n", __func__,  deviceID.c_str(), deviceName.c_str()));
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 
@@ -496,9 +499,11 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                     currentLeaderLock.Unlock();
                     while (!(JoinSessionWithAnotherLeader())) ;
                 } else {
+                    QCC_DbgPrintf(("%s: calling to ConnectedToControllerServiceCB(deviceId=%s,deviceName=%s)\n", __func__, joined->deviceID.c_str(), deviceName.c_str()));
                     callback.ConnectedToControllerServiceCB(joined->deviceID, deviceName);
                 }
             } else {
+                QCC_DbgPrintf(("%s:calling to ConnectToControllerServiceFailedCB(deviceId=%s,deviceName=%s)\n", __func__, joined->deviceID.c_str(), deviceName.c_str()));
                 callback.ConnectToControllerServiceFailedCB(joined->deviceID, deviceName);
                 currentLeaderLock.Lock();
                 currentLeader.Clear();
@@ -552,7 +557,8 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     currentLeaderLock.Unlock();
 
     if (nameChanged) {
-        controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB();
+        QCC_DbgPrintf(("%s: calling to ControllerServiceNameChangedCB(%s, %s)\n", __func__, entry.deviceID.c_str(), entry.deviceName.c_str()));
+        controllerServiceManagerPtr->callback.ControllerServiceNameChangedCB(entry.deviceID, entry.deviceName);
     }
 
     leadersMapLock.Lock();
@@ -676,6 +682,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s:calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -746,6 +753,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& m
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -812,6 +820,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& messa
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -875,6 +884,7 @@ void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, vo
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -950,6 +960,7 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
         } else {
             ErrorCodeList errorList;
             errorList.push_back(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
+            QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB()\n", __func__));
             callback.ControllerClientErrorCB(errorList);
         }
 
@@ -979,6 +990,7 @@ void ControllerClient::Reset(void)
 
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
+        QCC_DbgPrintf(("%s: calling to DisconnectedFromControllerServiceCB(%s,%s)\n", __func__, deviceID.c_str(), deviceName.c_str()));
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 

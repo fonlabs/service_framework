@@ -26,15 +26,25 @@ class Mutex;
  */
 class Condition {
   public:
-
+    /**
+     * class constructor
+     */
     Condition();
-
+    /**
+     * class destructor
+     */
     ~Condition();
-
+    /**
+     * unblock at least one of the threads that are blocked on the specified condition variable cond (if any threads are blocked on cond).
+     */
     void Signal();
-
+    /**
+     * unblock all threads currently blocked on the specified condition variable condition
+     */
     void Broadcast();
-
+    /**
+     * wait on condition
+     */
     void Wait(Mutex& mutex);
 
   private:

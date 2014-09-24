@@ -136,8 +136,10 @@ class ControllerServiceManagerCallbackHandler : public ControllerServiceManagerC
         gotSignal = true;
     }
 
-    void ControllerServiceNameChangedCB(void) {
-        printf("\n%s", __func__);
+    void ControllerServiceNameChangedCB(const LSFString& controllerServiceDeviceID, const LSFString& controllerServiceName) {
+        LSFString uniqueId = controllerServiceDeviceID;
+        LSFString name = controllerServiceName;
+        printf("\n%s: controllerServiceDeviceID = %s controllerServiceName = %s\n", __func__, uniqueId.c_str(), name.c_str());
         gotSignal = true;
     }
 };

@@ -45,7 +45,12 @@ void GetSyncTimeStamp(uint64_t& timeStamp)
 
 uint64_t OEMGetRank()
 {
-    return qcc::Rand64();
+    while (rank == 0) {
+        rank = qcc::Rand64();
+        QCC_DbgPrintf(("%s: new rank = %llu", __func__, rank));
+    }
+    QCC_DbgPrintf(("%s: rank = %llu", __func__, rank));
+    return rank;
 }
 
 bool OEMIsLeader()
@@ -72,18 +77,20 @@ void PopulateDefaultProperties(LSFPropertyStore& propStore)
 
     propStore.setProperty(LSFPropertyStore::DEFAULT_LANG, "en", true, true, true);
     propStore.setProperty(LSFPropertyStore::APP_NAME, "LightingControllerService", true, false, true);
+    propStore.setProperty(LSFPropertyStore::MODEL_NUMBER, "100", true, false, true);
+    propStore.setProperty(LSFPropertyStore::SOFTWARE_VERSION, "1", true, false, false);
 
     propStore.setProperty(LSFPropertyStore::DEVICE_NAME, "English Name", "en", true, true, true);
     propStore.setProperty(LSFPropertyStore::DEVICE_NAME, "German Name", "de-AT", true, true, true);
 
-    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "www.company_a.com/en", "en", true, false, true);
-    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "www.company_a.com/de-AT", "de-AT", true, false, true);
+    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "http://www.company_a.com", "en", true, false, true);
+    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "http://www.company_a.com", "de-AT", true, false, true);
 
     propStore.setProperty(LSFPropertyStore::MANUFACTURER, "Company A (EN)", "en", true, false, true);
     propStore.setProperty(LSFPropertyStore::MANUFACTURER, "Firma A (DE-AT)", "de-AT", true, false, true);
 
-    propStore.setProperty(LSFPropertyStore::DESCRIPTION, "Lamp", "en", true, false, false);
-    propStore.setProperty(LSFPropertyStore::DESCRIPTION, "Lampe", "de-AT", true, false, false);
+    propStore.setProperty(LSFPropertyStore::DESCRIPTION, "Controller Service", "en", true, false, false);
+    propStore.setProperty(LSFPropertyStore::DESCRIPTION, "Controller Service", "de-AT", true, false, false);
 }
 
 }
