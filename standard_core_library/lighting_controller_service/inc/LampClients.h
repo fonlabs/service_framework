@@ -25,6 +25,7 @@
 #include <Manager.h>
 #include <Thread.h>
 #include <LSFSemaphore.h>
+#include <Alarm.h>
 
 #include <string>
 #include <map>
@@ -100,7 +101,7 @@ typedef std::list<PulseStateParams> PulseStateParamsList;
  * class is used as clietn side to the lamp service
  */
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener,
-    public ajn::ProxyBusObject::Listener, public lsf::Thread, public BusAttachment::PingAsyncCB {
+    public ajn::ProxyBusObject::Listener, public lsf::Thread, public BusAttachment::PingAsyncCB, public AlarmListener {
   public:
     /**
      * LampClients constructor
@@ -317,6 +318,11 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     QStatus RegisterAnnounceHandler(void);
 
+    /**
+     * Alarm triggered callback
+     */
+    void AlarmTriggered(void);
+
   private:
 
     void* LampClientsThread(void* data);
@@ -416,6 +422,15 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     void PingCB(QStatus status, void* context);
 
+    void ReportMethodCallFailure(LSFString& lampId) {
+        if (connectToLamps) {
+            methodCallFailureListLock.Lock();
+            methodCallFailureList.push_back(lampId);
+            methodCallFailureListLock.Unlock();
+            wakeUp.Post();
+        }
+    }
+
     typedef enum _LampConnectionState {
         DISCONNECTED = 0,
         JOIN_SESSION_IN_PROGRESS,
@@ -429,6 +444,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
             busName = "";
             name = "";
             port = 0;
+            pingSpacing = 0;
             ClearSessionAndObjects();
         }
 
@@ -442,6 +458,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         void ClearSessionAndObjects(void) {
             sessionID = 0;
             pendingMethodCallCount = 0;
+            timestamp = 0;
+            stopSendingMessages = false;
             object = ajn::ProxyBusObject();
             configObject = ajn::ProxyBusObject();
             aboutObject = ajn::ProxyBusObject();
@@ -465,7 +483,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         }
 
         bool IsConnected(void) {
-            return (connectionState == CONNECTED);
+            return ((connectionState == CONNECTED) && (!stopSendingMessages));
         }
 
         bool JoinSessionInProgress(void) {
@@ -474,6 +492,14 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
         bool IsDisconnected(void) {
             return (connectionState == DISCONNECTED);
+        }
+
+        void SetTimeStamp(uint64_t timeStamp, bool addSpacing = false) {
+            if (addSpacing) {
+                timestamp = pingSpacing + timeStamp;
+            } else {
+                timestamp = timeStamp;
+            }
         }
 
         LSFString lampId;
@@ -486,6 +512,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         ajn::SessionId sessionID;
         uint32_t pendingMethodCallCount;
         LampConnectionState connectionState;
+        uint64_t timestamp;
+        bool stopSendingMessages;
+        uint8_t pingSpacing;
     };
 
     typedef std::map<LSFString, LampConnection*> LampMap;
@@ -493,6 +522,13 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LampMap aboutsList;
     Mutex aboutsListLock;
+
+    LSFStringList methodCallFailureList;
+    Mutex methodCallFailureListLock;
+
+    typedef std::map<LSFString, QStatus> PingResponseMap;
+    PingResponseMap pingResponse;
+    Mutex pingResponseMutex;
 
     typedef std::map<LSFString, QStatus> JoinSessionReplyMap;
 
@@ -530,6 +566,8 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         uint32_t callCount;
         LSFString lampID;
     } PingCtx;
+
+    Alarm wakeUpAlarm;
 };
 
 }
