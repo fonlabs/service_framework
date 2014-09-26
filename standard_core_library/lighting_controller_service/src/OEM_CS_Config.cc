@@ -83,8 +83,8 @@ void PopulateDefaultProperties(LSFPropertyStore& propStore)
     propStore.setProperty(LSFPropertyStore::DEVICE_NAME, "English Name", "en", true, true, true);
     propStore.setProperty(LSFPropertyStore::DEVICE_NAME, "German Name", "de-AT", true, true, true);
 
-    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "http://www.example.com", "en", true, false, true);
-    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "http://www.example.com", "de-AT", true, false, true);
+    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "http://www.company_a.com", "en", true, false, true);
+    propStore.setProperty(LSFPropertyStore::SUPPORT_URL, "http://www.company_a.com", "de-AT", true, false, true);
 
     propStore.setProperty(LSFPropertyStore::MANUFACTURER, "Company A (EN)", "en", true, false, true);
     propStore.setProperty(LSFPropertyStore::MANUFACTURER, "Firma A (DE-AT)", "de-AT", true, false, true);

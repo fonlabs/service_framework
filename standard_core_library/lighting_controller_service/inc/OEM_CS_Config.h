@@ -36,19 +36,19 @@ namespace lsf {
 #define MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
 
 /*
+ * Timeout for NGNS Pings
+ */
+#define NGNS_PING_TIMEOUT_IN_MS 3000
+
+/*
+ * Timeout for Pings
+ */
+#define SESSION_PING_TIMEOUT_IN_MS 1000
+
+/*
  * Timeout for Lamp Method Calls
  */
 #define LAMP_METHOD_CALL_TIMEOUT 250
-
-/*
- * Ping frequency
- */
-#define PING_FREQUENCY_IN_MS 5000
-
-/*
- * Ping back-off
- */
-#define PING_BACKOFF_IN_MS 2000
 
 /*
  * Link timeout in seconds
