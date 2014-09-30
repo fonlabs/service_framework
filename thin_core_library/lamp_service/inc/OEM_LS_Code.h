@@ -31,7 +31,12 @@
 #endif
 
 /**
- * OEM-specific initialization
+ * OEM-specific initialization.
+ *  Anything OEM-specific required at startup should go here.
+ *  The Lamp Service will read the state and property store from NVRAM after executing this method.
+ *  As such, there is no need for the OEM to do so here.
+ *  It is suggested that the OEM initialize any OEM-specific data and structures here.
+ *  This is a good place to initialize any areas of NVRAM that will be used by the OEM.
  *
  * @param  None
  * @return None
@@ -49,7 +54,10 @@ const char* OEM_LS_GetFaultsText(void);
 /**
  * OEM-defined default state
  * This function is called when the lamp boots from the factory state.
- * It will set the initial LampState values
+ * It should set the initial LampState values.  If this lamp already has a LampState stored in
+ * NVRAM, this function will not be called.
+ * No need to explicitly save the state in NVRAM.
+ * The Lamp Service will do that after making this call and any time the state is changed.
  *
  * @param  state The lamp state to set
  * @return None
@@ -57,7 +65,10 @@ const char* OEM_LS_GetFaultsText(void);
 void OEM_LS_SetFactoryState(LampState* state);
 
 /**
- * Restart the Lamp
+ * Prepare to restart the Lamp.
+ * The main loop will call this function before restarting.
+ * This is for OEM-specific pre-restart work.
+ * DO NOT PERFORM THE RESTART HERE; the Lamp Service will do that in the main loop.
  *
  * @param  None
  * @return None
@@ -66,6 +77,10 @@ void OEM_LS_Restart(void);
 
 /**
  * Reset the Lamp to factory settings
+ * The main loop will call this function before doing a factory reset.
+ * The Lamp Service will erase data managed by the framework (e.g., state, name, language) then it will restart the device.
+ * The Lamp Service will call this function so that any OEM-managed data in NVRAM can be erased
+ * as part of the FactoryReset.
  *
  * @param  None
  * @return None
@@ -73,7 +88,9 @@ void OEM_LS_Restart(void);
 void OEM_LS_DoFactoryReset(void);
 
 /**
- * Serialize the Lamp's current real-time parameters
+ * Serialize the Lamp's current real-time parameters.
+ * The Lamp Service will serialize parameters defined by the framework here.
+ * The OEM should add anything else specific to their lamps.
  *
  * @param   msg   The msg to serialize data into
  * @return  Status of the operation
@@ -99,7 +116,9 @@ uint32_t OEM_LS_GetBrightnessLumens(void);
 #ifdef ONBOARDING_SERVICE
 
 /**
- * The default settings for the Onboarding service
+ * The default settings for the Onboarding service.
+ * The OEM may modify this if they want to change timeout settings or
+ * use security when onboarding.
  */
 extern AJOBS_Settings OEM_LS_OnboardingSettings;
 
@@ -213,7 +232,10 @@ LampResponseCode OEM_LS_PopulateFaults(AJ_Message* msg);
 LampResponseCode OEM_LS_ClearFault(LampFaultCode fault);
 
 /**
- * Serialize the Lamp's details
+ * Serialize the Lamp's details.
+ * The Lamp Service's definition of this function populates all framework-defined
+ * details fields into the message.  The OEM should add any additional
+ * fields that they define.
  *
  * @param msg   The msg to serialize data into
  * @return      Status of the operation
@@ -222,6 +244,9 @@ LampResponseCode OEM_LS_PopulateDetails(AJ_Message* msg);
 
 /**
  * This struct holds all fields of the Lamp's Details.
+ * The OEM may add to this but any new fields should be serialized in the
+ * function OEM_LS_PopulateDetails.  The fields below are all required by
+ * the framework.
  */
 typedef struct {
     LampMake lampMake;                     /**< The make of the lamp */
@@ -247,6 +272,8 @@ typedef struct {
 
 /**
  * A global struct to hold this Lamp's details.
+ * If the OEM adds Details fields, they must be initialized in this struct,
+ * which is defined in OEM_LS_Code.c
  */
 extern const LampDetailsStruct LampDetails;
 
@@ -256,14 +283,15 @@ extern const LampDetailsStruct LampDetails;
 extern const char* aboutIconMimetype;
 
 /**
- * The about icon raw data.
+ * The about icon raw data in the format specified by aboutIconMimetype.
  * Note that when showing an icon, the About client may choose to use either
  * this raw image OR fetch the image pointed to by aboutIconUrl.
+ * The OEM may modify the icon by changing this variable in OEM_LS_Code.c
  */
 extern const uint8_t aboutIconContent[];
 
 /**
- * The about icon size
+ * The about icon size.  Should be set to sizeof(aboutIconContent)
  */
 extern const size_t aboutIconSize;
 
@@ -271,12 +299,14 @@ extern const size_t aboutIconSize;
  * The about icon URL
  * Note that when showing an icon, the About client may choose to use either
  * fetch it from this URL or use the raw data in aboutIconContent.
+ * The OEM should set its value in OEM_LS_Code.c
  */
 extern const char* aboutIconUrl;
 
 /**
  * The routing node prefix to discover. If this is set to NULL, the Lamp Service will
  * discover the default prefix org.alljoyn.BusNode
+ * The OEM may set its value in OEM_LS_Code.c
  */
 extern const char* routingNodePrefix;
 

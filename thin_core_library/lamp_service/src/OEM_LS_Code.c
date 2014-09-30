@@ -161,13 +161,17 @@ AJOBS_Settings OEM_LS_OnboardingSettings = {
 void OEM_LS_Restart(void)
 {
     AJ_InfoPrintf(("%s\n", __func__));
-    // TODO: restart the device
+    // TODO: anything that must be done before the device restarts.
+    // do not restart the device here; we will do it in the main loop
 }
 
 void OEM_LS_DoFactoryReset(void)
 {
     AJ_InfoPrintf(("%s\n", __func__));
-    // TODO: anything related to the factory reset
+    // TODO: anything that must be done before the device restarts.
+    // do not restart the device here; we will do it in the main loop
+
+    // The framework will take care of deleting items that it manages (e.g., State, Name, Language)
 }
 
 uint32_t OEM_LS_GetEnergyUsageMilliwatts(void)
