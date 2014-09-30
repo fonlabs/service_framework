@@ -309,54 +309,6 @@ void LAMP_RunService(void)
 
 #define MIN_ROUTER_VERSION 10
 
-static AJ_Status ConnectToRouter(void)
-{
-    AJ_Status status;
-    AJ_Time timer;
-
-    AJ_InfoPrintf(("%s:\n", __func__));
-
-    AJ_InitTimer(&timer);
-
-    // we don't want to connect to routers older than version 9
-    AJ_SetMinProtoVersion(MIN_ROUTER_VERSION);
-
-    do {
-        if (AJ_GetElapsedTime(&timer, TRUE) > CONNECT_TIMEOUT) {
-            return AJ_ERR_TIMEOUT;
-        }
-
-#ifdef ONBOARDING_SERVICE
-        AJ_WiFiConnectState wifi_state = AJ_GetWifiConnectState();
-        if (AJ_GetWifiConnectState() == AJ_WIFI_CONNECT_OK) {
-#endif
-        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __func__));
-        status = AJ_FindBusAndConnect(&Bus, routingNodePrefix, AJ_CONNECT_TIMEOUT);
-#ifdef ONBOARDING_SERVICE
-    } else if (AJ_GetWifiConnectState() == AJ_WIFI_STATION_OK) {
-        // we are in soft-AP mode so use the BusNode router
-        AJ_InfoPrintf(("%s: AJ_FindBusAndConnect()\n", __func__));
-        status = AJ_FindBusAndConnect(&Bus, NULL, AJ_CONNECT_TIMEOUT);
-    } else {
-        // can't connect because we aren't connected to the network
-        return AJ_ERR_DISALLOWED;
-    }
-#endif
-
-        if (status != AJ_OK) {
-            AJ_WarnPrintf(("ConnectToRouter(): connect failed: sleeping for %d seconds\n", AJ_CONNECT_PAUSE / 1000));
-            AJ_Sleep(AJ_CONNECT_PAUSE);
-            continue;
-        }
-    } while (status != AJ_OK);
-
-    if (status == AJ_OK) {
-        AJ_InfoPrintf(("%s: Connected to Daemon:%s\n", __func__, AJ_GetUniqueName(&Bus)));
-    }
-
-    return status;
-}
-
 static AJSVC_ServiceStatus LAMP_HandleMessage(AJ_Message* msg, AJ_Status* status);
 
 static AJ_Status ParseOptions(AJ_SessionOpts* opts, AJ_Message* msg)
@@ -414,6 +366,17 @@ static AJ_Status ParseOptions(AJ_SessionOpts* opts, AJ_Message* msg)
     return status;
 }
 
+static void LSF_DisconnectHandler(uint8_t restart)
+{
+    if (restart) {
+        AJ_BusUnbindSession(&Bus, LSF_ServicePort);
+    }
+
+    AJ_AboutSetShouldAnnounce();
+
+    AJSVC_DisconnectHandler(&Bus);
+}
+
 
 void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 {
@@ -448,58 +411,24 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
     // this call might not be necessary
     AJ_AboutSetAnnounceObjects(LSF_AllJoynObjects);
 
+    AJ_SetMinProtoVersion(MIN_ROUTER_VERSION);
+
     while (TRUE) {
         AJ_Message msg;
 
-        /**
-         * First, connect to WIFI.  We don't want to continue the main loop
-         * unless we are connected to an AP or are acting as a soft AP with a client connected.
-         * AJOBS_EstablishWiFi will attempt to connect to a saved AP or will go to soft-AP mode
-         * and wait for a connection.
-         */
-#ifdef ONBOARDING_SERVICE
-        // if not connected to wifi, attempt to connect or start
-        // a soft AP for onboarding
-        AJ_WiFiConnectState wifi_state = AJ_GetWifiConnectState();
-        // we need to keep trying until either:
-        // a) we are connected to the user's network or
-        // b) a device has connected to us and might try to onboard this device
-        while (wifi_state != AJ_WIFI_CONNECT_OK && wifi_state != AJ_WIFI_STATION_OK) {
-            status = AJOBS_EstablishWiFi();
-            wifi_state = AJ_GetWifiConnectState();
-        }
-#endif
+        if (connected == FALSE) {
+            status = AJSVC_RoutingNodeConnect(&Bus, routingNodePrefix, CONNECT_TIMEOUT, 2000, 60, &connected);
 
-        /**
-         * If we are not connected to a routing node, attempt to find one and connect.
-         * We won't get past this loop until we are connected to a routing node.
-         */
-        if (!connected) {
-            status = ConnectToRouter();
-
-            if (status == AJ_OK) {
-                // inform all services we are connected to the bus
-                status = AJSVC_ConnectedHandler(&Bus);
-            } else {
+            if (connected == FALSE) {
                 continue;
             }
 
-            if (status == AJ_OK) {
-                AJ_SessionOpts session_opts = { AJ_SESSION_TRAFFIC_MESSAGES, AJ_SESSION_PROXIMITY_ANY, AJ_TRANSPORT_ANY, TRUE };
-                // we need to bind the session port to run a service
-                AJ_InfoPrintf(("%s: AJ_BindSessionPort()\n", __func__));
-                status = AJ_BusBindSessionPort(&Bus, LSF_ServicePort, &session_opts, 0);
-            }
-
-            connected = TRUE;
-
             AJ_BusSetPasswordCallback(&Bus, LAMP_PasswordCallback);
 
-            /* Configure timeout for the link to the daemon bus */
-            AJ_SetBusLinkTimeout(&Bus, 60); // 60 seconds
-
-            // start a timer
-            AJ_InitTimer(&timer);
+            AJ_SessionOpts session_opts = { AJ_SESSION_TRAFFIC_MESSAGES, AJ_SESSION_PROXIMITY_ANY, AJ_TRANSPORT_ANY, TRUE };
+            // we need to bind the session port to run a service
+            AJ_InfoPrintf(("%s: AJ_BindSessionPort()\n", __func__));
+            status = AJ_BusBindSessionPort(&Bus, LSF_ServicePort, &session_opts, 0);
         }
 
         // use a minimum two-second timeout to ensure the callback is *eventually* reached
@@ -654,22 +583,13 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
         if (status == AJ_ERR_READ || status == AJ_ERR_RESTART || status == AJ_ERR_RESTART_APP) {
             AJ_InfoPrintf(("%s: AllJoyn disconnect\n", __func__));
             AJ_InfoPrintf(("%s: Disconnected from Daemon:%s\n", __func__, AJ_GetUniqueName(&Bus)));
-            AJSVC_DisconnectHandler(&Bus);
-            AJ_Disconnect(&Bus);
-            connected = FALSE;
 
-#ifdef ONBOARDING_SERVICE
-            // disconnect from wifi and reconnect at the top of the loop
-            AJOBS_DisconnectWiFi();
-#endif
+            LSF_DisconnectHandler(status != AJ_ERR_READ);
+            AJSVC_RoutingNodeDisconnect(&Bus, (status != AJ_ERR_READ), 2000, 3000, &connected);
 
             if (status == AJ_ERR_RESTART_APP) {
                 AJ_Reboot();
             }
-            /*
-             * Sleep a little while before trying to reconnect
-             */
-            AJ_Sleep(3 * 1000);
         }
     }
 }

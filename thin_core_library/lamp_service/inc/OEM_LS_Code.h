@@ -304,9 +304,10 @@ extern const size_t aboutIconSize;
 extern const char* aboutIconUrl;
 
 /**
- * The routing node prefix to discover. If this is set to NULL, the Lamp Service will
- * discover the default prefix org.alljoyn.BusNode
- * The OEM may set its value in OEM_LS_Code.c
+ * The routing node prefix to discover.
+ *
+ * NOTE: If this not set to org.alljoyn.BusNode, AllJoyn-ON would not be
+ * able to on-board this device
  */
 extern const char* routingNodePrefix;
 

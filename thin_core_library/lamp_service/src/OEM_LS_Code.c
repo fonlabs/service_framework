@@ -571,4 +571,8 @@ const size_t aboutIconSize = sizeof(aboutIconContent);
 
 const char* aboutIconUrl = "";
 
+/**
+ * NOTE: If this not set to org.alljoyn.BusNode, AllJoyn-ON would not be
+ * able to on-board this device
+ */
 const char* routingNodePrefix = "org.alljoyn.BusNode";

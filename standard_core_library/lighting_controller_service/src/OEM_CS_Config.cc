@@ -23,7 +23,7 @@ namespace lsf {
 
 #define QCC_MODULE "OEM_CS_CONFIG"
 
-static const LampState OEM_CS_DefaultLampState = LampState(true, 256, 256, 256, 256);
+static const LampState OEM_CS_DefaultLampState = LampState(true, 0, 0, 0, 0);
 
 uint64_t OEM_Rank = 0;
 

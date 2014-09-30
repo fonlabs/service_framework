@@ -102,6 +102,8 @@ class ControllerClient : public ajn::MessageReceiver {
 
     /**
      * Constructor
+     * @param bus - reference to bus attachment object
+     * @param clientCB - reference to ControllerClientCallback
      */
     ControllerClient(
         ajn::BusAttachment& bus,
