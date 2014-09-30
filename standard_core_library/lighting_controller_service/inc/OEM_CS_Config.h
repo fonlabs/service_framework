@@ -23,43 +23,43 @@ namespace lsf {
  * Maximum number of supported LSF entities i.e. Lamp Groups, Scenes,
  * Master Scenes, etc
  */
-#define MAX_SUPPORTED_NUM_LSF_ENTITY 100
+#define OEM_CS_MAX_SUPPORTED_NUM_LSF_ENTITY 100
 
 /*
  * Maximum number of supported Lamps
  */
-#define MAX_SUPPORTED_LAMPS 100
+#define OEM_CS_MAX_SUPPORTED_LAMPS 100
 
 /*
  * Maximum number of outstanding requests
  */
-#define MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
+#define OEM_CS_MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE 200
 
 /*
  * Timeout for NGNS Pings
  */
-#define NGNS_PING_TIMEOUT_IN_MS 3000
+#define OEM_CS_LAMP_METHOD_CALL_TIMEOUT 250
 
 /*
  * Timeout for Pings
  */
-#define SESSION_PING_TIMEOUT_IN_MS 1000
+#define OEM_CS_PING_FREQUENCY_IN_MS 5000
 
 /*
  * Timeout for Lamp Method Calls
  */
-#define LAMP_METHOD_CALL_TIMEOUT 250
+#define OEM_CS_PING_BACKOFF_IN_MS 2000
 
 /*
  * Link timeout in seconds
  */
-#define LINK_TIMEOUT 5
+#define OEM_CS_LINK_TIMEOUT 5
 
 /*
  * Timeout used in the check to see if the Controller Service is still connected
  * to the routing node
  */
-#define TIMEOUT_MS_CONNECTED_TO_ROUTING_NODE 5000
+#define OEM_CS_TIMEOUT_MS_CONNECTED_TO_ROUTING_NODE 5000
 
 /*
  * Returns the factory set value of the default lamp state. The
@@ -69,7 +69,7 @@ namespace lsf {
  * @param  defaultState Container to pass back the Default Lamp State
  * @return None
  */
-void GetFactorySetDefaultLampState(LampState& defaultState);
+void OEM_CS_GetFactorySetDefaultLampState(LampState& defaultState);
 
 /*
  * Returns the time sync time stamp used to synchronize state
@@ -78,7 +78,7 @@ void GetFactorySetDefaultLampState(LampState& defaultState);
  * @param  timeStamp Container to pass back the time stamp
  * @return None
  */
-void GetSyncTimeStamp(uint64_t& timeStamp);
+void OEM_CS_GetSyncTimeStamp(uint64_t& timeStamp);
 
 /**
  * LSFPropertyStore predeclaration
@@ -92,16 +92,16 @@ class LSFPropertyStore;
  *
  * @param propStore The property store
  */
-void PopulateDefaultProperties(LSFPropertyStore& propStore);
+void OEM_CS_PopulateDefaultProperties(LSFPropertyStore& propStore);
 
 /**
- * OEMGetRank
+ * OEM_CS_GetRank
  */
-uint64_t OEMGetRank();
+uint64_t OEM_CS_GetRank();
 /**
- * OEMIsLeader
+ * OEM_CS_IsLeader
  */
-bool OEMIsLeader();
+bool OEM_CS_IsLeader();
 
 } //lsf
 

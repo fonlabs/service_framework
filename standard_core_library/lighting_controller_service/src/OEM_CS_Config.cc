@@ -23,17 +23,17 @@ namespace lsf {
 
 #define QCC_MODULE "OEM_CS_CONFIG"
 
-static const LampState defaultLampState = LampState(true, 256, 256, 256, 256);
+static const LampState OEM_CS_DefaultLampState = LampState(true, 256, 256, 256, 256);
 
-uint64_t rank = 0;
+uint64_t OEM_Rank = 0;
 
-void GetFactorySetDefaultLampState(LampState& defaultState)
+void OEM_CS_GetFactorySetDefaultLampState(LampState& defaultState)
 {
     QCC_DbgPrintf(("%s", __func__));
-    defaultState = defaultLampState;
+    defaultState = OEM_CS_DefaultLampState;
 }
 
-void GetSyncTimeStamp(uint64_t& timeStamp)
+void OEM_CS_GetSyncTimeStamp(uint64_t& timeStamp)
 {
     /* This is just a sample implementation and so it passes back a
      * hard coded value. OEMs are supposed to integrate this
@@ -43,17 +43,17 @@ void GetSyncTimeStamp(uint64_t& timeStamp)
     QCC_DbgPrintf(("%s: timeString = %s timestamp = %llu", __func__, timeString.c_str(), timeStamp));
 }
 
-uint64_t OEMGetRank()
+uint64_t OEM_CS_GetRank()
 {
-    while (rank == 0) {
-        rank = qcc::Rand64();
-        QCC_DbgPrintf(("%s: new rank = %llu", __func__, rank));
+    while (OEM_Rank == 0) {
+        OEM_Rank = qcc::Rand64();
+        QCC_DbgPrintf(("%s: new rank = %llu", __func__, OEM_Rank));
     }
-    QCC_DbgPrintf(("%s: rank = %llu", __func__, rank));
-    return rank;
+    QCC_DbgPrintf(("%s: rank = %llu", __func__, OEM_Rank));
+    return OEM_Rank;
 }
 
-bool OEMIsLeader()
+bool OEM_CS_IsLeader()
 {
     return false;
 }
@@ -61,7 +61,7 @@ bool OEMIsLeader()
 // NOTE: this function will only be called if no Factory Configuration ini file is found.
 // This file is specified on the command line and defaults to OEMConfig.ini in the current
 // working directory.
-void PopulateDefaultProperties(LSFPropertyStore& propStore)
+void OEM_CS_PopulateDefaultProperties(LSFPropertyStore& propStore)
 {
     QCC_DbgTrace(("%s", __func__));
     std::vector<qcc::String> languages;

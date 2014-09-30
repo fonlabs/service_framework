@@ -414,7 +414,7 @@ void LampManager::ChangeLampStateAndField(Message& message,
     QCC_DbgPrintf(("%s", __func__));
 
     uint64_t timestamp = 0;
-    GetSyncTimeStamp(timestamp);
+    OEM_CS_GetSyncTimeStamp(timestamp);
 
     TransitionStateParamsList stateParamsList;
     TransitionStateFieldParamsList stateFieldParamsList;

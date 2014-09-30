@@ -258,11 +258,11 @@ void LampClients::HandleAboutAnnounce(LSFString& lampID, LSFString& lampName, ui
             it->second = connection;
             wakeUp.Post();
         } else {
-            if (aboutsList.size() < (MAX_SUPPORTED_LAMPS)) {
+            if (aboutsList.size() < (OEM_CS_MAX_SUPPORTED_LAMPS)) {
                 aboutsList.insert(std::make_pair(lampID, connection));
                 wakeUp.Post();
             } else {
-                QCC_LogError(status, ("%s: Controller Service can cache only a maximum of %d announcements. Max'ed out on the capacity. Ignoring the announcement", __func__, (MAX_SUPPORTED_LAMPS)));
+                QCC_LogError(status, ("%s: Controller Service can cache only a maximum of %d announcements. Max'ed out on the capacity. Ignoring the announcement", __func__, (OEM_CS_MAX_SUPPORTED_LAMPS)));
                 connection->Clear();
             }
         }
@@ -417,7 +417,7 @@ void LampClients::QueueLampMethod(QueuedMethodCall* queuedCall)
             QCC_LogError(status, ("%s: queueLock.Lock() failed or doNotQueue set", __func__));
             responseCode = LSF_ERR_BUSY;
         } else {
-            if (methodQueue.size() < MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE) {
+            if (methodQueue.size() < OEM_CS_MAX_LAMP_CLIENTS_METHOD_QUEUE_SIZE) {
                 queuedCall->methodCallCount = 0;
 
                 l_methodCallCountMutex.Lock();
@@ -497,7 +497,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                                 &element.args[0],
                                 element.args.size(),
                                 ctx,
-                                LAMP_METHOD_CALL_TIMEOUT
+                                OEM_CS_LAMP_METHOD_CALL_TIMEOUT
                                 );
                         } else if (0 == strcmp(element.interface.c_str(), AboutInterfaceName)) {
                             QCC_DbgPrintf(("%s: About Call", __func__));
@@ -511,7 +511,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                                 &element.args[0],
                                 element.args.size(),
                                 ctx,
-                                LAMP_METHOD_CALL_TIMEOUT
+                                OEM_CS_LAMP_METHOD_CALL_TIMEOUT
                                 );
                         } else {
                             QCC_DbgPrintf(("%s: LampService Call", __func__));
@@ -525,7 +525,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                                 &element.args[0],
                                 element.args.size(),
                                 ctx,
-                                LAMP_METHOD_CALL_TIMEOUT
+                                OEM_CS_LAMP_METHOD_CALL_TIMEOUT
                                 );
                         }
                     }
@@ -1353,7 +1353,7 @@ void LampClients::Run(void)
                     }
                     newConn->Clear();
                 } else {
-                    if (activeLamps.size() < MAX_SUPPORTED_LAMPS) {
+                    if (activeLamps.size() < OEM_CS_MAX_SUPPORTED_LAMPS) {
                         activeLamps.insert(std::make_pair(it->first, newConn));
                     } else {
                         QCC_DbgPrintf(("%s: No slot for connection with a new lamp", __func__));
@@ -1568,7 +1568,7 @@ void LampClients::Run(void)
                         }
                         newConn->Clear();
                     } else {
-                        if (activeLamps.size() < MAX_SUPPORTED_LAMPS) {
+                        if (activeLamps.size() < OEM_CS_MAX_SUPPORTED_LAMPS) {
                             activeLamps.insert(std::make_pair(it->first, newConn));
                         } else {
                             QCC_DbgPrintf(("%s: No slot for connection with a new lamp", __func__));

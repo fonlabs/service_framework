@@ -1200,7 +1200,7 @@ void ControllerService::DoLeaveSessionAsync(ajn::SessionId sessionId)
         &arg,
         1,
         NULL,
-        LAMP_METHOD_CALL_TIMEOUT);
+        OEM_CS_LAMP_METHOD_CALL_TIMEOUT);
 }
 
 void ControllerService::LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context)

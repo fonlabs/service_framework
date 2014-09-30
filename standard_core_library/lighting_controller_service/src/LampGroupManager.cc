@@ -314,7 +314,7 @@ void LampGroupManager::CreateLampGroup(Message& message)
     } else {
         QStatus status = lampGroupsLock.Lock();
         if (ER_OK == status) {
-            if (lampGroups.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
+            if (lampGroups.size() < OEM_CS_MAX_SUPPORTED_NUM_LSF_ENTITY) {
                 std::string newGroupStr = GetString(name, lampGroupID, lampGroup);
                 size_t newlen = blobLength + newGroupStr.length();
                 if (newlen < MAX_FILE_LEN) {

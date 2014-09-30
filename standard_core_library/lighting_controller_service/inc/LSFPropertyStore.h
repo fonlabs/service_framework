@@ -67,7 +67,7 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
         removeConfigFile,
     }AsyncTasks;
 
-    friend void PopulateDefaultProperties(LSFPropertyStore& propStore);
+    friend void OEM_CS_PopulateDefaultProperties(LSFPropertyStore& propStore);
 
     //typedef std::pair<PropertyStoreKey, qcc::String> PropertyMapKey;
 

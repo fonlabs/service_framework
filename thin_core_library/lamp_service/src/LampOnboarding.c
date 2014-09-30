@@ -80,6 +80,7 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
         }
     }
 
+    AJ_AlwaysPrintf(("%s: DEV_ID: %s\n", __func__, deviceId));
     AJ_AlwaysPrintf(("%s: SoftAP: %s\n", __func__, obSoftAPssid));
     return obSoftAPssid;
 }

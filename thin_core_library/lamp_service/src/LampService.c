@@ -660,7 +660,13 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
 
 #ifdef ONBOARDING_SERVICE
             // disconnect from wifi and reconnect at the top of the loop
-            AJOBS_DisconnectWiFi();
+            // (only if we are in soft-AP onboarding mode)
+            if (AJOBS_ControllerAPI_IsWiFiSoftAP()) {
+                AJOBS_DisconnectWiFi();
+            } else if (AJOBS_GetState() == AJOBS_STATE_NOT_CONFIGURED) {
+                // if we are no longer onboarded, we need to disconnect
+                AJOBS_DisconnectWiFi();
+            }
 #endif
 
             if (status == AJ_ERR_RESTART_APP) {

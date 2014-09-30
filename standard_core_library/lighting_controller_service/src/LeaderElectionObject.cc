@@ -916,7 +916,7 @@ void LeaderElectionObject::Run(void)
                                         }
                                     } else {
                                         // we don't need to wait for this
-                                        QStatus status = bus.SetLinkTimeoutAsync(sessionId, LINK_TIMEOUT, handler, NULL);
+                                        QStatus status = bus.SetLinkTimeoutAsync(sessionId, OEM_CS_LINK_TIMEOUT, handler, NULL);
                                         if (status != ER_OK) {
                                             QCC_LogError(status, ("%s: SetLinkTimeoutAsync failed", __func__));
                                         }

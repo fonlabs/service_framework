@@ -81,13 +81,13 @@ void LSFPropertyStore::ReadFactoryConfiguration()
     GuidUtil::GetInstance()->GetDeviceIdString(&deviceId);
     setProperty(DEVICE_ID, deviceId, true, false, true);
 
-    setProperty(RANK, OEMGetRank(), true, false, true);
-    setProperty(IS_LEADER, OEMIsLeader(), true, false, true);
+    setProperty(RANK, OEM_CS_GetRank(), true, false, true);
+    setProperty(IS_LEADER, OEM_CS_IsLeader(), true, false, true);
 
     if (factorySettings.empty()) {
         if (!PropertyParser::ParseFile(factoryConfigFileName, factorySettings)) {
             // ini not found: fall back to hard-coded defaults
-            PopulateDefaultProperties(*this);
+            OEM_CS_PopulateDefaultProperties(*this);
             propsLock.Lock();
             asyncTasks = writetoOEMConfig;
             propsLock.Unlock();

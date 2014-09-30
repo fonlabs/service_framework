@@ -318,7 +318,7 @@ void MasterSceneManager::CreateMasterScene(Message& message)
     } else {
         QStatus status = masterScenesLock.Lock();
         if (ER_OK == status) {
-            if (masterScenes.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
+            if (masterScenes.size() < OEM_CS_MAX_SUPPORTED_NUM_LSF_ENTITY) {
                 std::string newMasterSceneStr = GetString(name, masterSceneID, masterScene);
 
                 size_t newlen = blobLength + newMasterSceneStr.length();

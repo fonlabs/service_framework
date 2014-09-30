@@ -493,7 +493,7 @@ void SceneManager::CreateScene(Message& message)
     } else {
         QStatus status = scenesLock.Lock();
         if (ER_OK == status) {
-            if (scenes.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
+            if (scenes.size() < OEM_CS_MAX_SUPPORTED_NUM_LSF_ENTITY) {
                 std::string newSceneStr = GetString(name, sceneID, scene);
                 size_t newlen = blobLength + newSceneStr.length();
 

@@ -341,7 +341,7 @@ void PresetManager::CreatePreset(Message& msg)
     } else {
         QStatus status = presetsLock.Lock();
         if (ER_OK == status) {
-            if (presets.size() < MAX_SUPPORTED_NUM_LSF_ENTITY) {
+            if (presets.size() < OEM_CS_MAX_SUPPORTED_NUM_LSF_ENTITY) {
                 std::string newPresetStr = GetString(name, presetID, preset);
                 size_t newlen = blobLength + newPresetStr.length();
                 if (newlen < MAX_FILE_LEN) {
@@ -582,7 +582,7 @@ LSFResponseCode PresetManager::GetDefaultLampStateInternal(LampState& preset)
     LSFResponseCode responseCode = GetPresetInternal(defaultLampStateID, preset);
 
     if (responseCode == LSF_ERR_NOT_FOUND) {
-        GetFactorySetDefaultLampState(preset);
+        OEM_CS_GetFactorySetDefaultLampState(preset);
         responseCode = LSF_OK;
     }
 
