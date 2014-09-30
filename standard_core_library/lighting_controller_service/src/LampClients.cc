@@ -133,7 +133,9 @@ void LampClients::GetAllLamps(LampNameMap& lamps)
     lamps.clear();
     LampMap tempMap = activeLamps;
     for (LampMap::const_iterator it = tempMap.begin(); it != tempMap.end(); ++it) {
-        lamps.insert(std::make_pair(it->first, it->second->name));
+        if (it->second->IsConnected()) {
+            lamps.insert(std::make_pair(it->first, it->second->name));
+        }
     }
 }
 
