@@ -1,5 +1,13 @@
 #ifndef _SCENE_MANAGER_H_
 #define _SCENE_MANAGER_H_
+/**
+ * \ingroup ControllerClient
+ */
+/**
+ * @file
+ * This file provides definitions for scene manager
+ */
+
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

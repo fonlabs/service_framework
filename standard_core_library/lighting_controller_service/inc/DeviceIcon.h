@@ -1,5 +1,13 @@
 #ifndef LSF_DEVICE_ICON_H
 #define LSF_DEVICE_ICON_H
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for device icon
+ */
+
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

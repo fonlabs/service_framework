@@ -1,5 +1,12 @@
 #ifndef _LSF_RESPONSE_CODES_H_
 #define _LSF_RESPONSE_CODES_H_
+/**
+ * \ingroup Common
+ */
+/**
+ * @file
+ * This file provides definitions for LSF response codes
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,6 +22,9 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+/**
+ * \ingroup Common
+ */
 #include <LampResponseCodes.h>
 
 namespace lsf {

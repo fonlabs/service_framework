@@ -1,8 +1,8 @@
 #ifndef _OEM_LS_CODE_H_
 #define _OEM_LS_CODE_H_
 /**
- * @file OEMCode.h
- * @defgroup oem_code The OEM APIs used by the Lamp Service
+ * @file OEM_LS_Code.h
+ * @defgroup oem_ls_code The OEM APIs used by the Lamp Service
  * @{
  */
 /******************************************************************************
@@ -189,7 +189,7 @@ LampResponseCode OEM_LS_SetColorTemp(uint32_t colorTemp);
  */
 LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod);
 
-/*
+/**
  * This function needs to implemented by the OEM to support the Pulse Effect
  * @param  fromState        Specifies the LampState that the Lamp needs to be in when starting a pulse
  * @param  toState          End state of a pulse

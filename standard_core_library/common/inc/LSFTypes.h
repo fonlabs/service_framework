@@ -1,5 +1,12 @@
 #ifndef _LSF_TYPES_H_
 #define _LSF_TYPES_H_
+/**
+ * \ingroup Common
+ */
+/**
+ * @file
+ * This file provides definitions for LSF types
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,7 +22,9 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-
+/**
+ * \ingroup Common
+ */
 #include <memory>
 #include <string>
 #include <string.h>

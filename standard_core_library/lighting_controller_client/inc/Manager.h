@@ -1,5 +1,13 @@
 #ifndef _MANAGER_H_
 #define _MANAGER_H_
+/**
+ * \ingroup ControllerClient
+ */
+/**
+ * @file
+ * This file provides definitions for manager type of classes
+ */
+
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

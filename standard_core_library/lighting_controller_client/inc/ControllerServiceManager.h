@@ -1,5 +1,8 @@
 #ifndef _CONTROLLER_SERVICE_MANAGER_H_
 #define _CONTROLLER_SERVICE_MANAGER_H_
+/**
+ * \ingroup ControllerClient
+ */
 
 /**
  * @file

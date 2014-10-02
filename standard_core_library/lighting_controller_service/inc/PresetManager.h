@@ -1,5 +1,12 @@
 #ifndef _PRESET_MANAGER_H_
 #define _PRESET_MANAGER_H_
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for present manager
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

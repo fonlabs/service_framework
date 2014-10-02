@@ -1,5 +1,13 @@
 #ifndef LSF_FILE_PARSER_H
 #define LSF_FILE_PARSER_H
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for file parser
+ */
+
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

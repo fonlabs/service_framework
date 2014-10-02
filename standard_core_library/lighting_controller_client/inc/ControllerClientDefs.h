@@ -1,11 +1,13 @@
 #ifndef _CONTROLLER_CLIENT_DEFS_H_
 #define _CONTROLLER_CLIENT_DEFS_H_
+/**
+ * \ingroup ControllerClient
+ */
 
 /**
  * @file
  * This file provides definitions for the Lighting Controller Client
  */
-
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

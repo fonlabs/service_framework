@@ -1,5 +1,16 @@
 #ifndef LSF_CONDITION_H
 #define LSF_CONDITION_H
+/**
+ * \defgroup ControllerService
+ * ControllerService code
+ */
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for the Condition class
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

@@ -1,5 +1,12 @@
 #ifndef _MUTEX_H_
 #define _MUTEX_H_
+/**
+ * \ingroup Common
+ */
+/**
+ * @file
+ * This file provides definitions for mutex
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,7 +22,9 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-
+/**
+ * \ingroup Common
+ */
 #include <pthread.h>
 #include <errno.h>
 #include <alljoyn/Status.h>
@@ -23,6 +32,8 @@
 namespace lsf {
 /**
  * a wrapper class to mutex
+ * Use a mutex when thread wants to execute code that should not be executed by any other thread at the same time.
+ * Mutex 'down' happens in one thread and mutex 'up' must happen in the same thread later on.
  */
 class Mutex {
   public:

@@ -1,5 +1,12 @@
 #ifndef _LAMP_CLIENTS_H_
 #define _LAMP_CLIENTS_H_
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for lamp clients
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

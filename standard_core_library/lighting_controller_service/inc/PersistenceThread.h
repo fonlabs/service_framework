@@ -1,5 +1,12 @@
 #ifndef PERSISTENCE_THREAD_H
 #define PERSISTENCE_THREAD_H
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for persistent thread
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

@@ -1,5 +1,13 @@
 #ifndef _LAMP_MANAGER_H_
 #define _LAMP_MANAGER_H_
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for lamp manager
+ */
+
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -177,7 +185,7 @@ class LampManager : public Manager {
     void GetLampFaults(ajn::Message& message);
 
     /**
-     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampFaults
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampServiceVersion
      *
      * @param message   The params
      */
@@ -199,7 +207,7 @@ class LampManager : public Manager {
     void GetLampSupportedLanguages(ajn::Message& message);
 
     /**
-     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampName
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.GetLampManufacturer
      *
      * @param message   The params
      */
@@ -261,14 +269,14 @@ class LampManager : public Manager {
     void TransitionLampState(ajn::Message& message);
 
     /**
-     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampState
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.PulseLampWithState
      *
      * @param message   The params
      */
     void PulseLampWithState(ajn::Message& message);
 
     /**
-     * Process an AllJoyn call to org.allseen.LSF.ControllerService.TransitionLampPreset
+     * Process an AllJoyn call to org.allseen.LSF.ControllerService.PulseLampWithPreset
      *
      * @param message   The params
      */

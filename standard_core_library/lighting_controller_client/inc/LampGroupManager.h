@@ -1,5 +1,8 @@
 #ifndef _LAMP_GROUP_MANAGER_H_
 #define _LAMP_GROUP_MANAGER_H_
+/**
+ * \ingroup ControllerClient
+ */
 
 /**
  * @file

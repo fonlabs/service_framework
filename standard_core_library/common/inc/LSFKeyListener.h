@@ -1,5 +1,12 @@
 #ifndef LSF_KEYLISTENER_H_
 #define LSF_KEYLISTENER_H_
+/**
+ * \ingroup Common
+ */
+/**
+ * @file
+ * This file provides definitions for LSF key listener
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,7 +22,9 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-
+/**
+ * \ingroup Common
+ */
 
 #include <alljoyn/AuthListener.h>
 
@@ -24,21 +33,22 @@ namespace lsf {
 /**
  * class SrpKeyXListener
  * A listener for Authentication
+ * instance of that class is given by bus attachment EnablePeerSecurity()
  */
 class LSFKeyListener : public ajn::AuthListener {
   public:
     /**
-     * SrpKeyXListener
+     * SrpKeyXListener constructor
      */
     LSFKeyListener();
 
     /**
-     * ~SrpKeyXListener
+     * ~SrpKeyXListener destructor
      */
     virtual ~LSFKeyListener();
 
     /**
-     * SetPassCode
+     * SetPassCode - called by the application to set the password
      * @param code PassCode to set
      */
     void SetPassCode(qcc::String const& code);
@@ -50,23 +60,23 @@ class LSFKeyListener : public ajn::AuthListener {
     void SetGetPassCodeFunc(const char* (*GetPassCodeFunc)());
 
     /**
-     * RequestCredentials
+     * RequestCredentials - called by the core to get the credentials
      * @param authMechanism
      * @param authPeer
      * @param authCount
      * @param userId
      * @param credMask
-     * @param creds
-     * @return boolean
+     * @param creds - credentials e.g. password
+     * @return boolean. true for credentials successfully returned.
      */
     bool RequestCredentials(const char* authMechanism, const char* authPeer, uint16_t authCount, const char* userId,
                             uint16_t credMask, Credentials& creds);
 
     /**
-     * AuthenticationComplete
+     * AuthenticationComplete - called by the core when authentication mechanism is finished
      * @param authMechanism
      * @param authPeer
-     * @param success
+     * @param success. True - authentication succeed
      */
     void AuthenticationComplete(const char* authMechanism, const char* authPeer, bool success);
 

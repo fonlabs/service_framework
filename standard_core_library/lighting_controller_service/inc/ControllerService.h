@@ -1,9 +1,11 @@
 #ifndef _CONTROLLER_SERVICE_H_
 #define _CONTROLLER_SERVICE_H_
-
+/**
+ * \ingroup ControllerService
+ */
 /**
  * @file
- * This file provides definitions for the Lighting ControllerService Service Dispatcher
+ * This file provides definitions for ControllerService
  */
 
 /******************************************************************************
@@ -53,8 +55,8 @@ namespace lsf {
 #define CONTROLLER_SERVICE_VERSION 1
 
 /**
- * This class functions as the message dispatcher. It receives the messages from AllJoyn
- * and forwards it to the appropriate manager and receives a reply from a manager and
+ * This class functions as the message dispatcher. It receives the messages from AllJoyn \n
+ * and forwards it to the appropriate manager and receives a reply from a manager and \n
  * passes it on to AllJoyn
  */
 class ControllerService : public ajn::BusObject, public ajn::services::ConfigService::Listener {
@@ -65,6 +67,12 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     /**
      * Constructor
+     * @param factoryConfigFile - path of factory config file
+     * @param configFile - path of config file
+     * @param lampGroupFile - path of lamp group file
+     * @param presetFile - path of pre-set file
+     * @param sceneFile - path of scene file
+     * @param masterSceneFile - path of master scene file
      */
     ControllerService(
         const std::string& factoryConfigFile,
@@ -75,6 +83,13 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
         const std::string& masterSceneFile);
     /**
      * Constructor
+     * @param propStore - path of property store
+     * @param factoryConfigFile - path of factory config file
+     * @param configFile - path of config file
+     * @param lampGroupFile - path of lamp group file
+     * @param presetFile - path of pre-set file
+     * @param sceneFile - path of scene file
+     * @param masterSceneFile - path of master scene file
      */
     ControllerService(
         ajn::services::PropertyStore& propStore,
@@ -93,7 +108,9 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     /**
      * Starts the ControllerService
      *
-     * @param  keyStoreFileLocation
+     * @param  keyStoreFileLocation Absolute path of the location to put the AllJoyn keystore file in. If this is not specified, the
+     *                              default location will be used. Android applications running the Controller Service should pass in the
+     *                              location returned by Context.getFileStreamPath("alljoyn_keystore").getAbsolutePath()
      * @return ER_OK if successful, error otherwise
      */
     QStatus Start(const char* keyStoreFileLocation);
@@ -120,73 +137,131 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      */
     ajn::BusAttachment& GetBusAttachment(void) { return bus; }
     /**
-     * Get Lamp Manager
+     * Get reference to Lamp Manager object
+     * @return LampManager
      */
     LampManager& GetLampManager(void) { return lampManager; };
     /**
-     * Get Lamp Group Manager
+     * Get reference to Lamp Group Manager object
+     * @return LampGroupManager
      */
     LampGroupManager& GetLampGroupManager(void) { return lampGroupManager; };
     /**
-     * Get Preset Manager
+     * Get reference to Preset Manager object
+     * @return PresetManager
      */
     PresetManager& GetPresetManager(void) { return presetManager; };
     /**
-     * Get Scene Manager
+     * Get reference to Scene Manager object
+     * @return SceneManager
      */
     SceneManager& GetSceneManager(void) { return sceneManager; };
     /**
-     * Get Master Scene Manager
+     * Get reference to Master Scene Manager
+     * @return MasterSceneManager
      */
     MasterSceneManager& GetMasterSceneManager(void) { return masterSceneManager; };
     /**
      * Send Method Reply
+     * Reply for asynchronous method call
+     * @param msg      The method call message
+     * @param args     The reply arguments (can be NULL)
+     * @param numArgs  The number of arguments
+     * @return
+     *      - #ER_OK if successful
+     *      - #ER_BUS_OBJECT_NOT_REGISTERED if bus object has not yet been registered
+     *      - An error status otherwise
      */
     void SendMethodReply(const ajn::Message& msg, const ajn::MsgArg* args = NULL, size_t numArgs = 0);
     /**
-     * Send Method Reply With Response Code And List Of IDs
+     * Send Method Reply With Response Code And List Of IDs \n
+     * Reply for asynchronous method call that needs LSFResponseCode and string of IDs of some list
+     * @param msg      The method call message
+     * @param responseCode type LSFResponseCode
+     * @param idList - string of IDs
      */
     void SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode responseCode, const LSFStringList& idList);
     /**
-     * Send Method Reply With Response Code ID And Name
+     * Send Method Reply With Response Code ID And Name \n
+     * Reply for asynchronous method call that needs LSFResponseCode and ID and name
+     * @param msg      The method call message
+     * @param responseCode type LSFResponseCode
+     * @param lsfId - id as a string
+     * @param lsfName - name
      */
     void SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& lsfName);
     /**
-     * Send Method Reply With Response Code And ID
+     * Send Method Reply With Response Code And ID \n
+     * Reply for asynchronous method call that needs LSFResponseCode and ID
+     * @param msg      The method call message
+     * @param responseCode type LSFResponseCode
+     * @param lsfId - id as a string
      */
     void SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId);
     /**
-     * Send Method Reply With Uint32 Value
+     * Send Method Reply With Uint32 Value \n
+     * Reply for asynchronous method call that needs uint32_t
+     * @param msg      The method call message
+     * @param value    The uint32_t value need to be sent
      */
     void SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t value);
     /**
-     * Send Method Reply With Response Code ID Language And Name
+     * Send Method Reply With Response Code ID Language And Name \n
+     * Reply for asynchronous method call that needs LSFResponseCode, ID, language and name
+     * @param msg      The method call message
+     * @param responseCode type LSFResponseCode
+     * @param lsfId - id as a string
+     * @param language of the name to be sent
+     * @param name to send
      */
     void SendMethodReplyWithResponseCodeIDLanguageAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& language, const LSFString& name);
     /**
-     * Send Signal
+     * Send Signal with list of IDs
+     * @param ifaceName - interface that the signal is located
+     * @param methodName - signal method name
+     * @param idList - The list of IDs needed to be sent
+     * @return QStatus
      */
     QStatus SendSignal(const char* ifaceName, const char* methodName, const LSFStringList& idList);
     /**
-     * Send Signal Without Arg
+     * Send Signal Without Arg - just an empty signal
+     * @param ifaceName - interface that the signal is located
+     * @param methodName - signal method name
+     * @return QStatus
      */
     QStatus SendSignalWithoutArg(const char* ifaceName, const char* signalName);
     /**
-     * Send Scene Or Master Scene Applied Signal
+     * Send Scene Or Master Scene Applied Signal \n
+     * Sends signal for event - ScenesApplied signal or MasterScenesApplied signal
+     * @param sceneorMasterSceneId - Scene, MasterScene
      */
     void SendSceneOrMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId) {
         sceneManager.SendSceneOrMasterSceneAppliedSignal(sceneorMasterSceneId);
     }
     /**
-     * Schedule File Read Write
+     * Schedule File Read Write \n
+     * a trigger to synchronize all lighting service meta data with persistent storage.\n
+     * Meta data includes lamp groups, scenes, master scenes and pre-sets.
+     * @param manager - parameter not in use
      */
     void ScheduleFileReadWrite(Manager* manager);
     /**
-     * Send Blob Update
+     * Send Blob Update \n
+     * Updating the leader controller service about the current controller service meta data
+     * @param type - which kind of meta data is this
+     * @param blob - the information to update
+     * @param checksum
+     * @param timestamp
      */
     QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
     /**
-     * Send Get Blob Reply
+     * Send Get Blob Reply \n
+     * Replay to Get blob request
+     * @param message - the request message
+     * @param type - the type of the requested blob
+     * @param blob - the requested meta data information
+     * @param checksum
+     * @param timestamp
      */
     void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
     /**
@@ -220,7 +295,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     /**
      * Updates Allowed
      */
-    bool UpdatesAllowed();
+    bool UpdatesAllowed(void);
     /**
      * Do Leave Session Async
      */
@@ -368,6 +443,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 };
 /**
  * controller service management class
+ * This is the class to create from the outside application that run the controller service.
  */
 class ControllerServiceManager {
   public:
@@ -385,7 +461,14 @@ class ControllerServiceManager {
 
     }
     /**
-     * ControllerServiceManager constructor
+     * Constructor
+     * @param propStore - path of property store
+     * @param factoryConfigFile - path of factory config file
+     * @param configFile - path of config file
+     * @param lampGroupFile - path of lamp group file
+     * @param presetFile - path of pre-set file
+     * @param sceneFile - path of scene file
+     * @param masterSceneFile - path of master scene file
      */
     ControllerServiceManager(
         ajn::services::PropertyStore& propStore,

@@ -1,5 +1,12 @@
 #ifndef _THREAD_H_
 #define _THREAD_H_
+/**
+ * \ingroup Common
+ */
+/**
+ * @file
+ * This file provides definitions for thread infrastructure
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,7 +22,9 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-
+/**
+ * \ingroup Common
+ */
 #include <pthread.h>
 
 #include <alljoyn/Status.h>
@@ -35,19 +44,21 @@ class Thread {
      */
     virtual ~Thread();
     /**
-     * run relevant threads
+     * This method is been called by the created thread after start()
      */
     virtual void Run() = 0;
     /**
-     * Stop running threads
+     * Stop running thread.
+     * Can be implemented by changing a variable value that is shared with the run() method.
+     * This will release the thread.
      */
     virtual void Stop() = 0;
     /**
-     * Start running threads
+     * Create and run new thread
      */
     QStatus Start();
     /**
-     * Join running threads
+     * Join running thread until it exits
      */
     void Join();
 

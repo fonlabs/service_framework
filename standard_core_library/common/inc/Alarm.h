@@ -1,5 +1,16 @@
 #ifndef _ALARM_H_
 #define _ALARM_H_
+/**
+ * \defgroup Common
+ * Common code to client and server controller
+ */
+/**
+ * \ingroup Common
+ */
+/**
+ * @file
+ * This file provides definitions for alarm infrastructure
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,6 +26,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+
 
 #include <Thread.h>
 #include <LSFSemaphore.h>

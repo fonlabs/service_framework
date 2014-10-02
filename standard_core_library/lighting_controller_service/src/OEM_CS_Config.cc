@@ -43,7 +43,7 @@ void OEM_CS_GetSyncTimeStamp(uint64_t& timeStamp)
     QCC_DbgPrintf(("%s: timeString = %s timestamp = %llu", __func__, timeString.c_str(), timeStamp));
 }
 
-uint64_t OEM_CS_GetRank()
+uint64_t OEM_CS_GetRank(void)
 {
     while (OEM_Rank == 0) {
         OEM_Rank = qcc::Rand64();
@@ -53,7 +53,7 @@ uint64_t OEM_CS_GetRank()
     return OEM_Rank;
 }
 
-bool OEM_CS_IsLeader()
+bool OEM_CS_IsLeader(void)
 {
     return false;
 }

@@ -1,5 +1,12 @@
 #ifndef LSF_PROPERTY_STORE
 #define LSF_PROPERTY_STORE
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for LSF property store
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

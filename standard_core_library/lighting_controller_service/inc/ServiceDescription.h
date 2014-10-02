@@ -1,5 +1,12 @@
 #ifndef _SERVICE_DESCRIPTION_H_
 #define _SERVICE_DESCRIPTION_H_
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for service description
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

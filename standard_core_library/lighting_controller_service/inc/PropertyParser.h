@@ -1,3 +1,10 @@
+/**
+ * \ingroup ControllerService
+ */
+/**
+ * @file
+ * This file provides definitions for property parser
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *

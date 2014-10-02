@@ -1,5 +1,12 @@
 #ifndef _LSF_SEMAPHORE_H_
 #define _LSF_SEMAPHORE_H_
+/**
+ * \ingroup Common
+ */
+/**
+ * @file
+ * This file provides definitions for LSF semaphore
+ */
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -15,7 +22,9 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-
+/**
+ * \ingroup Common
+ */
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdint.h>
@@ -25,6 +34,7 @@ namespace lsf {
 
 /**
  * Class that implements a Semaphore
+ * Use a semaphore when some thread wants to sleep until some other thread tells it to wake up
  */
 class LSFSemaphore {
   public:
