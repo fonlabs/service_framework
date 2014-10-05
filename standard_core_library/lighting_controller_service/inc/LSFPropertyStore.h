@@ -37,7 +37,7 @@
 namespace lsf {
 
 /**
- * class PropertyStoreImpl
+ * class PropertyStoreImpl. \n
  * Property store implementation
  */
 class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
@@ -81,7 +81,7 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
     typedef std::multimap<PropertyStoreKey, ajn::services::PropertyStoreProperty> PropertyMap;
 
     /**
-     * Relate PropertyStoreKey with its PropertyStorePoperty
+     * Relate PropertyStoreKey with its PropertyStorePoperty. \n
      * Used to hold properties that are not localizable
      */
     typedef PropertyMap::value_type PropertyPair;
@@ -93,6 +93,12 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      * @param configFile
      */
     LSFPropertyStore(const std::string& factoryConfigFile, const std::string& configFile);
+
+    /**
+     * PropertyStoreImpl - constructor
+     * Use this constructor when not saving the properties to disk
+     */
+    LSFPropertyStore();
 
     /**
      * virtual Destructor
@@ -136,10 +142,12 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
     void Initialize();
     /**
      * Get the controller rank
+     * @return 64 bit rank value
      */
     uint64_t GetRank();
     /**
      * Is this controller is a leader?
+     * @return boolean
      */
     bool IsLeader();
     /**
@@ -152,14 +160,18 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
     virtual void Join();
     /**
      * set true if that controller is a leader
+     * @param leader - true or false
      */
     void SetIsLeader(bool leader);
     /**
      * Set the rank of the current controller
+     * @param rank - 64 bit
      */
     void SetRank(uint64_t rank);
 
-  private:
+  protected:
+
+    // NOTE: the methods below are not all thread-safe
 
     QStatus setSupportedLangs(const std::vector<qcc::String>& supportedLangs);
 
@@ -264,6 +276,11 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
     Condition propsCond;
     AsyncTasks asyncTasks;
     bool running;
+
+    /**
+     * Are we using a disk writer thread?
+     */
+    const bool usingThread;
 
     /**
      * Keep a backup of the factory settings ini file

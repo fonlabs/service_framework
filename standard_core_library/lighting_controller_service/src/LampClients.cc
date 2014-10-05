@@ -150,6 +150,7 @@ LampClients::LampClients(ControllerService& controllerSvc)
     keyListener.SetPassCode(INITIAL_PASSCODE);
     methodQueue.clear();
     aboutsList.clear();
+    getLampStateList.clear();
     activeLamps.clear();
     joinSessionCBList.clear();
     lostSessionList.clear();
@@ -174,6 +175,10 @@ LampClients::~LampClients()
     aboutsListLock.Lock();
     aboutsList.clear();
     aboutsListLock.Unlock();
+
+    getLampStateListLock.Lock();
+    getLampStateList.clear();
+    getLampStateListLock.Unlock();
 
     joinSessionCBListLock.Lock();
     joinSessionCBList.clear();
@@ -559,6 +564,76 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
     }
 
     return responseCode;
+}
+
+LSFResponseCode LampClients::DoGetLampState(QueuedMethodCallContext* ctx)
+{
+    QCC_DbgPrintf(("%s", __func__));
+    LSFResponseCode responseCode = LSF_OK;
+    QStatus status = ER_OK;
+
+    MsgArg arg("s", LampServiceStateInterfaceName);
+
+    QCC_DbgPrintf(("%s: Processing for LampID=%s", __func__, ctx->lampID.c_str()));
+    LampMap::iterator lit = activeLamps.find(ctx->lampID);
+    if (lit != activeLamps.end()) {
+        QCC_DbgPrintf(("%s: Found Lamp", __func__));
+        if (lit->second->IsConnected()) {
+            ctx->timeSent = GetTimeMsec();
+            QCC_DbgPrintf(("%s: LampService Call", __func__));
+            status = lit->second->object.MethodCallAsync(
+                org::freedesktop::DBus::Properties::InterfaceName,
+                "GetAll",
+                this,
+                static_cast<MessageReceiver::ReplyHandler>(&LampClients::HandleGetLampStateReply),
+                &arg,
+                1,
+                ctx,
+                OEM_CS_LAMP_METHOD_CALL_TIMEOUT
+                );
+        } else {
+            QCC_DbgPrintf(("%s:Not connected to lamp", __func__));
+            status = ER_FAIL;
+        }
+
+        if (status != ER_OK) {
+            QCC_LogError(status, ("%s: MethodCallAsync failed", __func__));
+            if (ctx) {
+                delete ctx;
+            }
+        } else {
+            lit->second->pendingMethodCallCount++;
+            QCC_DbgPrintf(("%s: Increased pendingMethodCallCount for lamp %s to %u", __func__, lit->first.c_str(), lit->second->pendingMethodCallCount));
+        }
+    }
+
+    return responseCode;
+}
+
+void LampClients::HandleGetLampStateReply(ajn::Message& message, void* context)
+{
+    QCC_DbgPrintf(("%s: Method Reply %s", __func__, (MESSAGE_METHOD_RET == message->GetType()) ? message->ToString().c_str() : "ERROR"));
+    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
+    QueuedMethodCallContext* ctx = static_cast<QueuedMethodCallContext*>(context);
+
+    if (ctx == NULL) {
+        QCC_LogError(ER_FAIL, ("%s: Received NULL context", __func__));
+        return;
+    }
+
+    QCC_DbgTrace(("%s: Received reply to call %s on lamp %s in %lu msec", __func__,
+                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimeMsec() - ctx->timeSent)));
+
+    if (MESSAGE_METHOD_RET == message->GetType()) {
+        size_t numArgs;
+        const MsgArg* args;
+        message->GetArgs(numArgs, args);
+
+        LampState state(args[0]);
+        controllerService.SendStateChangedSignal(ControllerServiceLampInterfaceName, "LampStateChanged", ctx->lampID, state);
+    }
+
+    delete ctx;
 }
 
 void LampClients::GetLampState(const LSFString& lampID, Message& inMsg)
@@ -989,10 +1064,17 @@ void LampClients::LampStateChangedSignalHandler(const InterfaceDescription::Memb
 
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
-    LSFStringList ids;
-    ids.push_back(uniqueId);
 
-    controllerService.SendSignal(ControllerServiceLampInterfaceName, "LampsStateChanged", ids);
+    QueuedMethodCallContext* ctx = new QueuedMethodCallContext(uniqueId, "GetAll");
+    if (!ctx) {
+        QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
+    } else {
+        getLampStateListLock.Lock();
+        getLampStateList.push_back(ctx);
+        getLampStateListLock.Unlock();
+        QCC_DbgPrintf(("%s: Queued a GetLampState call to lamp %s in response to a LampStateChangedSignal", __func__, uniqueId));
+        wakeUp.Post();
+    }
 }
 
 void LampClients::GetLampSupportedLanguages(const LSFString& lampID, ajn::Message& inMsg)
@@ -1206,12 +1288,6 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
     }
 }
 
-void LampClients::PingCB(QStatus status, void* context)
-{
-    QCC_DbgPrintf(("%s: status=%s", __func__, QCC_StatusText(status)));
-    controllerService.GetBusAttachment().EnableConcurrentCallbacks();
-}
-
 QStatus LampClients::RegisterAnnounceHandler(void)
 {
     QCC_DbgPrintf(("%s", __func__));
@@ -1336,7 +1412,8 @@ void LampClients::Run(void)
                 }
             }
 
-            LSFStringList nameChangedList;
+            typedef std::map<LSFString, LSFString> NameChangedMap;
+            NameChangedMap nameChangedList;
             for (LampMap::iterator it = tempAboutList.begin(); it != tempAboutList.end(); it++) {
                 LampConnection* newConn = it->second;
                 LampMap::const_iterator lit = activeLamps.find(newConn->lampId);
@@ -1349,7 +1426,7 @@ void LampClients::Run(void)
                     if (conn->name != newConn->name) {
                         conn->name = newConn->name;
                         if (conn->IsConnected()) {
-                            nameChangedList.push_back(conn->lampId);
+                            nameChangedList.insert(std::make_pair(conn->lampId, conn->name));
                         }
                         QCC_DbgPrintf(("%s: Name Changed for %s", __func__, newConn->lampId.c_str()));
                     }
@@ -1365,10 +1442,10 @@ void LampClients::Run(void)
             }
 
             /*
-             * Send out the LampsNameChanged signal if required
+             * Send out the LampNameChanged signal if required
              */
-            if (nameChangedList.size()) {
-                controllerService.SendSignal(ControllerServiceLampInterfaceName, "LampsNameChanged", nameChangedList);
+            for (NameChangedMap::iterator it = nameChangedList.begin(); it != nameChangedList.end(); it++) {
+                controllerService.SendNameChangedSignal(ControllerServiceLampInterfaceName, "LampNameChanged", it->first, it->second);
             }
 
             /*
@@ -1442,6 +1519,22 @@ void LampClients::Run(void)
              */
             if (foundLamps.size()) {
                 controllerService.SendSignal(ControllerServiceLampInterfaceName, "LampsFound", foundLamps);
+            }
+
+            /*
+             * Handle all LampStateChangedSignals
+             */
+            GetLampStateList getLampStateListCopy;
+            getLampStateListLock.Lock();
+            getLampStateListCopy = getLampStateList;
+            getLampStateList.clear();
+            getLampStateListLock.Unlock();
+
+            while (getLampStateListCopy.size()) {
+                QueuedMethodCallContext* ctx = getLampStateListCopy.front();
+                QCC_DbgPrintf(("%s: Calling GetLampState with tempMethodQueue.size() %d", __func__, getLampStateListCopy.size()));
+                DoGetLampState(ctx);
+                getLampStateListCopy.pop_front();
             }
 
             /*

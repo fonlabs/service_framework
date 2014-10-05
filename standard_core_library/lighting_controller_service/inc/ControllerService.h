@@ -92,7 +92,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * @param masterSceneFile - path of master scene file
      */
     ControllerService(
-        ajn::services::PropertyStore& propStore,
+        LSFPropertyStore& propStore,
         const std::string& factoryConfigFile,
         const std::string& configFile,
         const std::string& lampGroupFile,
@@ -162,20 +162,20 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      */
     MasterSceneManager& GetMasterSceneManager(void) { return masterSceneManager; };
     /**
-     * Send Method Reply
-     * Reply for asynchronous method call
+     * Send Method Reply \n
+     * Reply for asynchronous method call \n
      * @param msg      The method call message
      * @param args     The reply arguments (can be NULL)
      * @param numArgs  The number of arguments
      * @return
-     *      - #ER_OK if successful
-     *      - #ER_BUS_OBJECT_NOT_REGISTERED if bus object has not yet been registered
+     *      - ER_OK if successful
+     *      - ER_BUS_OBJECT_NOT_REGISTERED if bus object has not yet been registered
      *      - An error status otherwise
      */
     void SendMethodReply(const ajn::Message& msg, const ajn::MsgArg* args = NULL, size_t numArgs = 0);
     /**
      * Send Method Reply With Response Code And List Of IDs \n
-     * Reply for asynchronous method call that needs LSFResponseCode and string of IDs of some list
+     * Reply for asynchronous method call that needs LSFResponseCode and string of IDs of some list \n
      * @param msg      The method call message
      * @param responseCode type LSFResponseCode
      * @param idList - string of IDs
@@ -183,7 +183,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void SendMethodReplyWithResponseCodeAndListOfIDs(const ajn::Message& msg, LSFResponseCode responseCode, const LSFStringList& idList);
     /**
      * Send Method Reply With Response Code ID And Name \n
-     * Reply for asynchronous method call that needs LSFResponseCode and ID and name
+     * Reply for asynchronous method call that needs LSFResponseCode and ID and name \n
      * @param msg      The method call message
      * @param responseCode type LSFResponseCode
      * @param lsfId - id as a string
@@ -192,7 +192,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void SendMethodReplyWithResponseCodeIDAndName(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId, const LSFString& lsfName);
     /**
      * Send Method Reply With Response Code And ID \n
-     * Reply for asynchronous method call that needs LSFResponseCode and ID
+     * Reply for asynchronous method call that needs LSFResponseCode and ID \n
      * @param msg      The method call message
      * @param responseCode type LSFResponseCode
      * @param lsfId - id as a string
@@ -200,14 +200,14 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void SendMethodReplyWithResponseCodeAndID(const ajn::Message& msg, LSFResponseCode responseCode, const LSFString& lsfId);
     /**
      * Send Method Reply With Uint32 Value \n
-     * Reply for asynchronous method call that needs uint32_t
+     * Reply for asynchronous method call that needs uint32_t \n
      * @param msg      The method call message
      * @param value    The uint32_t value need to be sent
      */
     void SendMethodReplyWithUint32Value(const ajn::Message& msg, uint32_t value);
     /**
      * Send Method Reply With Response Code ID Language And Name \n
-     * Reply for asynchronous method call that needs LSFResponseCode, ID, language and name
+     * Reply for asynchronous method call that needs LSFResponseCode, ID, language and name \n
      * @param msg      The method call message
      * @param responseCode type LSFResponseCode
      * @param lsfId - id as a string
@@ -222,17 +222,38 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * @param idList - The list of IDs needed to be sent
      * @return QStatus
      */
-    QStatus SendSignal(const char* ifaceName, const char* methodName, const LSFStringList& idList);
+    QStatus SendSignal(const char* ifaceName, const char* signalName, const LSFStringList& idList);
+
+    /**
+     * Send Name Changed signal
+     * @param ifaceName  - interface that the signal is located
+     * @param methodName - signal method name
+     * @param lampId     - The Lamp ID
+     * @param lampName   - The Lamp Name
+     * @return QStatus
+     */
+    QStatus SendNameChangedSignal(const char* ifaceName, const char* signalName, const LSFString& lampID, const LSFString& lampName);
+
+    /**
+     * Send State Changed signal
+     * @param ifaceName  - interface that the signal is located
+     * @param methodName - signal method name
+     * @param lampId     - The Lamp ID
+     * @param lampState  - The Lamp State
+     * @return QStatus
+     */
+    QStatus SendStateChangedSignal(const char* ifaceName, const char* signalName, const LSFString& lampID, const LampState& lampState);
+
     /**
      * Send Signal Without Arg - just an empty signal
      * @param ifaceName - interface that the signal is located
-     * @param methodName - signal method name
+     * @param signalName - signal method name
      * @return QStatus
      */
     QStatus SendSignalWithoutArg(const char* ifaceName, const char* signalName);
     /**
      * Send Scene Or Master Scene Applied Signal \n
-     * Sends signal for event - ScenesApplied signal or MasterScenesApplied signal
+     * Sends signal for event - ScenesApplied signal or MasterScenesApplied signal \n
      * @param sceneorMasterSceneId - Scene, MasterScene
      */
     void SendSceneOrMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId) {
@@ -247,7 +268,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void ScheduleFileReadWrite(Manager* manager);
     /**
      * Send Blob Update \n
-     * Updating the leader controller service about the current controller service meta data
+     * Updating the leader controller service about the current controller service meta data \n
      * @param type - which kind of meta data is this
      * @param blob - the information to update
      * @param checksum
@@ -256,7 +277,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
     /**
      * Send Get Blob Reply \n
-     * Replay to Get blob request
+     * Replay to Get blob request \n
      * @param message - the request message
      * @param type - the type of the requested blob
      * @param blob - the requested meta data information
@@ -308,7 +329,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * Override Rank
      */
     void OverrideRank(uint64_t rank) {
-        internalPropertyStore.SetRank(rank);
+        propertyStore.SetRank(rank);
     }
     /**
      * Get Leader Election Obj
@@ -368,7 +389,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     void FoundLocalOnboardingService(const char* busName, ajn::SessionPort port);
 
     LSFPropertyStore internalPropertyStore;
-    ajn::services::PropertyStore& propertyStore;
+    LSFPropertyStore& propertyStore;
     ajn::services::AboutServiceApi* aboutService;
     ajn::services::AboutIconService aboutIconService;
     ajn::services::ConfigService configService;
@@ -442,7 +463,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     bool firstAnnouncementSent;
 };
 /**
- * controller service management class
+ * controller service management class. \n
  * This is the class to create from the outside application that run the controller service.
  */
 class ControllerServiceManager {
@@ -471,7 +492,7 @@ class ControllerServiceManager {
      * @param masterSceneFile - path of master scene file
      */
     ControllerServiceManager(
-        ajn::services::PropertyStore& propStore,
+        LSFPropertyStore& propStore,
         const std::string& factoryConfigFile,
         const std::string& configFile,
         const std::string& lampGroupFile,

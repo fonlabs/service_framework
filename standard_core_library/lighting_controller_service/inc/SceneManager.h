@@ -4,7 +4,7 @@
  * \ingroup ControllerService
  */
 /**
- * @file
+ * \file lighting_controller_service/inc/SceneManager.h
  * This file provides definitions for scene manager
  */
 /******************************************************************************
@@ -48,82 +48,156 @@ class SceneManager : public Manager {
      */
     SceneManager(ControllerService& controllerSvc, LampGroupManager& lampGroupMgr, MasterSceneManager* masterSceneMgr, const std::string& sceneFile);
     /**
-     * UnregsiterSceneEventActionObjects
+     * UnregsiterSceneEventActionObjects. \n
+     * The method is called during controller service stop(). \n
+     * Deletes all SceneObject instances. \n
+     * No event and action is possible after this method.
      */
     void UnregsiterSceneEventActionObjects(void);
     /**
-     * Clearing all scenesS
+     * Clearing all scenes.
+     * @return
+     *      LSF_OK - in case operation succeeded
      */
     LSFResponseCode Reset(void);
     /**
-     * is there scene that depends on present
+     * Check if there a scene that depends on specific present. \n
+     * @param presetID - the lamp present id. \n
+     * @return LSF_OK if there is not dependency. \n
+     *         LSF_ERR_DEPENDENCY if there is dependency
      */
     LSFResponseCode IsDependentOnPreset(LSFString& presetID);
     /**
-     * is there scene that depends on lamp group
+     * Check if there a scene that depends on specific lamp group. \n
+     * @param lampGroupID - the lamp group id
+     * @return LSF_OK if there is not dependency
+     *         LSF_ERR_DEPENDENCY if there is dependency
      */
     LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
     /**
-     * Get All Scene IDs
+     * Get All Scene IDs. \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded
      */
     void GetAllSceneIDs(ajn::Message& message);
     /**
-     * Get Scene name
+     * Get Scene name. \n
+     * @param message type Message contains: scene unique id (type 's') and requested language (type 's') \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
+     *  LSF_ERR_NOT_FOUND  - the scene not found \n
+     *  LSF_ERR_INVALID_ARGS - Language not supported
      */
     void GetSceneName(ajn::Message& message);
     /**
-     * Set Scene name
+     * Set Scene name. \n
+     * @param message with  MsgArgs -  unique id (signature 's'), name (signature 's'), language (signature 's'). \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
+     *  LSF_ERR_INVALID_ARGS - Language not supported, length exceeds LSF_MAX_NAME_LENGTH \n
+     *  LSF_ERR_EMPTY_NAME - scene name is empty \n
+     *  LSF_ERR_RESOURCES - blob length is longer than MAX_FILE_LEN
      */
     void SetSceneName(ajn::Message& message);
     /**
-     * Delete Scene
+     * Delete Scene \n
+     * @param message type Message. Contains one MsgArg with scene id. \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
+     *  LSF_ERR_NOT_FOUND - can't find scene id
      */
     void DeleteScene(ajn::Message& message);
     /**
-     * Create Scene
+     * Create Scene and sending signal 'ScenesCreated' \n
+     * @param message (type Message) with 4 message arguments as parameters (type ajn::MsgArg). \n
+     * The arguments should have the following types: \n
+     *      TransitionLampsLampGroupsToState \n
+     *      TransitionLampsLampGroupsToPreset \n
+     *      PulseLampsLampGroupsWithState \n
+     *      PulseLampsLampGroupsWithPreset
+     *
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
+     *  LSF_ERR_INVALID_ARGS - Language not supported, scene name is empty, Invalid Scene components specified, ame length exceeds \n
+     *  LSF_ERR_RESOURCES - Could not allocate memory \n
+     *  LSF_ERR_NO_SLOT - No slot for new Scene
      */
     void CreateScene(ajn::Message& message);
     /**
-     * Update Scene
+     * Modify an existing scene and then sending signal 'ScenesUpdated' \n
+     * @param message (type Message) with 4 message arguments as parameters (type ajn::MsgArg). \n
+     * The arguments should have the following types: \n
+     *      TransitionLampsLampGroupsToState \n
+     *      TransitionLampsLampGroupsToPreset \n
+     *      PulseLampsLampGroupsWithState \n
+     *      PulseLampsLampGroupsWithPreset
      */
     void UpdateScene(ajn::Message& message);
     /**
-     * Get Scene
+     * Get Scene. - reply asynchronously with scene content: \n
+     *  TransitionLampsLampGroupsToState \n
+     *  TransitionLampsLampGroupsToPreset \n
+     *  PulseLampsLampGroupsWithState \n
+     *  PulseLampsLampGroupsWithPreset \n
+     * @param message type Message contains MsgArg with parameter unique id (type 's') \n
+     *  return LSF_OK \n
+     *  return LSF_ERR_NOT_FOUND - scene not found
      */
     void GetScene(ajn::Message& message);
     /**
-     * Apply Scene
+     * Apply Scene. \n
+     * @param message type Message with MsgArg parameter - scene id (type 's') \n
+     * reply asynchronously with response code: \n
+     *  LSF_OK - on success \n
+     *  LSF_ERR_NOT_FOUND - scene id not found in current list of scenes
      */
     void ApplyScene(ajn::Message& message);
     /**
-     * Send Scene Or Master Scene Applied Signal
+     * Send Scene Or Master Scene Applied Signal. \n
+     * Sending signals in case a scene applied: \n
+     *       Sessionless signal 'SceneApplied' for event and action mechanism. \n
+     *      'MasterScenesApplied' signal - in case that master scene applied. \n
+     *      'ScenesApplied' signal - in case that scene applied. \n
+     *
+     * @param sceneorMasterSceneId - the applied scene id or master scene id
      */
     void SendSceneOrMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId);
     /**
-     * Get All Scenes
+     * Get All Scenes. \n
+     * Return asynchronous answer - the all scenes by its reference parameter \n
+     * @param sceneMap of type SceneMap - reference of sceneMap to get all scenes \n
+     * @return LSF_OK on succedd.
      */
     LSFResponseCode GetAllScenes(SceneMap& sceneMap);
     /**
-     * Read Write File
+     * Read Write File \n
+     * Reading scenes information from the persistent data and might update other interested controller services by sending blob messages.
      */
     void ReadWriteFile();
     /**
-     * Read Saved Data
+     * Read Saved Data. \n
+     * Reads saved info from persistent data
      */
     void ReadSavedData();
     /**
-     * Get Controller Service Scene Interface Version
+     * Get the version of the scene inerface. \n
+     * Return asynchronously. \n
+     * @return version of the scene inerface
      */
     uint32_t GetControllerServiceSceneInterfaceVersion(void);
     /**
-     * Get string representation of scene objects
+     * Get string representation of scene objects. \n
      * @param output - string representation of scene objects
      * @param checksum - of the output
      * @param timestamp - current time
      */
     virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
     /**
-     * Get relevant file info
+     * Get file information. \n
+     * Derived from Manager class. \n
+     * Answer returns synchronously by the reference parameters.
+     * @param checksum
+     * @param timestamp
      */
     void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
         scenesLock.Lock();
@@ -131,7 +205,10 @@ class SceneManager : public Manager {
         scenesLock.Unlock();
     }
     /**
-     * Reading scenes from string
+     * Write the blob containing scene information to persistent data. \n
+     * @param blob - string containing scenes information.
+     * @param checksum
+     * @param timestamp
      */
     void HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp);
 
@@ -154,7 +231,12 @@ class SceneManager : public Manager {
 };
 
 /**
- * SceneObject class - the bus object implementation
+ * SceneObject class - Implementing event and action mechanism \n
+ * Class creates unique interface name for each instance 'org.allseen.LSF.ControllerService.ApplySceneEventAction + sceneId' \n
+ * Object implementation located in path '/org/allseen/LSF/ControllerService/ApplySceneEventAction/' \n
+ * All included in the controller service announcement \n
+ * Implements one method 'ApplyScene' as an action \n
+ * and one sessionless signal 'SceneApplied' as an event.
  */
 class SceneObject : public BusObject, public Translator {
   public:
@@ -172,15 +254,17 @@ class SceneObject : public BusObject, public Translator {
     ~SceneObject();
 
     /**
-     * apply scene implementation
+     * apply scene implementation \n
+     * triggered in case 'ApplyScene' method called
      */
     void ApplySceneHandler(const InterfaceDescription::Member* member, Message& msg);
     /**
-     * Send scene applied signal
+     * Send scene applied signal \n
+     * Sessionless signal 'SceneApplied' for event and action mechanism
      */
     void SendSceneAppliedSignal(void);
     /**
-     * Number of target languages
+     * Number of target languages \n
      * @return number
      */
     size_t NumTargetLanguages() {
@@ -195,7 +279,8 @@ class SceneObject : public BusObject, public Translator {
         ret.assign("en");
     }
     /**
-     * Translator class override member
+     * member override from Translator class. \n
+     * Describes interface elements
      */
     const char* Translate(const char* sourceLanguage, const char* targetLanguage, const char* source, qcc::String& buffer);
     /**

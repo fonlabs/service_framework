@@ -46,6 +46,11 @@ namespace lsf {
 typedef struct _TransitionStateFieldParams {
     /**
      * _TransitionStateFieldParams CTOR
+     * @param lampList - a list of lamps
+     * @param timeStamp - time for the transition
+     * @param fieldName - field to act on
+     * @param fieldValue - value to move to
+     * @param transPeriod - period of time
      */
     _TransitionStateFieldParams(LSFStringList& lampList, uint64_t& timeStamp, const char* fieldName, ajn::MsgArg& fieldValue, uint32_t& transPeriod) :
         lamps(lampList), timestamp(timeStamp), field(fieldName), value(fieldValue), period(transPeriod) { }
@@ -63,6 +68,10 @@ typedef struct _TransitionStateFieldParams {
 typedef struct _TransitionStateParams {
     /**
      * _TransitionStateParams CTOR
+     * @param lampList - List of lamps
+     * @param timeStamp - time for the transition
+     * @param lampState - new state to transit to
+     * @param transPeriod - period of time
      */
     _TransitionStateParams(LSFStringList& lampList, uint64_t& timeStamp, ajn::MsgArg& lampState, uint32_t& transPeriod) :
         lamps(lampList), timestamp(timeStamp), state(lampState), period(transPeriod) { }
@@ -79,13 +88,13 @@ typedef struct _TransitionStateParams {
 typedef struct _PulseStateParams {
     /**
      * CTOR to struct PulseStateParams
-     * @param   lampList
-     * @param   oldLampState
-     * @param   newLampState
-     * @param   pulsePeriod
-     * @param   pulseDuration
-     * @param   numPul
-     * @param   timeStamp
+     * @param   lampList - List of lamps
+     * @param   oldLampState - Old state
+     * @param   newLampState -New state
+     * @param   pulsePeriod - period of pulse time
+     * @param   pulseDuration - duration of pulse time
+     * @param   numPul -number of pulses
+     * @param   timeStamp -time for the pulse
      */
     _PulseStateParams(LSFStringList& lampList, ajn::MsgArg& oldLampState, ajn::MsgArg& newLampState, uint32_t& pulsePeriod, uint32_t& pulseDuration, uint32_t& numPul, uint64_t& timeStamp) :
         lamps(lampList), oldState(oldLampState), newState(newLampState), period(pulsePeriod), duration(pulseDuration), numPulses(numPul), timestamp(timeStamp) { }
@@ -104,13 +113,14 @@ typedef std::list<TransitionStateParams> TransitionStateParamsList;
 typedef std::list<PulseStateParams> PulseStateParamsList;
 
 /**
- * class is used as clietn side to the lamp service
+ * class is used as client side to the lamp service
  */
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener,
-    public ajn::ProxyBusObject::Listener, public lsf::Thread, public BusAttachment::PingAsyncCB {
+    public ajn::ProxyBusObject::Listener, public lsf::Thread {
   public:
     /**
      * LampClients constructor
+     * @param controllerSvc - ControllerService
      */
     LampClients(ControllerService& controllerSvc);
     /**
@@ -204,7 +214,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * @return          LSF_OK if the request was sent
      *
-     * The reply will trigger a call to LampClientsCallback::GetLampStateReplyCB.
+     * The reply will trigger a call to LampClientsCallback::GetLampStateReplyCB. \n
      * The callback will only happen if LSF_OK is returned
      */
     void GetLampState(const LSFString& lampID, ajn::Message& inMsg);
@@ -217,7 +227,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * @return          LSF_OK if the request was sent
      *
-     * The reply will trigger a call to LampClientsCallback::GetLampDetailsReplyCB.
+     * The reply will trigger a call to LampClientsCallback::GetLampDetailsReplyCB. \n
      * The callback will only happen if LSF_OK is returned
      */
     void GetLampDetails(const LSFString& lampID, ajn::Message& inMsg);
@@ -230,7 +240,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * @return          LSF_OK if the request was sent
      *
-     * The reply will trigger a call to LampClientsCallback::GetLampParametersReplyCB.
+     * The reply will trigger a call to LampClientsCallback::GetLampParametersReplyCB. \n
      * The callback will only happen if LSF_OK is returned
      */
     void GetLampParameters(const LSFString& lampID, ajn::Message& inMsg);
@@ -244,7 +254,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * @return          LSF_OK if the request was sent
      *
-     * The reply will trigger a call to LampClientsCallback::GetLampStateFieldReplyCB.
+     * The reply will trigger a call to LampClientsCallback::GetLampStateFieldReplyCB. \n
      * The callback will only happen if LSF_OK is returned
      */
     void GetLampStateField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
@@ -258,7 +268,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * @return          LSF_OK if the request was sent
      *
-     * The reply will trigger a call to LampClientsCallback::GetLampParametersFieldReplyCB.
+     * The reply will trigger a call to LampClientsCallback::GetLampParametersFieldReplyCB. \n
      * The callback will only happen if LSF_OK is returned
      */
     void GetLampParametersField(const LSFString& lampID, const LSFString& field, ajn::Message& inMsg);
@@ -277,7 +287,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * @return          LSF_OK if the request was sent
      *
-     * The reply will trigger a call to LampClientsCallback::GetLampFaultsReplyCB.
+     * The reply will trigger a call to LampClientsCallback::GetLampFaultsReplyCB. \n
      * The callback will only happen if LSF_OK is returned
      */
     void GetLampFaults(const LSFString& lampID, ajn::Message& inMsg);
@@ -296,7 +306,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      *
      * @return          LSF_OK if the request was sent
      *
-     * The reply will trigger a call to LampClientsCallback::ClearLampFaultReplyCB.
+     * The reply will trigger a call to LampClientsCallback::ClearLampFaultReplyCB. \n
      * The callback will only happen if LSF_OK is returned
      */
     void ClearLampFault(const LSFString& lampID, LampFaultCode faultCode, ajn::Message& inMsg);
@@ -325,8 +335,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     QStatus RegisterAnnounceHandler(void);
 
   private:
-
-    void* LampClientsThread(void* data);
 
     void HandleAboutAnnounce(LSFString& lampID, LSFString& lampName, uint16_t& port, LSFString& busName);
 
@@ -402,6 +410,9 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         QueuedMethodCallContext(LSFString lampId, QueuedMethodCall* qCallPtr, LSFString met) :
             lampID(lampId), queuedCallPtr(qCallPtr), method(met), timeSent(0) { }
 
+        QueuedMethodCallContext(LSFString lampId, LSFString met) :
+            lampID(lampId), queuedCallPtr(NULL), method(met), timeSent(0) { }
+
         LSFString lampID;
         QueuedMethodCall* queuedCallPtr;
         LSFString method;
@@ -412,16 +423,17 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     LSFResponseCode DoMethodCallAsync(QueuedMethodCall* call);
 
+    LSFResponseCode DoGetLampState(QueuedMethodCallContext* ctx);
+
     void QueueLampMethod(QueuedMethodCall* queuedCall);
 
     void HandleReplyWithLampResponseCode(ajn::Message& msg, void* context);
     void HandleGetReply(ajn::Message& msg, void* context);
+    void HandleGetLampStateReply(ajn::Message& msg, void* context);
     void HandleReplyWithVariant(ajn::Message& msg, void* context);
     void HandleReplyWithKeyValuePairs(ajn::Message& msg, void* context);
 
     void DecrementWaitingAndSendResponse(QueuedMethodCall* queuedCall, uint32_t success, uint32_t failure, uint32_t notFound, const ajn::MsgArg* arg = NULL);
-
-    void PingCB(QStatus status, void* context);
 
     typedef enum _LampConnectionState {
         DISCONNECTED = 0,
@@ -501,6 +513,11 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     LampMap aboutsList;
     Mutex aboutsListLock;
 
+    typedef std::list<QueuedMethodCallContext*> GetLampStateList;
+    Mutex getLampStateListLock;
+    GetLampStateList getLampStateList;
+
+
     typedef std::map<LSFString, QStatus> JoinSessionReplyMap;
 
     JoinSessionReplyMap joinSessionCBList;
@@ -520,7 +537,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
 
     Mutex queueLock;
     std::list<QueuedMethodCall*> methodQueue;
-    bool isRunning;
+    volatile sig_atomic_t isRunning;
 
     bool lampStateChangedSignalHandlerRegistered;
 
@@ -530,13 +547,6 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     LSFSemaphore wakeUp;
 
     volatile sig_atomic_t connectToLamps;
-
-    typedef struct _PingCtx {
-        _PingCtx(uint32_t count, LSFString lampId) :
-            callCount(count), lampID(lampId) { }
-        uint32_t callCount;
-        LSFString lampID;
-    } PingCtx;
 };
 
 }

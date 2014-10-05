@@ -4,7 +4,7 @@
  * \ingroup ControllerClient
  */
 /**
- * @file
+ * \file  lighting_controller_client/inc/MasterSceneManager.h
  * This file provides definitions for controller client
  */
 
@@ -158,13 +158,13 @@ class MasterSceneManager : public Manager {
     MasterSceneManager(ControllerClient& controller, MasterSceneManagerCallback& callback);
 
     /**
-     * Get the IDs of all masterSceneList
+     * Get the IDs of all masterSceneList. \n
      * Response in MasterSceneManagerCallback::GetAllMasterSceneIDsReplyCB
      */
     ControllerClientStatus GetAllMasterSceneIDs(void);
 
     /**
-     * Get the names of the masterScene
+     * Get the names of the masterScene. \n
      * Response in MasterSceneManagerCallback::GetMasterSceneNameCB
      *
      * @param masterSceneID    The masterScene id
@@ -173,7 +173,7 @@ class MasterSceneManager : public Manager {
     ControllerClientStatus GetMasterSceneName(const LSFString& masterSceneID, const LSFString& language = LSFString("en"));
 
     /**
-     * Set the masterSceneName of the specified masterScene
+     * Set the masterSceneName of the specified masterScene. \n
      * Response in MasterSceneManagerCallback::SetMasterSceneNameReplyCB
      *
      * @param masterSceneID    The id of the masterScene
@@ -183,14 +183,15 @@ class MasterSceneManager : public Manager {
     ControllerClientStatus SetMasterSceneName(const LSFString& masterSceneID, const LSFString& masterSceneName, const LSFString& language = LSFString("en"));
 
     /**
-     * Create a new Scene masterScene
+     * Create a new Scene masterScene. \n
      * Response in MasterSceneManagerCallback::CreateMasterSceneReplyCB
      *
      */
     ControllerClientStatus CreateMasterScene(const MasterScene& masterScene, const LSFString& masterSceneName, const LSFString& language = LSFString("en"));
 
     /**
-     * Modify a masterScene id
+     * Modify a masterScene. \n
+     * Change master scene to another master scene. \n
      * Response in MasterSceneManagerCallback::UpdateMasterSceneReplyCB
      *
      * @param masterSceneID    The id of the masterScene to modify
@@ -199,7 +200,7 @@ class MasterSceneManager : public Manager {
     ControllerClientStatus UpdateMasterScene(const LSFString& masterSceneID, const MasterScene& masterScene);
 
     /**
-     * Get the information about the masterScene
+     * Get the information about the masterScene. \n
      * Response in MasterSceneManagerCallback::GetMasterSceneReplyCB
      *
      * @param masterSceneID    Group id to get
@@ -207,7 +208,7 @@ class MasterSceneManager : public Manager {
     ControllerClientStatus GetMasterScene(const LSFString& masterSceneID);
 
     /**
-     * Delete a Lamp masterScene
+     * Delete a Lamp masterScene. \n
      * Response in MasterSceneManagerCallback::DeleteMasterSceneReplyCB
      *
      * @param masterSceneID    The id of the masterScene to delete
@@ -215,7 +216,8 @@ class MasterSceneManager : public Manager {
     ControllerClientStatus DeleteMasterScene(const LSFString& masterSceneID);
 
     /**
-     * Apply a scene masterScene
+     * Apply a scene masterScene. \n
+     * Make the master scene happen. \n
      * Response in MasterSceneManagerCallback::ApplyMasterSceneReplyCB
      *
      * @param masterSceneID    The ID of the scene to apply

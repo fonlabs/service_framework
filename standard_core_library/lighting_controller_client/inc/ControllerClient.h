@@ -8,7 +8,7 @@
  * \ingroup ControllerClient
  */
 /**
- * @file
+ * \file  lighting_controller_client/inc/ControllerClient.h
  * This file provides definitions for the Lighting Controller Client
  */
 /******************************************************************************
@@ -52,9 +52,9 @@ namespace lsf {
 #define CONTROLLER_CLIENT_VERSION 1
 
 /**
- * Abstract base class implemented by User Application Developers.
+ * Abstract base class implemented by User Application Developers. \n
  * The callbacks defined in this class allow the User Application
- * to be informed about some Controller Client operations
+ * to be informed about some Controller Client operations.
  */
 class ControllerClientCallback {
   public:
@@ -120,19 +120,33 @@ class ControllerClient : public ajn::MessageReceiver {
     ~ControllerClient();
 
     /**
-     *  Get the version of the Lighting Controller Client
+     *  Get the version of the Lighting Controller Client.
      *
      *  @return The Lighting Controller Client version
      */
     uint32_t GetVersion(void);
 
     /**
-     *  Reset the Lighting Controller Client. This will cause the
+     *  Stop the Lighting Controller Client. This will cause the
      *  Controller Client to tear-down any existent session with
-     *  a Controller Service and re-attemp a connect with a
-     *  Controller Service
+     *  a Controller Service, clear the leadersMap contents and
+     *  unregister announce handlers. The user application should
+     *  call this API when it detects that the device has disconnected
+     *  from Wi-Fi and/or the data network
      */
-    void Reset(void);
+    QStatus Stop(void);
+
+    /**
+     *  Start the Lighting Controller Client. This will cause the
+     *  Controller Client to register for announce handlers.
+     *  The user application should call this API at system start
+     *  after confirming that the device is connected to Wi-Fi and/or
+     *  data network
+     *  OR
+     *  when it detects that the device has re-connected to Wi-Fi and/or
+     *  the data network after it was disconnected
+     */
+    QStatus Start(void);
 
   private:
 
@@ -142,19 +156,23 @@ class ControllerClient : public ajn::MessageReceiver {
 
     /**
      * Internal callback invoked when an announcement is received from a Controller
-     * Service Leader
+     * Service Leader.
      */
     void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank);
 
     /**
      * Internal callback invoked when a session with a Controller
-     * Service Leader is lost
+     * Service Leader is lost.
      */
     void OnSessionLost(ajn::SessionId sessionID);
 
     void OnSessionMemberRemoved(ajn::SessionId sessionId, const char* uniqueName);
 
     void SignalWithArgDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message);
+
+    void NameChangedSignalDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message);
+
+    void StateChangedSignalDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message);
 
     void SignalWithoutArgDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message);
 
@@ -170,12 +188,12 @@ class ControllerClient : public ajn::MessageReceiver {
 
     /**
      * Internal callback invoked when a session is joined with a Controller
-     * Service Leader
+     * Service Leader.
      */
     void OnSessionJoined(QStatus status, ajn::SessionId sessionID, void* context);
 
     /**
-     * Helper template to invoke MethodCallAsync on the AllJoyn ProxyBusObject
+     * Helper template to invoke MethodCallAsync on the AllJoyn ProxyBusObject.
      */
     template <typename OBJ>
     ControllerClientStatus MethodCallAsync(const char* ifaceName,
@@ -217,23 +235,23 @@ class ControllerClient : public ajn::MessageReceiver {
 
     /**
      * Reference to the AllJoyn BusAttachment received from the
-     * User Application
+     * User Application.
      */
     ajn::BusAttachment& bus;
 
     /**
-     * Handler used to receive messages from the AllJoyn Bus
+     * Handler used to receive messages from the AllJoyn Bus.
      */
     ControllerClientBusHandler* busHandler;
 
     /**
      * ControllerClientCallback sends the Controller Client specific callbacks
-     * to the User Application
+     * to the User Application.
      */
     ControllerClientCallback& callback;
 
     /*
-     * The ID of the CS we are currently trying to connect to
+     * The ID of the CS we are currently trying to connect to.
      */
     struct ControllerEntry {
         ajn::SessionPort port;
@@ -319,7 +337,7 @@ class ControllerClient : public ajn::MessageReceiver {
     ControllerClient& operator=(ControllerClient&);
 
     /**
-     * Helper function to invoke MethodCallAsync on the AllJoyn ProxyBusObject
+     * Helper function to invoke MethodCallAsync on the AllJoyn ProxyBusObject.
      */
     ControllerClientStatus MethodCallAsyncHelper(
         const char* ifaceName,
@@ -354,7 +372,7 @@ class ControllerClient : public ajn::MessageReceiver {
 
         void MessageHandler(ajn::Message& message, void* context)
         {
-            if (!controllerClientPtr->exiting) {
+            if (!controllerClientPtr->stopped) {
                 controllerClientPtr->bus.EnableConcurrentCallbacks();
                 if (message->GetType() == ajn::MESSAGE_METHOD_RET) {
                     (receiver->*(handler))(message);
@@ -423,6 +441,100 @@ class ControllerClient : public ajn::MessageReceiver {
             delete it->second;
         }
         signalHandlers.clear();
+    }
+
+    template <typename OBJ>
+    void AddNameChangedSignalHandler(const std::string& nameChangedSignalName, OBJ* obj, void (OBJ::* nameChangedSignal)(LSFString &, LSFString &))
+    {
+        NameChangedSignalHandlerBase* handler = new NameChangedSignalHandler<OBJ>(obj, nameChangedSignal);
+        std::pair<NameChangedSignalDispatcherMap::iterator, bool> ins = nameChangedSignalHandlers.insert(std::make_pair(nameChangedSignalName, handler));
+        if (ins.second == false) {
+            // if this was already there, overwrite and delete the old handler
+            delete ins.first->second;
+            ins.first->second = handler;
+        }
+    }
+
+    class NameChangedSignalHandlerBase {
+      public:
+        virtual ~NameChangedSignalHandlerBase() { }
+        virtual void Handle(LSFString& id, LSFString& name) = 0;
+    };
+
+    template <typename OBJ>
+    class NameChangedSignalHandler : public NameChangedSignalHandlerBase {
+        typedef void (OBJ::* HandlerFunction)(LSFString&, LSFString&);
+
+      public:
+        NameChangedSignalHandler(OBJ* obj, HandlerFunction handleFunc) :
+            object(obj), handler(handleFunc) { }
+
+        virtual ~NameChangedSignalHandler() { }
+
+        virtual void Handle(LSFString& id, LSFString& name) {
+            (object->*(handler))(id, name);
+        }
+
+        OBJ* object;
+        HandlerFunction handler;
+    };
+
+    typedef std::map<std::string, NameChangedSignalHandlerBase*> NameChangedSignalDispatcherMap;
+    NameChangedSignalDispatcherMap nameChangedSignalHandlers;
+
+    void DeleteNameChangedSignalHandlers(void)
+    {
+        for (NameChangedSignalDispatcherMap::iterator it = nameChangedSignalHandlers.begin(); it != nameChangedSignalHandlers.end(); it++) {
+            delete it->second;
+        }
+        nameChangedSignalHandlers.clear();
+    }
+
+    template <typename OBJ>
+    void AddStateChangedSignalHandler(const std::string& stateChangedSignalState, OBJ* obj, void (OBJ::* stateChangedSignal)(LSFString &, LampState &))
+    {
+        StateChangedSignalHandlerBase* handler = new StateChangedSignalHandler<OBJ>(obj, stateChangedSignal);
+        std::pair<StateChangedSignalDispatcherMap::iterator, bool> ins = stateChangedSignalHandlers.insert(std::make_pair(stateChangedSignalState, handler));
+        if (ins.second == false) {
+            // if this was already there, overwrite and delete the old handler
+            delete ins.first->second;
+            ins.first->second = handler;
+        }
+    }
+
+    class StateChangedSignalHandlerBase {
+      public:
+        virtual ~StateChangedSignalHandlerBase() { }
+        virtual void Handle(LSFString& id, LampState& state) = 0;
+    };
+
+    template <typename OBJ>
+    class StateChangedSignalHandler : public StateChangedSignalHandlerBase {
+        typedef void (OBJ::* HandlerFunction)(LSFString&, LampState&);
+
+      public:
+        StateChangedSignalHandler(OBJ* obj, HandlerFunction handleFunc) :
+            object(obj), handler(handleFunc) { }
+
+        virtual ~StateChangedSignalHandler() { }
+
+        virtual void Handle(LSFString& id, LampState& state) {
+            (object->*(handler))(id, state);
+        }
+
+        OBJ* object;
+        HandlerFunction handler;
+    };
+
+    typedef std::map<std::string, StateChangedSignalHandlerBase*> StateChangedSignalDispatcherMap;
+    StateChangedSignalDispatcherMap stateChangedSignalHandlers;
+
+    void DeleteStateChangedSignalHandlers(void)
+    {
+        for (StateChangedSignalDispatcherMap::iterator it = stateChangedSignalHandlers.begin(); it != stateChangedSignalHandlers.end(); it++) {
+            delete it->second;
+        }
+        stateChangedSignalHandlers.clear();
     }
 
     template <typename OBJ>
@@ -696,7 +808,7 @@ class ControllerClient : public ajn::MessageReceiver {
         methodReplyWithResponseCodeAndIDHandlers.clear();
     }
 
-    volatile sig_atomic_t exiting;
+    volatile sig_atomic_t stopped;
 };
 
 template <typename OBJ>

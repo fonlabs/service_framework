@@ -8,7 +8,7 @@
  * \ingroup Common
  */
 /**
- * @file
+ * \file  common/inc/Alarm.h
  * This file provides definitions for alarm infrastructure
  */
 /******************************************************************************
@@ -55,7 +55,7 @@ class AlarmListener {
 
 /**
  * Class used to implement an Alarm that is
- * capable of handling time in seconds
+ * capable of handling time in seconds.
  */
 class Alarm : public Thread {
   public:

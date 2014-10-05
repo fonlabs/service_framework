@@ -5,7 +5,7 @@
  */
 
 /**
- * @file
+ * \file  lighting_controller_client/inc/LampGroupManager.h
  * This file provides definitions for the Lamp Group Manager
  */
 
@@ -36,11 +36,11 @@ namespace lsf {
 class ControllerClient;
 
 /**
- * Abstract base class implemented by User Application Developers.
+ * Abstract base class implemented by User Application Developers. \n
  * The callbacks defined in this class allow the User Application
  * to be informed when Lamp Groups specific specific AllJoyn method
  * replies or signals are received from the Lighting Controller
- * Service
+ * Service.
  */
 class LampGroupManagerCallback {
   public:
@@ -51,7 +51,7 @@ class LampGroupManagerCallback {
     virtual ~LampGroupManagerCallback() { }
 
     /**
-     * Indicates that a reply has been received for the method call GetAllLampGroupIDs method call
+     * Indicates that a reply has been received for the method call GetAllLampGroupIDs method call.
      *
      * @param responseCode   The response code
      * @param lampGroupIDs   Lamp Group IDs
@@ -59,7 +59,7 @@ class LampGroupManagerCallback {
     virtual void GetAllLampGroupIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& lampGroupIDs) { }
 
     /**
-     * Indicates that a reply has been received for the method call GetLampGroupName method call
+     * Indicates that a reply has been received for the method call GetLampGroupName method call.
      *
      * @param responseCode   The response code
      * @param lampGroupID    The Lamp Group ID
@@ -69,7 +69,7 @@ class LampGroupManagerCallback {
     virtual void GetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language, const LSFString& lampGroupName) { }
 
     /**
-     * Indicates that a reply has been received for the SetLampGroupName method call
+     * Indicates that a reply has been received for the SetLampGroupName method call.
      *
      * @param responseCode   The response code
      * @param lampGroupID    The Lamp Group ID
@@ -78,14 +78,14 @@ class LampGroupManagerCallback {
     virtual void SetLampGroupNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LSFString& language) { }
 
     /**
-     * Indicates that the signal LampGroupsNameChanged has been received
+     * Indicates that the signal LampGroupsNameChanged has been received.
      *
      * @param lampGroupIDs    The Lamp Group IDs
      */
     virtual void LampGroupsNameChangedCB(const LSFStringList& lampGroupIDs) { }
 
     /**
-     * Indicates that a reply has been received for the CreateLampGroup method call
+     * Indicates that a reply has been received for the CreateLampGroup method call.
      *
      * @param responseCode   The response code
      * @param lampGroupID    The Lamp Group ID
@@ -93,14 +93,14 @@ class LampGroupManagerCallback {
     virtual void CreateLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     *  Indicates that the signal LampGroupsCreated has been received
+     *  Indicates that the signal LampGroupsCreated has been received.
      *
      *  @param lampGroupIDs   The Lamp Group IDs
      */
     virtual void LampGroupsCreatedCB(const LSFStringList& lampGroupIDs) { }
 
     /**
-     * Indicates that a reply has been received for the GetLampGroup method call
+     * Indicates that a reply has been received for the GetLampGroup method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -109,7 +109,7 @@ class LampGroupManagerCallback {
     virtual void GetLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID, const LampGroup& lampGroup) { }
 
     /**
-     * Indicates that a reply has been received for the DeleteLampGroup method call
+     * Indicates that a reply has been received for the DeleteLampGroup method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -117,14 +117,14 @@ class LampGroupManagerCallback {
     virtual void DeleteLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     *  Indicates that the signal LampGroupsDeleted has been received
+     *  Indicates that the signal LampGroupsDeleted has been received.
      *
      *  @param lampGroupIDs   The Lamp Group IDs
      */
     virtual void LampGroupsDeletedCB(const LSFStringList& lampGroupIDs) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupState method call
+     * Indicates that a reply has been received for the TransitionLampGroupState method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -132,7 +132,7 @@ class LampGroupManagerCallback {
     virtual void TransitionLampGroupStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupState method call
+     * Indicates that a reply has been received for the PulseLampGroupWithState method call.
      *
      * @param responseCode    The response code
      * @param lampID          The LampGroup ID
@@ -140,7 +140,7 @@ class LampGroupManagerCallback {
     virtual void PulseLampGroupWithStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupPreset method call
+     * Indicates that a reply has been received for the TransitionLampGroupPreset method call.
      *
      * @param responseCode    The response code
      * @param lampID          The LampGroup ID
@@ -148,7 +148,7 @@ class LampGroupManagerCallback {
     virtual void PulseLampGroupWithPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupStateField method call
+     * Indicates that a reply has been received for the TransitionLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -156,7 +156,7 @@ class LampGroupManagerCallback {
     virtual void TransitionLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupStateField method call
+     * Indicates that a reply has been received for the TransitionLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -164,7 +164,7 @@ class LampGroupManagerCallback {
     virtual void TransitionLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupStateField method call
+     * Indicates that a reply has been received for the TransitionLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -172,7 +172,7 @@ class LampGroupManagerCallback {
     virtual void TransitionLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupStateField method call
+     * Indicates that a reply has been received for the TransitionLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -180,7 +180,7 @@ class LampGroupManagerCallback {
     virtual void TransitionLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupStateField method call
+     * Indicates that a reply has been received for the TransitionLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -188,7 +188,7 @@ class LampGroupManagerCallback {
     virtual void TransitionLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the ResetLampGroupState method call
+     * Indicates that a reply has been received for the ResetLampGroupState method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -196,7 +196,7 @@ class LampGroupManagerCallback {
     virtual void ResetLampGroupStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the ResetLampGroupStateField method call
+     * Indicates that a reply has been received for the ResetLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -204,7 +204,7 @@ class LampGroupManagerCallback {
     virtual void ResetLampGroupStateOnOffFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the ResetLampGroupStateField method call
+     * Indicates that a reply has been received for the ResetLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -212,7 +212,7 @@ class LampGroupManagerCallback {
     virtual void ResetLampGroupStateHueFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the ResetLampGroupStateField method call
+     * Indicates that a reply has been received for the ResetLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -220,7 +220,7 @@ class LampGroupManagerCallback {
     virtual void ResetLampGroupStateSaturationFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the ResetLampGroupStateField method call
+     * Indicates that a reply has been received for the ResetLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -228,7 +228,7 @@ class LampGroupManagerCallback {
     virtual void ResetLampGroupStateBrightnessFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the ResetLampGroupStateField method call
+     * Indicates that a reply has been received for the ResetLampGroupStateField method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -236,7 +236,7 @@ class LampGroupManagerCallback {
     virtual void ResetLampGroupStateColorTempFieldReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that a reply has been received for the UpdateLampGroup method call
+     * Indicates that a reply has been received for the UpdateLampGroup method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -244,14 +244,14 @@ class LampGroupManagerCallback {
     virtual void UpdateLampGroupReplyCB(const LSFResponseCode& responseCode, const LSFString& lampGroupID) { }
 
     /**
-     * Indicates that the signal LampGroupsUpdated has been received
+     * Indicates that the signal LampGroupsUpdated has been received.
      *
      * @param lampGroupIDs    The Lamp Group IDs
      */
     virtual void LampGroupsUpdatedCB(const LSFStringList& lampGroupIDs) { }
 
     /**
-     * Indicates that a reply has been received for the TransitionLampGroupStateToPreset method call
+     * Indicates that a reply has been received for the TransitionLampGroupStateToPreset method call.
      *
      * @param responseCode    The response code
      * @param lampGroupID     The Lamp Group ID
@@ -275,7 +275,7 @@ class LampGroupManager : public Manager {
     LampGroupManager(ControllerClient& controller, LampGroupManagerCallback& callback);
 
     /**
-     * Get the IDs of all the Lamp Groups
+     * Get the IDs of all the Lamp Groups. \n
      * Response in LampGroupManagerCallback::GetAllLampGroupIDsReplyCB
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
@@ -285,7 +285,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus GetAllLampGroupIDs(void);
 
     /**
-     * Get the name of a Lamp Group
+     * Get the name of a Lamp Group. \n
      * Response in LampGroupManagerCallback::GetLampGroupNameCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -298,7 +298,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus GetLampGroupName(const LSFString& lampGroupID, const LSFString& language = LSFString("en"));
 
     /**
-     * Set the name of the specified Lamp Group
+     * Set the name of the specified Lamp Group. \n
      * Response in LampGroupManagerCallback::SetLampGroupNameReplyCB
      *
      * @param lampGroupID The Lamp Group ID
@@ -312,7 +312,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus SetLampGroupName(const LSFString& lampGroupID, const LSFString& lampGroupName, const LSFString& language = LSFString("en"));
 
     /**
-     * Create a new Lamp Group
+     * Create a new Lamp Group. \n
      * Response in LampGroupManagerCallback::CreateLampGroupReplyCB
      *
      * @param lampGroup   Lamp Group
@@ -326,7 +326,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus CreateLampGroup(const LampGroup& lampGroup, const LSFString& lampGroupName, const LSFString& language = LSFString("en"));
 
     /**
-     * Modify a Lamp Group
+     * Modify a Lamp Group. \n
      * Response in LampGroupManagerCallback::UpdateLampGroupReplyCB
      *
      * @param lampGroupID  The Lamp Group ID
@@ -339,7 +339,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus UpdateLampGroup(const LSFString& lampGroupID, const LampGroup& lampGroup);
 
     /**
-     * Get the information about a Lamp Group
+     * Get the information about a Lamp Group. \n
      * Response in LampGroupManagerCallback::GetLampGroupReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -351,7 +351,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus GetLampGroup(const LSFString& lampGroupID);
 
     /**
-     * Delete a Lamp Group
+     * Delete a Lamp Group. \n
      * Response in LampGroupManagerCallback::DeleteLampGroupReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -363,7 +363,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus DeleteLampGroup(const LSFString& lampGroupID);
 
     /**
-     * Transition a Lamp Group to a new state
+     * Transition a Lamp Group to a new state. \n
      * Response in LampGroupManagerCallback::TransitionLampGroupStateReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -378,19 +378,19 @@ class LampGroupManager : public Manager {
     ControllerClientStatus TransitionLampGroupState(const LSFString& lampGroupID, const LampState& lampGroupState, const uint32_t& transitionPeriod = 0);
 
     /**
-     * Transition the LampGroup to a given state
-     * Response in LampGroupManagerCallback::TransitionLampGroupStateReplyCB
+     * Pulse the LampGroup to a given state. \n
+     * Response in LampGroupManagerCallback::PulseLampGroupWithStateReplyCB
      */
     ControllerClientStatus PulseLampGroupWithState(const LSFString& lampGroupID, const LampState& toLampGroupState, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LampState& fromLampGroupState = LampState());
 
     /**
-     * Transition the LampGroup to a given state
-     * Response in LampGroupManagerCallback::TransitionLSFStringReplyCB
+     * Pulse the LampGroup to a given state. \n
+     * Response in LampGroupManagerCallback::PulseLampGroupWithPresetReplyCB
      */
     ControllerClientStatus PulseLampGroupWithPreset(const LSFString& lampGroupID, const LSFString& toPresetID, const uint32_t& period, const uint32_t& duration, const uint32_t& numPulses, const LSFString& fromPresetID = CurrentStateIdentifier);
 
     /**
-     * Transition a Lamp Group's field to a given value
+     * Transition a Lamp Group's field to a given value. \n
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -406,7 +406,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Transition a Lamp Group's field to a given value
+     * Transition a Lamp Group's field to a given value. \n
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      *
      * @return
@@ -420,7 +420,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Transition a Lamp Group's field to a given value
+     * Transition a Lamp Group's field to a given value. \n
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      *
      * @return
@@ -434,7 +434,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Transition a Lamp Group's field to a given value
+     * Transition a Lamp Group's field to a given value. \n
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      */
     ControllerClientStatus TransitionLampGroupStateBrightnessField(const LSFString& lampGroupID, const uint32_t& brightness, const uint32_t& transitionPeriod = 0) {
@@ -443,7 +443,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Transition a Lamp Group's field to a given value
+     * Transition a Lamp Group's field to a given value. \n
      * Response in LampGroupManagerCallback::TransitionLampGroupStateFieldReplyCB
      */
     ControllerClientStatus TransitionLampGroupStateColorTempField(const LSFString& lampGroupID, const uint32_t& colorTemp, const uint32_t& transitionPeriod = 0) {
@@ -452,7 +452,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Transition a Lamp Group to a given Preset
+     * Transition a Lamp Group to a given Preset. \n
      * Response in LampGroupManagerCallback::TransitionLampGroupStateToPresetReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -466,7 +466,8 @@ class LampGroupManager : public Manager {
     ControllerClientStatus TransitionLampGroupStateToPreset(const LSFString& lampGroupID, const LSFString& presetID, const uint32_t& transitionPeriod = 0);
 
     /**
-     * Reset a Lamp Group's state
+     * Reset a Lamp Group's state. \n
+     * Got to each lamp and reset its state. \n
      * Response in LampGroupManagerCallback::ResetLampGroupStateReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -478,7 +479,7 @@ class LampGroupManager : public Manager {
     ControllerClientStatus ResetLampGroupState(const LSFString& lampGroupID);
 
     /**
-     * Reset a Lamp Group's field to a given value
+     * Reset a Lamp Group's OnOff field to a given value. \n
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -493,7 +494,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Reset a Lamp Group's field to a given value
+     * Reset a Lamp Group's Hue field to a given value. \n
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -508,7 +509,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Reset a Lamp Group's field to a given value
+     * Reset a Lamp Group's Saturation field to a given value. \n
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -523,7 +524,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Reset a Lamp Group's field to a given value
+     * Reset a Lamp Group's Brightness field to a given value. \n
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID
@@ -538,7 +539,7 @@ class LampGroupManager : public Manager {
     }
 
     /**
-     * Reset a Lamp Group's field to a given value
+     * Reset a Lamp Group's ColorTemp field to a given value. \n
      * Response in LampGroupManagerCallback::ResetLampGroupStateFieldReplyCB
      *
      * @param lampGroupID    The Lamp Group ID

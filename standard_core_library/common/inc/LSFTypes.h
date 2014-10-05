@@ -4,7 +4,7 @@
  * \ingroup Common
  */
 /**
- * @file
+ * \file  common/inc/LSFTypes.h
  * This file provides definitions for LSF types
  */
 /******************************************************************************
@@ -276,7 +276,8 @@ void CreateUniqueList(LSFStringList& uniqueList, ajn::MsgArg* idsArray, size_t i
 char* strdupnew(const char* str);
 
 /**
- * Class defining the Lamp State
+ * Class defining the Lamp State \n
+ * Lamp State is the state information that the Lamp persists through power cycle that includes End-User set state attributes such as Hue, Saturation, Color Temperature, and Brightness.
  */
 class LampState {
 
@@ -373,12 +374,17 @@ class LampState {
 };
 
 /**
- * Typedef for PresetMap type
+ * Typedef for PresetMap type. \n
+ * The key of the map is the pre-set id which is auto generated. \n
+ * The value of the map is a pair that contains: \n
+ *      Key - user defined name of the pre-set
+ *      Value - The lamp state as a pre-set value
  */
 typedef std::map<LSFString, std::pair<LSFString, LampState> > PresetMap;
 
 /**
- * Class defining the Lamp Parameters
+ * Class defining the Lamp Parameters \n
+ * Lamp parameters are read-only volatile parameters that are read from the Lamp hardware. This consists of parameters like Lamp Output and Power Draw.
  */
 class LampParameters {
 
@@ -443,7 +449,9 @@ class LampParameters {
 };
 
 /**
- * Class defining the Lamp Details
+ * Class defining the Lamp Details \n
+ * Lamp Details are the LSF-specific data that the Lamp exposes via a Lamp Service interface such that information about the Lamp can be introspected via a Lighting Controller Service. \n
+ * Lamp Details are read-only and set at the time of manufacturing.
  */
 class LampDetails {
 
@@ -594,7 +602,10 @@ class LampDetails {
 };
 
 /**
- * Class defining a Lamp Group
+ * Class defining a Lamp Group \n
+ * A Lamp Group is a logical grouping of Lamps allowing them to be controlled simultaneously as if they are a single Lamp. \n
+ * A Lamp Group can be a part of another Lamp Group. \n
+ * Lamp Groups are persisted through power cycles in the Lighting Controller Service.
  */
 class LampGroup {
   public:
@@ -1030,7 +1041,10 @@ typedef std::list<PulseLampsLampGroupsWithState> PulseLampsLampGroupsWithStateLi
 typedef std::list<PulseLampsLampGroupsWithPreset> PulseLampsLampGroupsWithPresetList;
 
 /**
- * class holds scene details
+ * Scene class holds scene details. \n
+ * Scenes are preferences saved by the End User to set a particular mood or to simply store a setting for convenience and future recall. \n
+ * Scenes are persisted in the Lighting Controller Service and are made up of a Saved State and/or Effect applied to a Lamp or Lamp Group.
+ *
  */
 class Scene {
   public:
@@ -1070,12 +1084,19 @@ class Scene {
      */
     void Get(ajn::MsgArg* transitionToStateComponentList, ajn::MsgArg* transitionToPresetComponentList,
              ajn::MsgArg* pulseWithStateComponentList, ajn::MsgArg* pulseWithPresetComponentList) const;
+
     /**
-     * is scene depends on present
+     * Check if there a scene that depends on specific present
+     * @param presetID - the lamp present id
+     * @return LSF_OK if there is not dependency \n
+     *         LSF_ERR_DEPENDENCY if there is dependency
      */
     LSFResponseCode IsDependentOnPreset(LSFString& presetID);
     /**
-     * is scene depends on lamp group
+     * Check if there a scene that depends on specific lamp group
+     * @param lampGroupID - the lamp group id
+     * @return LSF_OK if there is not dependency \n
+     *         LSF_ERR_DEPENDENCY if there is dependency
      */
     LSFResponseCode IsDependentOnLampGroup(LSFString& lampGroupID);
     /**

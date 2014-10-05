@@ -5,7 +5,7 @@
  */
 
 /**
- * @file
+ * \file  lighting_controller_client/inc/ControllerServiceManager.h
  * This file provides definitions for the Controller Service Manager
  */
 
@@ -35,7 +35,7 @@ namespace lsf {
  * The callbacks defined in this class allow the User Application
  * to be informed when Controller Service specific AllJoyn method
  * replies or signals are received from the Lighting Controller
- * Service
+ * Service.
  */
 class ControllerServiceManagerCallback {
   public:
@@ -82,8 +82,8 @@ class ControllerServiceManager : public Manager {
     ControllerServiceManager(ControllerClient& controller, ControllerServiceManagerCallback& callback);
 
     /**
-     * Get the version of the Controller Service to which the Controller Client is currently connected to.
-     * The response will come in ControllerServiceManagerCallback::GetControllerServiceVersionReplyCB
+     * Get the version of the Controller Service to which the Controller Client is currently connected to. \n
+     * The response will come in ControllerServiceManagerCallback::GetControllerServiceVersionReplyCB.
      *
      * @return
      *      - CONTROLLER_CLIENT_OK if successful
@@ -92,8 +92,8 @@ class ControllerServiceManager : public Manager {
     ControllerClientStatus GetControllerServiceVersion(void);
 
     /**
-     * Make the ControllerService perform a lighting reset
-     * The reply will come in the form of ControllerServiceManagerCallback::LightingResetControllerServiceReplyCB
+     * Make the ControllerService perform a lighting reset. \n
+     * The reply will come in the form of ControllerServiceManagerCallback::LightingResetControllerServiceReplyCB.
      *
      * @return
      *      - CONTROLLER_CLIENT_OK if successful

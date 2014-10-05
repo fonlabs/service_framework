@@ -4,7 +4,7 @@
  * \ingroup Common
  */
 /**
- * @file
+ * \file  common/inc/LSFKeyListener.h
  * This file provides definitions for LSF key listener
  */
 /******************************************************************************
@@ -31,19 +31,19 @@
 namespace lsf {
 
 /**
- * class SrpKeyXListener
- * A listener for Authentication
- * instance of that class is given by bus attachment EnablePeerSecurity()
+ * class SrpKeyXListener. \n
+ * A listener for Authentication. \n
+ * instance of that class is given by bus attachment EnablePeerSecurity().
  */
 class LSFKeyListener : public ajn::AuthListener {
   public:
     /**
-     * SrpKeyXListener constructor
+     * LSFKeyListener constructor
      */
     LSFKeyListener();
 
     /**
-     * ~SrpKeyXListener destructor
+     * ~LSFKeyListener destructor
      */
     virtual ~LSFKeyListener();
 
@@ -60,23 +60,38 @@ class LSFKeyListener : public ajn::AuthListener {
     void SetGetPassCodeFunc(const char* (*GetPassCodeFunc)());
 
     /**
-     * RequestCredentials - called by the core to get the credentials
-     * @param authMechanism
-     * @param authPeer
-     * @param authCount
-     * @param userId
-     * @param credMask
-     * @param creds - credentials e.g. password
-     * @return boolean. true for credentials successfully returned.
+     * Authentication mechanism requests user credentials. If the user name is not an empty string \n
+     * the request is for credentials for that specific user. A count allows the listener to decide \n
+     * whether to allow or reject multiple authentication attempts to the same peer. \n\n
+     *
+     * An implementation must provide RequestCredentials or RequestCredentialsAsync but not both. \n
+     *
+     * @param authMechanism  The name of the authentication mechanism issuing the request.
+     * @param authPeer       The name of the remote peer being authenticated.  On the initiating
+     *                       side this will be a well-known-name for the remote peer. On the
+     *                       accepting side this will be the unique bus name for the remote peer.
+     * @param authCount      Count (starting at 1) of the number of authentication request attempts made.
+     * @param userId       The user name for the credentials being requested.
+     * @param credMask       A bit mask identifying the credentials being requested. The application
+     *                       may return none, some or all of the requested credentials.
+     * @param[out] creds    The credentials returned.
+     *
+     * @return  The caller should return true if the request is being accepted or false if the
+     *          requests is being rejected. If the request is rejected the authentication is
+     *          complete.
      */
     bool RequestCredentials(const char* authMechanism, const char* authPeer, uint16_t authCount, const char* userId,
                             uint16_t credMask, Credentials& creds);
 
     /**
-     * AuthenticationComplete - called by the core when authentication mechanism is finished
-     * @param authMechanism
-     * @param authPeer
-     * @param success. True - authentication succeed
+     * Reports successful or unsuccessful completion of authentication.
+     *
+     * @param authMechanism  The name of the authentication mechanism that was used or an empty
+     *                       string if the authentication failed.
+     * @param authPeer       The name of the remote peer being authenticated.  On the initiating
+     *                       side this will be a well-known-name for the remote peer. On the
+     *                       accepting side this will be the unique bus name for the remote peer.
+     * @param success        true if the authentication was successful, otherwise false.
      */
     void AuthenticationComplete(const char* authMechanism, const char* authPeer, bool success);
 

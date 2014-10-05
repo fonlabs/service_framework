@@ -44,71 +44,113 @@ class MasterSceneManager : public Manager {
      */
     MasterSceneManager(ControllerService& controllerSvc, SceneManager& sceneMgr, const std::string& masterSceneFile);
     /**
-     * Reset object
+     * Clearing all master scenes.
+     * @return
+     *      LSF_OK - in case operation succeeded
      */
     LSFResponseCode Reset(void);
     /**
-     * Is Dependent On Scene
+     * Check if the master scene is depend on scene. \n
+     * @param sceneID - the scene id to check dependency on \n
+     * @return LSF_OK if there is not dependency. \n
      */
     LSFResponseCode IsDependentOnScene(LSFString& sceneID);
     /**
-     * Get All Master Scene IDs
+     * Get All Master scene IDs. \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded
      */
     void GetAllMasterSceneIDs(ajn::Message& message);
     /**
-     * Get Master Scene Name
+     * Get master scene name. \n
+     * @param message type Message contains: scene unique id (type 's') and requested language (type 's') \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
      */
     void GetMasterSceneName(ajn::Message& message);
     /**
-     * Set Master Scene Name
+     * Set Scene name. \n
+     * @param message with  MsgArgs -  unique id (signature 's'), name (signature 's'), language (signature 's') . \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
      */
     void SetMasterSceneName(ajn::Message& message);
     /**
-     * Delete Master Scene
+     * Delete master scene \n
+     * @param message type Message. Contains one MsgArg with scene id. \n
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
      */
     void DeleteMasterScene(ajn::Message& message);
     /**
-     * Create Master Scene
+     * Create master scene and sending signal 'MasterScenesCreated' \n
+     * @param message
+     *
+     * Return asynchronous reply with response code: \n
+     *  LSF_OK - operation succeeded \n
      */
     void CreateMasterScene(ajn::Message& message);
     /**
-     * Update Master Scene
+     * Modify an existing master scene and then sending signal 'MasterScenesUpdated'. \n
      */
     void UpdateMasterScene(ajn::Message& message);
     /**
-     * Get Master Scene
+     * Get master scene. - reply asynchronously \n
+     * @param message type Message contains MsgArg with parameter unique id (type 's') \n
+     *  return LSF_OK \n
      */
     void GetMasterScene(ajn::Message& message);
     /**
-     * Apply Master Scene
+     * Apply master scene. \n
+     * @param message type Message with MsgArg parameter - scene id (type 's') \n
+     * reply asynchronously with response code: \n
+     *  LSF_OK - on success \n
      */
     void ApplyMasterScene(ajn::Message& message);
     /**
-     * Send Master Scene Applied Signal
+     * Send Master Scene Applied Signal. \n
+     * Sending signals in case a master scene applied: \n
+     *      'MasterScenesApplied' signal - in case that master scene applied. \n
+     *
+     * @param sceneorMasterSceneId - the applied scene id or master scene id
      */
     void SendMasterSceneAppliedSignal(LSFString& sceneorMasterSceneId);
     /**
-     * Get All Master Scenes
+     * Get All master scenes. \n
+     * Return asynchronous answer - the all master scenes by its reference parameter \n
+     * @param masterSceneMap of type MasterSceneMap - reference of MasterSceneMap to get all master scenes \n
+     * @return LSF_OK on succedd.
      */
     LSFResponseCode GetAllMasterScenes(MasterSceneMap& masterSceneMap);
     /**
-     * Read Saved Data
+     * Read Saved Data. \n
+     * Reads saved info from persistent data
      */
     void ReadSavedData();
     /**
-     * Read Write File
+     * Read Write File \n
+     * Reading master scenes information from the persistent data and might update other interested controller services by sending blob messages.
      */
     void ReadWriteFile();
     /**
-     * Get Controller Service Master Scene Interface Version
+     * Get the version of the master scene inerface. \n
+     * Return asynchronously. \n
+     * @return version of the master scene inerface
      */
     uint32_t GetControllerServiceMasterSceneInterfaceVersion(void);
     /**
-     * Get String
+     * Get string representation of master scene objects. \n
+     * @param output - string representation of master scene objects
+     * @param checksum - of the output
+     * @param timestamp - current time
      */
     virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp);
     /**
-     * Get Blob Info
+     * Get file information. \n
+     * Derived from Manager class. \n
+     * Answer returns synchronously by the reference parameters.
+     * @param checksum
+     * @param timestamp
      */
     void GetBlobInfo(uint32_t& checksum, uint64_t& timestamp) {
         masterScenesLock.Lock();
@@ -116,7 +158,10 @@ class MasterSceneManager : public Manager {
         masterScenesLock.Unlock();
     }
     /**
-     * Handle Received Blob
+     * Write the blob containing scene information to persistent data. \n
+     * @param blob - string containing scenes information.
+     * @param checksum
+     * @param timestamp
      */
     void HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp);
 

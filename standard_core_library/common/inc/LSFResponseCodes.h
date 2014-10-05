@@ -4,7 +4,7 @@
  * \ingroup Common
  */
 /**
- * @file
+ * \file  common/inc/LSFResponseCode.h
  * This file provides definitions for LSF response codes
  */
 /******************************************************************************

@@ -44,7 +44,8 @@ class ControllerService::ControllerListener :
     public SessionPortListener,
     public BusListener,
     public services::AnnounceHandler,
-    public SessionListener {
+    public SessionListener,
+    public BusAttachment::SetLinkTimeoutAsyncCB {
   public:
     ControllerListener(ControllerService* controller) : controller(controller), multipointjoiner(), multipointSessionId(0) { }
 
@@ -86,6 +87,10 @@ class ControllerService::ControllerListener :
             multipointSessionId = 0;
             multipointjoiner.clear();
         }
+    }
+
+    virtual void SetLinkTimeoutCB(QStatus status, uint32_t timeout, void* context) {
+        QCC_DbgTrace(("SetLinkTimeoutCB(%s, %u)", QCC_StatusText(status), timeout));
     }
 
     virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName) {
@@ -208,7 +213,7 @@ class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, p
 };
 
 ControllerService::ControllerService(
-    ajn::services::PropertyStore& propStore,
+    LSFPropertyStore& propStore,
     const std::string& factoryConfigFile,
     const std::string& configFile,
     const std::string& lampGroupFile,
@@ -794,13 +799,71 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
         QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
         if (signal) {
-            status = Signal(NULL, serviceSession, *signal, &arg, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+            status = Signal(NULL, serviceSession, *signal, &arg, 1, 0);
         }
     }
     serviceSessionMutex.Unlock();
 
     if (ER_OK == status) {
         QCC_DbgPrintf(("%s: Successfully sent signal with %d entries", __func__, arraySize));
+    } else {
+        QCC_LogError(status, ("%s: Failed to send signal", __func__));
+    }
+
+    return status;
+}
+
+QStatus ControllerService::SendNameChangedSignal(const char* ifaceName, const char* signalName, const LSFString& lampID, const LSFString& lampName)
+{
+    QCC_DbgTrace(("%s:ifaceName=%s signalName=%s", __func__, ifaceName, signalName));
+    QStatus status = ER_BUS_NO_SESSION;
+
+    MsgArg args[2];
+
+    args[0].Set("s", lampID.c_str());
+    args[1].Set("s", lampName.c_str());
+
+    serviceSessionMutex.Lock();
+    if (serviceSession != 0) {
+        QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
+        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
+        if (signal) {
+            status = Signal(NULL, serviceSession, *signal, args, 2, 0);
+        }
+    }
+    serviceSessionMutex.Unlock();
+
+    if (ER_OK == status) {
+        QCC_DbgPrintf(("%s: Successfully sent signal with %s:%s", __func__, lampID.c_str(), lampName.c_str()));
+    } else {
+        QCC_LogError(status, ("%s: Failed to send signal", __func__));
+    }
+
+    return status;
+}
+
+QStatus ControllerService::SendStateChangedSignal(const char* ifaceName, const char* signalName, const LSFString& lampID, const LampState& lampState)
+{
+    QCC_DbgTrace(("%s:ifaceName=%s signalName=%s", __func__, ifaceName, signalName));
+    QStatus status = ER_BUS_NO_SESSION;
+
+    MsgArg args[2];
+
+    args[0].Set("s", lampID.c_str());
+    lampState.Get(&args[1]);
+
+    serviceSessionMutex.Lock();
+    if (serviceSession != 0) {
+        QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
+        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
+        if (signal) {
+            status = Signal(NULL, serviceSession, *signal, args, 2, 0);
+        }
+    }
+    serviceSessionMutex.Unlock();
+
+    if (ER_OK == status) {
+        QCC_DbgPrintf(("%s: Successfully sent signal with %s:%s", __func__, lampID.c_str(), lampState.c_str()));
     } else {
         QCC_LogError(status, ("%s: Failed to send signal", __func__));
     }
@@ -818,7 +881,7 @@ QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const cha
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
         if (signal) {
             QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
-            status = Signal(NULL, serviceSession, *signal, NULL, ALLJOYN_FLAG_NO_REPLY_EXPECTED);
+            status = Signal(NULL, serviceSession, *signal, NULL, 0, 0);
         }
     }
     serviceSessionMutex.Unlock();
@@ -872,7 +935,7 @@ QStatus ControllerService::FactoryReset()
     obsObjectLock.Unlock();
 
     // reset user data
-    internalPropertyStore.Reset();
+    propertyStore.Reset();
 
     // the main thread will shut us down soon
     isRunning = false;
@@ -1234,17 +1297,17 @@ void ControllerService::LeaveSessionAsyncReplyHandler(ajn::Message& message, voi
 
 uint64_t ControllerService::GetRank()
 {
-    return internalPropertyStore.GetRank();
+    return propertyStore.GetRank();
 }
 
 bool ControllerService::IsLeader()
 {
-    return internalPropertyStore.IsLeader();
+    return propertyStore.IsLeader();
 }
 
 void ControllerService::SetIsLeader(bool val)
 {
-    internalPropertyStore.SetIsLeader(val);
+    propertyStore.SetIsLeader(val);
 }
 
 void ControllerService::AddObjDescriptionToAnnouncement(qcc::String path, qcc::String interface)

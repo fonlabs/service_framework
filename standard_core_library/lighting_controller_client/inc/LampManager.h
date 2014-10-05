@@ -4,7 +4,7 @@
  * \ingroup ControllerClient
  */
 /**
- * @file
+ * \file  lighting_controller_client/inc/LampManager.h
  * This file provides definitions for lamp manager
  */
 /******************************************************************************
@@ -41,7 +41,7 @@ class ControllerClient;
  * The callbacks defined in this class allow the User Application
  * to be informed when Lamps specific AllJoyn method
  * replies or signals are received from the Lighting Controller
- * Service
+ * Service.
  */
 class LampManagerCallback {
   public:
@@ -89,11 +89,12 @@ class LampManagerCallback {
     virtual void SetLampNameReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID, const LSFString& language) { }
 
     /**
-     *  Indicates that the signal LampsNameChanged has been received
+     *  Indicates that the signal LampNameChanged has been received
      *
-     *  @param lampIDs   The Lamp IDs
+     *  @param lampID   The Lamp ID
+     *  @param lampName The new name of the Lamp
      */
-    virtual void LampsNameChangedCB(const LSFStringList& lampIDs) { }
+    virtual void LampNameChangedCB(const LSFString& lampID, const LSFString& lampName) { }
 
     /**
      *  Indicates that the signal LampsFound has been received
@@ -208,11 +209,12 @@ class LampManagerCallback {
     virtual void ResetLampStateReplyCB(const LSFResponseCode& responseCode, const LSFString& lampID) { }
 
     /**
-     *  Indicates that the signal LampsStateChanged has been received
+     *  Indicates that the signal LampStateChanged has been received
      *
-     *  @param lampIDs   The Lamp IDs
+     *  @param lampID      The Lamp ID
+     *  @param lampState   The Lamp State
      */
-    virtual void LampsStateChangedCB(const LSFStringList& lampIDs) { }
+    virtual void LampStateChangedCB(const LSFString& lampID, const LampState& lampState) { }
 
     /**
      * Indicates that a reply has been received for the TransitionLampState method call
@@ -562,7 +564,7 @@ class LampManager : public Manager {
     }
 
     /**
-     * Reset the Lamp's Hue field to the default state \n
+     * Reset the Lamp's hue field to the default state \n
      * Response in LampManagerCallback::ResetLampStateHueFieldReplyCB \n
      * Calling interface org.allseen.LSF.ControllerService.Lamp  method ResetLampStateField \n
      * Default field value can be found at OEM_CS_Config.cc
@@ -575,7 +577,7 @@ class LampManager : public Manager {
     }
 
     /**
-     * Reset the Lamp's Saturation field to the default state \n
+     * Reset the Lamp's saturation field to the default state \n
      * Response in LampManagerCallback::ResetLampStateSaturationFieldReplyCB \n
      * Calling interface org.allseen.LSF.ControllerService.Lamp  method ResetLampStateField \n
      * Default field value can be found at OEM_CS_Config.cc
@@ -588,7 +590,7 @@ class LampManager : public Manager {
     }
 
     /**
-     * Reset the Lamp's state param \n
+     * Reset the Lamp's brightness filed to the default state \n
      * Response in LampManagerCallback::ResetLampStateBrightnessFieldReplyCB \n
      * Calling interface org.allseen.LSF.ControllerService.Lamp  method ResetLampStateField \n
      * Default field value can be found at OEM_CS_Config.cc
@@ -601,7 +603,7 @@ class LampManager : public Manager {
     }
 
     /**
-     * Reset the Lamp's state param \n
+     * Reset the Lamp's color field to the default state \n
      * Response in LampManagerCallback::ResetLampStateColorTempFieldReplyCB \n
      * Calling interface org.allseen.LSF.ControllerService.Lamp  method ResetLampStateField \n
      * Default field value can be found at OEM_CS_Config.cc
@@ -792,12 +794,12 @@ class LampManager : public Manager {
     ControllerClientStatus TransitionLampStateBooleanField(const LSFString& lampID, const LSFString& stateFieldName, const bool& value);
     ControllerClientStatus GetLampParametersField(const LSFString& lampID, const LSFString& stateFieldName);
 
-    void LampsNameChanged(LSFStringList& idList) {
-        callback.LampsNameChangedCB(idList);
+    void LampNameChanged(LSFString& lampId, LSFString& lampName) {
+        callback.LampNameChangedCB(lampId, lampName);
     }
 
-    void LampsStateChanged(LSFStringList& idList) {
-        callback.LampsStateChangedCB(idList);
+    void LampStateChanged(LSFString& id, LampState& state) {
+        callback.LampStateChangedCB(id, state);
     }
 
     void LampsFound(LSFStringList& idList) {

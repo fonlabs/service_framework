@@ -4,7 +4,7 @@
  * \ingroup ControllerClient
  */
 /**
- * @file
+ * \file lighting_controller_client/inc/PresentManager.h
  * This file provides definitions for present manager
  */
 /******************************************************************************
@@ -39,28 +39,33 @@ class ControllerClient;
  */
 class PresetManagerCallback {
   public:
+    /**
+     * Destructor
+     */
     virtual ~PresetManagerCallback() { }
 
     /**
-     * Response to PresetManager::GetPreset
-     *
+     * Response to PresetManager::GetPreset. \n
+     * response code LSF_OK on success. \n
+     *      LSF_ERR_NOT_FOUND - pre-set with requested id is not found. \n
      * @param responseCode    The return code
      * @param presetID    The id of the Preset
      * @param preset The state information
+     *
      */
     virtual void GetPresetReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LampState& preset) { }
 
     /**
-     * Response to PresetManager::GetAllPresetIDs
-     *
+     * Response to PresetManager::GetAllPresetIDs. \n
+     * response code LSF_OK on success. \n
      * @param responseCode    The return code
      * @param presetIDs   A list of LSFString's
      */
     virtual void GetAllPresetIDsReplyCB(const LSFResponseCode& responseCode, const LSFStringList& presetIDs) { }
 
     /**
-     * Response to PresetManager::GetPresetName
-     *
+     * Response to PresetManager::GetPresetName. \n
+     * Response code LSF_OK on success. \n
      * @param responseCode    The return code
      * @param presetID    The id of the Preset
      * @param language
@@ -69,8 +74,11 @@ class PresetManagerCallback {
     virtual void GetPresetNameReplyCB(const LSFResponseCode& responseCode, const LSFString& presetID, const LSFString& language, const LSFString& presetName) { }
 
     /**
-     * Response to PresetManager::SetPresetName
-     *
+     * Response to PresetManager::SetPresetName. \n
+     * response code LSF_OK on success. \n
+     *      LSF_ERR_INVALID_ARGS - language not supported, name is too long. \n
+     *      LSF_ERR_EMPTY_NAME - preset name is empty. \n
+     *      LSF_ERR_RESOURCES - blob is too big. \n
      * @param responseCode    The return code
      * @param presetID    The id of the Preset
      * @param language
@@ -85,8 +93,11 @@ class PresetManagerCallback {
     virtual void PresetsNameChangedCB(const LSFStringList& presetIDs) { }
 
     /**
-     * Response to PresetManager::CreatePreset
-     *
+     * Response to PresetManager::CreatePreset. \n
+     * response code LSF_OK on success. \n
+     *      LSF_ERR_INVALID_ARGS - language not supported, name is too long. \n
+     *      LSF_ERR_EMPTY_NAME - preset name is empty. \n
+     *      LSF_ERR_RESOURCES - blob is too big. \n
      * @param responseCode    The return code
      * @param presetID    The id of the new Preset
      */
@@ -100,8 +111,10 @@ class PresetManagerCallback {
     virtual void PresetsCreatedCB(const LSFStringList& presetIDs) { }
 
     /**
-     * Response to PresetManager::UpdatePreset
-     *
+     * Response to PresetManager::UpdatePreset. \n
+     * response code LSF_OK on success. \n
+     *      LSF_ERR_INVALID_ARGS - language not supported, name is too long. \n
+     *      LSF_ERR_RESOURCES - blob is too big. \n
      * @param responseCode    The return code
      * @param presetID    The id of the new Preset
      */
@@ -115,8 +128,9 @@ class PresetManagerCallback {
     virtual void PresetsUpdatedCB(const LSFStringList& presetIDs) { }
 
     /**
-     * Response to PresetManager::DeletePreset
-     *
+     * Response to PresetManager::DeletePreset. \n
+     * response code LSF_OK on success. \n
+     *      LSF_ERR_NOT_FOUND - pre-set with requested id is not found. \n
      * @param responseCode    The return code
      * @param presetID    The id of the Preset
      */
@@ -130,16 +144,17 @@ class PresetManagerCallback {
     virtual void PresetsDeletedCB(const LSFStringList& presetIDs) { }
 
     /**
-     *  Indicates that a reply has been received for the GetDefaultLampState method call
-     *
+     *  Indicates that a reply has been received for the GetDefaultLampState method call. \n
+     *  response code LSF_OK on success. \n
      *  @param responseCode    The response code
      *  @param defaultLampState   The default LampState
      */
     virtual void GetDefaultLampStateReplyCB(const LSFResponseCode& responseCode, const LampState& defaultLampState) { }
 
     /**
-     *  Indicates that a reply has been received for the SetDefaultLampState method call
-     *
+     *  Indicates that a reply has been received for the SetDefaultLampState method call. \n
+     *  response code LSF_OK on success. \n
+     *      LSF_ERR_RESOURCES - blob is too big. \n
      *  @param responseCode   The response code from the LightingControllerService
      */
     virtual void SetDefaultLampStateReplyCB(const LSFResponseCode& responseCode) { }
@@ -164,22 +179,27 @@ class PresetManager : public Manager {
     PresetManager(ControllerClient& controller, PresetManagerCallback& callback);
 
     /**
-     * Get a list of all LSFString's
-     * Response in PresetManagerCallback::GetAllPresetIDsReplyCB
+     * Get all pre-set ids. \n
+     * Return asynchronous all pre-set ids which are not the default lamp state. \n
+     * Response in PresetManagerCallback::GetAllPresetIDsReplyCB. \n
+     * @return CONTROLLER_CLIENT_OK on success to send the request. \n
      */
     ControllerClientStatus GetAllPresetIDs(void);
 
     /**
-     * Get the preset
-     * Response in PresetManagerCallback::GetPresetReplyCB
-     *
-     * @param presetID    The Preset id
+     * Get existing pre-set. \n
+     * Response in PresetManagerCallback::GetPresetReplyCB. \n
+     * @param presetID type LSFString which is pre-set id. \n
+     * Return asynchronously the pre-set response code, unique id and requested lamp state \n
+     * response code LSF_OK on success. \n
+     *      LSF_ERR_NOT_FOUND - pre-set with requested id is not found. \n
      */
     ControllerClientStatus GetPreset(const LSFString& presetID);
 
     /**
-     * Get the name of a Preset
-     * Response in PresetManagerCallback::GetPresetNameReplyCB
+     * Get the name of a Preset. \n
+     * Response in PresetManagerCallback::GetPresetNameReplyCB. \n
+     * Return asynchronously the pre-set name, id, language and response code. \n
      *
      * @param presetID    The id of the Preset
      * @param language
@@ -187,7 +207,8 @@ class PresetManager : public Manager {
     ControllerClientStatus GetPresetName(const LSFString& presetID, const LSFString& language = LSFString("en"));
 
     /**
-     * Set the name of a Preset
+     * Set the name of a Preset. \n
+     * Return asynchronously the pre-set new name, id, language and response code. \n
      * Response in PresetManagerCallback::SetPresetNameReplyCB
      *
      * @param presetID    The id of the Preset
@@ -197,8 +218,9 @@ class PresetManager : public Manager {
     ControllerClientStatus SetPresetName(const LSFString& presetID, const LSFString& presetName, const LSFString& language = LSFString("en"));
 
     /**
-     * Create a new preset
-     * Response in PresetManagerCallback::CreatePresetReplyCB
+     * Create a new preset. \n
+     * Response in PresetManagerCallback::CreatePresetReplyCB. \n
+     * Return asynchronously the pre-set response code and auto generated unique id. \n
      *
      * @param preset The new state information
      * @param presetName
@@ -207,8 +229,9 @@ class PresetManager : public Manager {
     ControllerClientStatus CreatePreset(const LampState& preset, const LSFString& presetName, const LSFString& language = LSFString("en"));
 
     /**
-     * Update a Preset
-     * Response in PresetManagerCallback::UpdatePresetReplyCB
+     * Update an existing Preset. \n
+     * Response in PresetManagerCallback::UpdatePresetReplyCB. \n
+     * Return asynchronously the pre-set response code and unique id. \n
      *
      * @param presetID    The id of the Preset
      * @param preset The new state information
@@ -216,36 +239,40 @@ class PresetManager : public Manager {
     ControllerClientStatus UpdatePreset(const LSFString& presetID, const LampState& preset);
 
     /**
-     * Delete a preset
-     * Response in PresetManagerCallback::DeletePresetReplyCB
+     * Delete a preset. \n
+     * Return asynchronously the pre-set response code and unique id. \n
+     * Response in PresetManagerCallback::DeletePresetReplyCB. \n
      *
      * @param presetID    The id of the Preset to delete
      */
     ControllerClientStatus DeletePreset(const LSFString& presetID);
 
     /**
-     * Get the default Lamp State
-     * Response comes in LampManagerCallback::GetDefaultLampStateReplyCB
+     * Get the default Lamp State. \n
+     * Return asynchronously the pre-set response code and lamp state which id is 'DefaultLampState'. \n
+     * Response comes in LampManagerCallback::GetDefaultLampStateReplyCB. \n
      *
      * @return
-     *      - CONTROLLER_CLIENT_OK if successful
-     *      - An error status otherwise
+     *      - CONTROLLER_CLIENT_OK if successful. \n
+     *      - An error status otherwise. \n
      */
     ControllerClientStatus GetDefaultLampState(void);
 
     /**
-     * Set the default state of new Lamps
-     * Response comes in LampManagerCallback::SetDefaultLampStateReplyCB
-     *
+     * Set the default state of new Lamps. \n
+     * Response comes in LampManagerCallback::SetDefaultLampStateReplyCB. \n
+     * Fill the preset with id 'DefaultLampState' new lamp state value. \n
+     * Creating it if it is not already exists. In this case the name and the id are the same. \n
      * @param  defaultLampState The Lamp state
      * @return
-     *      - CONTROLLER_CLIENT_OK if successful
-     *      - An error status otherwise
+     *      - CONTROLLER_CLIENT_OK if successful. \n
+     *      - An error status otherwise. \n
      */
     ControllerClientStatus SetDefaultLampState(const LampState& defaultLampState);
 
     /**
-     * Get the Preset Info and Name
+     * Get the Preset Info and Name. \n
+     * Combination of GetPreset and GetPresetName. \n
      *
      * @param presetID    The ID of the master preset
      * @param language

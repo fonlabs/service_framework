@@ -153,6 +153,7 @@ void RunService(bool listenToInterrupts)
         signal(SIGTERM, SigTermHandler);
     }
 
+
     lsf::ControllerServiceManager* controllerSvcManagerPtr =
         new lsf::ControllerServiceManager(factoryConfigFilePath, configFilePath, lampGroupFilePath, presetFilePath, sceneFilePath, masterSceneFilePath);
 

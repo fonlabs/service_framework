@@ -5,7 +5,7 @@
  */
 
 /**
- * @file
+ *  \file  lighting_controller_client/inc/ControllerClientDefs.h
  * This file provides definitions for the Lighting Controller Client
  */
 /******************************************************************************

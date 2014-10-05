@@ -4,7 +4,7 @@
  * \ingroup ControllerClient
  */
 /**
- * @file
+ * \file  lighting_controller_client/inc/Manager.h
  * This file provides definitions for manager type of classes
  */
 

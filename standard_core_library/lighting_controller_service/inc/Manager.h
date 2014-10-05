@@ -4,7 +4,7 @@
  * \ingroup ControllerService
  */
 /**
- * @file
+ * \file  lighting_controller_service/inc/Manager.h
  * This file provides definitions for manager types of classes
  */
 /******************************************************************************
@@ -101,7 +101,10 @@ class Manager : public ajn::MessageReceiver {
      */
     virtual bool GetString(std::string& output, uint32_t& checksum, uint64_t& timestamp) { return false; };
     /**
-     * Get file information
+     * Get file information \n
+     * Answer returns synchronously by the reference parameters
+     * @param checksum
+     * @param time
      */
     void GetBlobInfoInternal(uint32_t& checksum, uint64_t& time);
     /**

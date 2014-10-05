@@ -4,7 +4,7 @@
  * \ingroup Common
  */
 /**
- * @file
+ * \file  common/inc/LSFSemaphore.h
  * This file provides definitions for LSF semaphore
  */
 /******************************************************************************
@@ -33,7 +33,7 @@
 namespace lsf {
 
 /**
- * Class that implements a Semaphore
+ * Class that implements a Semaphore \n
  * Use a semaphore when some thread wants to sleep until some other thread tells it to wake up
  */
 class LSFSemaphore {

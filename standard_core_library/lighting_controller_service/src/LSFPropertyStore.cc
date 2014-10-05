@@ -45,7 +45,8 @@ LSFPropertyStore::LSFPropertyStore(const std::string& factoryConfigFile, const s
     configFileName(configFile),
     factoryConfigFileName(factoryConfigFile),
     asyncTasks(doNothing),
-    running(true)
+    running(true),
+    usingThread(true)
 {
     QCC_DbgTrace(("%s", __func__));
 
@@ -54,6 +55,16 @@ LSFPropertyStore::LSFPropertyStore(const std::string& factoryConfigFile, const s
     Start();
 }
 
+LSFPropertyStore::LSFPropertyStore()
+    : isInitialized(true),
+    configFileName(),
+    factoryConfigFileName(),
+    asyncTasks(doNothing),
+    running(false),
+    usingThread(false)
+{
+    QCC_DbgTrace(("%s", __func__));
+}
 
 LSFPropertyStore::~LSFPropertyStore()
 {
@@ -403,9 +414,17 @@ QStatus LSFPropertyStore::Update(const char* name, const char* languageTag, cons
     }
 
     if (status == ER_OK) {
-        asyncTasks = writetoConfig;
-        propsLock.Unlock();
-        propsCond.Signal();
+        if (usingThread) {
+            asyncTasks = writetoConfig;
+            propsLock.Unlock();
+            propsCond.Signal();
+        } else {
+            propsLock.Unlock();
+            AboutService* aboutService = AboutServiceApi::getInstance();
+            if (aboutService) {
+                aboutService->Announce();
+            }
+        }
     } else {
         propsLock.Unlock();
     }
@@ -494,9 +513,17 @@ QStatus LSFPropertyStore::Delete(const char* name, const char* languageTag)
     }
 
     if (status == ER_OK) {
-        asyncTasks = writetoConfig;
-        propsLock.Unlock();
-        propsCond.Signal();
+        if (usingThread) {
+            asyncTasks = writetoConfig;
+            propsLock.Unlock();
+            propsCond.Signal();
+        } else {
+            propsLock.Unlock();
+            AboutService* aboutService = AboutServiceApi::getInstance();
+            if (aboutService) {
+                aboutService->Announce();
+            }
+        }
     } else {
         propsLock.Unlock();
     }

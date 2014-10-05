@@ -237,33 +237,25 @@ ControllerClient::ControllerClient(
     presetManagerPtr(NULL),
     sceneManagerPtr(NULL),
     masterSceneManagerPtr(NULL),
-    exiting(false)
+    stopped(true)
 {
     currentLeader.Clear();
-    QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
-    QCC_DbgPrintf(("services::AnnouncementRegistrar::RegisterAnnounceHandler: %s\n", QCC_StatusText(status)));
     bus.RegisterBusListener(*busHandler);
+}
+
+QStatus ControllerClient::Start(void)
+{
+    QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
+    QCC_DbgPrintf(("%s: RegisterAnnounceHandler: %s\n", __func__, QCC_StatusText(status)));
+    if (status == ER_OK) {
+        stopped = false;
+    }
+    return status;
 }
 
 ControllerClient::~ControllerClient()
 {
-    exiting = true;
-
-    SessionId sessionId = 0;
-
-    currentLeaderLock.Lock();
-    if (currentLeader.sessionId) {
-        sessionId = currentLeader.sessionId;
-        RemoveSignalHandlers();
-        currentLeader.Clear();
-    }
-    currentLeaderLock.Unlock();
-
-    if (sessionId) {
-        DoLeaveSessionAsync(sessionId);
-    }
-
-    services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
+    Stop();
 
     services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(bus);
 
@@ -274,6 +266,7 @@ ControllerClient::~ControllerClient()
         busHandler = NULL;
     }
 
+    RemoveSignalHandlers();
     RemoveMethodHandlers();
 }
 
@@ -416,6 +409,11 @@ void ControllerClient::SignalWithArgDispatcher(const ajn::InterfaceDescription::
 
     QCC_DbgPrintf(("%s: Received Signal %s", __func__, message->GetMemberName()));
 
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
+        return;
+    }
+
     SignalDispatcherMap::iterator it = signalHandlers.find(message->GetMemberName());
     if (it != signalHandlers.end()) {
         SignalHandlerBase* handler = it->second;
@@ -440,11 +438,77 @@ void ControllerClient::SignalWithArgDispatcher(const ajn::InterfaceDescription::
     }
 }
 
+void ControllerClient::NameChangedSignalDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message)
+{
+    bus.EnableConcurrentCallbacks();
+
+    QCC_DbgPrintf(("%s: Received Signal %s", __func__, message->GetMemberName()));
+
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
+        return;
+    }
+
+    NameChangedSignalDispatcherMap::iterator it = nameChangedSignalHandlers.find(message->GetMemberName());
+    if (it != nameChangedSignalHandlers.end()) {
+        NameChangedSignalHandlerBase* handler = it->second;
+
+        size_t numInputArgs;
+        const MsgArg* inputArgs;
+        message->GetArgs(numInputArgs, inputArgs);
+
+        char* id;
+        char* name;
+        inputArgs[0].Get("s", &id);
+        inputArgs[1].Get("s", &name);
+
+        LSFString lampId = LSFString(id);
+        LSFString lampName = LSFString(name);
+
+        handler->Handle(lampId, lampName);
+    }
+}
+
+void ControllerClient::StateChangedSignalDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message)
+{
+    bus.EnableConcurrentCallbacks();
+
+    QCC_DbgPrintf(("%s: Received Signal %s", __func__, message->GetMemberName()));
+
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
+        return;
+    }
+
+    StateChangedSignalDispatcherMap::iterator it = stateChangedSignalHandlers.find(message->GetMemberName());
+    if (it != stateChangedSignalHandlers.end()) {
+        StateChangedSignalHandlerBase* handler = it->second;
+
+        size_t numInputArgs;
+        const MsgArg* inputArgs;
+        message->GetArgs(numInputArgs, inputArgs);
+
+        char* id;
+        inputArgs[0].Get("s", &id);
+
+        LampState state(inputArgs[1]);
+
+        LSFString lampId = LSFString(id);
+
+        handler->Handle(lampId, state);
+    }
+}
+
 void ControllerClient::SignalWithoutArgDispatcher(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& message)
 {
     bus.EnableConcurrentCallbacks();
 
     QCC_DbgPrintf(("%s: Received Signal %s", __func__, message->GetMemberName()));
+
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
+        return;
+    }
 
     NoArgSignalDispatcherMap::iterator it = noArgSignalHandlers.find(message->GetMemberName());
     if (it != noArgSignalHandlers.end()) {
@@ -496,7 +560,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
 
         if (!deviceName.empty()) {
             if (ER_OK == status) {
-                uint32_t linkTimeOut = 5;
+                uint32_t linkTimeOut = 40;
                 QStatus tempStatus = bus.SetLinkTimeout(sessionId, linkTimeOut);
                 if (tempStatus != ER_OK) {
                     QCC_LogError(tempStatus, ("%s: SetLinkTimeout failed", __func__));
@@ -656,8 +720,8 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message& message, void* context)
 {
-    if (exiting) {
-        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
         return;
     }
     if (context) {
@@ -731,8 +795,8 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& message, void* context)
 {
-    if (exiting) {
-        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
         return;
     }
     if (context) {
@@ -801,8 +865,8 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& message, void* context)
 {
-    if (exiting) {
-        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
         return;
     }
     if (context) {
@@ -869,8 +933,8 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithUint32Value(
 
 void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, void* context)
 {
-    if (exiting) {
-        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
         return;
     }
     if (context) {
@@ -933,8 +997,8 @@ ControllerClientStatus ControllerClient::MethodCallAsyncForReplyWithResponseCode
 
 void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Message& message, void* context)
 {
-    if (exiting) {
-        QCC_DbgPrintf(("%s: Controller Client exiting", __func__));
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client stopped", __func__));
         return;
     }
     if (context) {
@@ -981,9 +1045,11 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
     }
 }
 
-void ControllerClient::Reset(void)
+QStatus ControllerClient::Stop(void)
 {
     QCC_DbgPrintf(("%s", __func__));
+
+    stopped = true;
 
     LSFString deviceName;
     LSFString deviceID;
@@ -1005,8 +1071,14 @@ void ControllerClient::Reset(void)
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 
-    while (!(JoinSessionWithAnotherLeader())) ;
-    QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
+    leadersMapLock.Lock();
+    leadersMap.clear();
+    leadersMapLock.Unlock();
+
+    QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
+    QCC_DbgPrintf(("%s: UnRegisterAnnounceHandler: %s\n", __func__, QCC_StatusText(status)));
+
+    return status;
 }
 
 void ControllerClient::AddMethodHandlers()
@@ -1019,8 +1091,8 @@ void ControllerClient::AddMethodHandlers()
     }
 
     if (lampManagerPtr) {
-        AddSignalHandler("LampsNameChanged", lampManagerPtr, &LampManager::LampsNameChanged);
-        AddSignalHandler("LampsStateChanged", lampManagerPtr, &LampManager::LampsStateChanged);
+        AddNameChangedSignalHandler("LampNameChanged", lampManagerPtr, &LampManager::LampNameChanged);
+        AddStateChangedSignalHandler("LampStateChanged", lampManagerPtr, &LampManager::LampStateChanged);
         AddSignalHandler("LampsFound", lampManagerPtr, &LampManager::LampsFound);
         AddSignalHandler("LampsLost", lampManagerPtr, &LampManager::LampsLost);
 
@@ -1131,8 +1203,8 @@ void ControllerClient::AddSignalHandlers()
 
     const SignalEntry signalEntries[] = {
         { controllerServiceInterface->GetMember("ControllerServiceLightingReset"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
-        { controllerServiceLampInterface->GetMember("LampsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampInterface->GetMember("LampsStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::NameChangedSignalDispatcher) },
+        { controllerServiceLampInterface->GetMember("LampStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::StateChangedSignalDispatcher) },
         { controllerServiceLampInterface->GetMember("LampsFound"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampInterface->GetMember("LampsLost"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceLampGroupInterface->GetMember("LampGroupsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
@@ -1167,50 +1239,10 @@ void ControllerClient::AddSignalHandlers()
 
 void ControllerClient::RemoveSignalHandlers()
 {
-    const InterfaceDescription* controllerServiceInterface = currentLeader.proxyObject.GetInterface(ControllerServiceInterfaceName);
-    const InterfaceDescription* controllerServiceLampInterface = currentLeader.proxyObject.GetInterface(ControllerServiceLampInterfaceName);
-    const InterfaceDescription* controllerServiceLampGroupInterface = currentLeader.proxyObject.GetInterface(ControllerServiceLampGroupInterfaceName);
-    const InterfaceDescription* controllerServicePresetInterface = currentLeader.proxyObject.GetInterface(ControllerServicePresetInterfaceName);
-    const InterfaceDescription* controllerServiceSceneInterface = currentLeader.proxyObject.GetInterface(ControllerServiceSceneInterfaceName);
-    const InterfaceDescription* controllerServiceMasterSceneInterface = currentLeader.proxyObject.GetInterface(ControllerServiceMasterSceneInterfaceName);
-
-    const SignalEntry signalEntries[] = {
-        { controllerServiceInterface->GetMember("ControllerServiceLightingReset"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
-        { controllerServiceLampInterface->GetMember("LampsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampInterface->GetMember("LampsStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampInterface->GetMember("LampsFound"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampInterface->GetMember("LampsLost"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("LampGroupsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("LampGroupsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("LampGroupsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceLampGroupInterface->GetMember("LampGroupsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServicePresetInterface->GetMember("DefaultLampStateChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithoutArgDispatcher) },
-        { controllerServicePresetInterface->GetMember("PresetsNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServicePresetInterface->GetMember("PresetsCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServicePresetInterface->GetMember("PresetsUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServicePresetInterface->GetMember("PresetsDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceSceneInterface->GetMember("ScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceSceneInterface->GetMember("ScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceSceneInterface->GetMember("ScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceSceneInterface->GetMember("ScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceSceneInterface->GetMember("ScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceMasterSceneInterface->GetMember("MasterScenesNameChanged"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceMasterSceneInterface->GetMember("MasterScenesCreated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceMasterSceneInterface->GetMember("MasterScenesUpdated"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceMasterSceneInterface->GetMember("MasterScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
-        { controllerServiceMasterSceneInterface->GetMember("MasterScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) }
-    };
-
-    for (size_t i = 0; i < (sizeof(signalEntries) / sizeof(SignalEntry)); ++i) {
-        bus.UnregisterSignalHandler(
-            this,
-            signalEntries[i].handler,
-            signalEntries[i].member,
-            ControllerServiceObjectPath);
-    }
-
     DeleteSignalHandlers();
     DeleteNoArgSignalHandlers();
+    DeleteNameChangedSignalHandlers();
+    DeleteStateChangedSignalHandlers();
 }
 
 }

@@ -35,9 +35,9 @@ namespace lsf {
 
 class ControllerService;
 /**
- * LeaderElectionObject class
- * Implementing the algorithm of leader election
- * Implementing the election behavior of the entity as a leader and also as a follower
+ * LeaderElectionObject class. \n
+ * Implementing the algorithm of leader election. \n
+ * Implementing the election behavior of the entity as a leader and also as a follower. \n
  */
 class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmListener {
   public:
@@ -66,17 +66,17 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
      */
     void Join(void);
     /**
-     * get blob reply
+     * get blob reply. \n
      * Get data and metadata about lamps
      */
     void SendGetBlobReply(ajn::Message& message, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
     /**
-     * Send blob update
+     * Send blob update. \n
      * Get data and metadata about lamps
      */
     QStatus SendBlobUpdate(ajn::SessionId session, LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);
     /**
-     * send blob update
+     * send blob update. \n
      * Send data and metadata about lamps
      */
     QStatus SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp);

@@ -4,7 +4,7 @@
  * \ingroup Common
  */
 /**
- * @file
+ * \file  common/inc/Thread.h
  * This file provides definitions for thread infrastructure
  */
 /******************************************************************************
@@ -48,9 +48,9 @@ class Thread {
      */
     virtual void Run() = 0;
     /**
-     * Stop running thread.
-     * Can be implemented by changing a variable value that is shared with the run() method.
-     * This will release the thread.
+     * Stop running thread.  \n
+     * Can be implemented by changing a variable value that is shared with the run() method.  \n
+     * This will release the thread.  \n
      */
     virtual void Stop() = 0;
     /**

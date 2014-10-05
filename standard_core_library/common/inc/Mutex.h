@@ -4,7 +4,7 @@
  * \ingroup Common
  */
 /**
- * @file
+ * \file  common/inc/Mutex.h
  * This file provides definitions for mutex
  */
 /******************************************************************************
@@ -31,9 +31,9 @@
 
 namespace lsf {
 /**
- * a wrapper class to mutex
- * Use a mutex when thread wants to execute code that should not be executed by any other thread at the same time.
- * Mutex 'down' happens in one thread and mutex 'up' must happen in the same thread later on.
+ * a wrapper class to mutex. \n
+ * Use a mutex when thread wants to execute code that should not be executed by any other thread at the same time. \n
+ * Mutex 'down' happens in one thread and mutex 'up' must happen in the same thread later on. \n
  */
 class Mutex {
   public:

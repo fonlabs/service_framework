@@ -59,8 +59,10 @@ namespace lsf {
 
 /**
  * Link timeout in seconds
+ * This value has to be greater than or equal to 40s because the AllJoyn
+ * Daemon does not allow this value to be less than 40s
  */
-#define OEM_CS_LINK_TIMEOUT 5
+#define OEM_CS_LINK_TIMEOUT 40
 
 /**
  * Timeout used in the check to see if the Controller Service is still connected
@@ -104,16 +106,12 @@ void OEM_CS_PopulateDefaultProperties(LSFPropertyStore& propStore);
 
 /**
  * This function returns the rank of this Controller Service
- *
- * @param None
  * @return Rank of this Controller Service
  */
 uint64_t OEM_CS_GetRank(void);
 
 /**
  * This function returns true if this Controller Service is the leader
- *
- * @param None
  * @return Boolean indicating if this Controller Service if the leader
  */
 bool OEM_CS_IsLeader(void);

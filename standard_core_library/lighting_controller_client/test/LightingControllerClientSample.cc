@@ -210,13 +210,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
         }
     }
 
-    void LampsNameChangedCB(const LSFStringList& lampIDs) {
-        printf("\n%s", __func__);
-        LSFStringList::const_iterator it = lampIDs.begin();
-        for (; it != lampIDs.end(); ++it) {
-            printf("\n%s", (*it).c_str());
-        }
-        printf("\n");
+    void LampNameChangedCB(const LSFString& lampID, const LSFString& lampName) {
+        printf("\n%s: lampID = %s lampName = %s", __func__, lampID.c_str(), lampName.c_str());
         gotSignal = true;
     }
 
@@ -325,13 +320,8 @@ class LampManagerCallbackHandler : public LampManagerCallback {
         }
     }
 
-    void LampsStateChangedCB(const LSFStringList& lampIDs) {
-        printf("\n%s", __func__);
-        LSFStringList::const_iterator it = lampIDs.begin();
-        for (; it != lampIDs.end(); ++it) {
-            printf("\n%s", (*it).c_str());
-        }
-        printf("\n");
+    void LampStateChangedCB(const LSFString& lampID, const LampState& lampState) {
+        printf("\n%s: lampID = %s lampState = %s", __func__, lampID.c_str(), lampState.c_str());
         gotSignal = true;
     }
 
@@ -1253,7 +1243,8 @@ void PrintHelp() {
     printf("(85):  GetPresetDataSet\n");
     printf("(86):  GetSceneDataSet\n");
     printf("(87):  GetMasterSceneDataSet\n");
-    printf("(88):  Reset\n");
+    printf("(88):  Stop\n");
+    printf("(89):  Start\n");
 }
 
 int main()
@@ -1281,6 +1272,8 @@ int main()
     PresetManager presetManager(client, presetManagerCBHandler);
     SceneManager sceneManager(client, sceneManagerCBHandler);
     MasterSceneManager masterSceneManager(client, masterSceneManagerCBHandler);
+
+    client.Start();
 
     printf("\nController Client Version = %d\n", client.GetVersion());
 
@@ -2008,8 +2001,11 @@ int main()
                 status = masterSceneManager.GetMasterSceneDataSet(uniqueId.c_str());
                 numRepliesToWait = 2;
             } else if (cmd == "88") {
-                printf("\nInvoking Reset()");
-                client.Reset();
+                printf("\nInvoking Stop()");
+                client.Stop();
+            } else if (cmd == "89") {
+                printf("\nInvoking Start()");
+                client.Start();
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {

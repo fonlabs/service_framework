@@ -27,13 +27,21 @@
 #include <qcc/String.h>
 
 namespace lsf {
-
+/**
+ * Device Icon URL
+ */
 extern const qcc::String DeviceIconURL;
-
+/**
+ * Device Icon Mime Type
+ */
 extern const qcc::String DeviceIconMimeType;
-
+/**
+ * Device Icon embedded data
+ */
 extern uint8_t DeviceIcon[];
-
+/**
+ * Device icon size
+ */
 extern const size_t DeviceIconSize;
 
 }

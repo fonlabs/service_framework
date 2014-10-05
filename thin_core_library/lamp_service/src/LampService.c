@@ -221,21 +221,25 @@ static volatile uint8_t PendingFactoryResetRequest = FALSE;
 
 void LAMP_SetFaults(void)
 {
+    AJ_InfoPrintf(("%s\n", __func__));
     PendingFaultNotification = TRUE;
 }
 
 void LAMP_ClearFaults(void)
 {
+    AJ_InfoPrintf(("%s\n", __func__));
     PendingFaultNotification = FALSE;
 }
 
 void LAMP_Restart(void)
 {
+    AJ_InfoPrintf(("%s\n", __func__));
     PendingRestartRequest = TRUE;
 }
 
 void LAMP_FactoryReset(void)
 {
+    AJ_InfoPrintf(("%s\n", __func__));
     PendingFactoryResetRequest = TRUE;
 }
 
@@ -563,11 +567,13 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
         }
 
         if (PendingRestartRequest == TRUE) {
+            AJ_InfoPrintf(("%s: PendingRestartRequest == TRUE\n", __func__));
             PendingRestartRequest = FALSE;
             status = AJ_ERR_RESTART;
         }
 
         if (PendingFactoryResetRequest == TRUE) {
+            AJ_InfoPrintf(("%s: PendingFactoryResetRequest == TRUE\n", __func__));
             PendingFactoryResetRequest = FALSE;
 
             AJSVC_PropertyStore_ResetAll();
@@ -581,7 +587,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
         }
 
         if (status == AJ_ERR_READ || status == AJ_ERR_RESTART || status == AJ_ERR_RESTART_APP) {
-            AJ_InfoPrintf(("%s: AllJoyn disconnect\n", __func__));
+            AJ_InfoPrintf(("%s: AllJoyn disconnect due to status %s\n", __func__, AJ_StatusText(status)));
             AJ_InfoPrintf(("%s: Disconnected from Daemon:%s\n", __func__, AJ_GetUniqueName(&Bus)));
 
             LSF_DisconnectHandler(status != AJ_ERR_READ);
