@@ -134,7 +134,7 @@ class ControllerClient : public ajn::MessageReceiver {
      *  call this API when it detects that the device has disconnected
      *  from Wi-Fi and/or the data network
      */
-    QStatus Stop(void);
+    ControllerClientStatus Stop(void);
 
     /**
      *  Start the Lighting Controller Client. This will cause the
@@ -146,7 +146,7 @@ class ControllerClient : public ajn::MessageReceiver {
      *  when it detects that the device has re-connected to Wi-Fi and/or
      *  the data network after it was disconnected
      */
-    QStatus Start(void);
+    ControllerClientStatus Start(void);
 
   private:
 
@@ -809,6 +809,8 @@ class ControllerClient : public ajn::MessageReceiver {
     }
 
     volatile sig_atomic_t stopped;
+
+    uint64_t timeStopped;
 };
 
 template <typename OBJ>

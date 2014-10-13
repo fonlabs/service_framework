@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <ControllerService.h>
 #include <OEM_CS_Config.h>
-#include <time.h>
 
 using namespace lsf;
 using namespace ajn;
@@ -30,24 +29,6 @@ using namespace ajn;
 
 lsf::Mutex l_methodCallCountMutex;
 uint32_t l_methodCallCount = 0;
-
-static uint64_t GetTimeMsec()
-{
-    static time_t s_clockOffset = 0;
-    struct timespec ts;
-    uint64_t ret_val;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    if (0 == s_clockOffset) {
-        s_clockOffset = ts.tv_sec;
-    }
-
-    ret_val = ((uint64_t)(ts.tv_sec - s_clockOffset)) * 1000;
-    ret_val = (uint64_t)ts.tv_nsec / 1000000;
-
-    return ret_val;
-}
 
 class LampClients::ServiceHandler : public services::AnnounceHandler {
   public:
@@ -490,7 +471,7 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
                         QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for context", __func__));
                         status = ER_FAIL;
                     } else {
-                        ctx->timeSent = GetTimeMsec();
+                        ctx->timeSent = GetTimestampInMs();
                         ctx->method = element.method;
                         if (0 == strcmp(element.interface.c_str(), ConfigServiceInterfaceName)) {
                             QCC_DbgPrintf(("%s: Config Call", __func__));
@@ -579,7 +560,7 @@ LSFResponseCode LampClients::DoGetLampState(QueuedMethodCallContext* ctx)
     if (lit != activeLamps.end()) {
         QCC_DbgPrintf(("%s: Found Lamp", __func__));
         if (lit->second->IsConnected()) {
-            ctx->timeSent = GetTimeMsec();
+            ctx->timeSent = GetTimestampInMs();
             QCC_DbgPrintf(("%s: LampService Call", __func__));
             status = lit->second->object.MethodCallAsync(
                 org::freedesktop::DBus::Properties::InterfaceName,
@@ -622,7 +603,7 @@ void LampClients::HandleGetLampStateReply(ajn::Message& message, void* context)
     }
 
     QCC_DbgTrace(("%s: Received reply to call %s on lamp %s in %lu msec", __func__,
-                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimeMsec() - ctx->timeSent)));
+                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimestampInMs() - ctx->timeSent)));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         size_t numArgs;
@@ -736,7 +717,7 @@ void LampClients::HandleGetReply(ajn::Message& message, void* context)
     QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
 
     QCC_DbgTrace(("%s: Received reply to call %s on lamp %s in %lu msec", __func__,
-                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimeMsec() - ctx->timeSent)));
+                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimestampInMs() - ctx->timeSent)));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         size_t numArgs;
@@ -936,7 +917,7 @@ void LampClients::HandleReplyWithLampResponseCode(Message& message, void* contex
     }
 
     QCC_DbgTrace(("%s: Received reply to call %s on lamp %s in %lu msec", __func__,
-                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimeMsec() - ctx->timeSent)));
+                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimestampInMs() - ctx->timeSent)));
 
     QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
 
@@ -1017,7 +998,7 @@ void LampClients::HandleReplyWithVariant(ajn::Message& message, void* context)
     QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
 
     QCC_DbgTrace(("%s: Received reply to call %s on lamp %s in %lu msec", __func__,
-                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimeMsec() - ctx->timeSent)));
+                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimestampInMs() - ctx->timeSent)));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         size_t numArgs;
@@ -1109,7 +1090,7 @@ void LampClients::HandleReplyWithKeyValuePairs(Message& message, void* context)
     QueuedMethodCall* queuedCall = ctx->queuedCallPtr;
 
     QCC_DbgTrace(("%s: Received reply to call %s on lamp %s in %lu msec", __func__,
-                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimeMsec() - ctx->timeSent)));
+                  ctx->method.c_str(), ctx->lampID.c_str(), (GetTimestampInMs() - ctx->timeSent)));
 
     if (MESSAGE_METHOD_RET == message->GetType()) {
         const MsgArg* args;

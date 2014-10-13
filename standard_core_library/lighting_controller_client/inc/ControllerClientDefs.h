@@ -52,7 +52,9 @@ typedef enum _ErrorCode {
     /**< Disconnected from the AllJoyn Bus */
     ERROR_DISCONNECTED_FROM_BUS = 5,
     /**< Controller Client is exiting */
-    ERROR_CONTROLLER_CLIENT_EXITING = 6
+    ERROR_CONTROLLER_CLIENT_EXITING = 6,
+    /**< Last value */
+    ERROR_LAST_VALUE = 7
 } ErrorCode;
 /**
  * List of enum error codes
@@ -70,8 +72,15 @@ const char* ControllerClientErrorText(ErrorCode errorCode);
 typedef enum _ControllerClientStatus {
     CONTROLLER_CLIENT_OK = 0,                 /**< Success */
     CONTROLLER_CLIENT_ERR_NOT_CONNECTED = 1,  /**< The Controller Client is not connected to any Controller Service */
-    CONTROLLER_CLIENT_ERR_FAILURE = 2         /**< The requested operation failed. Look at the error logs to understand the underlying issue */
+    CONTROLLER_CLIENT_ERR_FAILURE = 2,        /**< The requested operation failed. Look at the error logs to understand the underlying issue */
+    CONTROLLER_CLIENT_ERR_RETRY = 3,          /**< The requested operation should be re-tried */
+    CONTROLLER_CLIENT_LAST_VALUE = 4          /**< Last value */
 } ControllerClientStatus;
+
+/**
+ * Convert ControllerClientStatus enum type to string type
+ */
+const char* ControllerClientStatusText(ControllerClientStatus status);
 
 } // namespace lsf
 

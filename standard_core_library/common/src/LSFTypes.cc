@@ -18,6 +18,16 @@
 #include <LampValues.h>
 #include <qcc/Debug.h>
 #include <algorithm>
+#include <time.h>
+
+#if defined(LSF_OS_DARWIN)
+
+#include <sys/time.h>
+#include <mach/mach_time.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
+
+#endif
 
 using namespace ajn;
 
@@ -69,6 +79,35 @@ const char* LeaderElectionAndStateSyncInterfaceName = "org.allseen.LeaderElectio
 const char* ApplySceneEventActionInterfaceName = "org.allseen.LSF.ControllerService.ApplySceneEventAction.";
 
 const char* ApplySceneEventActionObjectPath = "/org/allseen/LSF/ControllerService/ApplySceneEventAction/";
+
+static void platform_gettime(struct timespec* ts)
+{
+#if defined(LSF_OS_DARWIN)
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    ts->tv_sec = mts.tv_sec;
+    ts->tv_nsec = mts.tv_nsec;
+
+#else
+    clock_gettime(CLOCK_MONOTONIC, ts);
+#endif
+}
+
+uint64_t GetTimestampInMs(void)
+{
+    struct timespec ts;
+    uint64_t ret;
+
+    platform_gettime(&ts);
+
+    ret = ((uint64_t)(ts.tv_sec)) * 1000;
+    ret += (uint64_t)ts.tv_nsec / 1000000;
+
+    return ret;
+}
 
 void CreateUniqueList(LSFStringList& uniqueList, LSFStringList& fromList)
 {

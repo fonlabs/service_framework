@@ -160,6 +160,11 @@ void ControllerClient::ControllerClientBusHandler::Announce(
 {
     QCC_DbgPrintf(("%s", __func__));
 
+    if (controllerClient.stopped) {
+        QCC_DbgPrintf(("%s: Controller Client is stopped. Returning without processing announcement.", __func__));
+        return;
+    }
+
     AboutData::const_iterator ait;
     const char* deviceID = NULL;
     const char* deviceName = NULL;
@@ -237,20 +242,32 @@ ControllerClient::ControllerClient(
     presetManagerPtr(NULL),
     sceneManagerPtr(NULL),
     masterSceneManagerPtr(NULL),
-    stopped(true)
+    stopped(true),
+    timeStopped(0)
 {
     currentLeader.Clear();
     bus.RegisterBusListener(*busHandler);
 }
 
-QStatus ControllerClient::Start(void)
+ControllerClientStatus ControllerClient::Start(void)
 {
+    ControllerClientStatus clientStatus = CONTROLLER_CLIENT_OK;
+
+    if (timeStopped != 0) {
+        if ((GetTimestampInMs() - timeStopped) <= (40 * 1000)) {
+            QCC_DbgPrintf(("%s: Start() was called within 40s from when Stop() was called", __func__));
+            return CONTROLLER_CLIENT_ERR_RETRY;
+        }
+    }
+
     QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("%s: RegisterAnnounceHandler: %s\n", __func__, QCC_StatusText(status)));
     if (status == ER_OK) {
         stopped = false;
+    } else {
+        clientStatus = CONTROLLER_CLIENT_ERR_FAILURE;
     }
-    return status;
+    return clientStatus;
 }
 
 ControllerClient::~ControllerClient()
@@ -279,6 +296,11 @@ uint32_t ControllerClient::GetVersion(void)
 bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
 {
     QCC_DbgPrintf(("%s: Current Leader Rank %llu", __func__, currentLeaderRank));
+
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client is stopped. Returning.", __func__));
+        return true;
+    }
 
     ControllerEntry entry;
     entry.Clear();
@@ -600,6 +622,11 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
 void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank)
 {
     QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu", __func__, port, busName, deviceID, deviceName, rank));
+
+    if (stopped) {
+        QCC_DbgPrintf(("%s: Controller Client is stopped. Returning without processing announcement.", __func__));
+        return;
+    }
 
     bool nameChanged = false;
     ajn::SessionId sessionId = 0;
@@ -1045,11 +1072,12 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
     }
 }
 
-QStatus ControllerClient::Stop(void)
+ControllerClientStatus ControllerClient::Stop(void)
 {
     QCC_DbgPrintf(("%s", __func__));
 
     stopped = true;
+    timeStopped = GetTimestampInMs();
 
     LSFString deviceName;
     LSFString deviceID;
@@ -1077,10 +1105,14 @@ QStatus ControllerClient::Stop(void)
     leadersMap.clear();
     leadersMapLock.Unlock();
 
+    ControllerClientStatus clientStatus = CONTROLLER_CLIENT_OK;
     QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *busHandler, interfaces, sizeof(interfaces) / sizeof(interfaces[0]));
     QCC_DbgPrintf(("%s: UnRegisterAnnounceHandler: %s\n", __func__, QCC_StatusText(status)));
+    if (status != ER_OK) {
+        clientStatus = CONTROLLER_CLIENT_ERR_FAILURE;
+    }
 
-    return status;
+    return clientStatus;
 }
 
 void ControllerClient::AddMethodHandlers()

@@ -1273,7 +1273,8 @@ int main()
     SceneManager sceneManager(client, sceneManagerCBHandler);
     MasterSceneManager masterSceneManager(client, masterSceneManagerCBHandler);
 
-    client.Start();
+    ControllerClientStatus status = client.Start();
+    printf("\nController Client Start() returned %s\n", ControllerClientStatusText(status));
 
     printf("\nController Client Version = %d\n", client.GetVersion());
 
@@ -1284,7 +1285,7 @@ int main()
 
     printf("\nController Client setup successful.\n");
 
-    ControllerClientStatus status = CONTROLLER_CLIENT_OK;
+    status = CONTROLLER_CLIENT_OK;
     const int bufSize = 1024;
     char buf[bufSize];
 
@@ -2002,10 +2003,12 @@ int main()
                 numRepliesToWait = 2;
             } else if (cmd == "88") {
                 printf("\nInvoking Stop()");
-                client.Stop();
+                status = client.Stop();
+                printf("\nController Client Stop() returned %s\n", ControllerClientStatusText(status));
             } else if (cmd == "89") {
                 printf("\nInvoking Start()");
-                client.Start();
+                status = client.Start();
+                printf("\nController Client Start() returned %s\n", ControllerClientStatusText(status));
             } else if (cmd == "help") {
                 PrintHelp();
             } else if (cmd == "exit") {

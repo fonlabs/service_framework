@@ -48,16 +48,6 @@ namespace lsf {
 #define OEM_CS_LAMP_METHOD_CALL_TIMEOUT 25000
 
 /**
- * Ping frequency
- */
-#define OEM_CS_PING_FREQUENCY_IN_MS 5000
-
-/**
- * Ping back-off
- */
-#define OEM_CS_PING_BACKOFF_IN_MS 2000
-
-/**
  * Link timeout in seconds
  * This value has to be greater than or equal to 40s because the AllJoyn
  * Daemon does not allow this value to be less than 40s

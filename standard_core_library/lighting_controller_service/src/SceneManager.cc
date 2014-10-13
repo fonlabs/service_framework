@@ -1144,7 +1144,7 @@ bool SceneManager::GetString(std::string& output, uint32_t& checksum, uint64_t& 
                 timeStamp = timestamp = 0UL;
                 initialState = false;
             } else {
-                timeStamp = timestamp = GetTimestamp64();
+                timeStamp = timestamp = GetTimestampInMs();
             }
             checkSum = checksum = GetChecksum(output);
         }
@@ -1157,7 +1157,7 @@ bool SceneManager::GetString(std::string& output, uint32_t& checksum, uint64_t& 
 void SceneManager::HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgPrintf(("%s", __func__));
-    uint64_t currentTimestamp = GetTimestamp64();
+    uint64_t currentTimestamp = GetTimestampInMs();
     scenesLock.Lock();
     if (((timeStamp == 0) || ((currentTimestamp - timeStamp) > timestamp)) && (checkSum != checksum)) {
         std::istringstream stream(blob.c_str());
@@ -1187,7 +1187,7 @@ void SceneManager::ReadWriteFile()
     if (status) {
         WriteFileWithChecksumAndTimestamp(output, checksum, timestamp);
         if (timestamp != 0UL) {
-            uint64_t currentTime = GetTimestamp64();
+            uint64_t currentTime = GetTimestampInMs();
             controllerService.SendBlobUpdate(LSF_SCENE, output, checksum, (currentTime - timestamp));
         }
     }
@@ -1214,7 +1214,7 @@ void SceneManager::ReadWriteFile()
 
     if (status) {
         while (!tempMessageList.empty()) {
-            uint64_t currentTime = GetTimestamp64();
+            uint64_t currentTime = GetTimestampInMs();
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_SCENE, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();
         }
@@ -1222,7 +1222,7 @@ void SceneManager::ReadWriteFile()
 
     if (sendUpdate) {
         sendUpdate = false;
-        uint64_t currentTime = GetTimestamp64();
+        uint64_t currentTime = GetTimestampInMs();
         controllerService.GetLeaderElectionObj().SendBlobUpdate(LSF_SCENE, output, checksum, (currentTime - timestamp));
     }
 }

@@ -28,6 +28,22 @@ const char* ControllerClientErrorText(ErrorCode errorCode)
         LSF_CASE(ERROR_ALLJOYN_METHOD_CALL_TIMEOUT);
         LSF_CASE(ERROR_IRRECOVERABLE);
         LSF_CASE(ERROR_DISCONNECTED_FROM_BUS);
+        LSF_CASE(ERROR_CONTROLLER_CLIENT_EXITING);
+        LSF_CASE(ERROR_LAST_VALUE);
+
+    default:
+        return "<unknown>";
+    }
+}
+
+const char* ControllerClientStatusText(ControllerClientStatus status)
+{
+    switch (status) {
+        LSF_CASE(CONTROLLER_CLIENT_OK);
+        LSF_CASE(CONTROLLER_CLIENT_ERR_NOT_CONNECTED);
+        LSF_CASE(CONTROLLER_CLIENT_ERR_FAILURE);
+        LSF_CASE(CONTROLLER_CLIENT_ERR_RETRY);
+        LSF_CASE(CONTROLLER_CLIENT_LAST_VALUE);
 
     default:
         return "<unknown>";

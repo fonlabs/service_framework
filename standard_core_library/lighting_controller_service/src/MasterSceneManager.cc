@@ -690,7 +690,7 @@ bool MasterSceneManager::GetString(std::string& output, uint32_t& checksum, uint
                 timeStamp = timestamp = 0UL;
                 initialState = false;
             } else {
-                timeStamp = timestamp = GetTimestamp64();
+                timeStamp = timestamp = GetTimestampInMs();
             }
             checkSum = checksum = GetChecksum(output);
         }
@@ -703,7 +703,7 @@ bool MasterSceneManager::GetString(std::string& output, uint32_t& checksum, uint
 void MasterSceneManager::HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgPrintf(("%s", __func__));
-    uint64_t currentTimestamp = GetTimestamp64();
+    uint64_t currentTimestamp = GetTimestampInMs();
     masterScenesLock.Lock();
     if (((timeStamp == 0) || ((currentTimestamp - timeStamp) > timestamp)) && (checkSum != checksum)) {
         std::istringstream stream(blob.c_str());
@@ -733,7 +733,7 @@ void MasterSceneManager::ReadWriteFile()
     if (status) {
         WriteFileWithChecksumAndTimestamp(output, checksum, timestamp);
         if (timestamp != 0UL) {
-            uint64_t currentTime = GetTimestamp64();
+            uint64_t currentTime = GetTimestampInMs();
             controllerService.SendBlobUpdate(LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
         }
     }
@@ -760,7 +760,7 @@ void MasterSceneManager::ReadWriteFile()
 
     if (status) {
         while (!tempMessageList.empty()) {
-            uint64_t currentTime = GetTimestamp64();
+            uint64_t currentTime = GetTimestampInMs();
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();
         }
@@ -768,7 +768,7 @@ void MasterSceneManager::ReadWriteFile()
 
     if (sendUpdate) {
         sendUpdate = false;
-        uint64_t currentTime = GetTimestamp64();
+        uint64_t currentTime = GetTimestampInMs();
         controllerService.GetLeaderElectionObj().SendBlobUpdate(LSF_MASTER_SCENE, output, checksum, (currentTime - timestamp));
     }
 }

@@ -41,7 +41,6 @@ namespace lsf {
 
 class ControllerService;
 
-uint64_t GetTimestamp64(void);
 /**
  * a base class to derive by manager types of classes
  */

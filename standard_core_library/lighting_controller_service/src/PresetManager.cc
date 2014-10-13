@@ -670,7 +670,7 @@ void PresetManager::ReadSavedData(void)
 void PresetManager::HandleReceivedBlob(const std::string& blob, uint32_t checksum, uint64_t timestamp)
 {
     QCC_DbgPrintf(("%s", __func__));
-    uint64_t currentTimestamp = GetTimestamp64();
+    uint64_t currentTimestamp = GetTimestampInMs();
     presetsLock.Lock();
     if (((timeStamp == 0) || ((currentTimestamp - timeStamp) > timestamp)) && (checkSum != checksum)) {
         std::istringstream stream(blob.c_str());
@@ -794,7 +794,7 @@ bool PresetManager::GetString(std::string& output, uint32_t& checksum, uint64_t&
                 timeStamp = timestamp = 0UL;
                 initialState = false;
             } else {
-                timeStamp = timestamp = GetTimestamp64();
+                timeStamp = timestamp = GetTimestampInMs();
             }
             checkSum = checksum = GetChecksum(output);
         }
@@ -822,7 +822,7 @@ void PresetManager::ReadWriteFile()
     if (status) {
         WriteFileWithChecksumAndTimestamp(output, checksum, timestamp);
         if (timestamp != 0UL) {
-            uint64_t currentTime = GetTimestamp64();
+            uint64_t currentTime = GetTimestampInMs();
             controllerService.SendBlobUpdate(LSF_PRESET, output, checksum, (currentTime - timestamp));
         }
     }
@@ -849,7 +849,7 @@ void PresetManager::ReadWriteFile()
 
     if (status) {
         while (tempMessageList.size()) {
-            uint64_t currentTime = GetTimestamp64();
+            uint64_t currentTime = GetTimestampInMs();
             controllerService.SendGetBlobReply(tempMessageList.front(), LSF_PRESET, output, checksum, (currentTime - timestamp));
             tempMessageList.pop_front();
         }
@@ -857,7 +857,7 @@ void PresetManager::ReadWriteFile()
 
     if (sendUpdate) {
         sendUpdate = false;
-        uint64_t currentTime = GetTimestamp64();
+        uint64_t currentTime = GetTimestampInMs();
         controllerService.GetLeaderElectionObj().SendBlobUpdate(LSF_PRESET, output, checksum, (currentTime - timestamp));
     }
 }

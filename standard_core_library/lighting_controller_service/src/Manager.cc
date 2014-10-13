@@ -30,20 +30,6 @@
 
 namespace lsf {
 
-
-uint64_t GetTimestamp64(void)
-{
-    struct timespec ts;
-    uint64_t ret;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    ret = ((uint64_t)(ts.tv_sec)) * 1000;
-    ret += (uint64_t)ts.tv_nsec / 1000000;
-
-    return ret;
-}
-
 Manager::Manager(ControllerService& controllerSvc, const std::string& filePath)
     : controllerService(controllerSvc),
     updated(false),
@@ -129,7 +115,7 @@ bool Manager::ValidateFileAndReadInternal(uint32_t& checksum, uint64_t& timestam
 
     stream >> timestamp;
 
-    uint64_t currenttime = GetTimestamp64();
+    uint64_t currenttime = GetTimestampInMs();
     QCC_DbgPrintf(("%s: timestamp=%llu", __func__, timestamp));
     QCC_DbgPrintf(("%s: Updated %llu ticks ago", __func__, (currenttime - timestamp)));
 
