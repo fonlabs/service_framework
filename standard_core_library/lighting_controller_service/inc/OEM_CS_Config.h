@@ -45,7 +45,7 @@ namespace lsf {
 /**
  * Timeout for Lamp Method Calls
  */
-#define OEM_CS_LAMP_METHOD_CALL_TIMEOUT 250
+#define OEM_CS_LAMP_METHOD_CALL_TIMEOUT 25000
 
 /**
  * Ping frequency

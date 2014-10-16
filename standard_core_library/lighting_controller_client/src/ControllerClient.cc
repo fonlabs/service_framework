@@ -1065,6 +1065,8 @@ QStatus ControllerClient::Stop(void)
     currentLeader.Clear();
     currentLeaderLock.Unlock();
 
+    bus.UnregisterAllHandlers(this);
+
     if (sessionId) {
         DoLeaveSessionAsync(sessionId);
         QCC_DbgPrintf(("%s: calling to DisconnectedFromControllerServiceCB(%s,%s)\n", __func__, deviceID.c_str(), deviceName.c_str()));
@@ -1227,6 +1229,9 @@ void ControllerClient::AddSignalHandlers()
         { controllerServiceMasterSceneInterface->GetMember("MasterScenesDeleted"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) },
         { controllerServiceMasterSceneInterface->GetMember("MasterScenesApplied"), static_cast<MessageReceiver::SignalHandler>(&ControllerClient::SignalWithArgDispatcher) }
     };
+
+    // must call UnregisterAllHandlers in order to prevent multiple registrations for the same signal
+    bus.UnregisterAllHandlers(this);
 
     for (size_t i = 0; i < (sizeof(signalEntries) / sizeof(SignalEntry)); ++i) {
         bus.RegisterSignalHandler(
