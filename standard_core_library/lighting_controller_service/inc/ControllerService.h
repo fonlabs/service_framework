@@ -370,6 +370,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     LeaderElectionObject elector;
     lsf::Mutex serviceSessionMutex;
     ajn::SessionId serviceSession;
+    qcc::String multipointjoiner;
 
     class ControllerListener;
     ControllerListener* listener;
@@ -382,6 +383,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
     SceneManager sceneManager;
     MasterSceneManager masterSceneManager;
 
+    void OnAccepMultipointSessionJoiner(const char* joiner);
     void SessionLost(ajn::SessionId sessionId);
     void SessionJoined(ajn::SessionId sessionId, const char* joiner);
     void LeaveSession(void);

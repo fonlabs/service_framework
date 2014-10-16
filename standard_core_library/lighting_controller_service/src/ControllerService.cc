@@ -47,46 +47,33 @@ class ControllerService::ControllerListener :
     public SessionListener,
     public BusAttachment::SetLinkTimeoutAsyncCB {
   public:
-    ControllerListener(ControllerService* controller) : controller(controller), multipointjoiner(), multipointSessionId(0) { }
+    ControllerListener(ControllerService* controller) : controller(controller) { }
 
     ~ControllerListener() { }
 
     // SessionPortListener
     virtual bool AcceptSessionJoiner(SessionPort sessionPort, const char* joiner, const SessionOpts& opts) {
-        QCC_DbgTrace(("%s:SessionPort=%u, joiner=%s", __func__, sessionPort, joiner));
-        // only allow multipoint sessions
+        QCC_DbgTrace(("ControllerService::ControllerListener::AcceptSessionJoiner(sessionPort=%u, joiner=%s)", sessionPort, joiner));
+
         bool acceptStatus = (sessionPort == ControllerServiceSessionPort && controller->IsLeader());
         if (acceptStatus && opts.isMultipoint) {
-            multipointjoiner = joiner;
-            QCC_DbgPrintf(("%s: Recorded multi-point session joiner %s\n", __func__, multipointjoiner.c_str()));
+            controller->OnAccepMultipointSessionJoiner(joiner);
         }
-        QCC_DbgPrintf(("%s: Joiner = %s: Status=%d\n", __func__, joiner, acceptStatus));
+
+        QCC_DbgPrintf(("ControllerService::ControllerListener::AcceptSessionJoiner: Joiner = %s: Status=%d\n", joiner, acceptStatus));
         return acceptStatus;
     }
 
     virtual void SessionJoined(SessionPort sessionPort, SessionId sessionId, const char* joiner) {
-        QCC_DbgPrintf(("%s: sessionPort(%u), sessionId(%u), joiner(%s)", __func__, sessionPort, sessionId, joiner));
-        if (multipointSessionId == 0) {
-            if (multipointjoiner == joiner) {
-                multipointSessionId = sessionId;
-                QCC_DbgPrintf(("%s: Recorded multi-point session id %u\n", __func__, multipointSessionId));
-                controller->SessionJoined(sessionId, joiner);
-            }
-        } else {
-            if (multipointSessionId == sessionId) {
-                QCC_DbgPrintf(("%s: Another member joined the multipoint session", __func__));
-            }
-        }
+        QCC_DbgPrintf(("ControllerService::ControllerListener::SessionJoined(sessionPort=%u, sessionId=%u, joiner=%s)",
+                       sessionPort, sessionId, joiner));
+
+        controller->SessionJoined(sessionId, joiner);
     }
 
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason) {
-        QCC_DbgPrintf(("%s: sessionId(%u), reason(%d)", __func__, sessionId, reason));
-        if (multipointSessionId == sessionId) {
-            QCC_DbgPrintf(("%s: Lost multi-point session id %u\n", __func__, multipointSessionId));
-            controller->SessionLost(sessionId);
-            multipointSessionId = 0;
-            multipointjoiner.clear();
-        }
+        QCC_DbgPrintf(("ControllerService::ControllerListener::SessionLost(sessionId=%u, reason=%d)", sessionId, reason));
+        controller->SessionLost(sessionId);
     }
 
     virtual void SetLinkTimeoutCB(QStatus status, uint32_t timeout, void* context) {
@@ -94,7 +81,7 @@ class ControllerService::ControllerListener :
     }
 
     virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName) {
-        QCC_DbgTrace(("%s(%u, %s)", __func__, sessionId, uniqueName));
+        QCC_DbgTrace(("ControllerService::ControllerListener::SessionMemberRemoved(sessionId=%u, uniqueName=%s)", sessionId, uniqueName));
         controller->bus.EnableConcurrentCallbacks();
         controller->elector.OnSessionMemberRemoved(sessionId, uniqueName);
     }
@@ -135,8 +122,6 @@ class ControllerService::ControllerListener :
     }
 
     ControllerService* controller;
-    qcc::String multipointjoiner;
-    SessionId multipointSessionId;
 };
 
 class ControllerService::OBSJoiner : public BusAttachment::JoinSessionAsyncCB, public ProxyBusObject::Listener {
@@ -794,7 +779,10 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
         delete [] ids;
     }
 
+
+
     serviceSessionMutex.Lock();
+    SessionId session = serviceSession;
     if (serviceSession != 0) {
         QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
@@ -804,10 +792,12 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
     }
     serviceSessionMutex.Unlock();
 
-    if (ER_OK == status) {
-        QCC_DbgPrintf(("%s: Successfully sent signal with %d entries", __func__, arraySize));
-    } else {
-        QCC_LogError(status, ("%s: Failed to send signal", __func__));
+    if (session != 0) {
+        if (ER_OK == status) {
+            QCC_DbgPrintf(("%s: Successfully sent signal with %lu entries", __func__, arraySize));
+        } else {
+            QCC_LogError(status, ("%s: Failed to send signal to session %u", __func__, session));
+        }
     }
 
     return status;
@@ -824,6 +814,7 @@ QStatus ControllerService::SendNameChangedSignal(const char* ifaceName, const ch
     args[1].Set("s", lampName.c_str());
 
     serviceSessionMutex.Lock();
+    SessionId session = serviceSession;
     if (serviceSession != 0) {
         QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
         const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
@@ -833,10 +824,12 @@ QStatus ControllerService::SendNameChangedSignal(const char* ifaceName, const ch
     }
     serviceSessionMutex.Unlock();
 
-    if (ER_OK == status) {
-        QCC_DbgPrintf(("%s: Successfully sent signal with %s:%s", __func__, lampID.c_str(), lampName.c_str()));
-    } else {
-        QCC_LogError(status, ("%s: Failed to send signal", __func__));
+    if (session != 0) {
+        if (ER_OK == status) {
+            QCC_DbgPrintf(("%s: Successfully sent signal with %s:%s", __func__, lampID.c_str(), lampName.c_str()));
+        } else {
+            QCC_LogError(status, ("%s: Failed to send signal to session %u", __func__, session));
+        }
     }
 
     return status;
@@ -963,15 +956,35 @@ void ControllerService::LeaveSession(void)
     }
 }
 
+void ControllerService::OnAccepMultipointSessionJoiner(const char* joiner)
+{
+    QCC_DbgTrace(("ControllerService::OnAccepMultipointSessionJoiner(joiner=%s)", joiner));
+    serviceSessionMutex.Lock();
+    multipointjoiner = joiner;
+    serviceSessionMutex.Unlock();
+}
+
 void ControllerService::SessionJoined(SessionId sessionId, const char* joiner)
 {
-    QCC_DbgTrace(("%s:sessionId-%d", __func__, sessionId));
     bus.SetSessionListener(sessionId, listener);
 
     // we are now serving up a multipoint session to the apps
     serviceSessionMutex.Lock();
-    serviceSession = sessionId;
-    QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
+    QCC_DbgTrace(("ControllerService::SessionJoined(sessionId=%u, joiner=%s); multipointjoiner=%s", sessionId, joiner, multipointjoiner.c_str()));
+
+    if (serviceSession == 0) {
+        if (multipointjoiner == joiner) {
+            serviceSession = sessionId;
+            multipointjoiner.clear();
+            QCC_DbgPrintf(("%s: Recorded multi-point session id %u\n", __func__, serviceSession));
+            serviceSession = sessionId;
+        }
+    } else {
+        if (serviceSession == sessionId) {
+            QCC_DbgPrintf(("%s: Another member %s joined the multipoint session", __func__, joiner));
+        }
+    }
+
     serviceSessionMutex.Unlock();
 }
 
@@ -979,10 +992,18 @@ void ControllerService::SessionLost(SessionId sessionId)
 {
     // TODO: do we need to track multiple sessions?
     // Or are we ok since there is only one multipoint session?
-    QCC_DbgPrintf(("%s:%u", __func__, sessionId));
+    QCC_DbgPrintf(("ControllerService::SessionLost(sessionId=%u)", sessionId));
     serviceSessionMutex.Lock();
-    QCC_DbgPrintf(("%s: Cleared Session ID = %u", __func__, sessionId));
-    serviceSession = 0;
+
+    if (serviceSession == sessionId) {
+        QCC_DbgPrintf(("ControllerService::SessionLost: Lost multi-point session id %u; clearing session id\n", serviceSession));
+        serviceSession = 0;
+        multipointjoiner.clear();
+    } else {
+        QCC_DbgPrintf(("ControllerService::SessionLost: Lost P2P session id %u\n", sessionId));
+    }
+
+
     serviceSessionMutex.Unlock();
 }
 
@@ -1230,7 +1251,7 @@ QStatus ControllerService::Get(const char*ifcName, const char*propName, MsgArg& 
 
 QStatus ControllerService::SendBlobUpdate(LSFBlobType type, std::string blob, uint32_t checksum, uint64_t timestamp)
 {
-    QCC_DbgTrace(("%s:type=%d blob=%s checksum=%d timestamp=%llu", __func__, type, blob.c_str(), checksum, timestamp));
+    QCC_DbgTrace(("ControllerService::SendBlobUpdate(type=%d blob=%s checksum=%d timestamp=%llu)", type, blob.c_str(), checksum, timestamp));
     serviceSessionMutex.Lock();
     SessionId session = serviceSession;
     QCC_DbgPrintf(("%s: Sending over Session ID = %u", __func__, session));
@@ -1252,7 +1273,7 @@ bool ControllerService::IsRunning()
 
 void ControllerService::DoLeaveSessionAsync(ajn::SessionId sessionId)
 {
-    QCC_DbgPrintf(("%s: sessionId(%u)", __func__, sessionId));
+    QCC_DbgPrintf(("ControllerService::DoLeaveSessionAsync(sessionId=%u)", sessionId));
     MsgArg arg("u", sessionId);
 
     bus.GetAllJoynProxyObj().MethodCallAsync(

@@ -53,7 +53,7 @@ class LeaderElectionObject::Handler : public ajn::services::AnnounceHandler,
     virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData);
 
     virtual void JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context) {
-        QCC_DbgTrace(("JoinSessionCB(%s, %u)", QCC_StatusText(status), sessionId));
+        QCC_DbgTrace(("LeaderElectionObject::Handler::JoinSessionCB(status=%s, sessionId=%u)", QCC_StatusText(status), sessionId));
         elector.bus.EnableConcurrentCallbacks();
         if (context) {
             elector.OnSessionJoined(status, sessionId, context);
@@ -64,8 +64,15 @@ class LeaderElectionObject::Handler : public ajn::services::AnnounceHandler,
         QCC_DbgTrace(("SetLinkTimeoutCB(%s, %u)", QCC_StatusText(status), timeout));
     }
 
+    virtual void SessionMemberRemoved(SessionId sessionId, const char* uniqueName) {
+        QCC_DbgTrace(("LeaderElectionObject::Handler::SessionMemberRemoved(sessionId=%u, uniqueName=%s)", sessionId, uniqueName));
+        elector.bus.EnableConcurrentCallbacks();
+        // we need to trigger a new election if the host has left the session
+        elector.OnSessionMemberRemoved(sessionId, uniqueName);
+    }
+
     virtual void SessionLost(SessionId sessionId, SessionLostReason reason) {
-        QCC_DbgTrace(("SessionLost(%u)", sessionId));
+        QCC_DbgTrace(("LeaderElectionObject::Handler::SessionLost(sessionId=%u, reason=%u)", sessionId, reason));
         elector.bus.EnableConcurrentCallbacks();
         elector.OnSessionLost(sessionId);
     }
@@ -203,6 +210,7 @@ void LeaderElectionObject::OnSessionLost(SessionId sessionId)
 
 void LeaderElectionObject::OnSessionMemberRemoved(SessionId sessionId, const char* uniqueName)
 {
+    QCC_DbgTrace(("LeaderElectionObject::OnSessionMemberRemoved(%u, %s)", sessionId, uniqueName));
     sessionMemberRemovedMutex.Lock();
     sessionMemberRemoved.insert(std::make_pair(static_cast<uint32_t>(sessionId), uniqueName));
     sessionMemberRemovedMutex.Unlock();
@@ -1079,7 +1087,7 @@ _Exit:
 void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId, void* context)
 {
     uint64_t* rankPtr = static_cast<uint64_t*>(context);
-    QCC_DbgPrintf(("%s: status=%s sessionId=%u rank=%llu", __func__, QCC_StatusText(status), sessionId, *rankPtr));
+    QCC_DbgPrintf(("LeaderElectionObject::OnSessionJoined(status=%s sessionId=%u rank=%llu)", QCC_StatusText(status), sessionId, *rankPtr));
 
     if (status == ER_OK) {
         successfulJoinSessionMutex.Lock();
@@ -1243,7 +1251,7 @@ QStatus LeaderElectionObject::SendBlobUpdate(SessionId session, LSFBlobType type
         return ER_OK;
     }
 
-    QCC_DbgTrace(("%s", __func__));
+    QCC_DbgTrace(("LeaderElectionObject::SendBlobUpdate: Signal(session=%u)", session));
     MsgArg args[4];
     args[0].Set("u", static_cast<uint32_t>(type));
     args[1].Set("s", strdupnew(blob.c_str()));
@@ -1273,6 +1281,7 @@ QStatus LeaderElectionObject::SendBlobUpdate(LSFBlobType type, std::string blob,
         args[1].SetOwnershipFlags(MsgArg::OwnsData);
         args[2].Set("u", checksum);
         args[3].Set("t", timestamp);
+        QCC_DbgTrace(("LeaderElectionObject::SendBlobUpdate: Signal(session=%u)", session));
         return Signal(NULL, session, *blobChangedSignal, args, 4);
     }
 
