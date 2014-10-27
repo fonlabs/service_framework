@@ -582,8 +582,8 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
 
         if (!deviceName.empty()) {
             if (ER_OK == status) {
-                uint32_t linkTimeOut = 40;
-                QStatus tempStatus = bus.SetLinkTimeout(sessionId, linkTimeOut);
+                uint32_t linkTimeout = LSF_MIN_LINK_TIMEOUT_IN_SECONDS;
+                QStatus tempStatus = bus.SetLinkTimeout(sessionId, linkTimeout);
                 if (tempStatus != ER_OK) {
                     QCC_LogError(tempStatus, ("%s: SetLinkTimeout failed", __func__));
                     bus.LeaveSession(sessionId);

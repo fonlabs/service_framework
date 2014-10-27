@@ -32,6 +32,11 @@ typedef uint32_t LampFaultCode;
 #define LSF_MAX_NAME_LENGTH 254
 
 /**
+ * Maximum value of the link timeout for an AllJoyn session as enforced by AllJoyn.
+ */
+#define LSF_MIN_LINK_TIMEOUT_IN_SECONDS 40
+
+/**
  * Enum describing the make of a Lamp
  */
 typedef enum {

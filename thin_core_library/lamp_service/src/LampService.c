@@ -501,9 +501,9 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
                 char* joiner;
                 status = AJ_UnmarshalArgs(&msg, "qus", &port, &session, &joiner);
                 /*
-                 * Set a link timeout of 40s on the accepted session
+                 * Set a link timeout of LSF_MIN_LINK_TIMEOUT_IN_SECONDS on the accepted session
                  */
-                AJ_BusSetLinkTimeout(&Bus, session, 40);
+                AJ_BusSetLinkTimeout(&Bus, session, LSF_MIN_LINK_TIMEOUT_IN_SECONDS);
                 break;
 
             case AJ_REPLY_ID(AJ_METHOD_SET_LINK_TIMEOUT):

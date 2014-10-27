@@ -30,10 +30,10 @@
  * This is used to store the various lamp state fields.
  */
 typedef struct _LampState {
-    uint32_t hue;           /**< The lamp hue */
-    uint32_t saturation;    /**< The lamp saturation */
-    uint32_t colorTemp;     /**< The lamp color temperature */
-    uint32_t brightness;    /**< The lamp brightness */
+    uint32_t hue;           /**< The lamp hue (in degree). 0 means 0. uint32_max-1 means 360. */
+    uint32_t saturation;    /**< The lamp saturation (in percentage). 0 means 0. uint32_max-1 means 100. */
+    uint32_t colorTemp;     /**< The lamp color temperature (in Kevin). 0 means 1000K. uint32_max-1 means 20000K. OEM implementation will need to take care of the scaling. */
+    uint32_t brightness;    /**< The lamp brightness (in percentage). 0 means 0. uint32_max-1 means 100. */
     uint8_t onOff;          /**< Is the lamp on or off */
 } LampState;
 

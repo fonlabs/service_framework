@@ -48,13 +48,6 @@ namespace lsf {
 #define OEM_CS_LAMP_METHOD_CALL_TIMEOUT 25000
 
 /**
- * Link timeout in seconds
- * This value has to be greater than or equal to 40s because the AllJoyn
- * Daemon does not allow this value to be less than 40s
- */
-#define OEM_CS_LINK_TIMEOUT 40
-
-/**
  * Timeout used in the check to see if the Controller Service is still connected
  * to the routing node
  */
@@ -95,16 +88,118 @@ class LSFPropertyStore;
 void OEM_CS_PopulateDefaultProperties(LSFPropertyStore& propStore);
 
 /**
- * This function returns the rank of this Controller Service
- * @return Rank of this Controller Service
+ * Pure virtual base class implemented by Controller Service and the reference for which is passed in
+ * to the OEM firmware through the OEM_CS_FirmwareStart() function so that the firmware may call back
+ * the controller service when the device connect to / disconnects from the network
  */
-uint64_t OEM_CS_GetRank(void);
+class OEM_CS_NetworkCallback {
+  public:
+    /** Destructor */
+    virtual ~OEM_CS_NetworkCallback() { }
+
+    /**
+     * This OEM firmware should invoke this function whenever the device running
+     * the Controller Service connects to a Network
+     * @return none
+     */
+    virtual void Connected(void) = 0;
+
+    /**
+     * This OEM firmware should invoke this function whenever the device running
+     * the Controller Service disconnects from a Network
+     * @return none
+     */
+    virtual void Disconnected(void) = 0;
+};
 
 /**
- * This function returns true if this Controller Service is the leader
- * @return Boolean indicating if this Controller Service if the leader
+ * Controller Service will invoke this function at system startup.
+ * OEMs should add code here to initialize and start the firmware and
+ * return true/false accordingly.
+ * The firmware should also save off the reference to the OEM_CS_NetworkCallback object.
+ * The firmware should invoke the Connected() function defined in this callback
+ * whenever the device connects to a network and it should invoke the Disconnected()
+ * function defined in this callback whenever the device disconnects from a network
+ * @param  Reference to a OEM_CS_NetworkCallback object
+ * @return true/false indicating the status of the operation
  */
-bool OEM_CS_IsLeader(void);
+bool OEM_CS_FirmwareStart(OEM_CS_NetworkCallback& networkCallback);
+
+/**
+ * The Controller Service will invoke this function
+ * when the system is being shut down.
+ * OEMs should add code here to stop the firmware and perform any cleanup
+ * operations and return true/false accordingly
+ * @return true/false indicating the status of the operation
+ */
+bool OEM_CS_FirmwareStop(void);
+
+/**
+ * This function returns the MAC address of the device running the Controller
+ * Service as a 48-bit unsigned integer
+ * @return MAC address of the device running the Controller
+ *         Service as a 48-bit unsigned integer
+ */
+uint64_t OEM_CS_GetMACAddress(void);
+
+/**
+ * This function returns true if the device running the Controller Service is
+ * connected to a network
+ * @return true/false
+ */
+bool OEM_CS_IsNetworkConnected(void);
+
+/**
+ * Possible values for Power - one of the static
+ * parameters used in the rank computation
+ */
+typedef enum _OEM_CS_RankParam_Power {
+    BATTERY_POWERED_NOT_CHARGABLE = 0,
+    BATTERY_POWERED_CHARGABLE,
+    ALWAYS_AC_CONNECTED,
+    OEM_CS_RANKPARAM_POWER_LAST_VALUE
+} OEM_CS_RankParam_Power;
+
+/**
+ * This function returns value of the Power - one of the static
+ * parameters used in the rank computation
+ * @return One of the values defined by the enum OEM_CS_RankParam_Power
+ */
+OEM_CS_RankParam_Power OEM_CS_GetRankParam_Power(void);
+
+/**
+ * Possible values for Power - one of the static
+ * parameters used in the rank computation
+ */
+typedef enum _OEM_CS_RankParam_Mobility {
+    MOSTLY_MOBILE = 0,
+    MOSTLY_PROXIMAL,
+    ALWAYS_STATIONARY,
+    OEM_CS_RANKPARAM_MOBILITY_LAST_VALUE
+} OEM_CS_RankParam_Mobility;
+
+/**
+ * This function returns value of the Mobility - one of the static
+ * parameters used in the rank computation
+ * @return One of the values defined by the enum OEM_CS_RankParam_Mobility
+ */
+OEM_CS_RankParam_Mobility OEM_CS_GetRankParam_Mobility(void);
+
+/**
+ * Possible values for Availability - one of the static
+ * parameters used in the rank computation
+ */
+typedef enum _OEM_CS_RankParam_Availability {
+    ALWAYS_AVAILABLE,
+    OEM_CS_RANKPARAM_AVAILABILITY_LAST_VALUE
+} OEM_CS_RankParam_Availability;
+
+/**
+ * This function returns value of the Availability - one of the static
+ * parameters used in the rank computation
+ * @return One of the values defined by the enum OEM_CS_RankParam_Availability
+ */
+OEM_CS_RankParam_Availability OEM_CS_GetRankParam_Availability(void);
 
 } //lsf
 

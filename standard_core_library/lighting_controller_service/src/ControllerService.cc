@@ -526,6 +526,15 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
     QStatus status = ER_OK;
 
     /*
+     * Start the OEM firmware
+     */
+    if (!OEM_CS_FirmwareStart(GetLeaderElectionObj())) {
+        status = ER_FAIL;
+        QCC_LogError(status, ("%s: Failed to start the OEM firmware\n", __func__));
+        return status;
+    }
+
+    /*
      * Start the AllJoyn Bus
      */
     status = bus.Start();
@@ -735,6 +744,14 @@ QStatus ControllerService::Stop(void)
     status = bus.Stop();
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Error stopping the AllJoyn bus", __func__));
+    }
+
+    /*
+     * Stop the OEM firmware
+     */
+    if (!OEM_CS_FirmwareStop()) {
+        status = ER_FAIL;
+        QCC_LogError(status, ("%s: Failed to stop the OEM firmware\n", __func__));
     }
 
     return status;
@@ -979,7 +996,7 @@ void ControllerService::SessionJoined(SessionId sessionId, const char* joiner)
         if (multipointjoiner == joiner) {
             serviceSession = sessionId;
             QCC_DbgPrintf(("%s: Recorded multi-point session id %u\n", __func__, serviceSession));
-            QStatus status = bus.SetLinkTimeoutAsync(sessionId, OEM_CS_LINK_TIMEOUT, listener, NULL);
+            QStatus status = bus.SetLinkTimeoutAsync(sessionId, LSF_MIN_LINK_TIMEOUT_IN_SECONDS, listener, NULL);
             if (status != ER_OK) {
                 QCC_LogError(status, ("%s: SetLinkTimeoutAsync failed", __func__));
             }

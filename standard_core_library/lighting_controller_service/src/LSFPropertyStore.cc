@@ -83,6 +83,15 @@ void LSFPropertyStore::Initialize()
     isInitialized = true;
 }
 
+static uint64_t ComputeRank(void)
+{
+    uint64_t rank = 0;
+
+    rank |= (OEM_CS_GetMACAddress() & 0x0000FFFFFFFFFFFF);
+
+    return rank;
+}
+
 
 void LSFPropertyStore::ReadFactoryConfiguration()
 {
@@ -92,8 +101,12 @@ void LSFPropertyStore::ReadFactoryConfiguration()
     GuidUtil::GetInstance()->GetDeviceIdString(&deviceId);
     setProperty(DEVICE_ID, deviceId, true, false, true);
 
-    setProperty(RANK, OEM_CS_GetRank(), true, false, true);
-    setProperty(IS_LEADER, OEM_CS_IsLeader(), true, false, true);
+    setProperty(RANK, ComputeRank(), true, false, true);
+    setProperty(IS_LEADER, false, true, false, true);
+
+    QCC_DbgPrintf(("%s: Power = %u", __func__, OEM_CS_GetRankParam_Power()));
+    QCC_DbgPrintf(("%s: Mobility = %u", __func__, OEM_CS_GetRankParam_Mobility()));
+    QCC_DbgPrintf(("%s: Availability = %u", __func__, OEM_CS_GetRankParam_Availability()));
 
     if (factorySettings.empty()) {
         if (!PropertyParser::ParseFile(factoryConfigFileName, factorySettings)) {

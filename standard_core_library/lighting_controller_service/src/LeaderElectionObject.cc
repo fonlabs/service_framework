@@ -436,6 +436,16 @@ void LeaderElectionObject::AlarmTriggered(void)
     wakeSem.Post();
 }
 
+void LeaderElectionObject::Connected(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
+}
+
+void LeaderElectionObject::Disconnected(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
+}
+
 void LeaderElectionObject::Run(void)
 {
     QCC_DbgPrintf(("%s", __func__));
@@ -924,7 +934,7 @@ void LeaderElectionObject::Run(void)
                                         }
                                     } else {
                                         // we don't need to wait for this
-                                        QStatus status = bus.SetLinkTimeoutAsync(sessionId, OEM_CS_LINK_TIMEOUT, handler, NULL);
+                                        QStatus status = bus.SetLinkTimeoutAsync(sessionId, LSF_MIN_LINK_TIMEOUT_IN_SECONDS, handler, NULL);
                                         if (status != ER_OK) {
                                             QCC_LogError(status, ("%s: SetLinkTimeoutAsync failed", __func__));
                                         }

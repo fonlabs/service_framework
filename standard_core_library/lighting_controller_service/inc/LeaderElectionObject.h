@@ -30,6 +30,7 @@
 #include <LSFTypes.h>
 #include <Mutex.h>
 #include <Alarm.h>
+#include <OEM_CS_Config.h>
 
 namespace lsf {
 
@@ -39,7 +40,7 @@ class ControllerService;
  * Implementing the algorithm of leader election. \n
  * Implementing the election behavior of the entity as a leader and also as a follower. \n
  */
-class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmListener {
+class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmListener, public OEM_CS_NetworkCallback {
   public:
     /**
      * constructor
@@ -98,6 +99,10 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     uint64_t GetRank(void) {
         return myRank;
     }
+
+    void Connected(void);
+
+    void Disconnected(void);
 
   private:
 
