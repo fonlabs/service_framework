@@ -494,6 +494,31 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
                     break;
                 }
 
+            case AJ_SIGNAL_SESSION_JOINED:
+                AJ_InfoPrintf(("%s: Got Session Joined\n", __func__));
+                uint16_t port;
+                uint32_t session;
+                char* joiner;
+                status = AJ_UnmarshalArgs(&msg, "qus", &port, &session, &joiner);
+                /*
+                 * Set a link timeout of 40s on the accepted session
+                 */
+                AJ_BusSetLinkTimeout(&Bus, session, 40);
+                break;
+
+            case AJ_REPLY_ID(AJ_METHOD_SET_LINK_TIMEOUT):
+                {
+                    uint32_t disposition;
+                    uint32_t timeout;
+                    status = AJ_UnmarshalArgs(&msg, "uu", &disposition, &timeout);
+                    if (disposition == AJ_SETLINKTIMEOUT_SUCCESS) {
+                        AJ_AlwaysPrintf(("Link timeout set to %d\n", timeout));
+                    } else {
+                        AJ_AlwaysPrintf(("SetLinkTimeout failed %d\n", disposition));
+                    }
+                }
+                break;
+
             case AJ_SIGNAL_SESSION_LOST_WITH_REASON:
                 {
                     // this might not be an error.
@@ -506,7 +531,7 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
                         SendStateChanged = FALSE;
                         status = AJ_ERR_SESSION_LOST;
                     }
-                    AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u", __func__, sessionId, reason));
+                    AJ_InfoPrintf(("%s: Session lost. ID = %u, reason = %u\n", __func__, sessionId, reason));
                     break;
                 }
 
