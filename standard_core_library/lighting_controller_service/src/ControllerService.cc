@@ -979,6 +979,10 @@ void ControllerService::SessionJoined(SessionId sessionId, const char* joiner)
         if (multipointjoiner == joiner) {
             serviceSession = sessionId;
             QCC_DbgPrintf(("%s: Recorded multi-point session id %u\n", __func__, serviceSession));
+            QStatus status = bus.SetLinkTimeoutAsync(sessionId, OEM_CS_LINK_TIMEOUT, listener, NULL);
+            if (status != ER_OK) {
+                QCC_LogError(status, ("%s: SetLinkTimeoutAsync failed", __func__));
+            }
         }
     } else {
         if (serviceSession == sessionId) {
