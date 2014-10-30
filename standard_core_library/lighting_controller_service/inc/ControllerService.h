@@ -47,12 +47,9 @@
 #include <MasterSceneManager.h>
 #include <LeaderElectionObject.h>
 #include <LampClients.h>
+#include <ControllerServiceRank.h>
 
 namespace lsf {
-/**
- * controller service version
- */
-#define CONTROLLER_SERVICE_VERSION 1
 
 /**
  * This class functions as the message dispatcher. It receives the messages from AllJoyn \n
@@ -289,10 +286,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * Is Running
      */
     bool IsRunning();
-    /**
-     * Get Rank
-     */
-    uint64_t GetRank();
+
     /**
      * Is Leader
      */
@@ -325,12 +319,7 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
      * Leave Session Async Reply Handler
      */
     void LeaveSessionAsyncReplyHandler(ajn::Message& message, void* context);
-    /**
-     * Override Rank
-     */
-    void OverrideRank(uint64_t rank) {
-        propertyStore.SetRank(rank);
-    }
+
     /**
      * Get Leader Election Obj
      */
@@ -463,6 +452,8 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
 
     PersistenceThread fileWriterThread;
     bool firstAnnouncementSent;
+
+    ControllerServiceRank rank;
 };
 /**
  * controller service management class. \n
@@ -545,12 +536,6 @@ class ControllerServiceManager {
      * Get Controller Service
      */
     ControllerService& GetControllerService(void) { return controllerService; };
-    /**
-     * Override Rank
-     */
-    void OverrideRank(uint64_t rank) {
-        controllerService.OverrideRank(rank);
-    }
 
   private:
     ControllerService controllerService;

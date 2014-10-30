@@ -109,6 +109,13 @@ uint64_t GetTimestampInMs(void)
     return ret;
 }
 
+uint32_t GetTimestampInSeconds(void)
+{
+    struct timespec ts;
+    platform_gettime(&ts);
+    return ((uint32_t)(ts.tv_sec));
+}
+
 void CreateUniqueList(LSFStringList& uniqueList, LSFStringList& fromList)
 {
     QCC_DbgPrintf(("%s", __func__));

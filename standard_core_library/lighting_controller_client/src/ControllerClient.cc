@@ -192,13 +192,23 @@ void ControllerClient::ControllerClientBusHandler::Announce(
         }
         ait->second.Get("s", &deviceName);
 
-        uint64_t rank;
-        ait = aboutData.find("Rank");
+        uint64_t higherBits = 0, lowerBits = 0;
+        ait = aboutData.find("RankHigherBits");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: Rank missing in About Announcement", __func__));
+            QCC_LogError(ER_FAIL, ("%s: RankHigherBits missing in About Announcement", __func__));
             return;
         }
-        ait->second.Get("t", &rank);
+        ait->second.Get("t", &higherBits);
+
+        ait = aboutData.find("RankLowerBits");
+        if (ait == aboutData.end()) {
+            QCC_LogError(ER_FAIL, ("%s: RankLowerBits missing in About Announcement", __func__));
+            return;
+        }
+        ait->second.Get("t", &lowerBits);
+
+
+        Rank rank(higherBits, lowerBits);
 
         bool isLeader;
         ait = aboutData.find("IsLeader");
@@ -208,8 +218,8 @@ void ControllerClient::ControllerClientBusHandler::Announce(
         }
         ait->second.Get("b", &isLeader);
 
-        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%llu isLeader=%d", __func__,
-                       busName, port, deviceID, deviceName, rank, isLeader));
+        QCC_DbgPrintf(("%s: Received Announce: busName=%s port=%u deviceID=%s deviceName=%s rank=%s isLeader=%d", __func__,
+                       busName, port, deviceID, deviceName, rank.c_str(), isLeader));
         if (isLeader) {
             controllerClient.OnAnnounced(port, busName, deviceID, deviceName, rank);
         } else {
@@ -293,9 +303,9 @@ uint32_t ControllerClient::GetVersion(void)
     return CONTROLLER_CLIENT_VERSION;
 }
 
-bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
+bool ControllerClient::JoinSessionWithAnotherLeader(Rank currentLeaderRank)
 {
-    QCC_DbgPrintf(("%s: Current Leader Rank %llu", __func__, currentLeaderRank));
+    QCC_DbgPrintf(("%s: Current Leader Rank %s", __func__, currentLeaderRank.c_str()));
 
     if (stopped) {
         QCC_DbgPrintf(("%s: Controller Client is stopped. Returning.", __func__));
@@ -306,21 +316,21 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
     entry.Clear();
 
     leadersMapLock.Lock();
-    if (currentLeaderRank) {
+    if (currentLeaderRank.IsInitialized()) {
         Leaders::iterator it = leadersMap.find(currentLeaderRank);
         if (it != leadersMap.end()) {
-            QCC_DbgPrintf(("%s: Removing entry for rank %llu from leadersMap", __func__, currentLeaderRank));
+            QCC_DbgPrintf(("%s: Removing entry for rank %s from leadersMap", __func__, currentLeaderRank.c_str()));
             leadersMap.erase(it);
         }
     }
     for (Leaders::reverse_iterator rit = leadersMap.rbegin(); rit != leadersMap.rend(); rit++) {
         entry = rit->second;
-        QCC_DbgPrintf(("%s: Found a leader with rank %llu", __func__, rit->second.rank));
+        QCC_DbgPrintf(("%s: Found a leader with rank %s", __func__, rit->second.rank.c_str()));
         break;
     }
     leadersMapLock.Unlock();
 
-    if (entry.rank != 0) {
+    if (entry.rank.IsInitialized()) {
         ControllerEntry* context = new ControllerEntry;
         if (!context) {
             QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for call", __func__));
@@ -357,7 +367,7 @@ bool ControllerClient::JoinSessionWithAnotherLeader(uint64_t currentLeaderRank)
                 return false;
             }
         } else {
-            QCC_DbgPrintf(("%s: JoinSessionAsync request successful with leader of rank %llu", __func__, entry.rank));
+            QCC_DbgPrintf(("%s: JoinSessionAsync request successful with leader of rank %s", __func__, entry.rank.c_str()));
             currentLeaderLock.Lock();
             currentLeader.controllerDetails = entry;
             currentLeaderLock.Unlock();
@@ -400,7 +410,7 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
 
     LSFString deviceName;
     LSFString deviceID;
-    uint64_t currentLeaderRank = 0;
+    Rank currentLeaderRank;
 
     deviceName.clear();
     deviceID.clear();
@@ -419,7 +429,7 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
         callback.DisconnectedFromControllerServiceCB(deviceID, deviceName);
     }
 
-    if (currentLeaderRank) {
+    if (currentLeaderRank.IsInitialized()) {
         while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
         QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
     }
@@ -619,9 +629,9 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
     }
 }
 
-void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank)
+void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const char* deviceID, const char* deviceName, Rank rank)
 {
-    QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%lu", __func__, port, busName, deviceID, deviceName, rank));
+    QCC_DbgPrintf(("%s: port=%u, busName=%s, deviceID=%s, deviceName=%s, rank=%s", __func__, port, busName, deviceID, deviceName, rank.c_str()));
 
     if (stopped) {
         QCC_DbgPrintf(("%s: Controller Client is stopped. Returning without processing announcement.", __func__));
@@ -631,7 +641,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     bool nameChanged = false;
     ajn::SessionId sessionId = 0;
 
-    uint64_t currentLeaderRank = 0;
+    Rank currentLeaderRank;
 
     ControllerEntry entry;
     entry.port = port;
@@ -668,7 +678,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     }
     leadersMapLock.Unlock();
 
-    if (currentLeaderRank == 0) {
+    if (!currentLeaderRank.IsInitialized()) {
         while (!(JoinSessionWithAnotherLeader())) ;
         QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
     } else if (currentLeaderRank < rank) {

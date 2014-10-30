@@ -92,7 +92,6 @@ void LeaderElectionObject::Handler::Announce(
     ObjectDescriptions::const_iterator oit = objectDescs.find(ControllerServiceObjectPath);
     if (elector.bus.GetUniqueName() != busName && oit != objectDescs.end()) {
         AboutData::const_iterator ait;
-        uint64_t rank = 0;
         bool isLeader = false;
         const char* deviceId;
 
@@ -108,12 +107,22 @@ void LeaderElectionObject::Handler::Announce(
         }
         ait->second.Get("s", &deviceId);
 
-        ait = aboutData.find("Rank");
+        uint64_t higherBits = 0, lowerBits = 0;
+        ait = aboutData.find("RankHigherBits");
         if (ait == aboutData.end()) {
-            QCC_LogError(ER_FAIL, ("%s: Rank missing in About Announcement", __func__));
+            QCC_LogError(ER_FAIL, ("%s: RankHigherBits missing in About Announcement", __func__));
             return;
         }
-        ait->second.Get("t", &rank);
+        ait->second.Get("t", &higherBits);
+
+        ait = aboutData.find("RankLowerBits");
+        if (ait == aboutData.end()) {
+            QCC_LogError(ER_FAIL, ("%s: RankLowerBits missing in About Announcement", __func__));
+            return;
+        }
+        ait->second.Get("t", &lowerBits);
+
+        Rank rank(higherBits, lowerBits);
 
         ait = aboutData.find("IsLeader");
         if (ait == aboutData.end()) {
@@ -134,7 +143,7 @@ LeaderElectionObject::LeaderElectionObject(ControllerService& controller)
     controller(controller),
     bus(controller.GetBusAttachment()),
     handler(new Handler(*this)),
-    myRank(0UL),
+    myRank(),
     isRunning(false),
     blobChangedSignal(NULL),
     electionAlarm(this),
@@ -143,8 +152,8 @@ LeaderElectionObject::LeaderElectionObject(ControllerService& controller)
     startElection(true),
     okToSetAlarm(true),
     gotOverthrowReply(false),
-    outgoingLeaderRank(0),
-    upcomingLeaderRank(0)
+    outgoingLeaderRank(),
+    upcomingLeaderRank()
 {
     QCC_DbgTrace(("%s", __func__));
     currentLeader.Clear();
@@ -157,15 +166,30 @@ LeaderElectionObject::LeaderElectionObject(ControllerService& controller)
 LeaderElectionObject::~LeaderElectionObject()
 {
     QCC_DbgTrace(("%s", __func__));
+
+    QStatus status = bus.UnregisterSignalHandler(
+        this,
+        static_cast<MessageReceiver::SignalHandler>(&LeaderElectionObject::OnBlobChanged),
+        blobChangedSignal,
+        LeaderElectionAndStateSyncObjectPath);
+    if (status != ER_OK) {
+        QCC_LogError(status, ("%s: Failed to unregister BlobChanged Handler", __func__));
+    }
+
+    electionAlarmMutex.Lock();
+    electionAlarm.Stop();
+    electionAlarm.Join();
+    electionAlarmMutex.Unlock();
+
     if (handler) {
         delete handler;
         handler = NULL;
     }
 }
 
-void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId)
+void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busName, Rank rank, bool isLeader, const char* deviceId)
 {
-    QCC_DbgPrintf(("%s: (%u, %s, %s, %lu)", __func__, port, busName, (isLeader ? "true" : "false"), rank));
+    QCC_DbgPrintf(("%s: (%u, %s, %s, %s)", __func__, port, busName, (isLeader ? "true" : "false"), rank.c_str()));
 
     ControllerEntry newEntry;
     newEntry.busName = busName;
@@ -174,12 +198,12 @@ void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busNam
     newEntry.port = port;
     newEntry.rank = rank;
 
-    uint64_t lastTrackedRank = myRank;
+    Rank lastTrackedRank = myRank;
 
     controllersMapMutex.Lock();
     if (controllersMap.size()) {
         lastTrackedRank = (controllersMap.rbegin())->first;
-        QCC_DbgPrintf(("%s: Last tracked rank set to %llu", __func__, lastTrackedRank));
+        QCC_DbgPrintf(("%s: Last tracked rank set to %s", __func__, lastTrackedRank.c_str()));
     }
     std::pair<ControllersMap::iterator, bool> ins = controllersMap.insert(std::make_pair(rank, newEntry));
     if (ins.second == false) {
@@ -406,7 +430,7 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
                 currentLeaderMutex.Unlock();
                 if (status != ER_OK) {
                     methodCallFailCount++;
-                    sync->numWaiting--;
+                    qcc::DecrementAndFetch(&sync->numWaiting);
                     QCC_LogError(ER_FAIL, ("%s: Method Call Async failed", __func__));
                 }
             }
@@ -439,11 +463,97 @@ void LeaderElectionObject::AlarmTriggered(void)
 void LeaderElectionObject::Connected(void)
 {
     QCC_DbgPrintf(("%s", __func__));
+
+    if (!(controller.IsRunning())) {
+        QCC_LogError(ER_FAIL, ("%s: The Controller Service is not running", __func__));
+        return;
+    }
+
+    connectionStateMutex.Lock();
+    if (!isRunning) {
+        isRunning = true;
+
+        QStatus status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
+        if (status != ER_OK) {
+            QCC_LogError(status, ("%s: Failed to RegisterAnnounceHandler", __func__));
+        }
+
+        status = Thread::Start();
+        if (status != ER_OK) {
+            isRunning = false;
+            QCC_LogError(status, ("%s: Unable to start Run() thread", __func__));
+        }
+    }
+    wakeSem.Post();
+    connectionStateMutex.Unlock();
 }
 
 void LeaderElectionObject::Disconnected(void)
 {
     QCC_DbgPrintf(("%s", __func__));
+
+    if (!(controller.IsRunning())) {
+        QCC_LogError(ER_FAIL, ("%s: The Controller Service is not running", __func__));
+        return;
+    }
+
+    connectionStateMutex.Lock();
+    Stop();
+    Join();
+    connectionStateMutex.Unlock();
+}
+
+void LeaderElectionObject::ClearState(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
+
+    /* Clean up all the stale data */
+    overThrowListMutex.Lock();
+    overThrowList.clear();
+    overThrowListMutex.Unlock();
+
+    upComingLeaderMutex.Lock();
+    upcomingLeaderRank = Rank();
+    upComingLeaderBusName.clear();
+    upComingLeaderMutex.Unlock();
+
+    electionAlarmMutex.Lock();
+    electionAlarm.SetAlarm(0);
+    electionAlarmMutex.Unlock();
+
+    controllersMapMutex.Lock();
+    controllersMap.clear();
+    controllersMapMutex.Unlock();
+
+    alarmTriggered = false;
+    gotOverthrowReply = false;
+    okToSetAlarm = true;
+    startElection = true;
+
+    currentLeaderMutex.Lock();
+    currentLeader.Clear();
+    currentLeaderMutex.Unlock();
+
+    outGoingLeaderMutex.Lock();
+    outGoingLeaderBusName.clear();
+    outgoingLeaderRank = Rank();
+    outGoingLeaderMutex.Unlock();
+
+    failedJoinSessionMutex.Lock();
+    failedJoinSessions.clear();
+    failedJoinSessionMutex.Unlock();
+
+    successfulJoinSessionMutex.Lock();
+    successfulJoinSessions.clear();
+    successfulJoinSessionMutex.Unlock();
+
+    sessionLostMutex.Lock();
+    sessionLostList.clear();
+    sessionLostMutex.Unlock();
+
+    sessionMemberRemovedMutex.Lock();
+    sessionMemberRemoved.clear();
+    sessionMemberRemovedMutex.Unlock();
 }
 
 void LeaderElectionObject::Run(void)
@@ -457,11 +567,29 @@ void LeaderElectionObject::Run(void)
         /*
          * We are shutting down. So announce self as non-leader before going away
          */
-        if (!isRunning && isLeader) {
-            isLeader = false;
-            g_IsLeader = false;
-            QCC_DbgPrintf(("%s: Announcing self as non-leader as we are stopping", __func__));
-            controller.SetIsLeader(false);
+        if (!isRunning) {
+            if (isLeader) {
+                controller.LeaveSession();
+                controller.GetLampManager().DisconnectFromLamps();
+                controller.SetAllowUpdates(false);
+                controller.SetIsLeader(false);
+                isLeader = false;
+                g_IsLeader = false;
+            } else {
+                ajn::SessionId sessionId = 0;
+                currentLeaderMutex.Lock();
+                sessionId = currentLeader.proxyObj.GetSessionId();
+                currentLeader.Clear();
+                currentLeaderMutex.Unlock();
+
+                if (sessionId) {
+                    QCC_DbgPrintf(("%s: Tearing down session with current leader", __func__));
+                    controller.DoLeaveSessionAsync(sessionId);
+                }
+            }
+
+            ClearState();
+
             goto _Exit;
         }
 
@@ -501,7 +629,7 @@ void LeaderElectionObject::Run(void)
 
                         upComingLeaderMutex.Lock();
                         upComingLeaderBusName.clear();
-                        upcomingLeaderRank = 0;
+                        upcomingLeaderRank = Rank();
                         upComingLeaderMutex.Unlock();
 
                         electionAlarmMutex.Lock();
@@ -549,7 +677,7 @@ void LeaderElectionObject::Run(void)
 
                         upComingLeaderMutex.Lock();
                         upComingLeaderBusName.clear();
-                        upcomingLeaderRank = 0;
+                        upcomingLeaderRank = Rank();
                         upComingLeaderMutex.Unlock();
 
                         electionAlarmMutex.Lock();
@@ -607,7 +735,7 @@ void LeaderElectionObject::Run(void)
                                     controllersMap.erase(it);
                                     upComingLeaderMutex.Lock();
                                     upComingLeaderBusName.clear();
-                                    upcomingLeaderRank = 0;
+                                    upcomingLeaderRank = Rank();
                                     upComingLeaderMutex.Unlock();
 
                                     controller.SetAllowUpdates(true);
@@ -618,7 +746,7 @@ void LeaderElectionObject::Run(void)
                     }
                 }
             } else {
-                if (gotOverthrowReply && (outgoingLeaderRank != 0)) {
+                if (gotOverthrowReply && (outgoingLeaderRank.IsInitialized())) {
                     QCC_DbgPrintf(("%s: gotOverthrowReply", __func__));
                     gotOverthrowReply = false;
 
@@ -638,14 +766,14 @@ void LeaderElectionObject::Run(void)
                     controllersMapMutex.Lock();
                     ControllersMap::iterator it = controllersMap.find(outgoingLeaderRank);
                     if ((it != controllersMap.end()) && (it->second.isLeader)) {
-                        QCC_DbgPrintf(("%s: Removed outgoing leader with rank %llu from controllersMap", __func__, outgoingLeaderRank));
+                        QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outgoingLeaderRank.c_str()));
                         controllersMap.erase(it);
                     }
                     controllersMapMutex.Unlock();
 
                     outGoingLeaderMutex.Lock();
                     outGoingLeaderBusName.clear();
-                    outgoingLeaderRank = 0;
+                    outgoingLeaderRank = Rank();
                     outGoingLeaderMutex.Unlock();
 
                     QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
@@ -678,7 +806,7 @@ void LeaderElectionObject::Run(void)
                      * Leader
                      */
                     currentLeaderMutex.Lock();
-                    if (currentLeader.controllerDetails.rank == 0) {
+                    if (!(currentLeader.controllerDetails.rank.IsInitialized())) {
                         lookingForALeader = true;
                     } else {
                         if (!(currentLeader.proxyObj.IsValid())) {
@@ -706,7 +834,7 @@ void LeaderElectionObject::Run(void)
                         controllersMapMutex.Unlock();
 
                         if (leaderFound) {
-                            QCC_DbgPrintf(("%s: Found an entry with rank=%llu and leader bit set", __func__, rit->second.rank));
+                            QCC_DbgPrintf(("%s: Found an entry with rank=%s and leader bit set", __func__, rit->second.rank.c_str()));
                             /*
                              * Check if we need to perform a coup
                              */
@@ -727,7 +855,7 @@ void LeaderElectionObject::Run(void)
                             currentLeader.controllerDetails = controllerDetails;
                             currentLeaderMutex.Unlock();
 
-                            uint64_t* leaderRank = new uint64_t;
+                            Rank* leaderRank = new Rank();
                             *leaderRank = controllerDetails.rank;
                             SessionOpts opts;
                             opts.isMultipoint = true;
@@ -798,11 +926,11 @@ void LeaderElectionObject::Run(void)
                         successfulJoinSessions.clear();
                         successfulJoinSessionMutex.Unlock();
 
-                        uint64_t failedConnectToLeaderRank = 0;
+                        Rank failedConnectToLeaderRank = Rank();
 
                         currentLeaderMutex.Lock();
                         while (failedJoinSessionsCopy.size()) {
-                            if (static_cast<ajn::SessionId>(failedJoinSessionsCopy.front()) == currentLeader.controllerDetails.rank) {
+                            if (static_cast<Rank>(failedJoinSessionsCopy.front()) == currentLeader.controllerDetails.rank) {
                                 QCC_DbgPrintf(("%s: JoinSession failed with current leader", __func__));
                                 failedConnectToLeaderRank = currentLeader.controllerDetails.rank;
                                 currentLeader.Clear();
@@ -817,7 +945,7 @@ void LeaderElectionObject::Run(void)
                         outGoingLeaderCopy = outGoingLeaderBusName;
                         outGoingLeaderMutex.Unlock();
 
-                        if (failedConnectToLeaderRank) {
+                        if (failedConnectToLeaderRank.IsInitialized()) {
                             if (!outGoingLeaderCopy.empty()) {
                                 /*
                                  * We are performing a coup but could not successfully talk to the
@@ -826,14 +954,14 @@ void LeaderElectionObject::Run(void)
                                 controllersMapMutex.Lock();
                                 ControllersMap::iterator it = controllersMap.find(outgoingLeaderRank);
                                 if ((it != controllersMap.end()) && (it->second.isLeader)) {
-                                    QCC_DbgPrintf(("%s: Removed outgoing leader with rank %llu from controllersMap", __func__, outgoingLeaderRank));
+                                    QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outgoingLeaderRank.c_str()));
                                     controllersMap.erase(it);
                                 }
                                 controllersMapMutex.Unlock();
 
                                 outGoingLeaderMutex.Lock();
                                 outGoingLeaderBusName.clear();
-                                outgoingLeaderRank = 0;
+                                outgoingLeaderRank = Rank();
                                 outGoingLeaderMutex.Unlock();
 
                                 QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
@@ -911,14 +1039,14 @@ void LeaderElectionObject::Run(void)
                                             controllersMapMutex.Lock();
                                             ControllersMap::iterator it = controllersMap.find(outgoingLeaderRank);
                                             if ((it != controllersMap.end()) && (it->second.isLeader)) {
-                                                QCC_DbgPrintf(("%s: Removed outgoing leader with rank %llu from controllersMap", __func__, outgoingLeaderRank));
+                                                QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outgoingLeaderRank.c_str()));
                                                 controllersMap.erase(it);
                                             }
                                             controllersMapMutex.Unlock();
 
                                             outGoingLeaderMutex.Lock();
                                             outGoingLeaderBusName.clear();
-                                            outgoingLeaderRank = 0;
+                                            outgoingLeaderRank = Rank();
                                             outGoingLeaderMutex.Unlock();
 
                                             QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
@@ -1015,10 +1143,10 @@ void LeaderElectionObject::Run(void)
 
                         if (lostSessionWithLeader) {
                             QCC_DbgPrintf(("%s: SessionLost", __func__));
-                            uint64_t failedConnectToLeaderRank = 0;
+                            Rank failedConnectToLeaderRank = Rank();
 
                             currentLeaderMutex.Lock();
-                            QCC_DbgPrintf(("%s: Cleared current leader with rank %llu", __func__, currentLeader.controllerDetails.rank));
+                            QCC_DbgPrintf(("%s: Cleared current leader with rank %s", __func__, currentLeader.controllerDetails.rank.c_str()));
                             failedConnectToLeaderRank = currentLeader.controllerDetails.rank;
                             currentLeader.Clear();
                             currentLeaderMutex.Unlock();
@@ -1030,7 +1158,7 @@ void LeaderElectionObject::Run(void)
                              * set.
                              */
                             if ((it != controllersMap.end()) && (it->second.isLeader)) {
-                                QCC_DbgPrintf(("%s: Removing entry with rank %llu from controllersMap", __func__, it->second.rank));
+                                QCC_DbgPrintf(("%s: Removing entry with rank %s from controllersMap", __func__, it->second.rank.c_str()));
                                 controllersMap.erase(it);
                             }
                             controllersMapMutex.Unlock();
@@ -1046,7 +1174,7 @@ void LeaderElectionObject::Run(void)
                              * Check if a new leader with rank higher that whom we think is the leader has come up. If so,
                              * leave our current session and join the new leader
                              */
-                            uint64_t currentLeaderRank = 0;
+                            Rank currentLeaderRank = Rank();
                             currentLeaderMutex.Lock();
                             currentLeaderRank = currentLeader.controllerDetails.rank;
                             currentLeaderMutex.Unlock();
@@ -1064,13 +1192,13 @@ void LeaderElectionObject::Run(void)
                                     }
                                 }
                             }
-                            if ((entry.rank != 0) && (it->second.isLeader)) {
-                                QCC_DbgPrintf(("%s: Removing current leader %llu entry from controllersMap", __func__, currentLeaderRank));
+                            if ((entry.rank.IsInitialized()) && (it->second.isLeader)) {
+                                QCC_DbgPrintf(("%s: Removing current leader %s entry from controllersMap", __func__, currentLeaderRank.c_str()));
                                 controllersMap.erase(it);
                             }
                             controllersMapMutex.Unlock();
 
-                            if (entry.rank != 0) {
+                            if (entry.rank.IsInitialized()) {
                                 ajn::SessionId session = 0;
                                 currentLeaderMutex.Lock();
                                 session = currentLeader.proxyObj.GetSessionId();
@@ -1096,8 +1224,8 @@ _Exit:
 // called when we join another controller's session
 void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId, void* context)
 {
-    uint64_t* rankPtr = static_cast<uint64_t*>(context);
-    QCC_DbgPrintf(("%s: (status=%s sessionId=%u rank=%llu)", __func__, QCC_StatusText(status), sessionId, *rankPtr));
+    Rank* rankPtr = static_cast<Rank*>(context);
+    QCC_DbgPrintf(("%s: (status=%s sessionId=%u rank=%s)", __func__, QCC_StatusText(status), sessionId, (*rankPtr).c_str()));
 
     if (status == ER_OK) {
         successfulJoinSessionMutex.Lock();
@@ -1113,11 +1241,12 @@ void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId, 
     wakeSem.Post();
 }
 
-QStatus LeaderElectionObject::Start()
+QStatus LeaderElectionObject::Start(Rank& rank)
 {
     QCC_DbgTrace(("%s", __func__));
+
     // can't get this in c'tor because it might not be initialized yet
-    myRank = controller.GetRank();
+    myRank = rank;
 
     QStatus status;
     status = bus.CreateInterfacesFromXml(LeaderElectionAndStateSyncDescription.c_str());
@@ -1164,21 +1293,12 @@ QStatus LeaderElectionObject::Start()
         return status;
     }
 
-    isRunning = true;
-
-    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to RegisterAnnounceHandler", __func__));
-        return status;
+    if (OEM_CS_IsNetworkConnected()) {
+        QCC_DbgPrintf(("%s: Device is connected to the network. Starting the leader election thread", __func__));
+        Connected();
+    } else {
+        QCC_DbgPrintf(("%s: Device is not connected to the network. Waiting for the connected callback from the firmware", __func__));
     }
-
-    status = Thread::Start();
-    if (status != ER_OK) {
-        isRunning = false;
-        QCC_LogError(status, ("%s: Unable to start Run() thread", __func__));
-    }
-
-    wakeSem.Post();
 
     return status;
 }
@@ -1186,29 +1306,21 @@ QStatus LeaderElectionObject::Start()
 void LeaderElectionObject::Stop()
 {
     QCC_DbgTrace(("%s", __func__));
-    isRunning = false;
-    electionAlarm.Stop();
-    wakeSem.Post();
+    if (isRunning) {
+        isRunning = false;
+
+        QStatus status = services::AnnouncementRegistrar::UnRegisterAnnounceHandler(bus, *handler, ControllerServiceInterface, 1);
+        if (status != ER_OK) {
+            QCC_LogError(status, ("%s: Failed to UnRegisterAnnounceHandler", __func__));
+        }
+
+        wakeSem.Post();
+    }
 }
 
 void LeaderElectionObject::Join()
 {
-    QStatus status = ER_OK;
-
-    electionAlarmMutex.Lock();
-    electionAlarm.Join();
-    electionAlarmMutex.Unlock();
-
     Thread::Join();
-
-    status = bus.UnregisterSignalHandler(
-        this,
-        static_cast<MessageReceiver::SignalHandler>(&LeaderElectionObject::OnBlobChanged),
-        blobChangedSignal,
-        LeaderElectionAndStateSyncObjectPath);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("%s: Failed to start the unregister BlobChanged Handler", __func__));
-    }
 }
 
 void LeaderElectionObject::Overthrow(const InterfaceDescription::Member* member, ajn::Message& msg)

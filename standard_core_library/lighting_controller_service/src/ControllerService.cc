@@ -67,7 +67,7 @@ class ControllerService::ControllerListener :
     virtual void SessionJoined(SessionPort sessionPort, SessionId sessionId, const char* joiner) {
         QCC_DbgPrintf(("%s: (sessionPort=%u, sessionId=%u, joiner=%s)", __func__,
                        sessionPort, sessionId, joiner));
-
+        controller->bus.EnableConcurrentCallbacks();
         controller->SessionJoined(sessionId, joiner);
     }
 
@@ -226,8 +226,8 @@ ControllerService::ControllerService(
     isObsObjectReady(false),
     isRunning(true),
     fileWriterThread(*this),
-    firstAnnouncementSent(false)
-
+    firstAnnouncementSent(false),
+    rank()
 {
     QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
 }
@@ -260,7 +260,8 @@ ControllerService::ControllerService(
     isObsObjectReady(false),
     isRunning(true),
     fileWriterThread(*this),
-    firstAnnouncementSent(false)
+    firstAnnouncementSent(false),
+    rank()
 {
     QCC_DbgTrace(("%s:factoryConfigFile=%s, configFile=%s, lampGroupFile=%s, presetFile=%s, sceneFile=%s, masterSceneFile=%s", __func__, factoryConfigFile.c_str(), configFile.c_str(), lampGroupFile.c_str(), presetFile.c_str(), sceneFile.c_str(), masterSceneFile.c_str()));
     internalPropertyStore.Initialize();
@@ -535,6 +536,16 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
     }
 
     /*
+     * Initialize the rank
+     */
+    rank.Initialize();
+
+    /*
+     * Set the rank in the property store
+     */
+    propertyStore.SetRank(rank);
+
+    /*
      * Start the AllJoyn Bus
      */
     status = bus.Start();
@@ -657,7 +668,7 @@ QStatus ControllerService::Start(const char* keyStoreFileLocation)
         return status;
     }
 
-    status = elector.Start();
+    status = elector.Start(rank);
     if (status != ER_OK) {
         QCC_LogError(status, ("%s: Failed to start LeaderElection object", __func__));
         return status;
@@ -802,9 +813,12 @@ QStatus ControllerService::SendSignal(const char* ifaceName, const char* signalN
     SessionId session = serviceSession;
     if (serviceSession != 0) {
         QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
-        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
-        if (signal) {
-            status = Signal(NULL, serviceSession, *signal, &arg, 1, 0);
+        const InterfaceDescription* interface = bus.GetInterface(ifaceName);
+        if (interface) {
+            const InterfaceDescription::Member* signal = interface->GetMember(signalName);
+            if (signal) {
+                status = Signal(NULL, serviceSession, *signal, &arg, 1, 0);
+            }
         }
     }
     serviceSessionMutex.Unlock();
@@ -834,9 +848,12 @@ QStatus ControllerService::SendNameChangedSignal(const char* ifaceName, const ch
     SessionId session = serviceSession;
     if (serviceSession != 0) {
         QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
-        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
-        if (signal) {
-            status = Signal(NULL, serviceSession, *signal, args, 2, 0);
+        const InterfaceDescription* interface = bus.GetInterface(ifaceName);
+        if (interface) {
+            const InterfaceDescription::Member* signal = interface->GetMember(signalName);
+            if (signal) {
+                status = Signal(NULL, serviceSession, *signal, args, 2, 0);
+            }
         }
     }
     serviceSessionMutex.Unlock();
@@ -865,9 +882,12 @@ QStatus ControllerService::SendStateChangedSignal(const char* ifaceName, const c
     serviceSessionMutex.Lock();
     if (serviceSession != 0) {
         QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
-        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
-        if (signal) {
-            status = Signal(NULL, serviceSession, *signal, args, 2, 0);
+        const InterfaceDescription* interface = bus.GetInterface(ifaceName);
+        if (interface) {
+            const InterfaceDescription::Member* signal = interface->GetMember(signalName);
+            if (signal) {
+                status = Signal(NULL, serviceSession, *signal, args, 2, 0);
+            }
         }
     }
     serviceSessionMutex.Unlock();
@@ -888,10 +908,13 @@ QStatus ControllerService::SendSignalWithoutArg(const char* ifaceName, const cha
 
     serviceSessionMutex.Lock();
     if (serviceSession != 0) {
-        const InterfaceDescription::Member* signal = bus.GetInterface(ifaceName)->GetMember(signalName);
-        if (signal) {
-            QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
-            status = Signal(NULL, serviceSession, *signal, NULL, 0, 0);
+        const InterfaceDescription* interface = bus.GetInterface(ifaceName);
+        if (interface) {
+            const InterfaceDescription::Member* signal = interface->GetMember(signalName);
+            if (signal) {
+                QCC_DbgPrintf(("%s: Session ID = %u", __func__, serviceSession));
+                status = Signal(NULL, serviceSession, *signal, NULL, 0, 0);
+            }
         }
     }
     serviceSessionMutex.Unlock();
@@ -1342,11 +1365,6 @@ void ControllerService::LeaveSessionAsyncReplyHandler(ajn::Message& message, voi
             }
         }
     }
-}
-
-uint64_t ControllerService::GetRank()
-{
-    return propertyStore.GetRank();
 }
 
 bool ControllerService::IsLeader()

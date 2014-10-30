@@ -44,6 +44,7 @@
 #include <SceneManager.h>
 #include <MasterSceneManager.h>
 #include <ControllerServiceManager.h>
+#include <Rank.h>
 
 namespace lsf {
 /**
@@ -158,7 +159,7 @@ class ControllerClient : public ajn::MessageReceiver {
      * Internal callback invoked when an announcement is received from a Controller
      * Service Leader.
      */
-    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, uint64_t rank);
+    void OnAnnounced(ajn::SessionPort port, const char* busName, const char* deviceID, const char* deviceName, Rank rank);
 
     /**
      * Internal callback invoked when a session with a Controller
@@ -256,20 +257,20 @@ class ControllerClient : public ajn::MessageReceiver {
     struct ControllerEntry {
         ajn::SessionPort port;
         qcc::String busName;
-        uint64_t rank;
+        Rank rank;
         LSFString deviceID;
         LSFString deviceName;
 
         void Clear(void) {
             busName.clear();
-            rank = 0;
+            rank = Rank();
             port = 0;
             deviceID.clear();
             deviceName.clear();
         }
     };
 
-    typedef std::map<uint64_t, ControllerEntry> Leaders;
+    typedef std::map<Rank, ControllerEntry> Leaders;
 
     Leaders leadersMap;
     Mutex leadersMapLock;
@@ -289,7 +290,7 @@ class ControllerClient : public ajn::MessageReceiver {
     CurrentLeader currentLeader;
     Mutex currentLeaderLock;
 
-    bool JoinSessionWithAnotherLeader(uint64_t currentLeaderRank = 0);
+    bool JoinSessionWithAnotherLeader(Rank currentLeaderRank = Rank());
 
     /**
      * Pointer to the Controller Service Manager

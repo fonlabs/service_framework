@@ -29,6 +29,7 @@
 #include <Thread.h>
 #include <Mutex.h>
 #include <Condition.h>
+#include <Rank.h>
 
 #include <alljoyn/about/AboutServiceApi.h>
 #include <alljoyn/about/PropertyStore.h>
@@ -61,7 +62,8 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
         AJ_SOFTWARE_VERSION,
         HARDWARE_VERSION,
         SUPPORT_URL,
-        RANK,
+        RANK_HIGHER_BITS,
+        RANK_LOWER_BITS,
         IS_LEADER,
         NUMBER_OF_KEYS
     } PropertyStoreKey;
@@ -140,16 +142,13 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      * method Initialize
      */
     void Initialize();
-    /**
-     * Get the controller rank
-     * @return 64 bit rank value
-     */
-    uint64_t GetRank();
+
     /**
      * Is this controller is a leader?
      * @return boolean
      */
     bool IsLeader();
+
     /**
      * Stop all threads
      */
@@ -163,11 +162,11 @@ class LSFPropertyStore : public ajn::services::PropertyStore, public Thread {
      * @param leader - true or false
      */
     void SetIsLeader(bool leader);
+
     /**
      * Set the rank of the current controller
-     * @param rank - 64 bit
      */
-    void SetRank(uint64_t rank);
+    void SetRank(Rank& rank);
 
   protected:
 

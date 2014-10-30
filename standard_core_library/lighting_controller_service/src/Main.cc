@@ -64,20 +64,17 @@ static std::string masterSceneFilePath = masterSceneFile;
 static std::string storeFilePath = storeFile;
 static std::string storeLocation;
 static bool runForeground = false;
-static bool overrideRank = false;
-static uint64_t rank = 0;
 static bool disableBackgroundLogging = true;
 
 static void usage(int argc, char** argv)
 {
-    printf("Usage: %s -h ? -k <absolute_directory_path> -f -r\n\n", argv[0]);
+    printf("Usage: %s -h ? -k <absolute_directory_path> -f\n\n", argv[0]);
     printf("Options:\n");
     printf("   -h                    = Print this help message\n");
     printf("   -?                    = Print this help message\n");
     printf("   -f                    = Run the Controller Service as a foreground process\n");
     printf("   -k <absolute_directory_path>   = The absolute path to a directory required to store the AllJoyn KeyStore, Persistent Store and read/write the Config FilePaths\n\n");
     printf("   -v                    = Print the version number and exit\n");
-    printf("   -r                    = Override the rank for debugging purposes\n");
     printf("   -l                    = Enable background logging\n");
     printf("Default:\n");
     printf("    %s\n", argv[0]);
@@ -118,16 +115,6 @@ static void parseCommandLine(int argc, char** argv)
             runForeground = true;
         } else if (0 == strcmp("-l", argv[i])) {
             disableBackgroundLogging = false;
-        } else if (0 == strcmp("-r", argv[i])) {
-            ++i;
-            if (i == argc) {
-                printf("option %s requires a parameter\n", argv[i - 1]);
-                usage(argc, argv);
-                exit(1);
-            } else {
-                rank = strtouq(argv[i], NULL, 10);
-                overrideRank = true;
-            }
         } else {
             printf("Unknown option %s\n", argv[i]);
             usage(argc, argv);
@@ -160,10 +147,6 @@ void RunService(bool listenToInterrupts)
     if (controllerSvcManagerPtr == NULL) {
         QCC_LogError(ER_OUT_OF_MEMORY, ("%s: Failed to start the Controller Service Manager", __func__));
         exit(-1);
-    }
-
-    if (overrideRank) {
-        controllerSvcManagerPtr->OverrideRank(rank);
     }
 
     QStatus status = controllerSvcManagerPtr->Start(storeLocation.empty() ? NULL : storeFilePath.c_str());

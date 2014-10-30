@@ -151,55 +151,105 @@ bool OEM_CS_IsNetworkConnected(void);
 
 /**
  * Possible values for Power - one of the static
- * parameters used in the rank computation
+ * parameters used in the rank computation. This
+ * indicates how the device running the Controller
+ * Service is powered.
  */
 typedef enum _OEM_CS_RankParam_Power {
     BATTERY_POWERED_NOT_CHARGABLE = 0,
-    BATTERY_POWERED_CHARGABLE,
-    ALWAYS_AC_CONNECTED,
-    OEM_CS_RANKPARAM_POWER_LAST_VALUE
+    BATTERY_POWERED_CHARGABLE = 1,
+    ALWAYS_AC_POWERED = 2,
+    /** If OEMs return this value, the Controller Service will use BATTERY_POWERED_NOT_CHARGABLE as this is not a valid value */
+    OEM_CS_RANKPARAM_POWER_LAST_VALUE = 4
 } OEM_CS_RankParam_Power;
 
 /**
  * This function returns value of the Power - one of the static
- * parameters used in the rank computation
+ * parameters used in the rank computation. This indicates how
+ * the device running the Controller Service is powered.
  * @return One of the values defined by the enum OEM_CS_RankParam_Power
  */
 OEM_CS_RankParam_Power OEM_CS_GetRankParam_Power(void);
 
 /**
  * Possible values for Power - one of the static
- * parameters used in the rank computation
+ * parameters used in the rank computation. This
+ * indicates how mobile the device running the
+ * Controller Service is.
  */
 typedef enum _OEM_CS_RankParam_Mobility {
-    MOSTLY_MOBILE = 0,
-    MOSTLY_PROXIMAL,
-    ALWAYS_STATIONARY,
-    OEM_CS_RANKPARAM_MOBILITY_LAST_VALUE
+    /** Devices like smartphones will fall in this category */
+    HIGH_MOBILITY = 0,
+    /** Examples are tablets & laptops */
+    INTERMEDIATE_MOBILITY = 1,
+    /** Mostly stationary and proximal devices fall in this category. An example is wireless speaker */
+    LOW_MOBILITY = 2,
+    /** Examples are WiFi Access Point, TV */
+    ALWAYS_STATIONARY = 3,
+    /** If OEMs return this value, the Controller Service will use HIGH_MOBILITY as this is not a valid value */
+    OEM_CS_RANKPARAM_MOBILITY_LAST_VALUE = 4
 } OEM_CS_RankParam_Mobility;
 
 /**
  * This function returns value of the Mobility - one of the static
- * parameters used in the rank computation
+ * parameters used in the rank computation. This indicates how mobile
+ * the device running the Controller Service is.
  * @return One of the values defined by the enum OEM_CS_RankParam_Mobility
  */
 OEM_CS_RankParam_Mobility OEM_CS_GetRankParam_Mobility(void);
 
 /**
  * Possible values for Availability - one of the static
- * parameters used in the rank computation
+ * parameters used in the rank computation. This indicates
+ * the average uptime for the device running the Controller
+ * Service over a 24hr period, independent of proximal/remote
+ * location.
  */
 typedef enum _OEM_CS_RankParam_Availability {
-    ALWAYS_AVAILABLE,
-    OEM_CS_RANKPARAM_AVAILABILITY_LAST_VALUE
+    ZERO_TO_THREE_HOURS = 0,
+    THREE_TO_SIX_HOURS = 1,
+    SIX_TO_NINE_HOURS = 2,
+    NINE_TO_TWELVE_HOURS = 3,
+    TWELVE_TO_FIFTEEN_HOURS = 4,
+    FIFTEEN_TO_EIGHTEEN_HOURS = 5,
+    EIGHTEEN_TO_TWENTY_ONE_HOURS = 6,
+    /** Indicates 24 hours */
+    TWENTY_ONE_TO_TWENTY_FOUR_HOURS = 7,
+    /** If OEMs return this value, the Controller Service will use ZERO_TO_THREE_HOURS as this is not a valid value */
+    OEM_CS_RANKPARAM_AVAILABILITY_LAST_VALUE = 8
 } OEM_CS_RankParam_Availability;
 
 /**
  * This function returns value of the Availability - one of the static
- * parameters used in the rank computation
+ * parameters used in the rank computation. This indicates
+ * the average uptime for the device running the Controller
+ * Service over a 24hr period, independent of proximal/remote
+ * location.
  * @return One of the values defined by the enum OEM_CS_RankParam_Availability
  */
 OEM_CS_RankParam_Availability OEM_CS_GetRankParam_Availability(void);
+
+/**
+ * Possible values for Node Type - one of the static
+ * parameters used in the rank computation
+ */
+typedef enum _OEM_CS_RankParam_NodeType {
+    /** Indicates device is connected to the access point over a wireless link */
+    WIRELESS = 0,
+    /** Indicates device is connected to the access point over a wired link */
+    WIRED = 1,
+    /** Indicates device running the Controller Service is the access point itself */
+    ACCESS_POINT = 2,
+    /** If OEMs return this value, the Controller Service will use WIRELESS as this is not a valid value */
+    OEM_CS_RANKPARAM_NODETYPE_LAST_VALUE = 4
+} OEM_CS_RankParam_NodeType;
+
+/**
+ * This function returns value of the Node Type - one of the static
+ * parameters used in the rank computation
+ * @return One of the values defined by the enum OEM_CS_RankParam_NodeType
+ */
+OEM_CS_RankParam_NodeType OEM_CS_GetRankParam_NodeType(void);
 
 } //lsf
 

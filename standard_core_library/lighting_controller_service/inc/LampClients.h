@@ -32,6 +32,7 @@
 #include <Manager.h>
 #include <Thread.h>
 #include <LSFSemaphore.h>
+#include <Alarm.h>
 
 #include <string>
 #include <map>
@@ -116,7 +117,7 @@ typedef std::list<PulseStateParams> PulseStateParamsList;
  * class is used as client side to the lamp service
  */
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener,
-    public ajn::ProxyBusObject::Listener, public lsf::Thread {
+    public ajn::ProxyBusObject::Listener, public lsf::Thread, public AlarmListener {
   public:
     /**
      * LampClients constructor
@@ -334,6 +335,11 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
      */
     QStatus RegisterAnnounceHandler(void);
 
+    /**
+     * Alarm triggered callback
+     */
+    void AlarmTriggered(void);
+
   private:
 
     void HandleAboutAnnounce(LSFString& lampID, LSFString& lampName, uint16_t& port, LSFString& busName);
@@ -438,6 +444,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     typedef enum _LampConnectionState {
         DISCONNECTED = 0,
         JOIN_SESSION_IN_PROGRESS,
+        RETRY_JOIN_SESSION,
         CONNECTED,
         BLACKLISTED
     } LampConnectionState;
@@ -547,6 +554,12 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
     LSFSemaphore wakeUp;
 
     volatile sig_atomic_t connectToLamps;
+
+    uint32_t disconnectFromLampsTimestamp;
+
+    volatile sig_atomic_t alarmTriggered;
+
+    Alarm retryAlarm;
 };
 
 }

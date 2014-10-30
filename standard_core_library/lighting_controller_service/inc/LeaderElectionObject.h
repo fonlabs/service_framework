@@ -31,6 +31,7 @@
 #include <Mutex.h>
 #include <Alarm.h>
 #include <OEM_CS_Config.h>
+#include <Rank.h>
 
 namespace lsf {
 
@@ -53,11 +54,11 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     /**
      * On announcement callback
      */
-    void OnAnnounced(ajn::SessionPort port, const char* busName, uint64_t rank, bool isLeader, const char* deviceId);
+    void OnAnnounced(ajn::SessionPort port, const char* busName, Rank rank, bool isLeader, const char* deviceId);
     /**
      * Start threads
      */
-    QStatus Start(void);
+    QStatus Start(Rank& rank);
     /**
      * Stop threads
      */
@@ -96,7 +97,7 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     /**
      * Get my rank
      */
-    uint64_t GetRank(void) {
+    Rank& GetRank(void) {
         return myRank;
     }
 
@@ -105,6 +106,11 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     void Disconnected(void);
 
   private:
+
+    /**
+     * Clear the state of the LeaderElectionObject
+     */
+    void ClearState(void);
 
     struct Synchronization {
         volatile int32_t numWaiting;
@@ -133,13 +139,13 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
         ajn::SessionPort port;
         qcc::String busName;
         qcc::String deviceId;
-        uint64_t rank;
+        Rank rank;
         bool isLeader;
 
         void Clear() {
             busName = "";
             deviceId = "";
-            rank = 0;
+            rank = Rank();
             isLeader = false;
             port = 0;
         }
@@ -149,9 +155,9 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     void OnSessionJoined(QStatus status, SessionId sessionId, void* context);
 
     typedef std::list<ajn::Message> OverThrowList;
-    typedef std::map<uint64_t, ControllerEntry> ControllersMap;
-    typedef std::map<uint64_t, uint32_t> SuccessfulJoinSessionReplies;
-    typedef std::list<uint64_t> FailedJoinSessionReplies;
+    typedef std::map<Rank, ControllerEntry> ControllersMap;
+    typedef std::map<Rank, uint32_t> SuccessfulJoinSessionReplies;
+    typedef std::list<Rank> FailedJoinSessionReplies;
     typedef std::list<uint32_t> SessionLostList;
     typedef std::map<uint32_t, const char*> SessionMemberRemovedMap;
     typedef struct _CurrentLeader {
@@ -185,8 +191,9 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     Mutex overThrowListMutex;
     OverThrowList overThrowList;
 
-    uint64_t myRank;
+    Rank myRank;
 
+    Mutex connectionStateMutex;
     volatile sig_atomic_t isRunning;
 
     const ajn::InterfaceDescription::Member* blobChangedSignal;
@@ -203,10 +210,10 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     volatile sig_atomic_t gotOverthrowReply;
     Mutex outGoingLeaderMutex;
     qcc::String outGoingLeaderBusName;
-    uint64_t outgoingLeaderRank;
+    Rank outgoingLeaderRank;
     Mutex upComingLeaderMutex;
     qcc::String upComingLeaderBusName;
-    uint64_t upcomingLeaderRank;
+    Rank upcomingLeaderRank;
 };
 
 }

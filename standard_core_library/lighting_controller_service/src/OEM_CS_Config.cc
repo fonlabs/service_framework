@@ -87,7 +87,7 @@ OEM_CS_RankParam_Power OEM_CS_GetRankParam_Power(void)
     // OEMs should add code here to return the appropriate enum value from
     // OEM_CS_RankParam_Power depending on the type of the device on which
     // the Controller Service is being run
-    return ALWAYS_AC_CONNECTED;
+    return ALWAYS_AC_POWERED;
 }
 
 OEM_CS_RankParam_Mobility OEM_CS_GetRankParam_Mobility(void)
@@ -103,7 +103,15 @@ OEM_CS_RankParam_Availability OEM_CS_GetRankParam_Availability(void)
     // OEMs should add code here to return the appropriate enum value from
     // OEM_CS_RankParam_Availability depending on the type of the device on which
     // the Controller Service is being run
-    return ALWAYS_AVAILABLE;
+    return TWENTY_ONE_TO_TWENTY_FOUR_HOURS;
+}
+
+OEM_CS_RankParam_NodeType OEM_CS_GetRankParam_NodeType(void)
+{
+    // OEMs should add code here to return the appropriate enum value from
+    // OEM_CS_RankParam_NodeType depending on network configuration of the device on which
+    // the Controller Service is being run
+    return WIRED;
 }
 
 // NOTE: this function will only be called if no Factory Configuration ini file is found.

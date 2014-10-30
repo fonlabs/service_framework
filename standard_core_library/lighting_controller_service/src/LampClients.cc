@@ -125,7 +125,10 @@ LampClients::LampClients(ControllerService& controllerSvc)
     serviceHandler(new ServiceHandler(*this)),
     isRunning(false),
     lampStateChangedSignalHandlerRegistered(false),
-    connectToLamps(false)
+    connectToLamps(false),
+    disconnectFromLampsTimestamp(0),
+    alarmTriggered(false),
+    retryAlarm(this)
 {
     QCC_DbgTrace(("%s", __func__));
     keyListener.SetPassCode(INITIAL_PASSCODE);
@@ -205,6 +208,8 @@ void LampClients::Join(void)
 {
     QCC_DbgTrace(("%s", __func__));
 
+    retryAlarm.Join();
+
     Thread::Join();
 
     for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); ++it) {
@@ -220,6 +225,7 @@ void LampClients::Join(void)
 void LampClients::Stop(void)
 {
     QCC_DbgTrace(("%s", __func__));
+    retryAlarm.Stop();
     DisconnectFromLamps();
     isRunning = false;
     wakeUp.Post();
@@ -273,6 +279,7 @@ void LampClients::ConnectToLamps(void)
 void LampClients::DisconnectFromLamps(void)
 {
     QCC_DbgTrace(("%s", __func__));
+    disconnectFromLampsTimestamp = GetTimestampInSeconds();
     connectToLamps = false;
     wakeUp.Post();
 }
@@ -464,8 +471,8 @@ LSFResponseCode LampClients::DoMethodCallAsync(QueuedMethodCall* queuedCall)
             LampMap::iterator lit = activeLamps.find(*it);
             if (lit != activeLamps.end()) {
                 QCC_DbgPrintf(("%s: Found Lamp", __func__));
+                ctx = NULL;
                 if (lit->second->IsConnected()) {
-                    ctx = NULL;
                     ctx = new QueuedMethodCallContext(*it, queuedCall, element.method);
                     if (!ctx) {
                         QCC_LogError(ER_FAIL, ("%s: Unable to allocate memory for context", __func__));
@@ -1212,9 +1219,16 @@ void LampClients::IntrospectCB(QStatus status, ajn::ProxyBusObject* obj, void* c
     /*
      * Do not introspect the remote Config and About object!
      */
+    QStatus tempStatus = ER_OK;
     const InterfaceDescription* intf = controllerService.GetBusAttachment().GetInterface(ConfigServiceInterfaceName);
-    QStatus tempStatus = connection->configObject.AddInterface(*intf);
-    QCC_DbgPrintf(("%s: connection->configObject.AddInterface returns %s\n", __func__, QCC_StatusText(tempStatus)));
+    if (intf == NULL) {
+        QCC_DbgPrintf(("%s: Interface %s not present", __func__, ConfigServiceInterfaceName));
+        tempStatus = ER_FAIL;
+    } else {
+        tempStatus = connection->configObject.AddInterface(*intf);
+        QCC_DbgPrintf(("%s: connection->configObject.AddInterface returns %s\n", __func__, QCC_StatusText(tempStatus)));
+    }
+
     if (ER_OK == tempStatus) {
         intf = controllerService.GetBusAttachment().GetInterface(AboutInterfaceName);
         tempStatus = connection->aboutObject.AddInterface(*intf);
@@ -1281,11 +1295,20 @@ QStatus LampClients::RegisterAnnounceHandler(void)
     return status;
 }
 
+void LampClients::AlarmTriggered(void)
+{
+    QCC_DbgPrintf(("%s", __func__));
+    alarmTriggered = true;
+    wakeUp.Post();
+}
+
 void LampClients::Run(void)
 {
     QCC_DbgTrace(("%s", __func__));
 
     bool oneTimeCleanupDone = false;
+
+    bool alarmSet = false;
 
     while (isRunning) {
         /*
@@ -1436,8 +1459,7 @@ void LampClients::Run(void)
             opts.isMultipoint = true;
             for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); it++) {
                 LampConnection* newConn = it->second;
-
-                if (newConn->IsDisconnected()) {
+                if (newConn->IsDisconnected() || (alarmTriggered && (newConn->connectionState == RETRY_JOIN_SESSION))) {
                     status = controllerService.GetBusAttachment().JoinSessionAsync(newConn->busName.c_str(), newConn->port, this, opts, this, newConn);
                     QCC_DbgPrintf(("JoinSessionAsync(%s,%u): %s\n", newConn->busName.c_str(), newConn->port, QCC_StatusText(status)));
                     if (status != ER_OK) {
@@ -1447,6 +1469,11 @@ void LampClients::Run(void)
                         newConn->connectionState = JOIN_SESSION_IN_PROGRESS;
                     }
                 }
+            }
+
+            if (alarmTriggered) {
+                alarmSet = false;
+                alarmTriggered = false;
             }
 
             /*
@@ -1476,6 +1503,8 @@ void LampClients::Run(void)
             LSFStringList foundLamps;
             foundLamps.clear();
 
+            bool retryJoinSession = false;
+
             for (JoinSessionReplyMap::iterator it = tempJoinList.begin(); it != tempJoinList.end(); it++) {
                 LampMap::iterator lit = activeLamps.find(it->first);
 
@@ -1485,6 +1514,10 @@ void LampClients::Run(void)
                         newConn->connectionState = CONNECTED;
                         QCC_DbgPrintf(("%s: Connected to %s", __func__, newConn->lampId.c_str()));
                         foundLamps.push_back(newConn->lampId);
+                    } else if (it->second == ER_ALLJOYN_JOINSESSION_REPLY_ALREADY_JOINED) {
+                        newConn->connectionState = RETRY_JOIN_SESSION;
+                        QCC_DbgPrintf(("%s: Will retry JoinSession to %s", __func__, newConn->lampId.c_str()));
+                        retryJoinSession = true;
                     } else {
                         if (newConn->sessionID) {
                             controllerService.DoLeaveSessionAsync(newConn->sessionID);
@@ -1500,6 +1533,31 @@ void LampClients::Run(void)
              */
             if (foundLamps.size()) {
                 controllerService.SendSignal(ControllerServiceLampInterfaceName, "LampsFound", foundLamps);
+            }
+
+            if (retryJoinSession) {
+                uint32_t currentTime = GetTimestampInSeconds();
+                if ((currentTime - disconnectFromLampsTimestamp) < LSF_MIN_LINK_TIMEOUT_IN_SECONDS) {
+                    /*
+                     * Set an alarm if LSF_MIN_LINK_TIMEOUT_IN_SECONDS have not elapsed since the Controller
+                     * Service disconnected from the lamps
+                     */
+                    if (!alarmSet) {
+                        alarmSet = true;
+                        /*
+                         * Add a 2s buffer to ensure that the session is cleaned up by the daemon on the accepting side
+                         */
+                        uint32_t timeToSet = 2 + LSF_MIN_LINK_TIMEOUT_IN_SECONDS - (currentTime - disconnectFromLampsTimestamp);
+                        retryAlarm.SetAlarm(timeToSet);
+                    }
+                } else {
+                    /*
+                     * Post the wakeUp semaphore so that we can immediately retry if LSF_MIN_LINK_TIMEOUT_IN_SECONDS have already
+                     * elapsed since the disconnect
+                     */
+                    alarmTriggered = true;
+                    wakeUp.Post();
+                }
             }
 
             /*

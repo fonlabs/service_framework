@@ -37,7 +37,7 @@ qcc::String LSFPropertyStore::PropertyStoreName[NUMBER_OF_KEYS + 1] = {
     "DeviceId", "DeviceName", "AppId",
     "AppName", "DefaultLanguage", "SupportedLanguages", "Description", "Manufacturer",
     "DateOfManufacture", "ModelNumber", "SoftwareVersion", "AJSoftwareVersion", "HardwareVersion",
-    "SupportUrl", "Rank", "IsLeader", ""
+    "SupportUrl", "RankHigherBits", "RankLowerBits", "IsLeader", ""
 };
 
 LSFPropertyStore::LSFPropertyStore(const std::string& factoryConfigFile, const std::string& configFile)
@@ -83,35 +83,25 @@ void LSFPropertyStore::Initialize()
     isInitialized = true;
 }
 
-static uint64_t ComputeRank(void)
-{
-    uint64_t rank = 0;
-
-    rank |= (OEM_CS_GetMACAddress() & 0x0000FFFFFFFFFFFF);
-
-    return rank;
-}
-
-
 void LSFPropertyStore::ReadFactoryConfiguration()
 {
     QCC_DbgTrace(("%s", __func__));
-
-    qcc::String deviceId;
-    GuidUtil::GetInstance()->GetDeviceIdString(&deviceId);
-    setProperty(DEVICE_ID, deviceId, true, false, true);
-
-    setProperty(RANK, ComputeRank(), true, false, true);
-    setProperty(IS_LEADER, false, true, false, true);
-
-    QCC_DbgPrintf(("%s: Power = %u", __func__, OEM_CS_GetRankParam_Power()));
-    QCC_DbgPrintf(("%s: Mobility = %u", __func__, OEM_CS_GetRankParam_Mobility()));
-    QCC_DbgPrintf(("%s: Availability = %u", __func__, OEM_CS_GetRankParam_Availability()));
 
     if (factorySettings.empty()) {
         if (!PropertyParser::ParseFile(factoryConfigFileName, factorySettings)) {
             // ini not found: fall back to hard-coded defaults
             OEM_CS_PopulateDefaultProperties(*this);
+            /*
+             * Deliberately set the IsLeader and Device ID after
+             * reading the default properties from the OEM as we do not
+             * want the OEMs to override these values because these
+             * values - if not set appropriately can cause issues in the
+             * Controller Service operation
+             */
+            qcc::String deviceId;
+            GuidUtil::GetInstance()->GetDeviceIdString(&deviceId);
+            setProperty(DEVICE_ID, deviceId, true, false, true);
+            setProperty(IS_LEADER, false, true, false, true);
             propsLock.Lock();
             asyncTasks = writetoOEMConfig;
             propsLock.Unlock();
@@ -119,6 +109,11 @@ void LSFPropertyStore::ReadFactoryConfiguration()
             return;
         }
     }
+
+    qcc::String deviceId;
+    GuidUtil::GetInstance()->GetDeviceIdString(&deviceId);
+    setProperty(DEVICE_ID, deviceId, true, false, true);
+    setProperty(IS_LEADER, false, true, false, true);
 
     StringMap::const_iterator iter;
     iter = factorySettings.find("SupportedLanguages");
@@ -554,7 +549,7 @@ QStatus LSFPropertyStore::FillStringMapWithProperties(StringMap& fileOutput, Pro
         }
 
         qcc::String name = property.getPropertyName();
-        if (name == PropertyStoreName[DEVICE_ID] || name == PropertyStoreName[IS_LEADER] || name == PropertyStoreName[RANK]) {
+        if (name == PropertyStoreName[DEVICE_ID] || name == PropertyStoreName[IS_LEADER] || name == PropertyStoreName[RANK_HIGHER_BITS] || name == PropertyStoreName[RANK_LOWER_BITS]) {
             continue;
         }
 
@@ -738,20 +733,6 @@ PropertyStoreProperty* LSFPropertyStore::getProperty(PropertyStoreKey propertyKe
     return prop;
 }
 
-uint64_t LSFPropertyStore::GetRank()
-{
-    QCC_DbgTrace(("%s", __func__));
-    uint64_t rank = 0UL;
-    propsLock.Lock();
-    PropertyMap::iterator iter = properties.find(RANK);
-    if (iter != properties.end()) {
-        iter->second.getPropertyValue().Get("t", &rank);
-    }
-
-    propsLock.Unlock();
-    return rank;
-}
-
 bool LSFPropertyStore::IsLeader()
 {
     QCC_DbgTrace(("%s", __func__));
@@ -772,13 +753,17 @@ void LSFPropertyStore::SetIsLeader(bool leader)
     propsLock.Lock();
     setProperty(IS_LEADER, leader, true, false, true);
     propsLock.Unlock();
-    AboutServiceApi::getInstance()->Announce();
+    AboutService* aboutService = AboutServiceApi::getInstance();
+    if (aboutService) {
+        aboutService->Announce();
+    }
 }
 
-void LSFPropertyStore::SetRank(uint64_t rank)
+void LSFPropertyStore::SetRank(Rank& rank)
 {
     propsLock.Lock();
-    setProperty(RANK, rank, true, false, true);
+    setProperty(RANK_HIGHER_BITS, rank.GetHigherOrderBits(), true, false, true);
+    setProperty(RANK_LOWER_BITS, rank.GetLowerOrderBits(), true, false, true);
     propsLock.Unlock();
 }
 
@@ -1001,7 +986,13 @@ QStatus LSFPropertyStore::validateValue(PropertyStoreKey propertyKey, const ajn:
         }
         break;
 
-    case RANK:
+    case RANK_HIGHER_BITS:
+        if (value.typeId != ALLJOYN_UINT64) {
+            status = ER_INVALID_VALUE;
+        }
+        break;
+
+    case RANK_LOWER_BITS:
         if (value.typeId != ALLJOYN_UINT64) {
             status = ER_INVALID_VALUE;
         }

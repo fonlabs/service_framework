@@ -241,6 +241,11 @@ extern const char* ApplySceneEventActionObjectPath;
 uint64_t GetTimestampInMs(void);
 
 /**
+ * Returns the current system timestamp in seconds
+ */
+uint32_t GetTimestampInSeconds(void);
+
+/**
  * Enum defining the LSF Blob Type
  */
 typedef enum _LSFBlobType {
