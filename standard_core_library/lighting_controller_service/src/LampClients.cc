@@ -1427,12 +1427,26 @@ void LampClients::Run(void)
                      * We already know about this Lamp
                      */
                     LampConnection* conn = lit->second;
-                    if (conn->name != newConn->name) {
+                    if ((conn->name != newConn->name) && (conn->busName == newConn->busName)) {
                         conn->name = newConn->name;
                         if (conn->IsConnected()) {
                             nameChangedList.insert(std::make_pair(conn->lampId, conn->name));
                         }
                         QCC_DbgPrintf(("%s: Name Changed for %s", __func__, newConn->lampId.c_str()));
+                    } else {
+                        /*
+                         * We got a new announcement from a lamp but the busName has changed. Clean up the
+                         * old session and setup a new session with the lamp
+                         */
+                        LampConnectionState backup = conn->connectionState;
+                        if (conn->sessionID) {
+                            controllerService.DoLeaveSessionAsync(conn->sessionID);
+                        }
+                        *conn = *newConn;
+                        if (backup == JOIN_SESSION_IN_PROGRESS) {
+                            conn->connectionState = JOIN_SESSION_IN_PROGRESS;
+                            conn->replaced = true;
+                        }
                     }
                     newConn->Clear();
                 } else {
@@ -1458,7 +1472,7 @@ void LampClients::Run(void)
             SessionOpts opts;
             opts.isMultipoint = true;
             for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); it++) {
-                LampConnection* newConn = it->second;
+                LampConnection* newConn =  it->second;
                 if (newConn->IsDisconnected() || (alarmTriggered && (newConn->connectionState == RETRY_JOIN_SESSION))) {
                     status = controllerService.GetBusAttachment().JoinSessionAsync(newConn->busName.c_str(), newConn->port, this, opts, this, newConn);
                     QCC_DbgPrintf(("JoinSessionAsync(%s,%u): %s\n", newConn->busName.c_str(), newConn->port, QCC_StatusText(status)));
@@ -1468,6 +1482,7 @@ void LampClients::Run(void)
                     } else {
                         newConn->connectionState = JOIN_SESSION_IN_PROGRESS;
                     }
+                    newConn->replaced = false;
                 }
             }
 
@@ -1510,20 +1525,26 @@ void LampClients::Run(void)
 
                 if (lit != activeLamps.end()) {
                     LampConnection* newConn = lit->second;
-                    if (it->second == ER_OK) {
-                        newConn->connectionState = CONNECTED;
-                        QCC_DbgPrintf(("%s: Connected to %s", __func__, newConn->lampId.c_str()));
-                        foundLamps.push_back(newConn->lampId);
-                    } else if (it->second == ER_ALLJOYN_JOINSESSION_REPLY_ALREADY_JOINED) {
-                        newConn->connectionState = RETRY_JOIN_SESSION;
-                        QCC_DbgPrintf(("%s: Will retry JoinSession to %s", __func__, newConn->lampId.c_str()));
-                        retryJoinSession = true;
+
+                    if (newConn->replaced) {
+                        newConn->connectionState = DISCONNECTED;
+                        wakeUp.Post();
                     } else {
-                        if (newConn->sessionID) {
-                            controllerService.DoLeaveSessionAsync(newConn->sessionID);
+                        if (it->second == ER_OK) {
+                            newConn->connectionState = CONNECTED;
+                            QCC_DbgPrintf(("%s: Connected to %s", __func__, newConn->lampId.c_str()));
+                            foundLamps.push_back(newConn->lampId);
+                        } else if (it->second == ER_ALLJOYN_JOINSESSION_REPLY_ALREADY_JOINED) {
+                            newConn->connectionState = RETRY_JOIN_SESSION;
+                            QCC_DbgPrintf(("%s: Will retry JoinSession to %s", __func__, newConn->lampId.c_str()));
+                            retryJoinSession = true;
+                        } else {
+                            if (newConn->sessionID) {
+                                controllerService.DoLeaveSessionAsync(newConn->sessionID);
+                            }
+                            newConn->ClearSessionAndObjects();
+                            newConn->connectionState = BLACKLISTED;
                         }
-                        newConn->ClearSessionAndObjects();
-                        newConn->connectionState = BLACKLISTED;
                     }
                 }
             }
@@ -1627,6 +1648,7 @@ void LampClients::Run(void)
                         controllerService.DoLeaveSessionAsync(conn->object.GetSessionId());
                     }
                     conn->ClearSessionAndObjects();
+                    conn->replaced = false;
                 }
 
                 status = joinSessionCBListLock.Lock();

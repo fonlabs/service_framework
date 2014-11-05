@@ -151,15 +151,13 @@ LeaderElectionObject::LeaderElectionObject(ControllerService& controller)
     isLeader(false),
     startElection(true),
     okToSetAlarm(true),
-    gotOverthrowReply(false),
-    outgoingLeaderRank(),
-    upcomingLeaderRank()
+    gotOverthrowReply(false)
 {
     QCC_DbgTrace(("%s", __func__));
     currentLeader.Clear();
     controllersMap.clear();
-    outGoingLeaderBusName.clear();
-    upComingLeaderBusName.clear();
+    outGoingLeader.Clear();
+    upComingLeader.Clear();
     controller.SetAllowUpdates(false);
 }
 
@@ -281,12 +279,12 @@ void LeaderElectionObject::OnGetBlobReply(ajn::Message& message, void* context)
         QCC_DbgPrintf(("Finished synchronizing!"));
         delete sync;
 
-        qcc::String outGoingLeaderCopy;
+        ControllerEntry outGoingLeaderCopy;
         outGoingLeaderMutex.Lock();
-        outGoingLeaderCopy = outGoingLeaderBusName;
+        outGoingLeaderCopy = outGoingLeader;
         outGoingLeaderMutex.Unlock();
 
-        if (!outGoingLeaderCopy.empty()) {
+        if (!outGoingLeaderCopy.busName.empty()) {
             QStatus status = currentLeader.proxyObj.MethodCallAsync(
                 LeaderElectionAndStateSyncInterfaceName,
                 "Overthrow",
@@ -514,8 +512,7 @@ void LeaderElectionObject::ClearState(void)
     overThrowListMutex.Unlock();
 
     upComingLeaderMutex.Lock();
-    upcomingLeaderRank = Rank();
-    upComingLeaderBusName.clear();
+    upComingLeader.Clear();
     upComingLeaderMutex.Unlock();
 
     electionAlarmMutex.Lock();
@@ -536,13 +533,16 @@ void LeaderElectionObject::ClearState(void)
     currentLeaderMutex.Unlock();
 
     outGoingLeaderMutex.Lock();
-    outGoingLeaderBusName.clear();
-    outgoingLeaderRank = Rank();
+    outGoingLeader.Clear();
     outGoingLeaderMutex.Unlock();
 
     failedJoinSessionMutex.Lock();
     failedJoinSessions.clear();
     failedJoinSessionMutex.Unlock();
+
+    sessionAlreadyJoinedRepliesMutex.Lock();
+    sessionAlreadyJoinedReplies.clear();
+    sessionAlreadyJoinedRepliesMutex.Unlock();
 
     successfulJoinSessionMutex.Lock();
     successfulJoinSessions.clear();
@@ -610,14 +610,14 @@ void LeaderElectionObject::Run(void)
                 overThrowList.clear();
                 overThrowListMutex.Unlock();
 
-                qcc::String upcomingLeaderCopy;
+                ControllerEntry upcomingLeaderCopy;
                 upComingLeaderMutex.Lock();
-                upcomingLeaderCopy = upComingLeaderBusName;
+                upcomingLeaderCopy = upComingLeader;
                 upComingLeaderMutex.Unlock();
 
                 MsgArg arg;
                 while (overThrowListCopy.size()) {
-                    if ((0 == strcmp(overThrowListCopy.front()->GetSender(), upcomingLeaderCopy.c_str()))) {
+                    if ((0 == strcmp(overThrowListCopy.front()->GetSender(), upcomingLeaderCopy.busName.c_str()))) {
                         arg.Set("b", true);
                         overThrown = true;
                         controller.LeaveSession();
@@ -629,8 +629,7 @@ void LeaderElectionObject::Run(void)
                         g_IsLeader = false;
 
                         upComingLeaderMutex.Lock();
-                        upComingLeaderBusName.clear();
-                        upcomingLeaderRank = Rank();
+                        upComingLeader.Clear();
                         upComingLeaderMutex.Unlock();
 
                         electionAlarmMutex.Lock();
@@ -677,8 +676,7 @@ void LeaderElectionObject::Run(void)
                         g_IsLeader = false;
 
                         upComingLeaderMutex.Lock();
-                        upComingLeaderBusName.clear();
-                        upcomingLeaderRank = Rank();
+                        upComingLeader.Clear();
                         upComingLeaderMutex.Unlock();
 
                         electionAlarmMutex.Lock();
@@ -692,17 +690,16 @@ void LeaderElectionObject::Run(void)
                         /*
                          * Check if some one is in the process of performing a coup on us
                          */
-                        qcc::String upcomingLeaderCopy;
+                        ControllerEntry upcomingLeaderCopy;
                         upComingLeaderMutex.Lock();
-                        upcomingLeaderCopy = upComingLeaderBusName;
+                        upcomingLeaderCopy = upComingLeader;
                         upComingLeaderMutex.Unlock();
 
                         controllersMapMutex.Lock();
                         for (rit = controllersMap.rbegin(); rit != controllersMap.rend(); rit++) {
-                            if ((rit->second.rank > myRank) && (0 != strcmp(upcomingLeaderCopy.c_str(), rit->second.busName.c_str()))) {
+                            if ((rit->second.rank > myRank) && (0 != strcmp(upcomingLeaderCopy.busName.c_str(), rit->second.busName.c_str()))) {
                                 upComingLeaderMutex.Lock();
-                                upComingLeaderBusName = rit->second.busName;
-                                upcomingLeaderRank = rit->second.rank;
+                                upComingLeader = rit->second;
                                 upComingLeaderMutex.Unlock();
                                 controller.SetAllowUpdates(false);
                                 /*
@@ -712,7 +709,7 @@ void LeaderElectionObject::Run(void)
                                 QCC_DbgPrintf(("%s: Extended overthrow alarm", __func__));
                                 electionAlarm.SetAlarm(OVERTHROW_TIMEOUT_IN_SEC);
                                 electionAlarmMutex.Unlock();
-                                QCC_DbgPrintf(("%s: Identified upcoming leader %s", __func__, upComingLeaderBusName.c_str()));
+                                QCC_DbgPrintf(("%s: Identified upcoming leader %s", __func__, upComingLeader.busName.c_str()));
                                 break;
                             }
                         }
@@ -722,9 +719,9 @@ void LeaderElectionObject::Run(void)
                     if (alarmTriggered) {
                         alarmTriggered = false;
                         if (!overThrown && !leaderFound) {
-                            QCC_DbgPrintf(("%s: Upcoming leader %s failed to take over", __func__, upComingLeaderBusName.c_str()));
+                            QCC_DbgPrintf(("%s: Upcoming leader %s failed to take over", __func__, upComingLeader.busName.c_str()));
                             controllersMapMutex.Lock();
-                            ControllersMap::iterator it = controllersMap.find(upcomingLeaderRank);
+                            ControllersMap::iterator it = controllersMap.find(upComingLeader.rank);
                             if (it != controllersMap.end()) {
                                 if (it->second.isLeader) {
                                     /*
@@ -733,10 +730,11 @@ void LeaderElectionObject::Run(void)
                                      */
                                     loopBack = true;
                                 } else {
-                                    controllersMap.erase(it);
+                                    if (upComingLeader.announcementTimestamp == it->second.announcementTimestamp) {
+                                        controllersMap.erase(it);
+                                    }
                                     upComingLeaderMutex.Lock();
-                                    upComingLeaderBusName.clear();
-                                    upcomingLeaderRank = Rank();
+                                    upComingLeader.Clear();
                                     upComingLeaderMutex.Unlock();
 
                                     controller.SetAllowUpdates(true);
@@ -747,7 +745,7 @@ void LeaderElectionObject::Run(void)
                     }
                 }
             } else {
-                if (gotOverthrowReply && (outgoingLeaderRank.IsInitialized())) {
+                if (gotOverthrowReply && (outGoingLeader.rank.IsInitialized())) {
                     QCC_DbgPrintf(("%s: gotOverthrowReply", __func__));
                     gotOverthrowReply = false;
 
@@ -765,16 +763,15 @@ void LeaderElectionObject::Run(void)
                      * Coup was successful. Take over as leader
                      */
                     controllersMapMutex.Lock();
-                    ControllersMap::iterator it = controllersMap.find(outgoingLeaderRank);
-                    if ((it != controllersMap.end()) && (it->second.isLeader)) {
-                        QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outgoingLeaderRank.c_str()));
+                    ControllersMap::iterator it = controllersMap.find(outGoingLeader.rank);
+                    if ((it != controllersMap.end()) && (it->second.isLeader) && (it->second.announcementTimestamp == outGoingLeader.announcementTimestamp)) {
+                        QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outGoingLeader.rank.c_str()));
                         controllersMap.erase(it);
                     }
                     controllersMapMutex.Unlock();
 
                     outGoingLeaderMutex.Lock();
-                    outGoingLeaderBusName.clear();
-                    outgoingLeaderRank = Rank();
+                    outGoingLeader.Clear();
                     outGoingLeaderMutex.Unlock();
 
                     QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
@@ -841,8 +838,7 @@ void LeaderElectionObject::Run(void)
                              */
                             if (myRank > controllerDetails.rank) {
                                 outGoingLeaderMutex.Lock();
-                                outGoingLeaderBusName = controllerDetails.busName;
-                                outgoingLeaderRank = controllerDetails.rank;
+                                outGoingLeader = controllerDetails;
                                 outGoingLeaderMutex.Unlock();
                             }
                             /*
@@ -856,7 +852,8 @@ void LeaderElectionObject::Run(void)
                             currentLeader.controllerDetails = controllerDetails;
                             currentLeaderMutex.Unlock();
 
-                            JoinSessionContext* ctx = new JoinSessionContext(controllerDetails.rank, controllerDetails.announcementTimestamp);
+                            ControllerEntry* ctx = new ControllerEntry();
+                            *ctx = controllerDetails;
                             SessionOpts opts;
                             opts.isMultipoint = true;
                             QStatus status = bus.JoinSessionAsync(controllerDetails.busName.c_str(), controllerDetails.port, handler, opts, handler, ctx);
@@ -922,20 +919,26 @@ void LeaderElectionObject::Run(void)
                         failedJoinSessions.clear();
                         failedJoinSessionMutex.Unlock();
 
+                        FailedJoinSessionReplies sessionAlreadyJoinedRepliesCopy;
+                        sessionAlreadyJoinedRepliesMutex.Lock();
+                        sessionAlreadyJoinedRepliesCopy = sessionAlreadyJoinedReplies;
+                        sessionAlreadyJoinedReplies.clear();
+                        sessionAlreadyJoinedRepliesMutex.Unlock();
+
                         SuccessfulJoinSessionReplies successfulJoinSessionsCopy;
                         successfulJoinSessionMutex.Lock();
                         successfulJoinSessionsCopy = successfulJoinSessions;
                         successfulJoinSessions.clear();
                         successfulJoinSessionMutex.Unlock();
 
-                        Rank failedConnectToLeaderRank = Rank();
+                        ControllerEntry failedConnectToLeader;
 
                         currentLeaderMutex.Lock();
                         while (failedJoinSessionsCopy.size()) {
-                            if ((static_cast<JoinSessionContext>(failedJoinSessionsCopy.front()).rank == currentLeader.controllerDetails.rank)
-                                && (static_cast<JoinSessionContext>(failedJoinSessionsCopy.front()).announcementTimeStamp == currentLeader.controllerDetails.announcementTimestamp)) {
+                            if ((static_cast<ControllerEntry>(failedJoinSessionsCopy.front()).rank == currentLeader.controllerDetails.rank)
+                                && (static_cast<ControllerEntry>(failedJoinSessionsCopy.front()).announcementTimestamp == currentLeader.controllerDetails.announcementTimestamp)) {
                                 QCC_DbgPrintf(("%s: JoinSession failed with current leader", __func__));
-                                failedConnectToLeaderRank = currentLeader.controllerDetails.rank;
+                                failedConnectToLeader = currentLeader.controllerDetails;
                                 currentLeader.Clear();
                                 break;
                             }
@@ -943,28 +946,27 @@ void LeaderElectionObject::Run(void)
                         }
                         currentLeaderMutex.Unlock();
 
-                        qcc::String outGoingLeaderCopy;
+                        ControllerEntry outGoingLeaderCopy;
                         outGoingLeaderMutex.Lock();
-                        outGoingLeaderCopy = outGoingLeaderBusName;
+                        outGoingLeaderCopy = outGoingLeader;
                         outGoingLeaderMutex.Unlock();
 
-                        if (failedConnectToLeaderRank.IsInitialized()) {
-                            if (!outGoingLeaderCopy.empty()) {
+                        if (failedConnectToLeader.rank.IsInitialized()) {
+                            if (!outGoingLeaderCopy.busName.empty()) {
                                 /*
                                  * We are performing a coup but could not successfully talk to the
                                  * outgoing leader. So forcefully take over as the leader now
                                  */
                                 controllersMapMutex.Lock();
-                                ControllersMap::iterator it = controllersMap.find(outgoingLeaderRank);
-                                if ((it != controllersMap.end()) && (it->second.isLeader)) {
-                                    QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outgoingLeaderRank.c_str()));
+                                ControllersMap::iterator it = controllersMap.find(outGoingLeader.rank);
+                                if ((it != controllersMap.end()) && (it->second.isLeader) && (it->second.announcementTimestamp == outGoingLeader.announcementTimestamp)) {
+                                    QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outGoingLeader.rank.c_str()));
                                     controllersMap.erase(it);
                                 }
                                 controllersMapMutex.Unlock();
 
                                 outGoingLeaderMutex.Lock();
-                                outGoingLeaderBusName.clear();
-                                outgoingLeaderRank = Rank();
+                                outGoingLeader.Clear();
                                 outGoingLeaderMutex.Unlock();
 
                                 QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
@@ -980,13 +982,13 @@ void LeaderElectionObject::Run(void)
                             }
 
                             controllersMapMutex.Lock();
-                            ControllersMap::iterator it = controllersMap.find(failedConnectToLeaderRank);
+                            ControllersMap::iterator it = controllersMap.find(failedConnectToLeader.rank);
                             /*
                              * We should delete the entry from controllersMap only if the leader bit is
                              * set. Otherwise it means that someone took over from this leader when
                              * we were trying to JoinSession
                              */
-                            if ((it != controllersMap.end()) && (it->second.isLeader)) {
+                            if ((it != controllersMap.end()) && (it->second.isLeader) && (it->second.announcementTimestamp == failedConnectToLeader.announcementTimestamp)) {
                                 controllersMap.erase(it);
                             }
                             controllersMapMutex.Unlock();
@@ -995,10 +997,15 @@ void LeaderElectionObject::Run(void)
                              * Loop back to see if we have any other leader in the controllersMap
                              */
                             loopBack = true;
+                        } else if (!sessionAlreadyJoinedRepliesCopy.empty()) {
+                            /*
+                             * Loop back to re-attempt a connect to the leader that returned session_already_joined error
+                             */
+                            loopBack = true;
                         } else {
                             currentLeaderMutex.Lock();
                             for (SuccessfulJoinSessionReplies::iterator it = successfulJoinSessionsCopy.begin(); it != successfulJoinSessionsCopy.end(); it++) {
-                                if (((it->first) == currentLeader.controllerDetails.rank) && ((it->second.first) == currentLeader.controllerDetails.announcementTimestamp)) {
+                                if (((it->first) == currentLeader.controllerDetails.rank) && ((it->second.first.announcementTimestamp) == currentLeader.controllerDetails.announcementTimestamp)) {
                                     ajn::SessionId sessionId = static_cast<ajn::SessionId>(it->second.second);
                                     QCC_DbgPrintf(("%s: JoinSession successful with current leader", __func__));
                                     currentLeader.proxyObj = ProxyBusObject(bus, currentLeader.controllerDetails.busName.c_str(), LeaderElectionAndStateSyncObjectPath, sessionId);
@@ -1006,12 +1013,12 @@ void LeaderElectionObject::Run(void)
                                     const InterfaceDescription* stateSyncInterface = bus.GetInterface(LeaderElectionAndStateSyncInterfaceName);
                                     currentLeader.proxyObj.AddInterface(*stateSyncInterface);
 
-                                    qcc::String outGoingLeaderCopy;
+                                    ControllerEntry outGoingLeaderCopy;
                                     outGoingLeaderMutex.Lock();
-                                    outGoingLeaderCopy = outGoingLeaderBusName;
+                                    outGoingLeaderCopy = outGoingLeader;
                                     outGoingLeaderMutex.Unlock();
 
-                                    if (!outGoingLeaderCopy.empty()) {
+                                    if (!outGoingLeaderCopy.busName.empty()) {
                                         /*
                                          * Try to get current state from outgoing leader
                                          */
@@ -1040,16 +1047,15 @@ void LeaderElectionObject::Run(void)
                                             }
 
                                             controllersMapMutex.Lock();
-                                            ControllersMap::iterator it = controllersMap.find(outgoingLeaderRank);
-                                            if ((it != controllersMap.end()) && (it->second.isLeader)) {
-                                                QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outgoingLeaderRank.c_str()));
+                                            ControllersMap::iterator it = controllersMap.find(outGoingLeader.rank);
+                                            if ((it != controllersMap.end()) && (it->second.isLeader) && (it->second.announcementTimestamp == outGoingLeader.announcementTimestamp)) {
+                                                QCC_DbgPrintf(("%s: Removed outgoing leader with rank %s from controllersMap", __func__, outGoingLeader.rank.c_str()));
                                                 controllersMap.erase(it);
                                             }
                                             controllersMapMutex.Unlock();
 
                                             outGoingLeaderMutex.Lock();
-                                            outGoingLeaderBusName.clear();
-                                            outgoingLeaderRank = Rank();
+                                            outGoingLeader.Clear();
                                             outGoingLeaderMutex.Unlock();
 
                                             QCC_DbgPrintf(("%s: Announcing self as leader", __func__));
@@ -1146,23 +1152,21 @@ void LeaderElectionObject::Run(void)
 
                         if (lostSessionWithLeader) {
                             QCC_DbgPrintf(("%s: SessionLost", __func__));
-                            Rank failedConnectToLeaderRank = Rank();
-                            uint64_t timestamp = 0;
+                            ControllerEntry failedConnectToLeader;
 
                             currentLeaderMutex.Lock();
                             QCC_DbgPrintf(("%s: Cleared current leader with rank %s", __func__, currentLeader.controllerDetails.rank.c_str()));
-                            failedConnectToLeaderRank = currentLeader.controllerDetails.rank;
-                            timestamp = currentLeader.controllerDetails.announcementTimestamp;
+                            failedConnectToLeader = currentLeader.controllerDetails;
                             currentLeader.Clear();
                             currentLeaderMutex.Unlock();
 
                             controllersMapMutex.Lock();
-                            ControllersMap::iterator it = controllersMap.find(failedConnectToLeaderRank);
+                            ControllersMap::iterator it = controllersMap.find(failedConnectToLeader.rank);
                             /*
                              * We should delete the entry from controllersMap only if the leader bit is
                              * set and announcement timestamp is the same.
                              */
-                            if ((it != controllersMap.end()) && (it->second.isLeader) && (it->second.announcementTimestamp == timestamp)) {
+                            if ((it != controllersMap.end()) && (it->second.isLeader) && (it->second.announcementTimestamp == failedConnectToLeader.announcementTimestamp)) {
                                 QCC_DbgPrintf(("%s: Removing entry with rank %s from controllersMap", __func__, it->second.rank.c_str()));
                                 controllersMap.erase(it);
                             }
@@ -1179,26 +1183,26 @@ void LeaderElectionObject::Run(void)
                              * Check if a new leader with rank higher that whom we think is the leader has come up. If so,
                              * leave our current session and join the new leader
                              */
-                            Rank currentLeaderRank = Rank();
+                            ControllerEntry currentLeaderCopy;
                             currentLeaderMutex.Lock();
-                            currentLeaderRank = currentLeader.controllerDetails.rank;
+                            currentLeaderCopy = currentLeader.controllerDetails;
                             currentLeaderMutex.Unlock();
 
                             ControllerEntry entry;
                             entry.Clear();
                             controllersMapMutex.Lock();
-                            ControllersMap::iterator it = controllersMap.find(currentLeaderRank);
+                            ControllersMap::iterator it = controllersMap.find(currentLeaderCopy.rank);
                             if (it != controllersMap.end()) {
                                 for (ControllersMap::reverse_iterator rit = controllersMap.rbegin(); rit != controllersMap.rend(); rit++) {
-                                    if ((rit->second.rank > currentLeaderRank) && (rit->second.isLeader)) {
+                                    if ((rit->second.rank > currentLeaderCopy.rank) && (rit->second.isLeader)) {
                                         QCC_DbgPrintf(("%s: Found a leader that has higher rank than current leader", __func__));
                                         entry = rit->second;
                                         break;
                                     }
                                 }
                             }
-                            if ((entry.rank.IsInitialized()) && (it->second.isLeader)) {
-                                QCC_DbgPrintf(("%s: Removing current leader %s entry from controllersMap", __func__, currentLeaderRank.c_str()));
+                            if ((entry.rank.IsInitialized()) && (it->second.isLeader) && (it->second.announcementTimestamp == currentLeaderCopy.announcementTimestamp)) {
+                                QCC_DbgPrintf(("%s: Removing current leader %s entry from controllersMap", __func__, currentLeaderCopy.rank.c_str()));
                                 controllersMap.erase(it);
                             }
                             controllersMapMutex.Unlock();
@@ -1229,17 +1233,23 @@ _Exit:
 // called when we join another controller's session
 void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId, void* context)
 {
-    JoinSessionContext* ctx = static_cast<JoinSessionContext*>(context);
+    ControllerEntry* ctx = static_cast<ControllerEntry*>(context);
     QCC_DbgPrintf(("%s: (status=%s sessionId=%u rank=%s)", __func__, QCC_StatusText(status), sessionId, (*ctx).rank.c_str()));
 
     if (status == ER_OK) {
         successfulJoinSessionMutex.Lock();
-        successfulJoinSessions.insert(std::make_pair((*ctx).rank, std::make_pair((*ctx).announcementTimeStamp, static_cast<uint32_t>(sessionId))));
+        successfulJoinSessions.insert(std::make_pair((*ctx).rank, std::make_pair((*ctx), static_cast<uint32_t>(sessionId))));
         successfulJoinSessionMutex.Unlock();
     } else {
-        failedJoinSessionMutex.Lock();
-        failedJoinSessions.push_back(*ctx);
-        failedJoinSessionMutex.Unlock();
+        if (status == ER_ALLJOYN_JOINSESSION_REPLY_ALREADY_JOINED) {
+            sessionAlreadyJoinedRepliesMutex.Lock();
+            sessionAlreadyJoinedReplies.push_back(*ctx);
+            sessionAlreadyJoinedRepliesMutex.Unlock();
+        } else {
+            failedJoinSessionMutex.Lock();
+            failedJoinSessions.push_back(*ctx);
+            failedJoinSessionMutex.Unlock();
+        }
     }
 
     delete ctx;
@@ -1332,12 +1342,12 @@ void LeaderElectionObject::Overthrow(const InterfaceDescription::Member* member,
 {
     QCC_DbgTrace(("%s", __func__));
 
-    qcc::String upcomingLeaderCopy;
+    ControllerEntry upcomingLeaderCopy;
     upComingLeaderMutex.Lock();
-    upcomingLeaderCopy = upComingLeaderBusName;
+    upcomingLeaderCopy = upComingLeader;
     upComingLeaderMutex.Unlock();
 
-    if (0 == strcmp(msg->GetSender(), upcomingLeaderCopy.c_str())) {
+    if (0 == strcmp(msg->GetSender(), upcomingLeaderCopy.busName.c_str())) {
         electionAlarmMutex.Lock();
         QCC_DbgPrintf(("%s: Extended overthrow alarm", __func__));
         electionAlarm.SetAlarm(OVERTHROW_TIMEOUT_IN_SEC);
@@ -1435,12 +1445,12 @@ void LeaderElectionObject::GetChecksumAndModificationTimestamp(const ajn::Interf
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    qcc::String upcomingLeaderCopy;
+    ControllerEntry upcomingLeaderCopy;
     upComingLeaderMutex.Lock();
-    upcomingLeaderCopy = upComingLeaderBusName;
+    upcomingLeaderCopy = upComingLeader;
     upComingLeaderMutex.Unlock();
 
-    if (0 == strcmp(message->GetSender(), upcomingLeaderCopy.c_str())) {
+    if (0 == strcmp(message->GetSender(), upcomingLeaderCopy.busName.c_str())) {
         electionAlarmMutex.Lock();
         QCC_DbgPrintf(("%s: Extended overthrow alarm", __func__));
         electionAlarm.SetAlarm(OVERTHROW_TIMEOUT_IN_SEC);
@@ -1500,12 +1510,12 @@ void LeaderElectionObject::GetBlob(const ajn::InterfaceDescription::Member* memb
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
-    qcc::String upcomingLeaderCopy;
+    ControllerEntry upcomingLeaderCopy;
     upComingLeaderMutex.Lock();
-    upcomingLeaderCopy = upComingLeaderBusName;
+    upcomingLeaderCopy = upComingLeader;
     upComingLeaderMutex.Unlock();
 
-    if (0 == strcmp(message->GetSender(), upcomingLeaderCopy.c_str())) {
+    if (0 == strcmp(message->GetSender(), upcomingLeaderCopy.busName.c_str())) {
         electionAlarmMutex.Lock();
         QCC_DbgPrintf(("%s: Extended overthrow alarm", __func__));
         electionAlarm.SetAlarm(OVERTHROW_TIMEOUT_IN_SEC);

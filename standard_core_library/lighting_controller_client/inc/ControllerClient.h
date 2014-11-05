@@ -292,7 +292,7 @@ class ControllerClient : public ajn::MessageReceiver {
     CurrentLeader currentLeader;
     Mutex currentLeaderLock;
 
-    bool JoinSessionWithAnotherLeader(Rank currentLeaderRank = Rank());
+    bool JoinSessionWithAnotherLeader(Rank currentLeaderRank = Rank(), uint64_t timestamp = 0);
 
     /**
      * Pointer to the Controller Service Manager

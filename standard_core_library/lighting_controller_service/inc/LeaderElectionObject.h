@@ -156,19 +156,10 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     void OnSessionLost(SessionId sessionId);
     void OnSessionJoined(QStatus status, SessionId sessionId, void* context);
 
-    typedef struct _JoinSessionContext {
-        Rank rank;
-        uint64_t announcementTimeStamp;
-
-        _JoinSessionContext(Rank tempRank, uint64_t timestamp) :
-            rank(tempRank),
-            announcementTimeStamp(timestamp) { }
-    } JoinSessionContext;
-
     typedef std::list<ajn::Message> OverThrowList;
     typedef std::map<Rank, ControllerEntry> ControllersMap;
-    typedef std::map<Rank, std::pair<uint64_t, uint32_t> > SuccessfulJoinSessionReplies;
-    typedef std::list<JoinSessionContext> FailedJoinSessionReplies;
+    typedef std::map<Rank, std::pair<ControllerEntry, uint32_t> > SuccessfulJoinSessionReplies;
+    typedef std::list<ControllerEntry> FailedJoinSessionReplies;
     typedef std::list<uint32_t> SessionLostList;
     typedef std::map<uint32_t, const char*> SessionMemberRemovedMap;
     typedef struct _CurrentLeader {
@@ -186,6 +177,9 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
 
     Mutex failedJoinSessionMutex;
     FailedJoinSessionReplies failedJoinSessions;
+
+    Mutex sessionAlreadyJoinedRepliesMutex;
+    FailedJoinSessionReplies sessionAlreadyJoinedReplies;
 
     Mutex successfulJoinSessionMutex;
     SuccessfulJoinSessionReplies successfulJoinSessions;
@@ -220,11 +214,9 @@ class LeaderElectionObject : public ajn::BusObject, public Thread, public AlarmL
     volatile sig_atomic_t okToSetAlarm;
     volatile sig_atomic_t gotOverthrowReply;
     Mutex outGoingLeaderMutex;
-    qcc::String outGoingLeaderBusName;
-    Rank outgoingLeaderRank;
+    ControllerEntry outGoingLeader;
     Mutex upComingLeaderMutex;
-    qcc::String upComingLeaderBusName;
-    Rank upcomingLeaderRank;
+    ControllerEntry upComingLeader;
 };
 
 }

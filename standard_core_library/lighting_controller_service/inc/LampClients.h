@@ -456,6 +456,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
             busName = "";
             name = "";
             port = 0;
+            replaced = false;
             ClearSessionAndObjects();
         }
 
@@ -480,6 +481,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
             busName = "";
             name = "";
             port = 0;
+            replaced = false;
             ClearSessionAndObjects();
             delete this;
         }
@@ -513,6 +515,7 @@ class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncC
         ajn::SessionId sessionID;
         uint32_t pendingMethodCallCount;
         LampConnectionState connectionState;
+        bool replaced;
     };
 
     typedef std::map<LSFString, LampConnection*> LampMap;

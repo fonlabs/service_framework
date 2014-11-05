@@ -303,9 +303,9 @@ uint32_t ControllerClient::GetVersion(void)
     return CONTROLLER_CLIENT_VERSION;
 }
 
-bool ControllerClient::JoinSessionWithAnotherLeader(Rank currentLeaderRank)
+bool ControllerClient::JoinSessionWithAnotherLeader(Rank currentLeaderRank, uint64_t timestamp)
 {
-    QCC_DbgPrintf(("%s: Current Leader Rank %s", __func__, currentLeaderRank.c_str()));
+    QCC_DbgPrintf(("%s: Current Leader Rank %s timestamp = %llu", __func__, currentLeaderRank.c_str(), timestamp));
 
     if (stopped) {
         QCC_DbgPrintf(("%s: Controller Client is stopped. Returning.", __func__));
@@ -318,9 +318,11 @@ bool ControllerClient::JoinSessionWithAnotherLeader(Rank currentLeaderRank)
     leadersMapLock.Lock();
     if (currentLeaderRank.IsInitialized()) {
         Leaders::iterator it = leadersMap.find(currentLeaderRank);
-        if (it != leadersMap.end()) {
+        if ((it != leadersMap.end()) && (it->second.announcementTimestamp == timestamp)) {
             QCC_DbgPrintf(("%s: Removing entry for rank %s from leadersMap", __func__, currentLeaderRank.c_str()));
             leadersMap.erase(it);
+        } else {
+            QCC_DbgPrintf(("%s: Entry not found / not removed due to timestamp not matching", __func__));
         }
     }
     for (Leaders::reverse_iterator rit = leadersMap.rbegin(); rit != leadersMap.rend(); rit++) {
@@ -411,6 +413,7 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
     LSFString deviceName;
     LSFString deviceID;
     Rank currentLeaderRank;
+    uint64_t timestamp = 0;
 
     deviceName.clear();
     deviceID.clear();
@@ -420,6 +423,7 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
         deviceName = currentLeader.controllerDetails.deviceName;
         deviceID = currentLeader.controllerDetails.deviceID;
         currentLeaderRank = currentLeader.controllerDetails.rank;
+        timestamp = currentLeader.controllerDetails.announcementTimestamp;
         currentLeader.Clear();
     }
     currentLeaderLock.Unlock();
@@ -430,7 +434,7 @@ void ControllerClient::OnSessionLost(ajn::SessionId sessionID)
     }
 
     if (currentLeaderRank.IsInitialized()) {
-        while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+        while (!(JoinSessionWithAnotherLeader(currentLeaderRank, timestamp))) ;
         QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
     }
 }
@@ -615,7 +619,12 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
                 if (leaveSession) {
                     DoLeaveSessionAsync(sessionId);
                 }
-                while (!(JoinSessionWithAnotherLeader(joined->rank))) ;
+                if (status == ER_ALLJOYN_JOINSESSION_REPLY_ALREADY_JOINED) {
+                    QCC_DbgPrintf(("%s: Got %s. Retrying Join Session.", __func__, QCC_StatusText(status)));
+                    while (!(JoinSessionWithAnotherLeader())) ;
+                } else {
+                    while (!(JoinSessionWithAnotherLeader(joined->rank, joined->announcementTimestamp))) ;
+                }
                 QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
             }
         } else {
@@ -642,6 +651,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     ajn::SessionId sessionId = 0;
 
     Rank currentLeaderRank;
+    uint64_t timestamp = 0;
 
     ControllerEntry entry;
     entry.port = port;
@@ -654,6 +664,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     currentLeaderLock.Lock();
     // if the name of the current CS has changed...
     currentLeaderRank = currentLeader.controllerDetails.rank;
+    timestamp = currentLeader.controllerDetails.announcementTimestamp;
     sessionId = currentLeader.sessionId;
     if (deviceID == currentLeader.controllerDetails.deviceID) {
         QCC_DbgPrintf(("%s: Same deviceID as current leader %s", __func__, deviceID));
@@ -682,7 +693,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     if (!currentLeaderRank.IsInitialized()) {
         while (!(JoinSessionWithAnotherLeader())) ;
         QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
-    } else if ((currentLeaderRank < rank) || (currentLeaderRank == rank)) {
+    } else if (currentLeaderRank < rank) {
         if (sessionId) {
             DoLeaveSessionAsync(sessionId);
             OnSessionLost(sessionId);
@@ -690,11 +701,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             currentLeaderLock.Lock();
             currentLeader.Clear();
             currentLeaderLock.Unlock();
-            if (currentLeaderRank == rank) {
-                while (!(JoinSessionWithAnotherLeader())) ;
-            } else {
-                while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
-            }
+            while (!(JoinSessionWithAnotherLeader(currentLeaderRank, timestamp))) ;
             QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
         }
     }
