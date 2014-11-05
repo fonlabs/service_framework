@@ -260,6 +260,7 @@ class ControllerClient : public ajn::MessageReceiver {
         Rank rank;
         LSFString deviceID;
         LSFString deviceName;
+        uint64_t announcementTimestamp;
 
         void Clear(void) {
             busName.clear();
@@ -267,6 +268,7 @@ class ControllerClient : public ajn::MessageReceiver {
             port = 0;
             deviceID.clear();
             deviceName.clear();
+            announcementTimestamp = 0;
         }
     };
 

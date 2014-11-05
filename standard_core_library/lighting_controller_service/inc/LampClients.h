@@ -114,7 +114,8 @@ typedef std::list<TransitionStateParams> TransitionStateParamsList;
 typedef std::list<PulseStateParams> PulseStateParamsList;
 
 /**
- * class is used as client side to the lamp service
+ * Class is used as client side to the lamp service. As per the current design of this class, only
+ * one instance of this class should be created in the Controller Service.
  */
 class LampClients : public Manager, public ajn::BusAttachment::JoinSessionAsyncCB, public ajn::SessionListener,
     public ajn::ProxyBusObject::Listener, public lsf::Thread, public AlarmListener {

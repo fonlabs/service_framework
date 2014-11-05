@@ -197,6 +197,7 @@ void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busNam
     newEntry.isLeader = isLeader;
     newEntry.port = port;
     newEntry.rank = rank;
+    newEntry.announcementTimestamp = GetTimestampInMs();
 
     Rank lastTrackedRank = myRank;
 
@@ -212,7 +213,7 @@ void LeaderElectionObject::OnAnnounced(ajn::SessionPort port, const char* busNam
     controllersMapMutex.Unlock();
 
     if (okToSetAlarm && (!isLeader)) {
-        if (rank > lastTrackedRank) {
+        if ((rank > lastTrackedRank) || (rank == lastTrackedRank)) {
             electionAlarmMutex.Lock();
             QCC_DbgPrintf(("%s: Reloading alarm", __func__));
             electionAlarm.SetAlarm(LEADER_ANNOUNCEMENT_WAIT_INTERVAL_IN_SECONDS);
@@ -855,18 +856,19 @@ void LeaderElectionObject::Run(void)
                             currentLeader.controllerDetails = controllerDetails;
                             currentLeaderMutex.Unlock();
 
-                            Rank* leaderRank = new Rank();
-                            *leaderRank = controllerDetails.rank;
+                            JoinSessionContext* ctx = new JoinSessionContext(controllerDetails.rank, controllerDetails.announcementTimestamp);
                             SessionOpts opts;
                             opts.isMultipoint = true;
-                            QStatus status = bus.JoinSessionAsync(controllerDetails.busName.c_str(), controllerDetails.port, handler, opts, handler, leaderRank);
+                            QStatus status = bus.JoinSessionAsync(controllerDetails.busName.c_str(), controllerDetails.port, handler, opts, handler, ctx);
                             if (status != ER_OK) {
                                 QCC_LogError(status, ("%s: JoinSessionAsync failed", __func__));
-                                delete leaderRank;
+                                delete ctx;
 
                                 controllersMapMutex.Lock();
                                 ControllersMap::iterator fit = controllersMap.find(controllerDetails.rank);
-                                controllersMap.erase(fit);
+                                if (controllerDetails.announcementTimestamp == fit->second.announcementTimestamp) {
+                                    controllersMap.erase(fit);
+                                }
                                 controllersMapMutex.Unlock();
 
                                 currentLeaderMutex.Lock();
@@ -930,7 +932,8 @@ void LeaderElectionObject::Run(void)
 
                         currentLeaderMutex.Lock();
                         while (failedJoinSessionsCopy.size()) {
-                            if (static_cast<Rank>(failedJoinSessionsCopy.front()) == currentLeader.controllerDetails.rank) {
+                            if ((static_cast<JoinSessionContext>(failedJoinSessionsCopy.front()).rank == currentLeader.controllerDetails.rank)
+                                && (static_cast<JoinSessionContext>(failedJoinSessionsCopy.front()).announcementTimeStamp == currentLeader.controllerDetails.announcementTimestamp)) {
                                 QCC_DbgPrintf(("%s: JoinSession failed with current leader", __func__));
                                 failedConnectToLeaderRank = currentLeader.controllerDetails.rank;
                                 currentLeader.Clear();
@@ -995,8 +998,8 @@ void LeaderElectionObject::Run(void)
                         } else {
                             currentLeaderMutex.Lock();
                             for (SuccessfulJoinSessionReplies::iterator it = successfulJoinSessionsCopy.begin(); it != successfulJoinSessionsCopy.end(); it++) {
-                                if ((it->first) == currentLeader.controllerDetails.rank) {
-                                    ajn::SessionId sessionId = static_cast<ajn::SessionId>(it->second);
+                                if (((it->first) == currentLeader.controllerDetails.rank) && ((it->second.first) == currentLeader.controllerDetails.announcementTimestamp)) {
+                                    ajn::SessionId sessionId = static_cast<ajn::SessionId>(it->second.second);
                                     QCC_DbgPrintf(("%s: JoinSession successful with current leader", __func__));
                                     currentLeader.proxyObj = ProxyBusObject(bus, currentLeader.controllerDetails.busName.c_str(), LeaderElectionAndStateSyncObjectPath, sessionId);
 
@@ -1089,8 +1092,8 @@ void LeaderElectionObject::Run(void)
                              * Cleaning up the remaining stray sessions
                              */
                             for (SuccessfulJoinSessionReplies::iterator it = successfulJoinSessionsCopy.begin(); it != successfulJoinSessionsCopy.end(); it++) {
-                                QCC_DbgPrintf(("%s: DoLeaveSessionAsync on stray session %d", __func__, it->second));
-                                controller.DoLeaveSessionAsync(static_cast<ajn::SessionId>(it->second));
+                                QCC_DbgPrintf(("%s: DoLeaveSessionAsync on stray session %d", __func__, it->second.second));
+                                controller.DoLeaveSessionAsync(static_cast<ajn::SessionId>(it->second.second));
                             }
                         }
                     } else {
@@ -1144,10 +1147,12 @@ void LeaderElectionObject::Run(void)
                         if (lostSessionWithLeader) {
                             QCC_DbgPrintf(("%s: SessionLost", __func__));
                             Rank failedConnectToLeaderRank = Rank();
+                            uint64_t timestamp = 0;
 
                             currentLeaderMutex.Lock();
                             QCC_DbgPrintf(("%s: Cleared current leader with rank %s", __func__, currentLeader.controllerDetails.rank.c_str()));
                             failedConnectToLeaderRank = currentLeader.controllerDetails.rank;
+                            timestamp = currentLeader.controllerDetails.announcementTimestamp;
                             currentLeader.Clear();
                             currentLeaderMutex.Unlock();
 
@@ -1155,9 +1160,9 @@ void LeaderElectionObject::Run(void)
                             ControllersMap::iterator it = controllersMap.find(failedConnectToLeaderRank);
                             /*
                              * We should delete the entry from controllersMap only if the leader bit is
-                             * set.
+                             * set and announcement timestamp is the same.
                              */
-                            if ((it != controllersMap.end()) && (it->second.isLeader)) {
+                            if ((it != controllersMap.end()) && (it->second.isLeader) && (it->second.announcementTimestamp == timestamp)) {
                                 QCC_DbgPrintf(("%s: Removing entry with rank %s from controllersMap", __func__, it->second.rank.c_str()));
                                 controllersMap.erase(it);
                             }
@@ -1224,20 +1229,20 @@ _Exit:
 // called when we join another controller's session
 void LeaderElectionObject::OnSessionJoined(QStatus status, SessionId sessionId, void* context)
 {
-    Rank* rankPtr = static_cast<Rank*>(context);
-    QCC_DbgPrintf(("%s: (status=%s sessionId=%u rank=%s)", __func__, QCC_StatusText(status), sessionId, (*rankPtr).c_str()));
+    JoinSessionContext* ctx = static_cast<JoinSessionContext*>(context);
+    QCC_DbgPrintf(("%s: (status=%s sessionId=%u rank=%s)", __func__, QCC_StatusText(status), sessionId, (*ctx).rank.c_str()));
 
     if (status == ER_OK) {
         successfulJoinSessionMutex.Lock();
-        successfulJoinSessions.insert(std::make_pair(*rankPtr, static_cast<uint32_t>(sessionId)));
+        successfulJoinSessions.insert(std::make_pair((*ctx).rank, std::make_pair((*ctx).announcementTimeStamp, static_cast<uint32_t>(sessionId))));
         successfulJoinSessionMutex.Unlock();
     } else {
         failedJoinSessionMutex.Lock();
-        failedJoinSessions.push_back(*rankPtr);
+        failedJoinSessions.push_back(*ctx);
         failedJoinSessionMutex.Unlock();
     }
 
-    delete rankPtr;
+    delete ctx;
     wakeSem.Post();
 }
 

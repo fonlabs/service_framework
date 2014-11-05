@@ -566,7 +566,7 @@ void ControllerClient::OnSessionJoined(QStatus status, ajn::SessionId sessionId,
         QCC_DbgPrintf(("%s: sessionId= %u status=%s\n", __func__, sessionId, QCC_StatusText(status)));
         currentLeaderLock.Lock();
 
-        if (joined->deviceID == currentLeader.controllerDetails.deviceID) {
+        if ((joined->deviceID == currentLeader.controllerDetails.deviceID) && (joined->announcementTimestamp == currentLeader.controllerDetails.announcementTimestamp)) {
             /*
              * This is to account for the case when the device name of Controller Service changes when a
              * Join Session with the Controller Service is in progress
@@ -649,6 +649,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     entry.deviceName = deviceName;
     entry.rank = rank;
     entry.busName = busName;
+    entry.announcementTimestamp = GetTimestampInMs();
 
     currentLeaderLock.Lock();
     // if the name of the current CS has changed...
@@ -681,7 +682,7 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
     if (!currentLeaderRank.IsInitialized()) {
         while (!(JoinSessionWithAnotherLeader())) ;
         QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
-    } else if (currentLeaderRank < rank) {
+    } else if ((currentLeaderRank < rank) || (currentLeaderRank == rank)) {
         if (sessionId) {
             DoLeaveSessionAsync(sessionId);
             OnSessionLost(sessionId);
@@ -689,7 +690,11 @@ void ControllerClient::OnAnnounced(SessionPort port, const char* busName, const 
             currentLeaderLock.Lock();
             currentLeader.Clear();
             currentLeaderLock.Unlock();
-            while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+            if (currentLeaderRank == rank) {
+                while (!(JoinSessionWithAnotherLeader())) ;
+            } else {
+                while (!(JoinSessionWithAnotherLeader(currentLeaderRank))) ;
+            }
             QCC_DbgPrintf(("%s: Exiting JoinSessionWithAnotherLeader cycle", __func__));
         }
     }
