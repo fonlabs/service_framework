@@ -29,9 +29,13 @@ const std::string initialStateID = "InitialState";
 void ParseLampState(std::istream& stream, LampState& state)
 {
     bool nullState = (bool) ParseValue<uint32_t>(stream);
-
     if (!nullState) {
-        state = LampState((bool) ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream), ParseValue<uint32_t>(stream));
+        bool onOff = (bool) ParseValue<uint32_t>(stream);
+        uint32_t hue = ParseValue<uint32_t>(stream);
+        uint32_t saturation = ParseValue<uint32_t>(stream);
+        uint32_t colorTemp = ParseValue<uint32_t>(stream);
+        uint32_t brightness = ParseValue<uint32_t>(stream);
+        state = LampState(onOff, hue, saturation, colorTemp, brightness);
         QCC_DbgPrintf(("%s: Parsed State = %s", __func__, state.c_str()));
     } else {
         state = LampState();
