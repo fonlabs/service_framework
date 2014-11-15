@@ -1,4 +1,4 @@
-Welcome to AllJoyn Lighting Service Framework
+Welcome to AllSeen Lighting Service Framework
 ==============================================
 
 Building the Lighting Service Framework core modules on Ubuntu
@@ -9,13 +9,13 @@ Building the Lighting Service Framework core modules on Ubuntu
 
 core/
 
-	service_framework/   (https://git.allseenalliance.org/cgit/lighting/service_framework.git)
+	service_framework/   (https://git.allseenalliance.org/cgit/lighting/service_framework.git Commit ID: af3036b86c1f98da26c47c2ff637fec09149f8fe i.e. Tag: v14.06)
 
 	ajtcl/   (https://git.allseenalliance.org/cgit/core/ajtcl.git Gerrit Patch Set:git fetch https://git.allseenalliance.org/gerrit/core/ajtcl refs/changes/35/2135/3 && git checkout FETCH_HEAD)
 
 	alljoyn/ (https://git.allseenalliance.org/cgit/core/alljoyn.git Commit ID:9d096987205609053a9a656ebd72972ea92eff17)
 
-base_tcl/ (https://git.allseenalliance.org/cgit/services/base_tcl.git Commit ID:114e6b7510fd6e63ce590a43e7c27f17a1c249c1)
+base_tcl/ (https://git.allseenalliance.org/cgit/services/base_tcl.git Commit ID:0e6bebd229c16e7f5d714da23080463da0075951)
 
 base/ (https://git.allseenalliance.org/cgit/services/base.git Commit ID:4998792e980b91967af5c1524748408abed304e4)
 
