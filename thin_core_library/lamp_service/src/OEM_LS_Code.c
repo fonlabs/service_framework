@@ -106,11 +106,72 @@ LampResponseCode OEM_LS_SetColorTemp(uint32_t colorTemp)
 
 LampResponseCode OEM_LS_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp)
 {
-    AJ_InfoPrintf(("%s: fromState(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), toState(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), period=%u, ratio=%u, numPulses=%u, start=%u/%u\n", __func__,
+    AJ_InfoPrintf(("%s: fromState(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), toState(Hue=%u,Saturation=%u,colorTemp=%u,Brightness=%u,OnOff=%u), period=%u, duration=%u, numPulses=%u, start=%u/%u\n", __func__,
                    fromState->hue, fromState->saturation, fromState->colorTemp, fromState->brightness, fromState->onOff,
                    toState->hue, toState->saturation, toState->colorTemp, toState->brightness, toState->onOff,
                    period, duration, numPulses, (uint32_t) (timestamp), (uint32_t) (timestamp >> 32)));
     return LAMP_OK;
+}
+
+LampResponseCode OEM_LS_ApplyPulseEffectOnStateFields(LampStateContainer* fromStateContainer, LampStateContainer* toStateContainer, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp)
+{
+    AJ_InfoPrintf(("%s: fromStateContainer->stateFieldIndicators = 0x%x, toStateContainer->stateFieldIndicators = 0x%x, period=%u, duration=%u, numPulses=%u, start=%u/%u\n", __func__,
+                   fromStateContainer->stateFieldIndicators, toStateContainer->stateFieldIndicators,
+                   period, duration, numPulses, (uint32_t) (timestamp), (uint32_t) (timestamp >> 32)));
+
+    /*
+     * OEMs should do the following operations just before starting the pulse effect.
+     */
+    LampState fromState, toState;
+
+    /* Retrieve the current state of the Lamp */
+    LAMP_GetState(&fromState);
+    LAMP_GetState(&toState);
+
+    /* Update the requisite fields to new values */
+    if (fromStateContainer->stateFieldIndicators & LAMP_STATE_ON_OFF_FIELD_INDICATOR) {
+        fromState.onOff = fromStateContainer->state.onOff;
+        AJ_InfoPrintf(("%s: FromState: Updating OnOff to %u\n", __func__, fromState.onOff));
+    }
+    if (fromStateContainer->stateFieldIndicators & LAMP_STATE_HUE_FIELD_INDICATOR) {
+        fromState.hue = fromStateContainer->state.hue;
+        AJ_InfoPrintf(("%s: FromState: Updating Hue to %u\n", __func__, fromState.hue));
+    }
+    if (fromStateContainer->stateFieldIndicators & LAMP_STATE_SATURATION_FIELD_INDICATOR) {
+        fromState.saturation = fromStateContainer->state.saturation;
+        AJ_InfoPrintf(("%s: FromState: Updating Saturation to %u\n", __func__, fromState.saturation));
+    }
+    if (fromStateContainer->stateFieldIndicators & LAMP_STATE_COLOR_TEMP_FIELD_INDICATOR) {
+        fromState.colorTemp = fromStateContainer->state.colorTemp;
+        AJ_InfoPrintf(("%s: FromState: Updating Color Temp to %u\n", __func__, fromState.colorTemp));
+    }
+    if (fromStateContainer->stateFieldIndicators & LAMP_STATE_BRIGHTNESS_FIELD_INDICATOR) {
+        fromState.brightness = fromStateContainer->state.brightness;
+        AJ_InfoPrintf(("%s: FromState: Updating Brightness to %u\n", __func__, fromState.brightness));
+    }
+
+    if (toStateContainer->stateFieldIndicators & LAMP_STATE_ON_OFF_FIELD_INDICATOR) {
+        toState.onOff = toStateContainer->state.onOff;
+        AJ_InfoPrintf(("%s: ToState: Updating OnOff to %u\n", __func__, toState.onOff));
+    }
+    if (toStateContainer->stateFieldIndicators & LAMP_STATE_HUE_FIELD_INDICATOR) {
+        toState.hue = toStateContainer->state.hue;
+        AJ_InfoPrintf(("%s: ToState: Updating Hue to %u\n", __func__, toState.hue));
+    }
+    if (toStateContainer->stateFieldIndicators & LAMP_STATE_SATURATION_FIELD_INDICATOR) {
+        toState.saturation = toStateContainer->state.saturation;
+        AJ_InfoPrintf(("%s: ToState: Updating Saturation to %u\n", __func__, toState.saturation));
+    }
+    if (toStateContainer->stateFieldIndicators & LAMP_STATE_COLOR_TEMP_FIELD_INDICATOR) {
+        toState.colorTemp = toStateContainer->state.colorTemp;
+        AJ_InfoPrintf(("%s: ToState: Updating Color Temp to %u\n", __func__, toState.colorTemp));
+    }
+    if (toStateContainer->stateFieldIndicators & LAMP_STATE_BRIGHTNESS_FIELD_INDICATOR) {
+        toState.brightness = toStateContainer->state.brightness;
+        AJ_InfoPrintf(("%s: ToState: Updating Brightness to %u\n", __func__, toState.brightness));
+    }
+
+    return OEM_LS_ApplyPulseEffect(&fromState, &toState, period, duration, numPulses, timestamp);
 }
 
 LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod)
@@ -119,8 +180,49 @@ LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp,
                    newState->hue, newState->saturation, newState->colorTemp, newState->brightness, newState->onOff, transitionPeriod,
                    (uint32_t) (timestamp), (uint32_t) (timestamp >> 32)));
 
+    /*
+     * OEMs should call this function after the transition operation has completed successfully
+     */
     LAMP_SetState(newState);
     return LAMP_OK;
+}
+
+LampResponseCode OEM_LS_TransitionStateFields(LampStateContainer* newStateContainer, uint64_t timestamp, uint32_t transitionPeriod)
+{
+    AJ_InfoPrintf(("%s: stateFieldIndicators=0x%x, transitionPeriod=%u, start=%u/%u\n", __func__,
+                   newStateContainer->stateFieldIndicators, transitionPeriod, (uint32_t) (timestamp), (uint32_t) (timestamp >> 32)));
+
+    /*
+     * OEMs should do the following operations just before transitioning the state
+     */
+    LampState state;
+
+    /* Retrieve the current state of the Lamp */
+    LAMP_GetState(&state);
+
+    /* Update the requisite fields to new values */
+    if (newStateContainer->stateFieldIndicators & LAMP_STATE_ON_OFF_FIELD_INDICATOR) {
+        state.onOff = newStateContainer->state.onOff;
+        AJ_InfoPrintf(("%s: Updating OnOff to %u\n", __func__, state.onOff));
+    }
+    if (newStateContainer->stateFieldIndicators & LAMP_STATE_HUE_FIELD_INDICATOR) {
+        state.hue = newStateContainer->state.hue;
+        AJ_InfoPrintf(("%s: Updating Hue to %u\n", __func__, state.hue));
+    }
+    if (newStateContainer->stateFieldIndicators & LAMP_STATE_SATURATION_FIELD_INDICATOR) {
+        state.saturation = newStateContainer->state.saturation;
+        AJ_InfoPrintf(("%s: Updating Saturation to %u\n", __func__, state.saturation));
+    }
+    if (newStateContainer->stateFieldIndicators & LAMP_STATE_COLOR_TEMP_FIELD_INDICATOR) {
+        state.colorTemp = newStateContainer->state.colorTemp;
+        AJ_InfoPrintf(("%s: Updating Color Temp to %u\n", __func__, state.colorTemp));
+    }
+    if (newStateContainer->stateFieldIndicators & LAMP_STATE_BRIGHTNESS_FIELD_INDICATOR) {
+        state.brightness = newStateContainer->state.brightness;
+        AJ_InfoPrintf(("%s: Updating Brightness to %u\n", __func__, state.brightness));
+    }
+
+    return OEM_LS_TransitionState(&state, timestamp, transitionPeriod);
 }
 
 void OEM_LS_Initialize(void)

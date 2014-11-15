@@ -190,9 +190,21 @@ LampResponseCode OEM_LS_SetColorTemp(uint32_t colorTemp);
 LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp, uint32_t transitionPeriod);
 
 /**
+ * This function needs to implemented by the OEM to support the Transition Effect for one or more fields of
+ * the Lamp State
+ *
+ * @param  newStateContainer Container holding the values of a one/more Lamp State fields
+ * @param  timestamp         Timestamp (in ms) of when to start the transition.
+ * @param  transitionPeriod  The time period (in ms) to transition over
+ * @return Status of the operation
+ */
+LampResponseCode OEM_LS_TransitionStateFields(LampStateContainer* newStateContainer, uint64_t timestamp, uint32_t transitionPeriod);
+
+/**
  * This function needs to implemented by the OEM to support the Pulse Effect
+ *
  * @param  fromState        Specifies the LampState that the Lamp needs to be in when starting a pulse
- * @param  toState          End state of a pulse
+ * @param  toState          Specifies the LampState that the Lamp needs to be in when ending a pulse
  * @param  period           Period of the pulse (in ms). Period refers to the time duration between the start of two pulses
  * @param  duration         The duration of a single pulse (in ms). This must be less than the period
  * @param  numPulses        Number of pulses
@@ -200,15 +212,29 @@ LampResponseCode OEM_LS_TransitionState(LampState* newState, uint64_t timestamp,
  *
  * @return Status of the operation
  *
- * NOTE:
- * The Apply Pulse Effect accepts two parameters - the From State and the To State.
- * If the user wants the Lamp to pulse from the Lamp's current state to a another
- * state, the From State is specified as a NULL dictionary.  When the From State
- * is specified as NULL, the Lamp Service sets the state to the current state of
- * the Lamp and passes it on to this function.
  */
 LampResponseCode OEM_LS_ApplyPulseEffect(LampState* fromState, LampState* toState, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp);
 
+/**
+ * This function needs to implemented by the OEM to support the Pulse Effect on state fields
+ *
+ * @param  fromStateContainer Specifies the LampState field values that the Lamp needs to be in when starting a pulse
+ * @param  toStateContainer   Specifies the LampState field values that the Lamp needs to be in when ending a pulse
+ * @param  period             Period of the pulse (in ms). Period refers to the time duration between the start of two pulses
+ * @param  duration           The duration of a single pulse (in ms). This must be less than the period
+ * @param  numPulses          Number of pulses
+ * @param  timestamp          Time stamp (in ms) of when to start applying the pulse effect from
+ *
+ * @return Status of the operation
+ *
+ * NOTE:
+ * The Apply Pulse Effect accepts two parameters - the From State and the To State.
+ * If the user wants the Lamp to pulse from the Lamp's current state to another
+ * state, the From State is specified as a NULL dictionary.  When the fromStateContainer has
+ * no valid fields, the OEM code should use the current state of the lamp as the from state
+ * just before starting the Pulse effect
+ */
+LampResponseCode OEM_LS_ApplyPulseEffectOnStateFields(LampStateContainer* fromStateContainer, LampStateContainer* toStateContainer, uint32_t period, uint32_t duration, uint32_t numPulses, uint64_t timestamp);
 
 /**
  * Serialize all active fault codes into a message.

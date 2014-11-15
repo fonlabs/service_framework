@@ -28,6 +28,7 @@ LSFKeyListener::LSFKeyListener() : passCode("000000"), GetPassCode(0)
 LSFKeyListener::~LSFKeyListener()
 {
     QCC_DbgTrace(("%s", __func__));
+    passCode.secure_clear();
 }
 
 void LSFKeyListener::SetPassCode(qcc::String const& code)

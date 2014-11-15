@@ -1345,14 +1345,25 @@ void LampClients::Run(void)
                 QCC_LogError(status, ("%s: lostSessionListLock.Unlock() failed", __func__));
             }
 
+            LSFStringList lostLamps;
+            lostLamps.clear();
+
             if (tempLostSessionList.size()) {
                 for (LampMap::iterator it = activeLamps.begin(); it != activeLamps.end(); it++) {
                     if (tempLostSessionList.find((uint32_t)it->second->sessionID) != tempLostSessionList.end()) {
                         QCC_DbgPrintf(("%s: Removing %s from activeLamps", __func__, it->second->lampId.c_str()));
                         it->second->ClearSessionAndObjects();
                         it->second->connectionState = BLACKLISTED;
+                        lostLamps.push_back(it->second->lampId);
                     }
                 }
+            }
+
+            /*
+             * Send the lost lamps signal if required
+             */
+            if (lostLamps.size()) {
+                controllerService.SendSignal(ControllerServiceLampInterfaceName, "LampsLost", lostLamps);
             }
 
             /*

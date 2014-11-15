@@ -38,13 +38,53 @@ typedef struct _LampState {
 } LampState;
 
 /**
+ * Used to determine if OnOff field is present in the un-marshalled Lamp State.
+ */
+#define LAMP_STATE_ON_OFF_FIELD_INDICATOR     0x01
+
+/**
+ * Used to determine if Hue field is present in the un-marshalled Lamp State.
+ */
+#define LAMP_STATE_HUE_FIELD_INDICATOR        0x02
+
+/**
+ * Used to determine if Saturation field is present in the un-marshalled Lamp State.
+ */
+#define LAMP_STATE_SATURATION_FIELD_INDICATOR 0x04
+
+/**
+ * Used to determine if Color Temp field is present in the un-marshalled Lamp State.
+ */
+#define LAMP_STATE_COLOR_TEMP_FIELD_INDICATOR 0x08
+
+/**
+ * Used to determine if Brightness field is present in the un-marshalled Lamp State.
+ */
+#define LAMP_STATE_BRIGHTNESS_FIELD_INDICATOR 0x10
+
+/**
+ * Used to determine if all fields are present in the un-marshalled Lamp State.
+ */
+#define LAMP_STATE_ALL_FIELDS_INDICATOR       0x1F
+
+/**
+ * Struct LampStateContainer.
+ * This is used to store the lamp state and indicate which of the
+ * fields have valid values.
+ */
+typedef struct _LampStateContainer {
+    LampState state;                  /**< The lamp state. */
+    uint8_t stateFieldIndicators;     /**< Indicates which state fields have valid values. */
+} LampStateContainer;
+
+/**
  * Unmarshal the LampState fields from a message
  *
  * @param[out] state The lamp state container to read into
  * @param[in]  msg   The message to read from
  * @return Status of the operation
  */
-LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg);
+LampResponseCode LAMP_UnmarshalState(LampStateContainer* state, AJ_Message* msg);
 
 /**
  * Serialize the Lamp's current state

@@ -415,8 +415,6 @@ void LAMP_RunServiceWithCallback(uint32_t timeout, LampServiceCallback callback)
     // this call might not be necessary
     AJ_AboutSetAnnounceObjects(LSF_AllJoynObjects);
 
-    AJ_SetMinProtoVersion(MIN_ROUTER_VERSION);
-
     while (TRUE) {
         AJ_Message msg;
 
@@ -651,7 +649,7 @@ static AJ_Status ClearLampFault(AJ_Message* msg)
 static AJ_Status TransitionLampState(AJ_Message* msg)
 {
     LampResponseCode responseCode = LAMP_OK;
-    LampState new_state;
+    LampStateContainer newState;
     uint64_t timestamp;
     uint32_t TransitionPeriod;
 
@@ -659,11 +657,17 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
     AJ_MarshalReplyMsg(msg, &reply);
 
     AJ_UnmarshalArgs(msg, "t", &timestamp);
-    LAMP_UnmarshalState(&new_state, msg);
+    LAMP_UnmarshalState(&newState, msg);
     AJ_UnmarshalArgs(msg, "u", &TransitionPeriod);
 
     // apply the new state
-    responseCode = OEM_LS_TransitionState(&new_state, timestamp, TransitionPeriod);
+    if (newState.stateFieldIndicators == LAMP_STATE_ALL_FIELDS_INDICATOR) {
+        responseCode = OEM_LS_TransitionState(&(newState.state), timestamp, TransitionPeriod);
+    } else if (newState.stateFieldIndicators) {
+        responseCode = OEM_LS_TransitionStateFields(&newState, timestamp, TransitionPeriod);
+    } else {
+        responseCode = LAMP_ERR_INVALID_ARGS;
+    }
 
     AJ_MarshalArgs(&reply, "u", (uint32_t) responseCode);
     AJ_DeliverMsg(&reply);
@@ -681,7 +685,7 @@ static AJ_Status TransitionLampState(AJ_Message* msg)
 static AJ_Status ApplyPulseEffect(AJ_Message* msg)
 {
     LampResponseCode responseCode = LAMP_OK;
-    LampState FromState, ToState;
+    LampStateContainer FromState, ToState;
     uint32_t period;
     uint32_t duration;
     uint32_t numPulses;
@@ -695,7 +699,13 @@ static AJ_Status ApplyPulseEffect(AJ_Message* msg)
     AJ_UnmarshalArgs(msg, "uuut", &period, &duration, &numPulses, &timestamp);
 
     // apply the new state
-    responseCode = OEM_LS_ApplyPulseEffect(&FromState, &ToState, period, duration, numPulses, timestamp);
+    if ((FromState.stateFieldIndicators == LAMP_STATE_ALL_FIELDS_INDICATOR) && (ToState.stateFieldIndicators == LAMP_STATE_ALL_FIELDS_INDICATOR)) {
+        responseCode = OEM_LS_ApplyPulseEffect(&(FromState.state), &(ToState.state), period, duration, numPulses, timestamp);
+    } else if (ToState.stateFieldIndicators) {
+        responseCode = OEM_LS_ApplyPulseEffectOnStateFields(&FromState, &ToState, period, duration, numPulses, timestamp);
+    } else {
+        responseCode = LAMP_ERR_INVALID_ARGS;
+    }
 
     AJ_MarshalArgs(&reply, "u", (uint32_t) responseCode);
     AJ_DeliverMsg(&reply);

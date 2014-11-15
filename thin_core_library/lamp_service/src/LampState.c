@@ -73,7 +73,7 @@ LampResponseCode LAMP_MarshalState(LampState* state, AJ_Message* msg)
     return LAMP_OK;
 }
 
-LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
+LampResponseCode LAMP_UnmarshalState(LampStateContainer* state, AJ_Message* msg)
 {
     AJ_Arg array1, struct1;
     AJ_Status status = AJ_UnmarshalContainer(msg, &array1, AJ_ARG_ARRAY);
@@ -81,8 +81,8 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
 
     AJ_DumpMsg("LAMP_UnmarshalState", msg, TRUE);
 
-    // initialize with current state so that missing fields will have values
-    memcpy(state, &TheLampState, sizeof(LampState));
+    // initialize
+    memset(state, 0, sizeof(LampStateContainer));
 
     do {
         char* field;
@@ -109,15 +109,20 @@ LampResponseCode LAMP_UnmarshalState(LampState* state, AJ_Message* msg)
         if (0 == strcmp(field, "OnOff")) {
             uint32_t onoff;
             status = AJ_UnmarshalArgs(msg, "b", &onoff);
-            state->onOff = onoff ? TRUE : FALSE;
+            state->state.onOff = onoff ? TRUE : FALSE;
+            state->stateFieldIndicators |= LAMP_STATE_ON_OFF_FIELD_INDICATOR;
         } else if (0 == strcmp(field, "Hue")) {
-            status = AJ_UnmarshalArgs(msg, "u", &state->hue);
+            status = AJ_UnmarshalArgs(msg, "u", &state->state.hue);
+            state->stateFieldIndicators |= LAMP_STATE_HUE_FIELD_INDICATOR;
         } else if (0 == strcmp(field, "Saturation")) {
-            status = AJ_UnmarshalArgs(msg, "u", &state->saturation);
+            status = AJ_UnmarshalArgs(msg, "u", &state->state.saturation);
+            state->stateFieldIndicators |= LAMP_STATE_SATURATION_FIELD_INDICATOR;
         } else if (0 == strcmp(field, "ColorTemp")) {
-            status = AJ_UnmarshalArgs(msg, "u", &state->colorTemp);
+            status = AJ_UnmarshalArgs(msg, "u", &state->state.colorTemp);
+            state->stateFieldIndicators |= LAMP_STATE_COLOR_TEMP_FIELD_INDICATOR;
         } else if (0 == strcmp(field, "Brightness")) {
-            status = AJ_UnmarshalArgs(msg, "u", &state->brightness);
+            status = AJ_UnmarshalArgs(msg, "u", &state->state.brightness);
+            state->stateFieldIndicators |= LAMP_STATE_BRIGHTNESS_FIELD_INDICATOR;
         } else {
             AJ_ErrPrintf(("Unknown field: %s\n", field));
             responseCode = LAMP_ERR_MESSAGE;
