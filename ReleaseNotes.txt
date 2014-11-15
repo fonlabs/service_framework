@@ -1,0 +1,39 @@
+AllSeen Lighting Service Framework 14.06 Release Notes
+======================================================
+
+Platform Support
+----------------
+ 1) Linux Ubuntu 12.04 LTS (32 and 64 bit)
+
+
+Features added in Version 14.06
+--------------------------------
+* Initial release of the Lamp Service, Lighting Controller Service and Lighting Controller Client
+
+
+Issues Addressed in Version 14.06
+----------------------------------
+
+
+Known Issues in Version 14.06
+------------------------------
+ASALIGHT-128 Add support to restrict the LSF user traffic in the Controller Service
+ASALIGHT-124 Modify the Lamp Service to use the new heartbeat feature that will added in AllJoyn Core
+ASALIGHT-122 Remove AJ_SetMinProtoVersion(MIN_ROUTER_VERSION); from Lamp Service
+ASALIGHT-115 Lamp service not always responsive to state change actions from controller service
+ASALIGHT-111 Add support for LampsLost API to inform the application about when to remove a lamp from an active list
+ASALIGHT-98  Add a manifest file to LSF GIT repository
+ASALIGHT-84  Issue with the ControllerService name defined during the Onboarding process
+ASALIGHT-72  Controller Service State Sync Algorithm corner case
+
+For a complete list of open issues:
+https://jira.allseenalliance.org/issues/?jql=project %3D ASALIGHT AND status in (Open%2C "In Progress"%2C Reopened%2C New)
+
+
+Compatibility
+-------------
+
+
+Change history
+--------------
+
