@@ -327,6 +327,12 @@ class ControllerService : public ajn::BusObject, public ajn::services::ConfigSer
         return elector;
     }
 
+    /**
+     * Check if the receivedNumArgs is same as expectedNumArgs and return a response
+     * code accordingly
+     */
+    LSFResponseCode CheckNumArgsInMessage(uint32_t receivedNumArgs, uint32_t expectedNumArgs);
+
   private:
 
     void Initialize();

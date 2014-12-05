@@ -122,6 +122,10 @@ void MasterSceneManager::GetMasterSceneReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString masterSceneID = static_cast<LSFString>(args[1].v_string.str);
     MasterScene masterScene(args[2]);

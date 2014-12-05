@@ -62,6 +62,10 @@ void PresetManager::GetPresetReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
     LampState preset(args[2]);
@@ -157,6 +161,10 @@ void PresetManager::GetDefaultLampStateReply(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 2) != LSF_OK) {
+        return;
+    }
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LampState defaultLampState(args[1]);

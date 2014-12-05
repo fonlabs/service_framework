@@ -617,8 +617,12 @@ void LampClients::HandleGetLampStateReply(ajn::Message& message, void* context)
         const MsgArg* args;
         message->GetArgs(numArgs, args);
 
-        LampState state(args[0]);
-        controllerService.SendStateChangedSignal(ControllerServiceLampInterfaceName, "LampStateChanged", ctx->lampID, state);
+        if (numArgs == 1) {
+            LampState state(args[0]);
+            controllerService.SendStateChangedSignal(ControllerServiceLampInterfaceName, "LampStateChanged", ctx->lampID, state);
+        } else {
+            QCC_LogError(ER_BAD_ARG_COUNT, ("%s: Did not receive the expected number of arguments in the method reply", __func__));
+        }
     }
 
     delete ctx;
@@ -733,8 +737,11 @@ void LampClients::HandleGetReply(ajn::Message& message, void* context)
 
         if (numArgs == 0) {
             DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0);
-        } else {
+        } else if (numArgs == 1) {
             DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, args);
+        } else {
+            QCC_LogError(ER_BAD_ARG_COUNT, ("%s: Did not receive the expected number of arguments in the method reply", __func__));
+            DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
         }
     } else {
         DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
@@ -937,15 +944,20 @@ void LampClients::HandleReplyWithLampResponseCode(Message& message, void* contex
         const MsgArg* args;
         message->GetArgs(numArgs, args);
 
-        LampResponseCode responseCode;
-        args[0].Get("u", &responseCode);
-
         uint32_t success = 0;
         uint32_t failure = 0;
 
-        if (responseCode == LAMP_OK) {
-            success++;
+        if (((numArgs == 1) && (ctx->method != "ClearLampFault")) || ((numArgs == 2) && (ctx->method == "ClearLampFault"))) {
+            LampResponseCode responseCode;
+            args[0].Get("u", &responseCode);
+
+            if (responseCode == LAMP_OK) {
+                success++;
+            } else {
+                failure++;
+            }
         } else {
+            QCC_LogError(ER_BAD_ARG_COUNT, ("%s: Did not receive the expected number of arguments in the method reply", __func__));
             failure++;
         }
 
@@ -1012,10 +1024,14 @@ void LampClients::HandleReplyWithVariant(ajn::Message& message, void* context)
         const MsgArg* args;
         message->GetArgs(numArgs, args);
 
-        MsgArg* verArg;
-        args[0].Get("v", &verArg);
-
-        DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, verArg);
+        if (numArgs == 1) {
+            MsgArg* verArg;
+            args[0].Get("v", &verArg);
+            DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, verArg);
+        } else {
+            QCC_LogError(ER_BAD_ARG_COUNT, ("%s: Did not receive the expected number of arguments in the method reply", __func__));
+            DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
+        }
     } else {
         DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
     }
@@ -1104,21 +1120,26 @@ void LampClients::HandleReplyWithKeyValuePairs(Message& message, void* context)
         size_t numArgs;
         message->GetArgs(numArgs, args);
 
-        size_t numEntries;
-        MsgArg* entries;
+        if (numArgs == 1) {
+            size_t numEntries;
+            MsgArg* entries;
 
-        args[0].Get("a{sv}", &numEntries, &entries);
-        for (size_t i = 0; i < numEntries; ++i) {
-            char* key;
-            MsgArg* value;
-            entries[i].Get("{sv}", &key, &value);
-            QCC_DbgPrintf(("%s: %s", __func__, key));
-            if (((0 == strcmp(key, "SupportedLanguages")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampSupportedLanguages"))) ||
-                ((0 == strcmp(key, "DeviceName")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampName"))) ||
-                ((0 == strcmp(key, "Manufacturer")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampManufacturer")))) {
-                DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, value);
-                break;
+            args[0].Get("a{sv}", &numEntries, &entries);
+            for (size_t i = 0; i < numEntries; ++i) {
+                char* key;
+                MsgArg* value;
+                entries[i].Get("{sv}", &key, &value);
+                QCC_DbgPrintf(("%s: %s", __func__, key));
+                if (((0 == strcmp(key, "SupportedLanguages")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampSupportedLanguages"))) ||
+                    ((0 == strcmp(key, "DeviceName")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampName"))) ||
+                    ((0 == strcmp(key, "Manufacturer")) && (0 == strcmp(queuedCall->inMsg->GetMemberName(), "GetLampManufacturer")))) {
+                    DecrementWaitingAndSendResponse(queuedCall, 1, 0, 0, value);
+                    break;
+                }
             }
+        } else {
+            QCC_LogError(ER_BAD_ARG_COUNT, ("%s: Did not receive the expected number of arguments in the method reply", __func__));
+            DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
         }
     } else {
         DecrementWaitingAndSendResponse(queuedCall, 0, 1, 0);
@@ -1438,8 +1459,10 @@ void LampClients::Run(void)
                      * We already know about this Lamp
                      */
                     LampConnection* conn = lit->second;
-                    if ((conn->name != newConn->name) && (conn->busName == newConn->busName)) {
-                        conn->name = newConn->name;
+                    if (conn->busName == newConn->busName) {
+                        if (conn->name != newConn->name) {
+                            conn->name = newConn->name;
+                        }
                         if (conn->IsConnected()) {
                             nameChangedList.insert(std::make_pair(conn->lampId, conn->name));
                         }

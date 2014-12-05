@@ -61,6 +61,69 @@ lighting_controller_client_sample = lsf_client_env.Program('$LSF_CLIENT_DISTDIR/
 lsf_client_env.Install('$LSF_CLIENT_DISTDIR/bin', lsf_client_env['client_objs'])
 lsf_client_env.Install('$LSF_CLIENT_DISTDIR/bin', lsf_env['common_objs'])
 
+#Build the unit tests
+gtest_dir = os.environ.get('GTEST_DIR', '')
+
+if gtest_dir == '':
+   print('GTEST_DIR not specified skipping LSF unit test build')
+else:
+   gtest_env = lsf_client_env.Clone();
+   vars = Variables();
+   vars.AddVariables(('GTEST_HOME', '', gtest_dir))
+   vars.Update(gtest_env)
+	
+   if gtest_dir == '/usr':
+      gtest_src_base = os.path.join(gtest_dir, 'src', 'gtest')
+   else:
+      gtest_src_base = gtest_dir
+	   
+   # We compile with no rtti and no exceptions
+   gtest_env.Append(CPPDEFINES = ['GTEST_HAS_RTTI=0'])
+   gtest_env.Append(CPPDEFINES = ['GTEST_HAS_EXCEPTIONS=0'])
+   # we replace include CPPPATH options.
+   gtest_env.Replace(CPPPATH = [ gtest_src_base ])
+   if gtest_dir != '/usr':
+      gtest_env.Append(CPPPATH = [ gtest_env.Dir('$GTEST_DIR/include') ])
+      
+   gtest_env['LSF_TEST_DISTDIR'] = 'build/linux/standard_core_library/lighting_controller_client/unit_test/'
+   gtest_env['gtest_obj'] = gtest_env.StaticObject(target = '$LSF_TEST_DISTDIR/bin/gtest-all', source = [ '%s/src/gtest-all.cc' % gtest_src_base ]) 
+   gtest_env.StaticLibrary('$LSF_TEST_DISTDIR/lib/gtest', gtest_env['gtest_obj']);
+
+
+   unittest_env = lsf_client_env.Clone()
+   
+   gtest_dir = unittest_env['GTEST_DIR']
+   if gtest_dir != '/usr':
+      unittest_env.Append(CPPPATH = [gtest_dir + '/include'])
+   
+   unittest_env.Append(CPPDEFINES = ['GTEST_HAS_RTTI=0'])
+   unittest_env.Append(CPPDEFINES = ['GTEST_HAS_EXCEPTIONS=0'])
+   
+   unittest_env.Append(CXXFLAGS=['-Wall',
+                                '-pipe',
+                                '-funsigned-char',
+                                '-fno-strict-aliasing'])
+   if unittest_env['VARIANT'] == 'debug':
+      unittest_env.Append(CXXFLAGS='-g')
+
+   unittest_env.Append(LIBS = ['rt', 'crypto'])
+      
+   #gtest library file is placed in the same directory
+   unittest_env['LSF_TEST_DISTDIR'] = 'build/linux/standard_core_library/lighting_controller_client/unit_test/'
+   unittest_env.Append(LIBPATH = '$LSF_TEST_DISTDIR/lib')
+   unittest_env.Prepend(LIBS = ['gtest'])
+   unittest_env.Append(LIBPATH = '$LSF_CLIENT_DISTDIR/lib')
+   unittest_env.Prepend(LIBS = ['lighting_controller_client.a'])
+   
+   unittest_env['test_srcs'] = unittest_env.Glob('standard_core_library/lighting_controller_client/unit_test/*.cc')
+   unittest_env['test_objs'] = unittest_env.Object(unittest_env['test_srcs']) 
+   
+   unittest_env.Program('$LSF_TEST_DISTDIR/bin/lsftest', unittest_env['test_objs'])
+   unittest_env.Install('$LSF_TEST_DISTDIR/bin', unittest_env['test_objs'])
+   unittest_env.Install('$LSF_TEST_DISTDIR/bin', 'standard_core_library/lighting_controller_client/unit_test/test_report/lsftest.conf')
+   unittest_env.Install('$LSF_TEST_DISTDIR/bin', 'standard_core_library/lighting_controller_client/unit_test/test_report/runall.sh')
+   unittest_env.Install('$LSF_TEST_DISTDIR/bin', 'standard_core_library/lighting_controller_client/unit_test/test_report/test_harness.py')
+
 # Build a test for the Lamp Service - Lamp Service Test needs to be updated to use the latest defs in LSFTypes - Turn off building until then
 #lamp_test_env = lsf_client_env.Clone()
 #lamp_test_env.Append(LIBPATH = '$LSF_CLIENT_DISTDIR/lib')

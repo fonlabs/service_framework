@@ -1,4 +1,6 @@
 /******************************************************************************
+ *
+ *
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
@@ -14,38 +16,20 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFResponseCodes.h>
-#include <LSFTypes.h>
+#include <gtest/gtest.h>
 
-namespace lsf {
-
-const char* LSFResponseCodeText(LSFResponseCode responseCode)
+/** Main entry point */
+int main(int argc, char**argv, char**envArg)
 {
-    switch (responseCode) {
-        LSF_CASE(LSF_OK);
-        LSF_CASE(LSF_ERR_NULL);
-        LSF_CASE(LSF_ERR_UNEXPECTED);
-        LSF_CASE(LSF_ERR_INVALID);
-        LSF_CASE(LSF_ERR_UNKNOWN);
-        LSF_CASE(LSF_ERR_FAILURE);
-        LSF_CASE(LSF_ERR_BUSY);
-        LSF_CASE(LSF_ERR_REJECTED);
-        LSF_CASE(LSF_ERR_RANGE);
-        LSF_CASE(LSF_ERR_INVALID_FIELD);
-        LSF_CASE(LSF_ERR_MESSAGE);
-        LSF_CASE(LSF_ERR_INVALID_ARGS);
-        LSF_CASE(LSF_ERR_EMPTY_NAME);
-        LSF_CASE(LSF_ERR_RESOURCES);
-        LSF_CASE(LSF_ERR_REPLY_WITH_INVALID_ARGS);
-        LSF_CASE(LSF_ERR_PARTIAL);
-        LSF_CASE(LSF_ERR_NOT_FOUND);
-        LSF_CASE(LSF_ERR_NO_SLOT);
-        LSF_CASE(LSF_ERR_DEPENDENCY);
-        LSF_CASE(LSF_RESPONSE_CODE_LAST);
+    int status = 0;
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
 
-    default:
-        return "<unknown>";
-    }
-}
+    printf("\n Running LSF unit test\n");
+    testing::InitGoogleTest(&argc, argv);
+    status = RUN_ALL_TESTS();
 
+    printf("%s exiting with status %d \n", argv[0], status);
+
+    return (int) status;
 }

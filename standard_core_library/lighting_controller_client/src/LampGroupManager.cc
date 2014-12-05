@@ -121,6 +121,10 @@ void LampGroupManager::GetLampGroupReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 4) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampGroupID = static_cast<LSFString>(args[1].v_string.str);
     LampGroup lampGroup(args[2], args[3]);

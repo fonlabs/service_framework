@@ -170,6 +170,10 @@ void LampGroupManager::GetLampGroupName(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -211,6 +215,10 @@ void LampGroupManager::SetLampGroupName(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
 
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
@@ -295,6 +303,10 @@ void LampGroupManager::CreateLampGroup(Message& message)
     size_t numInputArgs;
     message->GetArgs(numInputArgs, inputArgs);
 
+    if (controllerService.CheckNumArgsInMessage(numInputArgs, 4)  != LSF_OK) {
+        return;
+    }
+
     LampGroup lampGroup(inputArgs[0], inputArgs[1]);
     LSFString name = static_cast<LSFString>(inputArgs[2].v_string.str);
     LSFString language = static_cast<LSFString>(inputArgs[3].v_string.str);
@@ -364,6 +376,10 @@ void LampGroupManager::UpdateLampGroup(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -429,6 +445,10 @@ void LampGroupManager::DeleteLampGroup(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     const char* lampGroupId;
     args[0].Get("s", &lampGroupId);
 
@@ -485,6 +505,10 @@ void LampGroupManager::GetLampGroup(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -520,6 +544,11 @@ void LampGroupManager::ResetLampGroupState(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampGroupId=%s", lampGroupId.c_str()));
 
@@ -546,6 +575,11 @@ void LampGroupManager::TransitionLampGroupState(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
     LampState state(args[1]);
     uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
@@ -585,6 +619,11 @@ void LampGroupManager::PulseLampGroupWithState(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 6)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
     LampState fromLampGroupState(args[1]);
     LampState toLampGroupState(args[2]);
@@ -632,6 +671,11 @@ void LampGroupManager::PulseLampGroupWithPreset(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 6)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampGroupID = static_cast<LSFString>(args[0].v_string.str);
     LSFString fromPresetID = static_cast<LSFString>(args[1].v_string.str);
     LSFString toPresetID = static_cast<LSFString>(args[2].v_string.str);
@@ -675,6 +719,11 @@ void LampGroupManager::TransitionLampGroupStateToPreset(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
     LSFString preset = static_cast<LSFString>(args[1].v_string.str);
     uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
@@ -714,6 +763,11 @@ void LampGroupManager::TransitionLampGroupStateField(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 4)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
     MsgArg* varArg;
@@ -837,6 +891,11 @@ void LampGroupManager::ResetLampGroupStateField(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
     QCC_DbgPrintf(("%s: lampGroupId=%s fieldName=%s", __func__, lampGroupId.c_str(), fieldName.c_str()));

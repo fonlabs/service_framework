@@ -252,6 +252,10 @@ void LeaderElectionObject::OnGetBlobReply(ajn::Message& message, void* context)
         const MsgArg* args;
         message->GetArgs(numArgs, args);
 
+        if (controller.CheckNumArgsInMessage(numArgs, 4)  != LSF_OK) {
+            return;
+        }
+
         if (args[1].v_string.len) {
             switch (args[0].v_uint32) {
             case LSF_PRESET:
@@ -311,6 +315,10 @@ void LeaderElectionObject::OnGetChecksumAndModificationTimestampReply(ajn::Messa
         size_t numArgs;
         const MsgArg* args;
         message->GetArgs(numArgs, args);
+
+        if (controller.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+            return;
+        }
 
         MsgArg* elems;
         size_t numElems;
@@ -1370,6 +1378,10 @@ void LeaderElectionObject::OnOverthrowReply(Message& message, void* context)
         const MsgArg* args;
         message->GetArgs(numArgs, args);
 
+        if (controller.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+            return;
+        }
+
         bool success;
         args[0].Get("b", &success);
 
@@ -1510,6 +1522,10 @@ void LeaderElectionObject::GetBlob(const ajn::InterfaceDescription::Member* memb
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controller.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     ControllerEntry upcomingLeaderCopy;
     upComingLeaderMutex.Lock();
     upcomingLeaderCopy = upComingLeader;
@@ -1552,6 +1568,10 @@ void LeaderElectionObject::OnBlobChanged(const InterfaceDescription::Member* mem
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controller.CheckNumArgsInMessage(numArgs, 4)  != LSF_OK) {
+        return;
+    }
 
     LSFBlobType type = static_cast<LSFBlobType>(args[0].v_uint32);
     std::string blob = args[1].v_string.str;

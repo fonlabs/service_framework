@@ -346,6 +346,10 @@ void SceneManager::GetSceneName(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -387,6 +391,10 @@ void SceneManager::SetSceneName(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
 
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
@@ -474,6 +482,10 @@ void SceneManager::CreateScene(Message& message)
     size_t numInputArgs;
     message->GetArgs(numInputArgs, inputArgs);
 
+    if (controllerService.CheckNumArgsInMessage(numInputArgs, 6)  != LSF_OK) {
+        return;
+    }
+
     Scene scene(inputArgs[0], inputArgs[1], inputArgs[2], inputArgs[3]);
     LSFString name = static_cast<LSFString>(inputArgs[4].v_string.str);
     LSFString language = static_cast<LSFString>(inputArgs[5].v_string.str);
@@ -549,6 +561,10 @@ void SceneManager::UpdateScene(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 5)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -613,6 +629,10 @@ void SceneManager::DeleteScene(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     const char* sceneId;
     args[0].Get("s", &sceneId);
 
@@ -673,6 +693,10 @@ void SceneManager::GetScene(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
 
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
@@ -738,6 +762,10 @@ void SceneManager::ApplyScene(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
 
     const char* sceneId;
     args[0].Get("s", &sceneId);

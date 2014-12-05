@@ -198,6 +198,10 @@ void PresetManager::GetPresetName(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -237,6 +241,10 @@ void PresetManager::SetPresetName(Message& msg)
     size_t numArgs;
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
 
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
@@ -322,6 +330,10 @@ void PresetManager::CreatePreset(Message& msg)
     size_t numInputArgs;
     msg->GetArgs(numInputArgs, inputArgs);
 
+    if (controllerService.CheckNumArgsInMessage(numInputArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     LampState preset(inputArgs[0]);
     LSFString name = static_cast<LSFString>(inputArgs[1].v_string.str);
     LSFString language = static_cast<LSFString>(inputArgs[2].v_string.str);
@@ -391,6 +403,10 @@ void PresetManager::UpdatePreset(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     const char* presetId;
     args[0].Get("s", &presetId);
 
@@ -456,6 +472,10 @@ void PresetManager::DeletePreset(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     const char* presetId;
     args[0].Get("s", &presetId);
 
@@ -511,6 +531,10 @@ void PresetManager::GetPreset(Message& msg)
     const MsgArg* args;
     msg->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     const char* presetId;
     args[0].Get("s", &presetId);
 
@@ -560,6 +584,10 @@ void PresetManager::SetDefaultLampState(Message& msg)
     const ajn::MsgArg* inputArg;
     size_t numInputArgs;
     msg->GetArgs(numInputArgs, inputArg);
+
+    if (controllerService.CheckNumArgsInMessage(numInputArgs, 1)  != LSF_OK) {
+        return;
+    }
 
     MsgArg arg;
 

@@ -81,6 +81,11 @@ void LampManager::GetLampFaults(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
@@ -93,6 +98,11 @@ void LampManager::ClearLampFault(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LampFaultCode faultCode = static_cast<LampFaultCode>(args[1].v_uint32);
     QCC_DbgPrintf(("lampID=%s faultCode=%d", lampID.c_str(), faultCode));
@@ -106,6 +116,11 @@ void LampManager::GetLampServiceVersion(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
@@ -118,6 +133,11 @@ void LampManager::GetLampSupportedLanguages(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
@@ -130,6 +150,11 @@ void LampManager::GetLampManufacturer(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString language = static_cast<LSFString>(args[1].v_string.str);
     QCC_DbgPrintf(("lampID=%s language=%s", lampID.c_str(), language.c_str()));
@@ -143,6 +168,11 @@ void LampManager::GetLampName(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString language = static_cast<LSFString>(args[1].v_string.str);
 
@@ -157,6 +187,11 @@ void LampManager::SetLampName(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString lampName = static_cast<LSFString>(args[1].v_string.str);
     LSFString language = static_cast<LSFString>(args[2].v_string.str);
@@ -172,6 +207,11 @@ void LampManager::GetLampDetails(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
@@ -184,6 +224,11 @@ void LampManager::GetLampParameters(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
@@ -197,6 +242,11 @@ void LampManager::GetLampParametersField(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
     QCC_DbgPrintf(("lampID=%s fieldName=%s", lampID.c_str(), fieldName.c_str()));
@@ -210,6 +260,11 @@ void LampManager::GetLampState(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
@@ -222,6 +277,11 @@ void LampManager::GetLampStateField(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
     QCC_DbgPrintf(("lampID=%s fieldName=%s", lampID.c_str(), fieldName.c_str()));
@@ -235,6 +295,11 @@ void LampManager::TransitionLampStateToPreset(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString presetID = static_cast<LSFString>(args[1].v_string.str);
     uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
@@ -267,6 +332,11 @@ void LampManager::TransitionLampStateField(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 4)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
     MsgArg* varArg;
@@ -295,6 +365,11 @@ void LampManager::ResetLampState(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     QCC_DbgPrintf(("lampID=%s", lampID.c_str()));
 
@@ -310,6 +385,11 @@ void LampManager::ResetLampStateField(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[1].v_string.str);
     QCC_DbgPrintf(("%s: lampID=%s fieldName=%s", __func__, lampID.c_str(), fieldName.c_str()));
@@ -344,6 +424,11 @@ void LampManager::ResetLampStateInternal(ajn::Message& message, LSFStringList la
             size_t numArgs;
             const MsgArg* args;
             message->GetArgs(numArgs, args);
+
+            if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+                return;
+            }
+
             LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
             controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, lampGroupId);
         } else {
@@ -391,6 +476,11 @@ void LampManager::ResetLampStateFieldInternal(ajn::Message& message, LSFStringLi
             size_t numArgs;
             const MsgArg* args;
             message->GetArgs(numArgs, args);
+
+            if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+                return;
+            }
+
             LSFString lampGroupId = static_cast<LSFString>(args[0].v_string.str);
             controllerService.SendMethodReplyWithResponseCodeIDAndName(message, responseCode, lampGroupId, stateFieldName);
         } else {
@@ -449,6 +539,11 @@ void LampManager::ChangeLampStateAndField(Message& message,
                 size_t numArgs;
                 const MsgArg* args;
                 message->GetArgs(numArgs, args);
+
+                if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+                    return;
+                }
+
                 LSFString uniqueID = static_cast<LSFString>(args[0].v_string.str);
                 controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, uniqueID);
             } else {
@@ -503,6 +598,11 @@ void LampManager::ChangeLampStateAndField(Message& message,
                 size_t numArgs;
                 const MsgArg* args;
                 message->GetArgs(numArgs, args);
+
+                if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+                    return;
+                }
+
                 LSFString uniqueID = static_cast<LSFString>(args[0].v_string.str);
                 controllerService.SendMethodReplyWithResponseCodeAndID(message, responseCode, uniqueID);
             } else {
@@ -522,6 +622,11 @@ void LampManager::TransitionLampState(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LampState state(args[1]);
     uint32_t transitionPeriod = static_cast<uint32_t>(args[2].v_uint32);
@@ -554,6 +659,11 @@ void LampManager::PulseLampWithState(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 6)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LampState fromLampState(args[1]);
     LampState toLampState(args[2]);
@@ -590,6 +700,11 @@ void LampManager::PulseLampWithPreset(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 6)  != LSF_OK) {
+        return;
+    }
+
     LSFString lampID = static_cast<LSFString>(args[0].v_string.str);
     LSFString fromPresetID = static_cast<LSFString>(args[1].v_string.str);
     LSFString toPresetID = static_cast<LSFString>(args[2].v_string.str);

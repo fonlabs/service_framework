@@ -1408,10 +1408,21 @@ void ControllerService::SetAllowUpdates(bool allow)
     updatesAllowedLock.Unlock();
 }
 
-bool ControllerService::UpdatesAllowed()
+bool ControllerService::UpdatesAllowed(void)
 {
     updatesAllowedLock.Lock();
     bool allowed = updatesAllowed;
     updatesAllowedLock.Unlock();
     return allowed;
+}
+
+LSFResponseCode ControllerService::CheckNumArgsInMessage(uint32_t receivedNumArgs, uint32_t expectedNumArgs)
+{
+    QCC_DbgPrintf(("%s", __func__));
+    LSFResponseCode responseCode = LSF_OK;
+    if (receivedNumArgs != expectedNumArgs) {
+        QCC_LogError(ER_BAD_ARG_COUNT, ("%s: Did not receive the expected number of arguments in the method", __func__));
+        responseCode = LSF_ERR_REPLY_WITH_INVALID_ARGS;
+    }
+    return responseCode;
 }

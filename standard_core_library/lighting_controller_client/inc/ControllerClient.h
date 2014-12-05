@@ -204,35 +204,56 @@ class ControllerClient : public ajn::MessageReceiver {
                                            const ajn::MsgArg * args = NULL,
                                            size_t numArgs = 0);
 
+    /**
+     * Helper template to invoke MethodCallAsync on the AllJoyn ProxyBusObject.
+     */
     ControllerClientStatus MethodCallAsyncForReplyWithResponseCodeAndListOfIDs(
         const char* ifaceName,
         const char* methodName,
         const ajn::MsgArg* args = NULL,
         size_t numArgs = 0);
 
+    /**
+     * Helper template to invoke MethodCallAsync on the AllJoyn ProxyBusObject.
+     */
     ControllerClientStatus MethodCallAsyncForReplyWithResponseCodeIDAndName(
         const char* ifaceName,
         const char* methodName,
         const ajn::MsgArg* args = NULL,
         size_t numArgs = 0);
 
+    /**
+     * Helper template to invoke MethodCallAsync on the AllJoyn ProxyBusObject.
+     */
     ControllerClientStatus MethodCallAsyncForReplyWithResponseCodeAndID(
         const char* ifaceName,
         const char* methodName,
         const ajn::MsgArg* args = NULL,
         size_t numArgs = 0);
 
+    /**
+     * Helper template to invoke MethodCallAsync on the AllJoyn ProxyBusObject.
+     */
     ControllerClientStatus MethodCallAsyncForReplyWithUint32Value(
         const char* ifaceName,
         const char* methodName,
         const ajn::MsgArg* args = NULL,
         size_t numArgs = 0);
 
+    /**
+     * Helper template to invoke MethodCallAsync on the AllJoyn ProxyBusObject.
+     */
     ControllerClientStatus MethodCallAsyncForReplyWithResponseCodeIDLanguageAndName(
         const char* ifaceName,
         const char* methodName,
         const ajn::MsgArg* args = NULL,
         size_t numArgs = 0);
+
+    /**
+     * Check if the receivedNumArgs is same as expectedNumArgs and return a response
+     * code accordingly
+     */
+    LSFResponseCode CheckNumArgsInMessage(uint32_t receivedNumArgs, uint32_t expectedNumArgs);
 
     /**
      * Reference to the AllJoyn BusAttachment received from the

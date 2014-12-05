@@ -53,8 +53,10 @@ typedef enum _ErrorCode {
     ERROR_DISCONNECTED_FROM_BUS = 5,
     /**< Controller Client is exiting */
     ERROR_CONTROLLER_CLIENT_EXITING = 6,
+    /**< Received an AllJoyn message with invalid arguments */
+    ERROR_MESSAGE_WITH_INVALID_ARGS = 7,
     /**< Last value */
-    ERROR_LAST_VALUE = 7
+    ERROR_LAST_VALUE = 8
 } ErrorCode;
 /**
  * List of enum error codes

@@ -114,8 +114,6 @@ class ControllerClientCallbackHandler : public ControllerClientCallback {
             printf("\n%s", ControllerClientErrorText(*it));
         }
         printf("\n");
-        gotReply = true;
-        gotSignal = true;
     }
 };
 
@@ -1306,6 +1304,7 @@ int main()
             if (cmd == "1") {
                 printf("\nInvoking GetControllerServiceVersion()\n");
                 status = controllerServiceManager.GetControllerServiceVersion();
+                printf("\nReturn Status = %s\n", ControllerClientStatusText(status));
                 waitForReply = true;
             } else if (cmd == "2") {
                 status = controllerServiceManager.LightingResetControllerService();

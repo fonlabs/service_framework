@@ -107,6 +107,10 @@ void LampManager::GetLampDetailsReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LampDetails details(args[2]);
@@ -138,6 +142,10 @@ void LampManager::GetLampParametersReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LampParameters parameters(args[2]);
@@ -168,6 +176,10 @@ void LampManager::GetLampStateReply(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
@@ -298,6 +310,10 @@ void LampManager::GetLampFaultsReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
 
@@ -337,6 +353,10 @@ void LampManager::GetLampServiceVersionReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     uint32_t lampServiceVersion = args[2].v_uint32;
@@ -369,6 +389,10 @@ void LampManager::ClearLampFaultReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LampFaultCode code = static_cast<LampFaultCode>(args[2].v_uint32);
@@ -400,6 +424,10 @@ void LampManager::GetLampStateFieldReply(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 4) != LSF_OK) {
+        return;
+    }
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
@@ -548,6 +576,10 @@ void LampManager::GetLampParametersFieldReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 4) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);
     LSFString fieldName = static_cast<LSFString>(args[2].v_string.str);
@@ -585,6 +617,10 @@ void LampManager::GetLampSupportedLanguagesReply(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 3) != LSF_OK) {
+        return;
+    }
 
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString lampID = static_cast<LSFString>(args[1].v_string.str);

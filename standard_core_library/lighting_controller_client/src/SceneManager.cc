@@ -134,6 +134,10 @@ void SceneManager::GetSceneReply(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerClient.CheckNumArgsInMessage(numArgs, 6) != LSF_OK) {
+        return;
+    }
+
     LSFResponseCode responseCode = static_cast<LSFResponseCode>(args[0].v_uint32);
     LSFString sceneID = static_cast<LSFString>(args[1].v_string.str);
     Scene scene(args[2], args[3], args[4], args[5]);

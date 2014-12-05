@@ -458,6 +458,10 @@ void ControllerClient::SignalWithArgDispatcher(const ajn::InterfaceDescription::
         const MsgArg* inputArgs;
         message->GetArgs(numInputArgs, inputArgs);
 
+        if (CheckNumArgsInMessage(numInputArgs, 1) != LSF_OK) {
+            return;
+        }
+
         LSFStringList idList;
 
         MsgArg* idArgs;
@@ -493,6 +497,10 @@ void ControllerClient::NameChangedSignalDispatcher(const ajn::InterfaceDescripti
         const MsgArg* inputArgs;
         message->GetArgs(numInputArgs, inputArgs);
 
+        if (CheckNumArgsInMessage(numInputArgs, 2) != LSF_OK) {
+            return;
+        }
+
         char* id;
         char* name;
         inputArgs[0].Get("s", &id);
@@ -523,6 +531,10 @@ void ControllerClient::StateChangedSignalDispatcher(const ajn::InterfaceDescript
         size_t numInputArgs;
         const MsgArg* inputArgs;
         message->GetArgs(numInputArgs, inputArgs);
+
+        if (CheckNumArgsInMessage(numInputArgs, 2) != LSF_OK) {
+            return;
+        }
 
         char* id;
         inputArgs[0].Get("s", &id);
@@ -786,6 +798,10 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndListOfIDs(Message
                 const MsgArg* inputArgs;
                 message->GetArgs(numInputArgs, inputArgs);
 
+                if (CheckNumArgsInMessage(numInputArgs, 2) != LSF_OK) {
+                    return;
+                }
+
                 LSFStringList idList;
                 LSFResponseCode responseCode;
 
@@ -861,10 +877,14 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDAndName(Message& m
                 const MsgArg* inputArgs;
                 message->GetArgs(numInputArgs, inputArgs);
 
-                char* uniqueId;
-                char* name;
-                LSFResponseCode responseCode;
+                if (CheckNumArgsInMessage(numInputArgs, 3) != LSF_OK) {
+                    return;
+                }
 
+                char* uniqueId = NULL;
+                char* name = NULL;
+
+                LSFResponseCode responseCode;
                 inputArgs[0].Get("u", &responseCode);
                 inputArgs[1].Get("s", &uniqueId);
                 inputArgs[2].Get("s", &name);
@@ -931,9 +951,13 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeAndID(Message& messa
                 const MsgArg* inputArgs;
                 message->GetArgs(numInputArgs, inputArgs);
 
-                char* id;
-                LSFResponseCode responseCode;
+                if (CheckNumArgsInMessage(numInputArgs, 2) != LSF_OK) {
+                    return;
+                }
 
+                char* id;
+
+                LSFResponseCode responseCode;
                 inputArgs[0].Get("u", &responseCode);
                 inputArgs[1].Get("s", &id);
 
@@ -999,6 +1023,10 @@ void ControllerClient::HandlerForMethodReplyWithUint32Value(Message& message, vo
                 const MsgArg* inputArgs;
                 message->GetArgs(numInputArgs, inputArgs);
 
+                if (CheckNumArgsInMessage(numInputArgs, 1) != LSF_OK) {
+                    return;
+                }
+
                 uint32_t value;
                 inputArgs[0].Get("u", &value);
                 handler->Handle(value);
@@ -1063,11 +1091,15 @@ void ControllerClient::HandlerForMethodReplyWithResponseCodeIDLanguageAndName(Me
                 const MsgArg* inputArgs;
                 message->GetArgs(numInputArgs, inputArgs);
 
-                LSFResponseCode responseCode;
+                if (CheckNumArgsInMessage(numInputArgs, 4) != LSF_OK) {
+                    return;
+                }
+
                 char* id;
                 char* lang;
                 char* name;
 
+                LSFResponseCode responseCode;
                 inputArgs[0].Get("u", &responseCode);
                 inputArgs[1].Get("s", &id);
                 inputArgs[2].Get("s", &lang);
@@ -1302,6 +1334,24 @@ void ControllerClient::RemoveSignalHandlers()
     DeleteNoArgSignalHandlers();
     DeleteNameChangedSignalHandlers();
     DeleteStateChangedSignalHandlers();
+}
+
+LSFResponseCode ControllerClient::CheckNumArgsInMessage(uint32_t receivedNumArgs, uint32_t expectedNumArgs)
+{
+    QCC_DbgPrintf(("%s", __func__));
+    LSFResponseCode responseCode = LSF_OK;
+    if (receivedNumArgs != expectedNumArgs) {
+        QCC_LogError(ER_BAD_ARG_COUNT, ("%s: Did not receive the expected number of arguments in the method reply or signal", __func__));
+        responseCode = LSF_ERR_REPLY_WITH_INVALID_ARGS;
+        /*
+         * Send an error callback to the application if the response was not LSF_OK
+         */
+        ErrorCodeList errors;
+        errors.push_back(ERROR_MESSAGE_WITH_INVALID_ARGS);
+        QCC_DbgPrintf(("%s: calling to ControllerClientErrorCB\n", __func__));
+        callback.ControllerClientErrorCB(errors);
+    }
+    return responseCode;
 }
 
 }

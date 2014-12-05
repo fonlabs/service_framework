@@ -49,7 +49,7 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
     size_t deviceIdLen;
     char serialId[AJOBS_DEVICE_SERIAL_ID_LEN + 1] = { 0 };
     size_t serialIdLen;
-    char product[AJOBS_DEVICE_PRODUCT_NAME_LEN + 1] = { 0 };
+    char product[AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN + 1] = { 0 };
     size_t productLen;
 
     const char* deviceProductName = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME);

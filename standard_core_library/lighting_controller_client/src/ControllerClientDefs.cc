@@ -29,6 +29,7 @@ const char* ControllerClientErrorText(ErrorCode errorCode)
         LSF_CASE(ERROR_IRRECOVERABLE);
         LSF_CASE(ERROR_DISCONNECTED_FROM_BUS);
         LSF_CASE(ERROR_CONTROLLER_CLIENT_EXITING);
+        LSF_CASE(ERROR_MESSAGE_WITH_INVALID_ARGS);
         LSF_CASE(ERROR_LAST_VALUE);
 
     default:

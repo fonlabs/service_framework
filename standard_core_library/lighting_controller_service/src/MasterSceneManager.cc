@@ -175,6 +175,10 @@ void MasterSceneManager::GetMasterSceneName(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -214,6 +218,10 @@ void MasterSceneManager::SetMasterSceneName(Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 3)  != LSF_OK) {
+        return;
+    }
 
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
@@ -298,6 +306,10 @@ void MasterSceneManager::CreateMasterScene(Message& message)
     size_t numInputArgs;
     message->GetArgs(numInputArgs, inputArgs);
 
+    if (controllerService.CheckNumArgsInMessage(numInputArgs, 3)  != LSF_OK) {
+        return;
+    }
+
     MasterScene masterScene(inputArgs[0]);
 
     LSFString name = static_cast<LSFString>(inputArgs[1].v_string.str);
@@ -369,6 +381,10 @@ void MasterSceneManager::UpdateMasterScene(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 2)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -435,6 +451,10 @@ void MasterSceneManager::DeleteMasterScene(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -486,6 +506,10 @@ void MasterSceneManager::GetMasterScene(Message& message)
     const MsgArg* args;
     message->GetArgs(numArgs, args);
 
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
+
     const char* uniqueId;
     args[0].Get("s", &uniqueId);
 
@@ -521,6 +545,10 @@ void MasterSceneManager::ApplyMasterScene(ajn::Message& message)
     size_t numArgs;
     const MsgArg* args;
     message->GetArgs(numArgs, args);
+
+    if (controllerService.CheckNumArgsInMessage(numArgs, 1)  != LSF_OK) {
+        return;
+    }
 
     const char* masterSceneId;
     args[0].Get("s", &masterSceneId);
