@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2014 - 2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -41,6 +41,13 @@ uint8_t dbgLAMP_STATE = 1;
  * A signal will be sent when this changes if a session is active.
  */
 static LampState TheLampState;
+
+static size_t memscpy(void*dest, size_t dstSize, const void*src, size_t copySize)
+{
+    size_t minSize = dstSize < copySize ? dstSize : copySize;
+    memcpy(dest, src, minSize);
+    return minSize;
+}
 
 LampResponseCode LAMP_MarshalState(LampState* state, AJ_Message* msg)
 {
@@ -158,7 +165,7 @@ void LAMP_InitializeState(void)
 
 void LAMP_GetState(LampState* state)
 {
-    memcpy(state, &TheLampState, sizeof(LampState));
+    memscpy((void*)(state), sizeof(LampState), (const void*)(&TheLampState), sizeof(LampState));
 }
 
 void LAMP_SetState(const LampState* state)
@@ -169,7 +176,7 @@ void LAMP_SetState(const LampState* state)
     if (diff) {
         AJ_InfoPrintf(("\n%s: Calling into NVRAM\n", __func__));
         AJ_NV_DATASET* id = AJ_NVRAM_Open(LAMP_STATE_FD, "w", sizeof(LampState));
-        memcpy(&TheLampState, state, sizeof(LampState));
+        memscpy((void*)(&TheLampState), sizeof(LampState), (const void*)(state), sizeof(LampState));
 
         if (id != NULL) {
             AJ_NVRAM_Write(&TheLampState, sizeof(LampState), id);

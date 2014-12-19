@@ -17,7 +17,6 @@ env.Append(CPPPATH = '$DISTDIR/services_common/inc');
 env.Append(CPPPATH = '$DISTDIR/notification/inc');
 
 # Build all the services
-env.SConscript('../alljoyn/services/about/cpp/SConscript', {'about_env': env})
 env.SConscript('../../base/config/cpp/SConscript', {'config_env': env})
 env.SConscript('../../base/notification/cpp/SConscript', {'nsenv': env})
 env.SConscript('../../base/services_common/cpp/SConscript', {'services_common_env': env})

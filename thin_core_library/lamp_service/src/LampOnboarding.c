@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2014 - 2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -61,8 +61,7 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
             productLen = min(strlen(deviceProductName), AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN);
 
             serialIdLen = min(deviceIdLen, AJOBS_DEVICE_SERIAL_ID_LEN);
-            memcpy(product, deviceProductName, productLen);
-            product[productLen] = '\0';
+            strlcpy(product, deviceProductName, productLen + 1);
 
             // can't have spaces in SSID
             {
@@ -74,8 +73,7 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
                 }
             }
 
-            memcpy(serialId, deviceId + (deviceIdLen - serialIdLen), serialIdLen);
-            serialId[serialIdLen] = '\0';
+            strlcpy(serialId, deviceId + (deviceIdLen - serialIdLen), serialIdLen + 1);
             snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_%s_%s", product, serialId);
         }
     }
