@@ -42,15 +42,22 @@
 uint8_t dbgLAMP_ONBOARDING = 1;
 #endif
 
+static size_t strlcpy(char* dest, size_t dstSize, const char* src)
+{
+    size_t minSize = (dstSize - 1) < strlen(src) ? (dstSize - 1) : strlen(src);
+    memcpy(dest, src, minSize);
+    dest[minSize] = '\0';
+    return strlen(dest);
+}
+
 static const char* GenerateSoftAPSSID(char* obSoftAPssid)
 {
     AJ_InfoPrintf(("\n%s\n", __func__));
     const char* deviceId;
     size_t deviceIdLen;
-    char serialId[AJOBS_DEVICE_SERIAL_ID_LEN + 1] = { 0 };
     size_t serialIdLen;
+    char serialId[AJOBS_DEVICE_SERIAL_ID_LEN + 1] = { 0 };
     char product[AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN + 1] = { 0 };
-    size_t productLen;
 
     const char* deviceProductName = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME);
 
@@ -58,10 +65,8 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
         deviceId = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
         if (deviceId != NULL) {
             deviceIdLen = strlen(deviceId);
-            productLen = min(strlen(deviceProductName), AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN);
-
             serialIdLen = min(deviceIdLen, AJOBS_DEVICE_SERIAL_ID_LEN);
-            strlcpy(product, deviceProductName, productLen + 1);
+            strlcpy(product, AJOBS_DEVICE_PRODUCT_NAME_LEN + AJOBS_DEVICE_MANUFACTURE_NAME_LEN + 1, deviceProductName);
 
             // can't have spaces in SSID
             {
@@ -73,7 +78,7 @@ static const char* GenerateSoftAPSSID(char* obSoftAPssid)
                 }
             }
 
-            strlcpy(serialId, deviceId + (deviceIdLen - serialIdLen), serialIdLen + 1);
+            strlcpy(serialId, AJOBS_DEVICE_SERIAL_ID_LEN + 1, deviceId + (deviceIdLen - serialIdLen));
             snprintf(obSoftAPssid, AJOBS_SSID_MAX_LENGTH + 1, "AJ_%s_%s", product, serialId);
         }
     }
