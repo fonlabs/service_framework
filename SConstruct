@@ -14,8 +14,8 @@ lsf_env.Append(CPPPATH = [lsf_env.Dir('$DISTDIR/cpp/inc')])
 
 # Common files
 header_depends = []
-header_depends += Install('$DISTDIR/cpp/inc/alljoyn/lighting/', Glob('common/inc/alljoyn/lighting/*.h'))
-header_depends += Install('$DISTDIR/cpp/inc/alljoyn/lighting/', Glob('standard_core_library/common/inc/alljoyn/lighting/*.h'))
+header_depends += lsf_env.Install('$DISTDIR/cpp/inc/alljoyn/lighting/', Glob('common/inc/alljoyn/lighting/*.h'))
+header_depends += lsf_env.Install('$DISTDIR/cpp/inc/alljoyn/lighting/', Glob('standard_core_library/common/inc/alljoyn/lighting/*.h'))
 
 # Common Lighting objects
 lsf_env['common_srcs'] = lsf_env.Glob('standard_core_library/common/src/*.cc')
@@ -24,9 +24,9 @@ Depends(lsf_env['common_objs'], header_depends)
 
 # Lighting Contoller Client
 lsf_client_env = lsf_env.Clone()
-Install('$DISTDIR/cpp/inc/alljoyn/lighting/',
+header_depends += lsf_client_env.Install('$DISTDIR/cpp/inc/alljoyn/lighting/',
 	Glob('standard_core_library/lighting_controller_client/inc/alljoyn/lighting/*.h'))
-Install('$DISTDIR/cpp/inc/alljoyn/lighting/client/',
+header_depends += lsf_client_env.Install('$DISTDIR/cpp/inc/alljoyn/lighting/client/',
 	Glob('standard_core_library/lighting_controller_client/inc/alljoyn/lighting/client/*.h'))
 lsf_client_env.Prepend(LIBS = ['alljoyn_notification', 'alljoyn_about', 'alljoyn_config', 'alljoyn_services_common'])
 lsf_client_env['client_srcs'] = Glob('standard_core_library/lighting_controller_client/src/*.cc')
@@ -44,9 +44,9 @@ lsf_client_sample = lsf_client_env.Program('$DISTDIR/cpp/test/lighting_controlle
 
 # Lighting Controller Service
 lsf_service_env = lsf_env.Clone()
-Install('$DISTDIR/cpp/inc/alljoyn/lighting/', 
+header_depends += lsf_service_env.Install('$DISTDIR/cpp/inc/alljoyn/lighting/', 
         Glob('standard_core_library/lighting_controller_service/inc/alljoyn/lighting/*.h'))
-Install('$DISTDIR/cpp/inc/alljoyn/lighting/service/*.h',
+header_depends += lsf_service_env.Install('$DISTDIR/cpp/inc/alljoyn/lighting/service/',
         Glob('standard_core_library/lighting_controller_service/inc/alljoyn/lighting/service/*.h'))
 lsf_service_env.Prepend(LIBS = ['alljoyn_notification', 'alljoyn_about', 'alljoyn_config', 'alljoyn_services_common'])
 lsf_service_env['service_srcs'] = Glob('standard_core_library/lighting_controller_service/src/*.cc')

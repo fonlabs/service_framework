@@ -23,7 +23,7 @@
 #include <alljoyn/lighting/ControllerService.h>
 #include <alljoyn/lighting/ServiceDescription.h>
 #include <alljoyn/lighting/DeviceIcon.h>
-#include <AllJoynStd.h>
+#include <alljoyn/AllJoynStd.h>
 
 #include <alljoyn/notification/NotificationService.h>
 #include <string>
