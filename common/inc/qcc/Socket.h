@@ -28,7 +28,7 @@
 #include <qcc/SocketTypes.h>
 #include <qcc/SocketWrapper.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 namespace qcc {
 

@@ -26,7 +26,7 @@
 #include <qcc/String.h>
 #include <qcc/Environ.h>
 #include <list>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 
 /*

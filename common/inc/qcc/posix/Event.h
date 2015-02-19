@@ -32,7 +32,7 @@
 #include <qcc/atomic.h>
 #include <qcc/Mutex.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 /*
  * Must choose either pipes (MECHANISM_PIPE) or eventfd (MECHANISM_EVENTFD) as

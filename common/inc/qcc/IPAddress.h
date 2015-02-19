@@ -33,7 +33,7 @@
 
 #include <qcc/SocketTypes.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 /** @internal */
 #define QCC_MODULE "NETWORK"

@@ -23,7 +23,7 @@
 #define _QCC_SOCKET_WRAPPER_H
 
 #include <qcc/platform.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 namespace qcc {
 
