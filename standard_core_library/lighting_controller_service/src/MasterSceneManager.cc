@@ -14,11 +14,11 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <MasterSceneManager.h>
-#include <ControllerService.h>
+#include <alljoyn/lighting/service/MasterSceneManager.h>
+#include <alljoyn/lighting/ControllerService.h>
 #include <qcc/Debug.h>
 #include <OEM_CS_Config.h>
-#include <FileParser.h>
+#include <alljoyn/lighting/FileParser.h>
 
 using namespace lsf;
 using namespace ajn;

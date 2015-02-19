@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Manager.h>
+#include <alljoyn/lighting/service/Manager.h>
 
 #include <qcc/StringUtil.h>
 #include <qcc/Debug.h>
@@ -24,7 +24,7 @@
 #include <sstream>
 #include <streambuf>
 
-#include <ControllerService.h>
+#include <alljoyn/lighting/ControllerService.h>
 
 #define QCC_MODULE "MANAGER"
 

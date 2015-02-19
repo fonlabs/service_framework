@@ -15,8 +15,8 @@
  ******************************************************************************/
 
 #include <qcc/Debug.h>
-#include <PersistenceThread.h>
-#include <ControllerService.h>
+#include <alljoyn/lighting/PersistenceThread.h>
+#include <alljoyn/lighting/ControllerService.h>
 
 using namespace lsf;
 

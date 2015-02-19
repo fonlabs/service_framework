@@ -14,14 +14,14 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LeaderElectionObject.h>
-#include <ServiceDescription.h>
+#include <alljoyn/lighting/LeaderElectionObject.h>
+#include <alljoyn/lighting/ServiceDescription.h>
 #include <qcc/Debug.h>
-#include <ControllerService.h>
+#include <alljoyn/lighting/ControllerService.h>
 #include <OEM_CS_Config.h>
 
 #include <Thread.h>
-#include <LSFSemaphore.h>
+#include <alljoyn/lighting/LSFSemaphore.h>
 
 
 #define QCC_MODULE "LEADER_ELECTION"

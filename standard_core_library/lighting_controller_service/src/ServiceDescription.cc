@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <ServiceDescription.h>
+#include <alljoyn/lighting/ServiceDescription.h>
 
 #define QCC_MODULE "SERVICE_DESCRIPTION"
 

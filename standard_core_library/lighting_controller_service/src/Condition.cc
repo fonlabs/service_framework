@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Condition.h>
-#include <Mutex.h>
+#include <alljoyn/lighting/Condition.h>
+#include <alljoyn/lighting/Mutex.h>
 
 using namespace lsf;
 

@@ -20,7 +20,7 @@
 #include <sys/wait.h>
 #include <qcc/Debug.h>
 #include <string>
-#include <ControllerService.h>
+#include <alljoyn/lighting/ControllerService.h>
 #include <fstream>
 #include <sstream>
 #include <OEM_CS_Config.h>

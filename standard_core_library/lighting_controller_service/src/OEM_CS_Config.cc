@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFPropertyStore.h>
+#include <alljoyn/lighting/LSFPropertyStore.h>
 #include <OEM_CS_Config.h>
 #include <qcc/Debug.h>
 #include <qcc/Util.h>

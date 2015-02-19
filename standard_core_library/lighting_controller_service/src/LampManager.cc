@@ -14,11 +14,11 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LampManager.h>
-#include <LSFResponseCodes.h>
+#include <alljoyn/lighting/service/LampManager.h>
+#include <alljoyn/lighting/LSFResponseCodes.h>
 #include <OEM_CS_Config.h>
 
-#include <ControllerService.h>
+#include <alljoyn/lighting/ControllerService.h>
 
 #include <alljoyn/Status.h>
 #include <qcc/Debug.h>

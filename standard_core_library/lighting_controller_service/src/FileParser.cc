@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <FileParser.h>
-#include <LSFTypes.h>
+#include <alljoyn/lighting/FileParser.h>
+#include <alljoyn/lighting/LSFTypes.h>
 #include <qcc/Debug.h>
 
 #define QCC_MODULE "FILE_PARSER"

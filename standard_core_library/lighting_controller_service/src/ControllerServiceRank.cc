@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <ControllerServiceRank.h>
+#include <alljoyn/lighting/ControllerServiceRank.h>
 #include <qcc/Debug.h>
 
 #define QCC_MODULE "LSF_CONTROLLER_SERVICE_RANK"

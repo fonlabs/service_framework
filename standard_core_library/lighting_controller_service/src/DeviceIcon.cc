@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <DeviceIcon.h>
+#include <alljoyn/lighting/DeviceIcon.h>
 
 namespace lsf {
 

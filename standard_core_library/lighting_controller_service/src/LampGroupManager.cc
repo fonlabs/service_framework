@@ -14,13 +14,13 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LampGroupManager.h>
-#include <ControllerService.h>
+#include <alljoyn/lighting/service/LampGroupManager.h>
+#include <alljoyn/lighting/ControllerService.h>
 #include <qcc/atomic.h>
 #include <qcc/Debug.h>
-#include <SceneManager.h>
+#include <alljoyn/lighting/service/SceneManager.h>
 #include <OEM_CS_Config.h>
-#include <FileParser.h>
+#include <alljoyn/lighting/FileParser.h>
 
 #include <sstream>
 #include <streambuf>
