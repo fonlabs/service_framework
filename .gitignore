@@ -2,7 +2,6 @@ whitespace.db
 .sconsign.dblite
 build/
 libs/
-bin/
 *.o
 *.so
 *.a
