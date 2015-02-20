@@ -193,31 +193,6 @@ env.Tool('Csharp', toolpath=['tools/scons'])
 env.Tool('jsdoc3', toolpath=['tools/scons'])
 
 # Create the builder that generates Status.h from Status.xml
-import sys
-import SCons.Util
-sys.path.append('tools/bin')
-import make_status
-def status_emitter(target, source, env):
-    base = SCons.Util.splitext(str(target[0]))[0]
-    target.append(base + '.h')
-    return target, source
-
-def status_action(target, source, env):
-    base = os.path.dirname(os.path.dirname(SCons.Util.splitext(str(target[1]))[0]))
-    cmdList = []
-    cmdList.append('--code=%s' % str(target[0]))
-    cmdList.append('--header=%s' % str(target[1]))
-    if env.has_key('STATUS_FLAGS'):
-        cmdList.extend(env['STATUS_FLAGS'])
-    cmdList.append(str(source[0]))
-    return make_status.main(cmdList)
-
-statusBuilder = Builder(action = status_action,
-                        emitter = status_emitter,
-                        suffix = '.cc',
-                        src_suffix = '.xml')
-env.Append(BUILDERS = {'Status' : statusBuilder})
-
 if env['OS'] in ['linux', 'openwrt']:
     env['LIBTYPE'] = 'both'
 else:

@@ -144,9 +144,6 @@ else:
 
 libcommon = commonenv.StaticLibrary('$OBJDIR_COMMON/common_static', [static_objs, status_obj])
 
-# Build unit Tests
-commonenv.SConscript('unit_test/SConscript', variant_dir='$OBJDIR_COMMON/unittest', duplicate=0, exports=['commonenv', 'libcommon'])
-
 ret = (hdrs, static_objs, shared_objs)
 
 Return('ret')
