@@ -27,8 +27,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <OEM_CS_Config.h>
-#include <Rank.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
+#include <alljoyn/lighting/Rank.h>
 
 namespace lsf {
 

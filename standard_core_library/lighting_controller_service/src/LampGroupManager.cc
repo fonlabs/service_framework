@@ -19,7 +19,7 @@
 #include <qcc/atomic.h>
 #include <qcc/Debug.h>
 #include <alljoyn/lighting/service/SceneManager.h>
-#include <OEM_CS_Config.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
 #include <alljoyn/lighting/FileParser.h>
 
 #include <sstream>

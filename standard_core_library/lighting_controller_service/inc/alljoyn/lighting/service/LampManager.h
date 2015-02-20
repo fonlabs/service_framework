@@ -26,7 +26,7 @@
 
 #include <alljoyn/lighting/service/Manager.h>
 #include <alljoyn/lighting/service/PresetManager.h>
-#include <Mutex.h>
+#include <alljoyn/lighting/Mutex.h>
 #include <alljoyn/lighting/LampClients.h>
 
 #include <string>

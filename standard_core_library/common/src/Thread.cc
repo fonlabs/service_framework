@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Thread.h>
+#include <alljoyn/lighting/Thread.h>
 #include <qcc/Debug.h>
 
 using namespace lsf;

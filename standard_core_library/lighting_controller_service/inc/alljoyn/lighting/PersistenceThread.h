@@ -23,7 +23,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Thread.h>
+#include <alljoyn/lighting/Thread.h>
 #include <alljoyn/lighting/LSFSemaphore.h>
 
 namespace lsf {

@@ -17,7 +17,7 @@
 #include <alljoyn/lighting/service/MasterSceneManager.h>
 #include <alljoyn/lighting/ControllerService.h>
 #include <qcc/Debug.h>
-#include <OEM_CS_Config.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
 #include <alljoyn/lighting/FileParser.h>
 
 using namespace lsf;

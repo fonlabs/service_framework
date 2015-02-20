@@ -15,7 +15,7 @@
  ******************************************************************************/
 #include <alljoyn/lighting/LSFPropertyStore.h>
 #include <alljoyn/lighting/PropertyParser.h>
-#include <OEM_CS_Config.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>

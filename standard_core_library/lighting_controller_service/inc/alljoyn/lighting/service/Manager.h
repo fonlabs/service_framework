@@ -34,7 +34,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <Mutex.h>
+#include <alljoyn/lighting/Mutex.h>
 #include <signal.h>
 
 namespace lsf {

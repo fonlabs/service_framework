@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFSemaphore.h>
+#include <alljoyn/lighting/LSFSemaphore.h>
 #include <qcc/Debug.h>
 
 #include <time.h>

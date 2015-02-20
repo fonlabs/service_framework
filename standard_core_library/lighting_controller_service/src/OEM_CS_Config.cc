@@ -15,7 +15,7 @@
  ******************************************************************************/
 
 #include <alljoyn/lighting/LSFPropertyStore.h>
-#include <OEM_CS_Config.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
 #include <qcc/Debug.h>
 #include <qcc/Util.h>
 

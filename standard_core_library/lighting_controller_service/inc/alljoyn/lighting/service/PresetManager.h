@@ -25,7 +25,7 @@
 
 #include <alljoyn/lighting/service/Manager.h>
 
-#include <Mutex.h>
+#include <alljoyn/lighting/Mutex.h>
 #include <alljoyn/lighting/LSFTypes.h>
 
 #include <string>

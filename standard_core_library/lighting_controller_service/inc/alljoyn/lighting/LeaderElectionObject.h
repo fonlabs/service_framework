@@ -28,10 +28,10 @@
 #include <alljoyn/BusObject.h>
 
 #include <alljoyn/lighting/LSFTypes.h>
-#include <Mutex.h>
-#include <Alarm.h>
-#include <OEM_CS_Config.h>
-#include <Rank.h>
+#include <alljoyn/lighting/Mutex.h>
+#include <alljoyn/lighting/Alarm.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
+#include <alljoyn/lighting/Rank.h>
 
 namespace lsf {
 

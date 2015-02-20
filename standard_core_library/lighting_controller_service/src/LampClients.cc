@@ -20,7 +20,7 @@
 #include <qcc/Debug.h>
 #include <algorithm>
 #include <alljoyn/lighting/ControllerService.h>
-#include <OEM_CS_Config.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
 
 using namespace lsf;
 using namespace ajn;

@@ -34,8 +34,8 @@
 #include <alljoyn/about/AnnounceHandler.h>
 #include <alljoyn/about/AnnouncementRegistrar.h>
 #include <alljoyn/notification/NotificationReceiver.h>
-#include <LSFTypes.h>
-#include <LSFKeyListener.h>
+#include <alljoyn/lighting/LSFTypes.h>
+#include <alljoyn/lighting/LSFKeyListener.h>
 
 using namespace ajn;
 using namespace std;

@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Mutex.h>
+#include <alljoyn/lighting/Mutex.h>
 
 using namespace lsf;
 

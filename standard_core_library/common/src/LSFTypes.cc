@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFTypes.h>
-#include <LampValues.h>
+#include <alljoyn/lighting/LSFTypes.h>
+#include <alljoyn/lighting/LampValues.h>
 #include <qcc/Debug.h>
 #include <algorithm>
 #include <time.h>

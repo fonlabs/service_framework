@@ -36,7 +36,7 @@
 
 
 #include <alljoyn/lighting/LSFTypes.h>
-#include <Mutex.h>
+#include <alljoyn/lighting/Mutex.h>
 
 #include <alljoyn/lighting/PersistenceThread.h>
 #include <alljoyn/lighting/LSFPropertyStore.h>

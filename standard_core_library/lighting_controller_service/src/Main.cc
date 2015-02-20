@@ -23,7 +23,7 @@
 #include <alljoyn/lighting/ControllerService.h>
 #include <fstream>
 #include <sstream>
-#include <OEM_CS_Config.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
 
 #define QCC_MODULE "MAIN"
 

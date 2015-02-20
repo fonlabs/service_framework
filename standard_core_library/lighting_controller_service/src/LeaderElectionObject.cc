@@ -18,9 +18,9 @@
 #include <alljoyn/lighting/ServiceDescription.h>
 #include <qcc/Debug.h>
 #include <alljoyn/lighting/ControllerService.h>
-#include <OEM_CS_Config.h>
+#include <alljoyn/lighting/OEM_CS_Config.h>
 
-#include <Thread.h>
+#include <alljoyn/lighting/Thread.h>
 #include <alljoyn/lighting/LSFSemaphore.h>
 
 

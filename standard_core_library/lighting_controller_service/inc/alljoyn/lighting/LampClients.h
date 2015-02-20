@@ -28,11 +28,11 @@
 #include <alljoyn/about/AnnounceHandler.h>
 #include <alljoyn/about/AnnouncementRegistrar.h>
 #include <alljoyn/lighting/LSFKeyListener.h>
-#include <Mutex.h>
+#include <alljoyn/lighting/Mutex.h>
 #include <alljoyn/lighting/service/Manager.h>
-#include <Thread.h>
+#include <alljoyn/lighting/Thread.h>
 #include <alljoyn/lighting/LSFSemaphore.h>
-#include <Alarm.h>
+#include <alljoyn/lighting/Alarm.h>
 
 #include <string>
 #include <map>

@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Rank.h>
+#include <alljoyn/lighting/Rank.h>
 #include <qcc/Debug.h>
 #include <qcc/String.h>
 #include <qcc/StringUtil.h>

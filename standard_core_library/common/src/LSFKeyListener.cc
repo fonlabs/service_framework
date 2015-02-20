@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFKeyListener.h>
+#include <alljoyn/lighting/LSFKeyListener.h>
 #include <qcc/Debug.h>
 
 #define QCC_MODULE "LSF_KEY_LISTENER"

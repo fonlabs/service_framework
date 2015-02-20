@@ -26,10 +26,10 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
-#include <Thread.h>
-#include <Mutex.h>
-#include <Condition.h>
-#include <Rank.h>
+#include <alljoyn/lighting/Thread.h>
+#include <alljoyn/lighting/Mutex.h>
+#include <alljoyn/lighting/Condition.h>
+#include <alljoyn/lighting/Rank.h>
 
 #include <alljoyn/about/AboutServiceApi.h>
 #include <alljoyn/about/PropertyStore.h>

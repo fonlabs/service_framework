@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Alarm.h>
+#include <alljoyn/lighting/Alarm.h>
 #include <qcc/Debug.h>
 
 using namespace lsf;
