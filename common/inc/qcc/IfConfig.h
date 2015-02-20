@@ -28,7 +28,7 @@
 
 #include <set>
 #include <vector>
-#include <Status.h>
+#include <alljoyn/Status.h>
 #include <qcc/String.h>
 #include <qcc/SocketTypes.h>
 

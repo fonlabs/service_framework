@@ -37,14 +37,14 @@
 #include <alljoyn/MessageReceiver.h>
 #include <qcc/platform.h>
 
-#include <alljoyn/lighting/client/ControllerClientDefs.h>
+#include <alljoyn/lighting/ControllerClientDefs.h>
 #include <alljoyn/lighting/client/LampManager.h>
 #include <alljoyn/lighting/client/LampGroupManager.h>
 #include <alljoyn/lighting/client/PresetManager.h>
 #include <alljoyn/lighting/client/SceneManager.h>
 #include <alljoyn/lighting/client/MasterSceneManager.h>
-#include <alljoyn/lighting/client/ControllerServiceManager.h>
-#include <alljoyn/lighting/client/Rank.h>
+#include <alljoyn/lighting/ControllerServiceManager.h>
+#include <alljoyn/lighting/Rank.h>
 
 namespace lsf {
 /**

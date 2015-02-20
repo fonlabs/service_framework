@@ -27,8 +27,8 @@
 
 #include <list>
 
-#include <Manager.h>
-#include <ControllerClientDefs.h>
+#include <alljoyn/lighting/client/Manager.h>
+#include <alljoyn/lighting/ControllerClientDefs.h>
 
 
 namespace lsf {

@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <SceneManager.h>
-#include <ControllerClient.h>
+#include <alljoyn/lighting/client/SceneManager.h>
+#include <alljoyn/lighting/ControllerClient.h>
 
 #include <qcc/Debug.h>
 

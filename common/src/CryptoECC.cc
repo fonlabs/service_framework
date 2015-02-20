@@ -27,7 +27,7 @@
 #include <qcc/CryptoECC.h>
 #include <qcc/Crypto.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace std;
 

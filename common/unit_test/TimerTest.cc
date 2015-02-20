@@ -18,7 +18,7 @@
 #include <deque>
 
 #include <qcc/Timer.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace std;
 using namespace qcc;

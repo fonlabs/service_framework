@@ -28,7 +28,7 @@
 #include <qcc/Debug.h>
 #include <qcc/Crypto.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 #include "OpenSsl.h"
 
 using namespace std;

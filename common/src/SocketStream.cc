@@ -27,7 +27,7 @@
 #include <qcc/Stream.h>
 #include <qcc/String.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace std;
 using namespace qcc;

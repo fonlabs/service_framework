@@ -32,7 +32,7 @@
 #include <qcc/Crypto.h>
 #include <qcc/KeyBlob.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 #include "OpenSsl.h"
 
 using namespace std;

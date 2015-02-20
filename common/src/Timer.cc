@@ -25,7 +25,7 @@
 #include <qcc/Debug.h>
 #include <qcc/Timer.h>
 #include <qcc/StringUtil.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 #include <algorithm>
 
 #define QCC_MODULE  "TIMER"

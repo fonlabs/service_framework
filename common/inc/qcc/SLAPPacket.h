@@ -25,7 +25,7 @@
 #define _QCC_SLAPPACKET_H
 #include <qcc/platform.h>
 #include <qcc/Stream.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 
 #define SLAP_HDR_LEN 4U

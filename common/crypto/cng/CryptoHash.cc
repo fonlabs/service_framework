@@ -29,7 +29,7 @@
 #include <qcc/Crypto.h>
 #include <qcc/Util.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #include <qcc/CngCache.h>
 

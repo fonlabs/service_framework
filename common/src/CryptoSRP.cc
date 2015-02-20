@@ -36,7 +36,7 @@
 #include <qcc/StringUtil.h>
 #include <qcc/Util.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace std;
 using namespace qcc;

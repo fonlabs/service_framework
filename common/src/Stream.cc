@@ -25,7 +25,7 @@
 #include <qcc/String.h>
 #include <qcc/Stream.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #define QCC_MODULE "STREAM"
 

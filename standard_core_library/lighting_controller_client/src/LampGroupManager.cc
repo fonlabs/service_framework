@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LampGroupManager.h>
-#include <ControllerClient.h>
+#include <alljoyn/lighting/client/LampGroupManager.h>
+#include <alljoyn/lighting/ControllerClient.h>
 
 #include <qcc/Debug.h>
 

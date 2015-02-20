@@ -26,7 +26,7 @@
 
 #include <qcc/Stream.h>
 #include <qcc/Timer.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 #include <map>
 namespace qcc {
 

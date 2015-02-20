@@ -28,7 +28,7 @@
 
 #include <qcc/platform.h>
 #include <qcc/Mutex.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 namespace qcc {
 

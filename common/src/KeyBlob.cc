@@ -31,7 +31,7 @@
 #include <qcc/Crypto.h>
 #include <qcc/String.h>
 #include <qcc/Util.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace std;
 using namespace qcc;

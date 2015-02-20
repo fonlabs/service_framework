@@ -16,7 +16,7 @@
  ******************************************************************************/
 #include <gtest/gtest.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 #include <qcc/Util.h>
 #include <qcc/UARTStream.h>
 #include <qcc/SLAPStream.h>

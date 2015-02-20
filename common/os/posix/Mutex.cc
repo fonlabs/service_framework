@@ -30,7 +30,7 @@
 #include <qcc/Mutex.h>
 #include <qcc/Debug.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 /** @internal */
 #define QCC_MODULE "MUTEX"

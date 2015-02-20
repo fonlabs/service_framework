@@ -21,7 +21,7 @@
  ******************************************************************************/
 #include <qcc/platform.h>
 #include <qcc/RWLock.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 /** @internal */
 #define QCC_MODULE "RWLOCK"

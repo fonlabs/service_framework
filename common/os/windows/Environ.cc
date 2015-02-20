@@ -32,7 +32,7 @@
 #include <qcc/Logger.h>
 #include <qcc/StaticGlobals.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #define QCC_MODULE "ENVIRON"
 

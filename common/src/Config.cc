@@ -32,7 +32,7 @@
 #include <qcc/String.h>
 #include <qcc/StringUtil.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #define QCC_MODULE "CONFIG"
 

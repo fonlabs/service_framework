@@ -27,7 +27,7 @@
 #include <qcc/Pipe.h>
 #include <qcc/Stream.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace std;
 using namespace qcc;

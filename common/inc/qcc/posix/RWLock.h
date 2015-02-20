@@ -26,7 +26,7 @@
 
 #include <pthread.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 namespace qcc {
 

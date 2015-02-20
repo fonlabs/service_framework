@@ -24,9 +24,9 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFTypes.h>
-#include <LSFResponseCodes.h>
-#include <Mutex.h>
+#include <alljoyn/lighting/LSFTypes.h>
+#include <alljoyn/lighting/LSFResponseCodes.h>
+#include <alljoyn/lighting/Mutex.h>
 
 namespace lsf {
 

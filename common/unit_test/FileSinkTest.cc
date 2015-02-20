@@ -17,7 +17,7 @@
 #include <gtest/gtest.h>
 #include <qcc/FileStream.h>
 #include <qcc/String.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace qcc;
 

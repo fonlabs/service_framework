@@ -23,7 +23,7 @@
 #include <qcc/Condition.h>
 #include <qcc/Thread.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace qcc;
 

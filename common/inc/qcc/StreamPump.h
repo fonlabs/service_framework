@@ -27,7 +27,7 @@
 #include <qcc/platform.h>
 #include <qcc/Stream.h>
 #include <qcc/Thread.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 namespace qcc {
 

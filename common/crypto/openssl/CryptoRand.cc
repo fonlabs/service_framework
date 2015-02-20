@@ -24,7 +24,7 @@
 
 #include <qcc/Crypto.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 #include "OpenSsl.h"
 
 #define QCC_MODULE  "CRYPTO"

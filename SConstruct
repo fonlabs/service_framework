@@ -37,8 +37,12 @@ lsf_client_static_lib = lsf_client_env.StaticLibrary('$DISTDIR/cpp/lib/lighting_
     lsf_client_env['client_objs']
     + lsf_client_env['common_objs']
 )
+lsf_client_static_lib = lsf_client_env.SharedLibrary('$DISTDIR/cpp/lib/lighting_controller_client', 
+    lsf_client_env['client_srcs']
+    + lsf_client_env['common_srcs']
+)
 lsf_client_sample = lsf_client_env.Program('$DISTDIR/cpp/test/lighting_controller_client_sample',
-    ['standard_core_library/lighting_controller_client/LightingControllerClientSample.cc'] 
+    ['standard_core_library/lighting_controller_client/test/LightingControllerClientSample.cc'] 
     + lsf_client_env['client_objs']
     + lsf_client_env['common_objs']
 )

@@ -15,8 +15,8 @@
  ******************************************************************************/
 
 #include <qcc/Debug.h>
-#include <Manager.h>
-#include <ControllerClient.h>
+#include <alljoyn/lighting/client/Manager.h>
+#include <alljoyn/lighting/ControllerClient.h>
 
 #define QCC_MODULE "MANAGER"
 

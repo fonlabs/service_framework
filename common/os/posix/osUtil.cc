@@ -37,7 +37,7 @@
 #include <qcc/Thread.h>
 #include <qcc/Util.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 
 #define QCC_MODULE  "UTIL"

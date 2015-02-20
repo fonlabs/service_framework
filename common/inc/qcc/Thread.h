@@ -27,7 +27,7 @@
 #include <qcc/String.h>
 #include <qcc/Event.h>
 #include <qcc/Mutex.h>
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #include <set>
 #include <map>

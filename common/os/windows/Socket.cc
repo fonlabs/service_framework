@@ -35,7 +35,7 @@
 #include <qcc/StringUtil.h>
 #include <qcc/windows/utility.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #define QCC_MODULE "NETWORK"
 

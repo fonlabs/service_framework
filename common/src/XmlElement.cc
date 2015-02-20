@@ -30,7 +30,7 @@
 #include <qcc/StringUtil.h>
 #include <qcc/XmlElement.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #define QCC_MODULE   "XML"
 

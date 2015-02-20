@@ -36,7 +36,7 @@
 #include <qcc/Mutex.h>
 #include <qcc/Thread.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 using namespace std;
 

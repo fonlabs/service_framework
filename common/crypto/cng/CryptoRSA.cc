@@ -31,7 +31,7 @@
 #include <qcc/Util.h>
 #include <qcc/StringUtil.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #include <qcc/CngCache.h>
 

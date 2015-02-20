@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <ControllerClientDefs.h>
-#include <LSFTypes.h>
+#include <alljoyn/lighting/ControllerClientDefs.h>
+#include <alljoyn/lighting/LSFTypes.h>
 
 namespace lsf {
 

@@ -27,7 +27,7 @@
 #include <qcc/Event.h>
 #include <qcc/ManagedObj.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #define QCC_MODULE "STREAM"
 

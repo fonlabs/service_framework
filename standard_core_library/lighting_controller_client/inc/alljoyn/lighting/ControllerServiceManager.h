@@ -25,8 +25,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <Manager.h>
-#include <ControllerClientDefs.h>
+#include <alljoyn/lighting/client/Manager.h>
+#include <alljoyn/lighting/ControllerClientDefs.h>
 
 namespace lsf {
 

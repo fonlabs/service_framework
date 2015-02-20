@@ -23,12 +23,12 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <LSFTypes.h>
-#include <Manager.h>
-#include <ControllerClientDefs.h>
+#include <alljoyn/lighting/LSFTypes.h>
+#include <alljoyn/lighting/client/Manager.h>
+#include <alljoyn/lighting/ControllerClientDefs.h>
 
 #include <list>
-#include <LSFResponseCodes.h>
+#include <alljoyn/lighting/LSFResponseCodes.h>
 
 namespace lsf {
 

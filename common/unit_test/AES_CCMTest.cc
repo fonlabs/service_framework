@@ -29,7 +29,7 @@
 #include <qcc/StringUtil.h>
 #include <qcc/Util.h>
 
-#include <Status.h>
+#include <alljoyn/Status.h>
 
 #include <gtest/gtest.h>
 
