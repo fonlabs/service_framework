@@ -17,7 +17,7 @@
 #include <alljoyn/lighting/LSFPropertyStore.h>
 #include <alljoyn/lighting/OEM_CS_Config.h>
 #include <qcc/Debug.h>
-#include <qcc/Util.h>
+#include <stdlib.h>
 
 namespace lsf {
 
@@ -62,13 +62,20 @@ bool OEM_CS_FirmwareStop(void)
     return true;
 }
 
+uint64_t Rand64(void)
+{
+    uint64_t data;
+    data = 0x414a4e4c5346 + rand() % 32768; // Lets use AJNLSF in ASCII HEX as base MAC
+    return data;
+}
+
 uint64_t OEM_CS_GetMACAddress(void)
 {
     // This is just a sample implementation and so it passes back a
     // random value. OEMs should add code here to return the MAC address
     // of the device as a 48-bit value
     while (OEM_MacAddr == 0) {
-        OEM_MacAddr = qcc::Rand64();
+        OEM_MacAddr = Rand64();
         QCC_DbgPrintf(("%s: MAC Address = %llu", __func__, OEM_MacAddr));
     }
     QCC_DbgPrintf(("%s: MAC Address = %llu", __func__, OEM_MacAddr));

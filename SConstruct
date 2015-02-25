@@ -2,12 +2,12 @@ import os
 from SCons.Script import *
 
 lsf_env = SConscript('build_core/SConscript')
-SConscript('common/SConscript')
 
 lsf_env['WS'] = None
 
+lsf_env.AppendUnique(LIBS=['pthread'])
 if lsf_env['OS'] == 'openwrt':
-    lsf_env.AppendUnique(LIBS = ['stdc++', 'pthread'])
+    lsf_env.AppendUnique(LIBS = ['stdc++'])
 elif lsf_env['BR'] == 'on':
     lsf_env.PrependUnique(LIBS = ['ajrouter', 'alljoyn'])
 

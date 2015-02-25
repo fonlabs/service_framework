@@ -25,7 +25,6 @@
 #include <alljoyn/InterfaceDescription.h>
 #include <alljoyn/DBusStd.h>
 #include <alljoyn/AllJoynStd.h>
-#include <qcc/Util.h>
 #include <qcc/Log.h>
 #include <qcc/String.h>
 #include <qcc/StringUtil.h>
