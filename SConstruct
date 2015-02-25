@@ -5,11 +5,11 @@ lsf_env = SConscript('build_core/SConscript')
 
 lsf_env['WS'] = None
 
-lsf_env.AppendUnique(LIBS=['pthread'])
+lsf_env.AppendUnique(LIBS=['pthread', 'alljoyn'])
 if lsf_env['OS'] == 'openwrt':
     lsf_env.AppendUnique(LIBS = ['stdc++'])
 elif lsf_env['BR'] == 'on':
-    lsf_env.PrependUnique(LIBS = ['ajrouter', 'alljoyn'])
+    lsf_env.PrependUnique(LIBS = ['ajrouter'])
 
 lsf_env.Append(CPPPATH = [lsf_env.Dir('$DISTDIR/cpp/inc')])
 
